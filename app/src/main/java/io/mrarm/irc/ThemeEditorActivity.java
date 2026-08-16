@@ -1,0 +1,221 @@
+package io.mrarm.irc;
+
+import androidx.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.widget.Toolbar;
+
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentActivity;
+import androidx.viewpager2.adapter.FragmentStateAdapter;
+import androidx.viewpager2.widget.ViewPager2;
+import io.mrarm.irc.setting.fragment.theme.ChatThemeSettings;
+import io.mrarm.irc.setting.fragment.theme.CommonThemeSettings;
+import io.mrarm.irc.setup.BackupProgressActivity;
+import io.mrarm.irc.util.AppCompatViewFactory;
+import io.mrarm.irc.util.theme.ThemeInfo;
+import io.mrarm.irc.util.theme.ThemeManager;
+import io.mrarm.irc.util.theme.live.LiveThemeManager;
+import io.mrarm.irc.util.theme.live.LiveThemeViewFactory;
+
+import android.content.Intent;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.webkit.MimeTypeMap;
+import android.widget.EditText;
+import android.widget.Toast;
+
+import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.tabs.TabLayoutMediator;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+import java.util.UUID;
+
+public class ThemeEditorActivity extends ThemedActivity {
+
+    public static final String ARG_THEME_UUID = "theme";
+
+    private LiveThemeManager mLiveThemeManager;
+
+    private SectionsPagerAdapter mSectionsPagerAdapter;
+
+    private Toolbar mToolbar;
+    private ViewPager2 mViewPager;
+    private TabLayout mTabLayout;
+    private TabLayoutMediator mTabLayoutMediator;
+
+    private ThemeInfo mThemeInfo;
+    private ActivityResultLauncher<Intent> mExportThemeLauncher;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        mLiveThemeManager = new LiveThemeManager(this);
+        getLayoutInflater().setFactory2(new LiveThemeViewFactory(mLiveThemeManager,
+                new AppCompatViewFactory(this)));
+
+        ThemeManager themeManager = ThemeManager.getInstance(this);
+        mThemeInfo = themeManager.getCustomTheme(
+                UUID.fromString(getIntent().getStringExtra(ARG_THEME_UUID)));
+        if (mThemeInfo == null)
+            throw new RuntimeException("Invalid theme UUID");
+
+        super.onCreate(savedInstanceState);
+        mExportThemeLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(), result ->
+                        exportThemeTo(result.getData()));
+        setContentView(R.layout.activity_theme_editor);
+
+        mToolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(mToolbar);
+        mToolbar.setTitle(mThemeInfo.name);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        mSectionsPagerAdapter = new SectionsPagerAdapter(this);
+
+        mViewPager = findViewById(R.id.container);
+        mViewPager.setAdapter(mSectionsPagerAdapter);
+
+        mTabLayout = findViewById(R.id.tabs);
+        mTabLayoutMediator = new TabLayoutMediator(mTabLayout, mViewPager,
+                (tab, position) -> tab.setText(mSectionsPagerAdapter.getPageTitle(position)));
+        mTabLayoutMediator.attach();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_settings_theme, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            onBackPressed();
+            return true;
+        }
+        if (item.getItemId() == R.id.action_rename) {
+            View view = LayoutInflater.from(this)
+                    .inflate(R.layout.dialog_edit_text, null);
+            EditText text = view.findViewById(R.id.edit_text);
+            text.setText(getThemeInfo().name);
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.action_rename)
+                    .setView(view)
+                    .setPositiveButton(R.string.action_ok, (dialog1, which) -> {
+                        getThemeInfo().name = text.getText().toString();
+                        notifyThemeNameChanged();
+                    })
+                    .setNegativeButton(R.string.action_cancel, null)
+                    .show();
+            return true;
+        } else if (item.getItemId() == R.id.action_export) {
+            Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("application/x-mrarm-irc-theme");
+            intent.putExtra(Intent.EXTRA_TITLE, getThemeInfo().name + ".irctheme");
+            mExportThemeLauncher.launch(intent);
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void exportThemeTo(Intent data) {
+        if (data == null || data.getData() == null)
+            return;
+        try {
+            Uri uri = data.getData();
+            try (ParcelFileDescriptor desc = getContentResolver().openFileDescriptor(uri, "w")) {
+                if (desc == null)
+                    throw new IOException("Unable to open theme destination");
+                BufferedWriter wr = new BufferedWriter(new FileWriter(desc.getFileDescriptor()));
+                ThemeManager.getInstance(this).exportTheme(getThemeInfo(), wr);
+                wr.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            Toast.makeText(this, R.string.error_generic, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        ThemeManager.getInstance(this).invalidateCurrentCustomTheme();
+        super.onBackPressed();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        try {
+            ThemeManager.getInstance(this).saveTheme(getThemeInfo());
+        } catch (IOException e) {
+            Log.w("ThemeEditorActivity", "Failed to save theme");
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (mTabLayoutMediator != null)
+            mTabLayoutMediator.detach();
+        super.onDestroy();
+    }
+
+    public void notifyThemeNameChanged() {
+        mToolbar.setTitle(mThemeInfo.name);
+    }
+
+    public ThemeInfo getThemeInfo() {
+        return mThemeInfo;
+    }
+
+    public LiveThemeManager getLiveThemeManager() {
+        return mLiveThemeManager;
+    }
+
+    public class SectionsPagerAdapter extends FragmentStateAdapter {
+
+        public SectionsPagerAdapter(FragmentActivity activity) {
+            super(activity);
+        }
+
+        @NonNull
+        @Override
+        public Fragment createFragment(int position) {
+            if (position == 0)
+                return new CommonThemeSettings();
+            if (position == 1)
+                return new ChatThemeSettings();
+            throw new IllegalArgumentException("Invalid theme page: " + position);
+        }
+
+        @Nullable
+        public CharSequence getPageTitle(int position) {
+            if (position == 0)
+                return getString(R.string.theme_category_common);
+            if (position == 1)
+                return getString(R.string.theme_category_chat);
+            return null;
+        }
+
+        @Override
+        public int getItemCount() {
+            return 2;
+        }
+    }
+}

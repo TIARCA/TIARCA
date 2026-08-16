@@ -1,0 +1,2372 @@
+{
+  "generatedAt": "2026-08-12T21:30:54Z",
+  "networks": [
+    {
+      "name": "2600net",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.2600.net",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:48Z",
+        "status": "measured",
+        "users": 328,
+        "channels": 230,
+        "operators": 12,
+        "servers": 4,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:14Z",
+            "users": 326,
+            "channels": 226
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:48Z",
+            "users": 330,
+            "channels": 233
+          }
+        ]
+      }
+    },
+    {
+      "name": "AfterNET",
+      "login": "SASL",
+      "endpoints": [
+        {
+          "host": "irc.afternet.org",
+          "port": 6697,
+          "tls": true
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:48Z",
+        "status": "measured",
+        "users": 313,
+        "channels": 168,
+        "operators": 22,
+        "servers": 9,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:14Z",
+            "users": 312,
+            "channels": 167
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:48Z",
+            "users": 314,
+            "channels": 168
+          }
+        ]
+      }
+    },
+    {
+      "name": "Aitvaras",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.omicron.lt",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:48Z",
+        "status": "measured",
+        "users": 280,
+        "channels": 220,
+        "operators": 16,
+        "servers": 6,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:14Z",
+            "users": 287,
+            "channels": 228
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:48Z",
+            "users": 274,
+            "channels": 213
+          }
+        ]
+      }
+    },
+    {
+      "name": "Anthrochat",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.anthrochat.net",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "official network site + live verification",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:48Z",
+        "status": "measured",
+        "users": 94,
+        "channels": 88,
+        "operators": 10,
+        "servers": 2,
+        "sizeClass": "small",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:14Z",
+            "users": 91,
+            "channels": 89
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:48Z",
+            "users": 98,
+            "channels": 88
+          }
+        ]
+      }
+    },
+    {
+      "name": "ARCNet",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "arcnet-irc.org",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:48Z",
+        "status": "measured",
+        "users": 26,
+        "channels": 18,
+        "operators": null,
+        "servers": 2,
+        "sizeClass": "small",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:14Z",
+            "users": 27,
+            "channels": 18
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:48Z",
+            "users": 26,
+            "channels": 18
+          }
+        ]
+      }
+    },
+    {
+      "name": "AustNet",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.austnet.org",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:48Z",
+        "status": "measured",
+        "users": 178,
+        "channels": 136,
+        "operators": 4,
+        "servers": 4,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:14Z",
+            "users": 180,
+            "channels": 137
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:48Z",
+            "users": 176,
+            "channels": 135
+          }
+        ]
+      }
+    },
+    {
+      "name": "AzzurraNet",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.azzurra.org",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:48Z",
+        "status": "measured",
+        "users": 224,
+        "channels": 222,
+        "operators": 7,
+        "servers": 9,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:14Z",
+            "users": 221,
+            "channels": 221
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:48Z",
+            "users": 228,
+            "channels": 223
+          }
+        ]
+      }
+    },
+    {
+      "name": "Canternet",
+      "login": "SASL",
+      "endpoints": [
+        {
+          "host": "irc.canternet.org",
+          "port": 6697,
+          "tls": true
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:48Z",
+        "status": "measured",
+        "users": 148,
+        "channels": 260,
+        "operators": 38,
+        "servers": 5,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:14Z",
+            "users": 144,
+            "channels": 260
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:48Z",
+            "users": 152,
+            "channels": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "Chat4all",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.chat4all.org",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "live verification; TLS chain invalid",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:48Z",
+        "status": "measured",
+        "users": 145,
+        "channels": 46,
+        "operators": 119,
+        "servers": 2,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:14Z",
+            "users": 145,
+            "channels": 46
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:48Z",
+            "users": 145,
+            "channels": 46
+          }
+        ]
+      }
+    },
+    {
+      "name": "ChatJunkies",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.chatjunkies.org",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:48Z",
+        "status": "measured",
+        "users": 44,
+        "channels": 14,
+        "operators": 1,
+        "servers": 1,
+        "sizeClass": "small",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:14Z",
+            "users": 42,
+            "channels": 14
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:48Z",
+            "users": 46,
+            "channels": 14
+          }
+        ]
+      }
+    },
+    {
+      "name": "chatpat",
+      "login": "Custom",
+      "endpoints": [
+        {
+          "host": "irc.unibg.net",
+          "port": 6667,
+          "tls": false
+        },
+        {
+          "host": "irc.chatpat.bg",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:48Z",
+        "status": "measured",
+        "users": 13948,
+        "channels": 744,
+        "operators": 49,
+        "servers": 44,
+        "sizeClass": "large",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:14Z",
+            "users": 14140,
+            "channels": 743
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:48Z",
+            "users": 13756,
+            "channels": 744
+          }
+        ]
+      }
+    },
+    {
+      "name": "ChatSpike",
+      "login": "SASL",
+      "endpoints": [
+        {
+          "host": "irc.chatspike.net",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:48Z",
+        "status": "measured",
+        "users": 64,
+        "channels": 58,
+        "operators": 2,
+        "servers": 4,
+        "sizeClass": "small",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:15Z",
+            "users": 65,
+            "channels": 58
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:48Z",
+            "users": 64,
+            "channels": 57
+          }
+        ]
+      }
+    },
+    {
+      "name": "DALnet",
+      "login": "NickServ",
+      "endpoints": [
+        {
+          "host": "us.dal.net",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T10:41:51Z",
+        "status": "measured",
+        "users": 6253,
+        "channels": 3428,
+        "operators": 74,
+        "servers": 36,
+        "sizeClass": "large",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:41:51Z",
+            "users": 6253,
+            "channels": 3428
+          }
+        ]
+      }
+    },
+    {
+      "name": "DarkMyst",
+      "login": "SASL",
+      "endpoints": [
+        {
+          "host": "irc.darkmyst.org",
+          "port": 6697,
+          "tls": true
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:48Z",
+        "status": "measured",
+        "users": 262,
+        "channels": 450,
+        "operators": 4,
+        "servers": 5,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:16Z",
+            "users": 250,
+            "channels": 452
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:48Z",
+            "users": 275,
+            "channels": 447
+          }
+        ]
+      }
+    },
+    {
+      "name": "darkscience",
+      "login": "SASL",
+      "endpoints": [
+        {
+          "host": "irc.darkscience.net",
+          "port": 6697,
+          "tls": true
+        },
+        {
+          "host": "irc.drk.sc",
+          "port": 6697,
+          "tls": true
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:48Z",
+        "status": "measured",
+        "users": 344,
+        "channels": 166,
+        "operators": 7,
+        "servers": 6,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:16Z",
+            "users": 351,
+            "channels": 166
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:48Z",
+            "users": 336,
+            "channels": 167
+          }
+        ]
+      }
+    },
+    {
+      "name": "DigitalIRC",
+      "login": "SASL",
+      "endpoints": [
+        {
+          "host": "irc.digitalirc.org",
+          "port": 6697,
+          "tls": true
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:48Z",
+        "status": "measured",
+        "users": 1876,
+        "channels": 109,
+        "operators": 9,
+        "servers": 6,
+        "sizeClass": "large",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:16Z",
+            "users": 1875,
+            "channels": 109
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:48Z",
+            "users": 1878,
+            "channels": 109
+          }
+        ]
+      }
+    },
+    {
+      "name": "DosersNET",
+      "login": "SASL",
+      "endpoints": [
+        {
+          "host": "irc.dosers.net",
+          "port": 6697,
+          "tls": true
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:48Z",
+        "status": "measured",
+        "users": 14,
+        "channels": 16,
+        "operators": null,
+        "servers": 1,
+        "sizeClass": "nearly_empty",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:16Z",
+            "users": 15,
+            "channels": 16
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:48Z",
+            "users": 14,
+            "channels": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "EFnet",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.choopa.net",
+          "port": 6667,
+          "tls": false
+        },
+        {
+          "host": "irc.underworld.no",
+          "port": 6667,
+          "tls": false
+        },
+        {
+          "host": "efnet.deic.eu",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:48Z",
+        "status": "measured",
+        "users": 8328,
+        "channels": 5603,
+        "operators": 92,
+        "servers": 20,
+        "sizeClass": "large",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:16Z",
+            "users": 8270,
+            "channels": 5591
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:48Z",
+            "users": 8387,
+            "channels": 5615
+          }
+        ]
+      }
+    },
+    {
+      "name": "EntropyNet",
+      "login": "SASL",
+      "endpoints": [
+        {
+          "host": "irc.entropynet.net",
+          "port": 6697,
+          "tls": true
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:48Z",
+        "status": "measured",
+        "users": 50,
+        "channels": 36,
+        "operators": 15,
+        "servers": 5,
+        "sizeClass": "small",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:18Z",
+            "users": 50,
+            "channels": 36
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:48Z",
+            "users": 50,
+            "channels": 37
+          }
+        ]
+      }
+    },
+    {
+      "name": "EsperNet",
+      "login": "SASL",
+      "endpoints": [
+        {
+          "host": "irc.esper.net",
+          "port": 6697,
+          "tls": true
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T10:40:19Z",
+        "status": "measured",
+        "users": 1385,
+        "channels": 1715,
+        "operators": 7,
+        "servers": 5,
+        "sizeClass": "large",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:19Z",
+            "users": 1385,
+            "channels": 1715
+          }
+        ]
+      }
+    },
+    {
+      "name": "EUIrc",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.euirc.net",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:49Z",
+        "status": "measured",
+        "users": 566,
+        "channels": 444,
+        "operators": 22,
+        "servers": 7,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:20Z",
+            "users": 561,
+            "channels": 438
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:49Z",
+            "users": 570,
+            "channels": 449
+          }
+        ]
+      }
+    },
+    {
+      "name": "EuropNet",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.europnet.org",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:49Z",
+        "status": "measured",
+        "users": 3271,
+        "channels": 500,
+        "operators": 142,
+        "servers": 7,
+        "sizeClass": "large",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:20Z",
+            "users": 2966,
+            "channels": 464
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:49Z",
+            "users": 3576,
+            "channels": 536
+          }
+        ]
+      }
+    },
+    {
+      "name": "GameSurge",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.gamesurge.net",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:49Z",
+        "status": "measured",
+        "users": 1736,
+        "channels": 1374,
+        "operators": 25,
+        "servers": 11,
+        "sizeClass": "large",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:21Z",
+            "users": 2039,
+            "channels": 1446
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:49Z",
+            "users": 1433,
+            "channels": 1303
+          }
+        ]
+      }
+    },
+    {
+      "name": "GeekShed",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.geekshed.net",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "official network site + live verification",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:50Z",
+        "status": "measured",
+        "users": 472,
+        "channels": 228,
+        "operators": 17,
+        "servers": 3,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:21Z",
+            "users": 469,
+            "channels": 222
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:50Z",
+            "users": 474,
+            "channels": 233
+          }
+        ]
+      }
+    },
+    {
+      "name": "German-Elite",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.german-elite.net",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:50Z",
+        "status": "measured",
+        "users": 182,
+        "channels": 86,
+        "operators": 70,
+        "servers": 2,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:22Z",
+            "users": 179,
+            "channels": 86
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:50Z",
+            "users": 185,
+            "channels": 86
+          }
+        ]
+      }
+    },
+    {
+      "name": "GIMPNet",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.gimp.org",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:50Z",
+        "status": "measured",
+        "users": 232,
+        "channels": 138,
+        "operators": 9,
+        "servers": 4,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:22Z",
+            "users": 233,
+            "channels": 139
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:50Z",
+            "users": 230,
+            "channels": 138
+          }
+        ]
+      }
+    },
+    {
+      "name": "GlobalGamers",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.globalgamers.net",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:50Z",
+        "status": "measured",
+        "users": 58,
+        "channels": 116,
+        "operators": 17,
+        "servers": 3,
+        "sizeClass": "small",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:23Z",
+            "users": 57,
+            "channels": 113
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:50Z",
+            "users": 59,
+            "channels": 119
+          }
+        ]
+      }
+    },
+    {
+      "name": "hackint",
+      "login": "SASL",
+      "endpoints": [
+        {
+          "host": "irc.hackint.org",
+          "port": 6697,
+          "tls": true
+        },
+        {
+          "host": "irc.eu.hackint.org",
+          "port": 6697,
+          "tls": true
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:50Z",
+        "status": "measured",
+        "users": 4102,
+        "channels": 1946,
+        "operators": 9,
+        "servers": 9,
+        "sizeClass": "large",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:24Z",
+            "users": 4104,
+            "channels": 1953
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:50Z",
+            "users": 4101,
+            "channels": 1939
+          }
+        ]
+      }
+    },
+    {
+      "name": "Hashmark",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.hashmark.net",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:50Z",
+        "status": "measured",
+        "users": 15,
+        "channels": 8,
+        "operators": 5,
+        "servers": 2,
+        "sizeClass": "nearly_empty",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:25Z",
+            "users": 15,
+            "channels": 8
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:50Z",
+            "users": 15,
+            "channels": 8
+          }
+        ]
+      }
+    },
+    {
+      "name": "Interlinked",
+      "login": "SASL",
+      "endpoints": [
+        {
+          "host": "irc.interlinked.me",
+          "port": 6697,
+          "tls": true
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:51Z",
+        "status": "measured",
+        "users": 69,
+        "channels": 60,
+        "operators": 3,
+        "servers": 5,
+        "sizeClass": "small",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:26Z",
+            "users": 69,
+            "channels": 60
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:51Z",
+            "users": 69,
+            "channels": 60
+          }
+        ]
+      }
+    },
+    {
+      "name": "IRC4Fun",
+      "login": "SASL",
+      "endpoints": [
+        {
+          "host": "irc.irc4fun.net",
+          "port": 6697,
+          "tls": true
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:52Z",
+        "status": "measured",
+        "users": 454,
+        "channels": 208,
+        "operators": 28,
+        "servers": 23,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:26Z",
+            "users": 450,
+            "channels": 205
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:52Z",
+            "users": 458,
+            "channels": 211
+          }
+        ]
+      }
+    },
+    {
+      "name": "IRCNet",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "ssl.irc.atw-inter.net",
+          "port": 6697,
+          "tls": true
+        },
+        {
+          "host": "irc.atw-inter.net",
+          "port": 6697,
+          "tls": true
+        },
+        {
+          "host": "ssl.ircnet.io",
+          "port": 6697,
+          "tls": true
+        }
+      ],
+      "source": "official IRCNet I-Line Lookup + live verification",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T11:53:51Z",
+        "status": "measured",
+        "users": 15251,
+        "channels": 9055,
+        "operators": 51,
+        "servers": 51,
+        "sizeClass": "large",
+        "note": "Utenti e server dall'API live ufficiale IRCNet; endpoint TLS pubblico aggiornato a ssl.irc.atw-inter.net:6697.",
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T11:53:51Z",
+            "users": 15251,
+            "channels": 9055
+          }
+        ]
+      }
+    },
+    {
+      "name": "Keyboard-Failure",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.kbfail.net",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:52Z",
+        "status": "measured",
+        "users": 30,
+        "channels": 16,
+        "operators": 9,
+        "servers": 3,
+        "sizeClass": "small",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:42:23Z",
+            "users": 29,
+            "channels": 15
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:52Z",
+            "users": 30,
+            "channels": 17
+          }
+        ]
+      }
+    },
+    {
+      "name": "Libera.Chat",
+      "login": "SASL",
+      "endpoints": [
+        {
+          "host": "irc.libera.chat",
+          "port": 6697,
+          "tls": true
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:52Z",
+        "status": "measured",
+        "users": 31461,
+        "channels": 22822,
+        "operators": 35,
+        "servers": 29,
+        "sizeClass": "large",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:27Z",
+            "users": 31649,
+            "channels": 22827
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:52Z",
+            "users": 31273,
+            "channels": 22817
+          }
+        ]
+      }
+    },
+    {
+      "name": "LibertaCasa",
+      "login": "SASL",
+      "endpoints": [
+        {
+          "host": "irc.liberta.casa",
+          "port": 6697,
+          "tls": true
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:52Z",
+        "status": "measured",
+        "users": 34,
+        "channels": 138,
+        "operators": 3,
+        "servers": 1,
+        "sizeClass": "small",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:27Z",
+            "users": 34,
+            "channels": 138
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:52Z",
+            "users": 33,
+            "channels": 138
+          }
+        ]
+      }
+    },
+    {
+      "name": "LibraIRC",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.librairc.net",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:52Z",
+        "status": "measured",
+        "users": 184,
+        "channels": 240,
+        "operators": 2,
+        "servers": 3,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:28Z",
+            "users": 197,
+            "channels": 240
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:52Z",
+            "users": 171,
+            "channels": 241
+          }
+        ]
+      }
+    },
+    {
+      "name": "LinkNet",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.link-net.org",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "live verification; TLS hostname mismatch",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T10:40:29Z",
+        "status": "unavailable",
+        "users": null,
+        "channels": null,
+        "operators": null,
+        "servers": null,
+        "sizeClass": "unknown",
+        "note": "irc.link-net.org:6667: LUSERS not returned",
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:29Z",
+            "users": null,
+            "channels": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "MindForge",
+      "login": "SASL",
+      "endpoints": [
+        {
+          "host": "irc.mindforge.org",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:53Z",
+        "status": "measured",
+        "users": 376,
+        "channels": 352,
+        "operators": 130,
+        "servers": 7,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:30Z",
+            "users": 387,
+            "channels": 353
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:53Z",
+            "users": 366,
+            "channels": 352
+          }
+        ]
+      }
+    },
+    {
+      "name": "MIXXnet",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.mixxnet.net",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:53Z",
+        "status": "measured",
+        "users": 100,
+        "channels": 54,
+        "operators": 6,
+        "servers": 6,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:30Z",
+            "users": 101,
+            "channels": 54
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:53Z",
+            "users": 98,
+            "channels": 55
+          }
+        ]
+      }
+    },
+    {
+      "name": "OFTC",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.oftc.net",
+          "port": 6697,
+          "tls": true
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:53Z",
+        "status": "measured",
+        "users": 13050,
+        "channels": 3918,
+        "operators": 18,
+        "servers": 17,
+        "sizeClass": "large",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:31Z",
+            "users": 13021,
+            "channels": 3908
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:53Z",
+            "users": 13079,
+            "channels": 3928
+          }
+        ]
+      }
+    },
+    {
+      "name": "OzOrg",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.oz.org",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:54Z",
+        "status": "measured",
+        "users": 64,
+        "channels": 36,
+        "operators": 1,
+        "servers": 2,
+        "sizeClass": "small",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:31Z",
+            "users": 65,
+            "channels": 37
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:54Z",
+            "users": 63,
+            "channels": 36
+          }
+        ]
+      }
+    },
+    {
+      "name": "PIK",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.krstarica.com",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:56Z",
+        "status": "measured",
+        "users": 172,
+        "channels": 55,
+        "operators": 46,
+        "servers": 2,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:33Z",
+            "users": 134,
+            "channels": 56
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:56Z",
+            "users": 209,
+            "channels": 54
+          }
+        ]
+      }
+    },
+    {
+      "name": "pirc.pl",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.pirc.pl",
+          "port": 6697,
+          "tls": true
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:56Z",
+        "status": "measured",
+        "users": 253,
+        "channels": 200,
+        "operators": 25,
+        "servers": 10,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:33Z",
+            "users": 244,
+            "channels": 195
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:56Z",
+            "users": 262,
+            "channels": 205
+          }
+        ]
+      }
+    },
+    {
+      "name": "PTNet",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.ptnet.org",
+          "port": 6667,
+          "tls": false
+        },
+        {
+          "host": "uevora.ptnet.org",
+          "port": 6667,
+          "tls": false
+        },
+        {
+          "host": "claranet.ptnet.org",
+          "port": 6667,
+          "tls": false
+        },
+        {
+          "host": "sonaquela.ptnet.org",
+          "port": 6667,
+          "tls": false
+        },
+        {
+          "host": "uc.ptnet.org",
+          "port": 6667,
+          "tls": false
+        },
+        {
+          "host": "ipg.ptnet.org",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:57Z",
+        "status": "measured",
+        "users": 613,
+        "channels": 298,
+        "operators": 32,
+        "servers": 12,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:33Z",
+            "users": 588,
+            "channels": 291
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:57Z",
+            "users": 638,
+            "channels": 305
+          }
+        ]
+      }
+    },
+    {
+      "name": "QuakeNet",
+      "login": "ChallengeAuth",
+      "endpoints": [
+        {
+          "host": "irc.quakenet.org",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:57Z",
+        "status": "measured",
+        "users": 5392,
+        "channels": 5590,
+        "operators": 44,
+        "servers": 23,
+        "sizeClass": "large",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:36Z",
+            "users": 5363,
+            "channels": 5547
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:57Z",
+            "users": 5420,
+            "channels": 5634
+          }
+        ]
+      }
+    },
+    {
+      "name": "Rizon",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.rizon.net",
+          "port": 6697,
+          "tls": true
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:57Z",
+        "status": "measured",
+        "users": 9224,
+        "channels": 6620,
+        "operators": 47,
+        "servers": 18,
+        "sizeClass": "large",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:38Z",
+            "users": 9121,
+            "channels": 6600
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:57Z",
+            "users": 9327,
+            "channels": 6639
+          }
+        ]
+      }
+    },
+    {
+      "name": "RusNet",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.tomsk.net",
+          "port": 6667,
+          "tls": false
+        },
+        {
+          "host": "irc.lucky.net",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T10:40:38Z",
+        "status": "unavailable",
+        "users": null,
+        "channels": null,
+        "operators": null,
+        "servers": null,
+        "sizeClass": "unknown",
+        "note": "irc.tomsk.net:6667: LUSERS not returned; irc.lucky.net:6667: LUSERS not returned",
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:38Z",
+            "users": null,
+            "channels": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "Serenity-IRC",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.serenity-irc.net",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:58Z",
+        "status": "measured",
+        "users": null,
+        "channels": 16,
+        "operators": 6,
+        "servers": null,
+        "sizeClass": "unknown",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:43:53Z",
+            "users": null,
+            "channels": 15
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:58Z",
+            "users": null,
+            "channels": 18
+          }
+        ]
+      }
+    },
+    {
+      "name": "SimosNap",
+      "login": "SASL",
+      "endpoints": [
+        {
+          "host": "irc.simosnap.com",
+          "port": 6697,
+          "tls": true
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:28:59Z",
+        "status": "measured",
+        "users": 3828,
+        "channels": 570,
+        "operators": 34,
+        "servers": 9,
+        "sizeClass": "large",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:40Z",
+            "users": 3305,
+            "channels": 562
+          },
+          {
+            "measuredAt": "2026-08-12T21:28:59Z",
+            "users": 4352,
+            "channels": 577
+          }
+        ]
+      }
+    },
+    {
+      "name": "SlashNET",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.slashnet.org",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:29:00Z",
+        "status": "measured",
+        "users": 710,
+        "channels": 288,
+        "operators": 7,
+        "servers": 5,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:40Z",
+            "users": 701,
+            "channels": 283
+          },
+          {
+            "measuredAt": "2026-08-12T21:29:00Z",
+            "users": 718,
+            "channels": 294
+          }
+        ]
+      }
+    },
+    {
+      "name": "Snoonet",
+      "login": "SASL",
+      "endpoints": [
+        {
+          "host": "irc.snoonet.org",
+          "port": 6697,
+          "tls": true
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:29:00Z",
+        "status": "measured",
+        "users": 1190,
+        "channels": 5676,
+        "operators": 13,
+        "servers": 10,
+        "sizeClass": "large",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:41Z",
+            "users": 1148,
+            "channels": 5683
+          },
+          {
+            "measuredAt": "2026-08-12T21:29:00Z",
+            "users": 1233,
+            "channels": 5669
+          }
+        ]
+      }
+    },
+    {
+      "name": "Sohbet.Net",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.sohbet.net",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:29:01Z",
+        "status": "measured",
+        "users": 584,
+        "channels": 89,
+        "operators": 5,
+        "servers": 12,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:41Z",
+            "users": 680,
+            "channels": 88
+          },
+          {
+            "measuredAt": "2026-08-12T21:29:01Z",
+            "users": 487,
+            "channels": 90
+          }
+        ]
+      }
+    },
+    {
+      "name": "SorceryNet",
+      "login": "SASL",
+      "endpoints": [
+        {
+          "host": "irc.sorcery.net",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:29:01Z",
+        "status": "measured",
+        "users": 342,
+        "channels": 447,
+        "operators": 67,
+        "servers": 1,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:42Z",
+            "users": 342,
+            "channels": 440
+          },
+          {
+            "measuredAt": "2026-08-12T21:29:01Z",
+            "users": null,
+            "channels": 454
+          }
+        ]
+      }
+    },
+    {
+      "name": "SpotChat",
+      "login": "SASL",
+      "endpoints": [
+        {
+          "host": "irc.spotchat.org",
+          "port": 6697,
+          "tls": true
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:29:01Z",
+        "status": "measured",
+        "users": 176,
+        "channels": 42,
+        "operators": 3,
+        "servers": 6,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:42Z",
+            "users": 174,
+            "channels": 43
+          },
+          {
+            "measuredAt": "2026-08-12T21:29:01Z",
+            "users": 179,
+            "channels": 42
+          }
+        ]
+      }
+    },
+    {
+      "name": "Station51",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.station51.net",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T10:40:42Z",
+        "status": "measured",
+        "users": 108,
+        "channels": 39,
+        "operators": 2,
+        "servers": 2,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:42Z",
+            "users": 108,
+            "channels": 39
+          }
+        ]
+      }
+    },
+    {
+      "name": "SwiftIRC",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.swiftirc.net",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:29:01Z",
+        "status": "measured",
+        "users": 305,
+        "channels": 274,
+        "operators": 50,
+        "servers": 4,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:42Z",
+            "users": 294,
+            "channels": 270
+          },
+          {
+            "measuredAt": "2026-08-12T21:29:01Z",
+            "users": 316,
+            "channels": 278
+          }
+        ]
+      }
+    },
+    {
+      "name": "synIRC",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.synirc.net",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:29:02Z",
+        "status": "measured",
+        "users": 1533,
+        "channels": 654,
+        "operators": 33,
+        "servers": 10,
+        "sizeClass": "large",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:43Z",
+            "users": 1526,
+            "channels": 655
+          },
+          {
+            "measuredAt": "2026-08-12T21:29:02Z",
+            "users": 1540,
+            "channels": 654
+          }
+        ]
+      }
+    },
+    {
+      "name": "TechNet",
+      "login": "SASL",
+      "endpoints": [
+        {
+          "host": "irc.technet.chat",
+          "port": 6697,
+          "tls": true
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:29:02Z",
+        "status": "measured",
+        "users": 166,
+        "channels": 144,
+        "operators": 56,
+        "servers": 7,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:45Z",
+            "users": 164,
+            "channels": 143
+          },
+          {
+            "measuredAt": "2026-08-12T21:29:02Z",
+            "users": 168,
+            "channels": 144
+          }
+        ]
+      }
+    },
+    {
+      "name": "Techtronix",
+      "login": "SASL",
+      "endpoints": [
+        {
+          "host": "irc.techtronix.net",
+          "port": 6697,
+          "tls": true
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:29:02Z",
+        "status": "measured",
+        "users": 68,
+        "channels": 33,
+        "operators": 11,
+        "servers": 4,
+        "sizeClass": "small",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:47Z",
+            "users": 67,
+            "channels": 33
+          },
+          {
+            "measuredAt": "2026-08-12T21:29:02Z",
+            "users": 68,
+            "channels": 33
+          }
+        ]
+      }
+    },
+    {
+      "name": "tilde.chat",
+      "login": "SASL",
+      "endpoints": [
+        {
+          "host": "irc.tilde.chat",
+          "port": 6697,
+          "tls": true
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:29:03Z",
+        "status": "measured",
+        "users": 808,
+        "channels": 364,
+        "operators": 18,
+        "servers": 7,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:47Z",
+            "users": 803,
+            "channels": 367
+          },
+          {
+            "measuredAt": "2026-08-12T21:29:03Z",
+            "users": 813,
+            "channels": 362
+          }
+        ]
+      }
+    },
+    {
+      "name": "TURLINet",
+      "login": "Default",
+      "endpoints": [
+        {
+          "host": "irc.servx.org",
+          "port": 6697,
+          "tls": true
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:29:03Z",
+        "status": "measured",
+        "users": 32,
+        "channels": 13,
+        "operators": 2,
+        "servers": 1,
+        "sizeClass": "small",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:44:21Z",
+            "users": 33,
+            "channels": 13
+          },
+          {
+            "measuredAt": "2026-08-12T21:29:03Z",
+            "users": 32,
+            "channels": 13
+          }
+        ]
+      }
+    },
+    {
+      "name": "UnderNet",
+      "login": "Custom",
+      "endpoints": [
+        {
+          "host": "irc.undernet.org",
+          "port": 6667,
+          "tls": false
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:29:04Z",
+        "status": "measured",
+        "users": 15400,
+        "channels": 5458,
+        "operators": 37,
+        "servers": 33,
+        "sizeClass": "large",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:49Z",
+            "users": 15168,
+            "channels": 5431
+          },
+          {
+            "measuredAt": "2026-08-12T21:29:04Z",
+            "users": 15631,
+            "channels": 5486
+          }
+        ]
+      }
+    },
+    {
+      "name": "Xertion",
+      "login": "SASL",
+      "endpoints": [
+        {
+          "host": "irc.xertion.org",
+          "port": 6697,
+          "tls": true
+        }
+      ],
+      "source": "HexChat servlist.c",
+      "verifiedAt": "2026-08-12T10:12:59Z",
+      "populationSnapshot": {
+        "measuredAt": "2026-08-12T21:29:04Z",
+        "status": "measured",
+        "users": 136,
+        "channels": 91,
+        "operators": 14,
+        "servers": 12,
+        "sizeClass": "medium",
+        "note": null,
+        "aggregationMethod": "median_last_5",
+        "sampleLimit": 5,
+        "samples": [
+          {
+            "measuredAt": "2026-08-12T10:40:50Z",
+            "users": 134,
+            "channels": 90
+          },
+          {
+            "measuredAt": "2026-08-12T21:29:04Z",
+            "users": 139,
+            "channels": 92
+          }
+        ]
+      }
+    }
+  ],
+  "populationNotice": "Valore mediano delle ultime rilevazioni LUSERS disponibili (massimo 5); utenti invisibili e bot possono essere inclusi."
+}

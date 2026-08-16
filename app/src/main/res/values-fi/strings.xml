@@ -1,0 +1,999 @@
+<resources>
+    <string name="app_name">TIARCA</string>
+    <string name="pref_header_about">Tietoja TIARCA:stä</string>
+    <string name="about_title">Tietoja TIARCA:stä</string>
+    <string name="about_body">TIARCA — TIARCA on toinen välityskeskustelusovellus\nVersio %1$s\n\nPerustuu Martin Řehákiin Revolution IRC (mcmrarm).\n\nTIARCA: muokkaukset ja ylläpito: Community Edition.\n\nLisenssi GNU General Public License v3. Vastaava lähdekoodi ja ilmoitukset on asetettava saataville julkisissa jakeluissa.\n\nSisältää avoimen lähdekoodin Android-kirjastot; niiden vastaavat lisenssit pysyvät voimassa.\n\nMedia jakaminen voi käyttää ulkoista Simosnap-palvelua. Ladattuja tiedostoja säätelevät kyseisen palvelun saatavuus- ja säilytyskäytännöt.\n\nTässä tuotteessa käytetään TMDB API:tä, mutta TMDB ei tue tai sertifioi sitä.</string>
+
+    <!-- Chat -->
+
+    <string name="navigation_drawer_open">Avaa navigointilaatikko</string>
+    <string name="navigation_drawer_close">Sulje navigointilaatikko</string>
+
+    <string name="tab_server">palvelin</string>
+    <string name="message_hint">Lähetä viesti</string>
+    <string name="message_join">%s on liittynyt</string>
+    <string name="message_kick">%s on potkinut %s (%s)</string>
+    <string name="message_part">%s on lähtenyt (%s)</string>
+    <string name="message_part_no_message">%s on lähtenyt</string>
+    <string name="message_quit">%s on katkennut (%s)</string>
+    <string name="message_nick_change">%s tunnetaan nyt nimellä %s</string>
+    <string name="message_topic">Aihe: %s</string>
+    <string name="message_topic_whotime">Aiheen asetti %s mallilla %s</string>
+    <string name="message_topic_by">Aihe: %s, asettaja %s</string>
+    <string name="message_topic_none">Aihetta ei asetettu</string>
+
+    <string name="message_host_info">Palvelimen nimi on %s, jossa on %s. Tuetut käyttäjätilat: %s, tuetut kanavatilat: %s</string>
+    <string name="message_motd">Päivän viesti</string>
+    <string name="message_whois">%s\'s käyttäjätiedot</string>
+
+    <string name="message_mode">%s %s</string>
+    <string name="message_mode_set">sarja %s</string>
+    <string name="message_mode_unset">irrotettu %s</string>
+    <string name="message_mode_gave">antoi %s:n</string>
+    <string name="message_mode_removed">poistettu %s</string>
+
+    <string name="message_mode_gave_to">%s - %s</string>
+    <string name="message_mode_removed_from">%s alkaen %s</string>
+
+    <plurals name="message_mode_channel">
+        <item quantity="one">kanavatila \'%s\'</item>
+        <item quantity="other">kanavatilat \'%s\'</item>
+    </plurals>
+    <string name="message_mode_channel_value">kanavatila \'%s\' - %s</string>
+    <string name="message_mode_channel_ban">%s:n kielto</string>
+    <string name="message_mode_nick_owner">-kanavan omistajan tila</string>
+    <string name="message_mode_nick_admin">-kanavan järjestelmänvalvojan tila</string>
+    <string name="message_mode_nick_op">-kanavan operaattorin tila</string>
+    <string name="message_mode_nick_half_op">-kanavan puolioperaattorin tila</string>
+    <string name="message_mode_nick_voice">ääni</string>
+
+    <string name="message_ctcp_ping">Vastaanotettu CTCP-ping</string>
+    <string name="message_ctcp_version">Vastaanotettu CTCP-versio</string>
+
+    <string name="command_error_not_found">Tällaista komentoa ei löytynyt.</string>
+    <string name="command_error_internal">Sisäinen virhe tapahtui yritettäessä käsitellä komentoa.</string>
+
+    <string name="command_send_raw">Lähetä raakana</string>
+
+    <string name="channel_topic">Aihe</string>
+    <string name="channel_topic_info">asetti %s mallilla %s</string>
+    <string name="channel_topic_none">Aihetta ei ole asetettu</string>
+    <string name="channel_members">jäsenet</string>
+
+
+    <string name="message_share_title">Jaa chat-viestit</string>
+
+    <string name="message_new_messages">Uusia viestejä</string>
+
+    <plurals name="unread_message_counter">
+        <item quantity="one">1 lukematon viesti</item>
+        <item quantity="other">%d lukemattomat viestit</item>
+    </plurals>
+    <plurals name="mention_counter">
+        <item quantity="one">1 maininta</item>
+        <item quantity="other">%d mainitsee</item>
+    </plurals>
+    <string name="unread_counter_with_mentions">%1$s · %2$s</string>
+    <string name="unread_99_plus">99+ lukemattomia viestejä</string>
+    <string name="action_mentions">mainitsee</string>
+    <string name="action_mark_read">Merkitse luetuksi</string>
+    <string name="action_mark_mentions_read">Merkitse kaikki maininnat luetuiksi</string>
+    <string name="mention_previous">Edellinen maininta</string>
+    <string name="mention_next">Seuraava maininta</string>
+    <string name="mention_position">Mainitse %1$d %2$d:stä</string>
+    <string name="mention_none">Tästä keskustelusta ei löytynyt mainintoja</string>
+    <string name="mention_unavailable">Tämä maininta ei ole enää saatavilla chat-historiassa</string>
+    <string name="unread_backlog_title">Lukemattomat viestit</string>
+    <string name="unread_go_first">Siirry ensimmäiseen lukemattomaan viestiin</string>
+    <string name="unread_go_latest">Siirry uusimpaan ja merkitse luetuksi</string>
+
+    <plurals name="message_delete_confirm">
+        <item quantity="one">Haluatko varmasti poistaa valitun viestin?</item>
+        <item quantity="other">Haluatko varmasti poistaa valitut %d-viestit?</item>
+    </plurals>
+    <string name="message_delete_confirm_note">Viestit poistetaan vain tästä laitteesta.</string>
+
+    <!-- Actions -->
+
+    <string name="action_ok">OK</string>
+    <string name="action_done">Valmis</string>
+    <string name="action_delete">Poista</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_cancel">Peruuta</string>
+    <string name="action_expand">Laajenna</string>
+    <string name="action_settings">Asetukset</string>
+    <string name="action_connect">Liitäntä</string>
+    <string name="action_disconnect">Irrota</string>
+    <string name="action_reconnect">Liitä uudelleen</string>
+    <string name="action_open">Avoinna</string>
+    <string name="action_back">Takaosa</string>
+    <string name="action_close">Sulje</string>
+    <string name="accessibility_send_message">Lähetä viesti</string>
+    <string name="accessibility_complete_nickname">Täydennä nimimerkki</string>
+    <string name="action_disconnect_and_close">Irrota ja sulje</string>
+    <string name="action_servers">Hallinnoi palvelimia</string>
+    <string name="network_catalog_title">Lisää palvelin</string>
+    <string name="network_catalog_manual">Lisää manuaalisesti</string>
+    <string name="network_catalog_manual_summary">Anna mukautettu osoite ja yhteysasetukset</string>
+    <string name="network_catalog_search_hint">Hakuverkot</string>
+    <string name="network_catalog_sort_users">Useimmat käyttäjät</string>
+    <string name="network_catalog_sort_name">Nimi A–Z</string>
+    <string name="network_catalog_approximately">noin %1$s käyttäjät · %2$s kanavat</string>
+    <string name="network_catalog_unavailable">väestö ei saatavilla</string>
+    <string name="network_catalog_confirm_title">Lisää %1$s?</string>
+    <string name="network_catalog_confirm_body">Palvelin: %1$s\nPort: %2$d\nTurvallisuus: %3$s\n\nTietoja voidaan muuttaa ennen tallentamista.</string>
+    <string name="network_catalog_tls">TLS käytössä</string>
+    <string name="network_catalog_plaintext">salaamaton yhteys</string>
+    <string name="network_catalog_continue">Jatka</string>
+    <string name="network_catalog_offline_notice">Offline-luettelo · väestö päivitetty sovelluksella</string>
+    <string name="server_show_advanced">Lisäasetukset</string>
+    <string name="server_hide_advanced">Piilota lisäasetukset</string>
+    <string name="action_add_below">Lisää alle</string>
+    <string name="action_add_rule">Lisää sääntö</string>
+    <string name="action_reorder">Tilaa uudelleen</string>
+    <string name="action_undo">Kumoa</string>
+    <string name="action_copy">kopio</string>
+    <string name="action_clone">Klooni</string>
+    <string name="action_continue">Jatka</string>
+    <string name="action_finish">Viimeistely</string>
+    <string name="action_search">Haku</string>
+    <string name="action_search_ellipsis">Haku…</string>
+    <string name="action_sort">Lajittele</string>
+    <string name="action_sort_none">Älä lajittele</string>
+    <string name="action_sort_name">Lajittele nimen mukaan</string>
+    <string name="action_join_channel">Liity kanavaan</string>
+    <string name="action_message_user">Viestikäyttäjä</string>
+    <string name="action_part_channel">Poistu kanavasta</string>
+    <string name="action_close_direct">Sulje keskustelu</string>
+    <string name="action_clear_all">Tyhjennä kaikki</string>
+    <string name="action_reset">Reset</string>
+    <string name="action_exit">Uloskäynti</string>
+    <string name="action_reply">Vastaa</string>
+    <string name="action_share">Share</string>
+    <string name="action_dcc_send">Lähetä DCC:n kautta</string>
+    <string name="action_accept">Hyväksy</string>
+    <string name="action_reject">Hylkääminen</string>
+    <string name="action_ask_again">Kysy uudelleen</string>
+    <string name="action_rename">Nimeä uudelleen</string>
+    <string name="action_export">vienti</string>
+    <string name="action_import_theme">Tuo teema</string>
+
+    <!-- Channel operator actions -->
+    <string name="operator_actions">Käyttäjän toimet</string>
+    <string name="operator_actions_for">Käyttäjän toimet %s:ssä</string>
+    <string name="operator_kick">-potku</string>
+    <string name="operator_kickban">Kickban isäntä</string>
+    <string name="operator_tban">Väliaikainen kieltoisäntä</string>
+    <string name="operator_mute">Mykistä isäntä</string>
+    <string name="operator_audi">Audi ident</string>
+    <string name="operator_unban_host">Poista tarkka isäntäkielto</string>
+    <string name="operator_voice">Anna ääni</string>
+    <string name="operator_mask">Ban maski</string>
+    <string name="operator_invalid_mask">Anna kelvollinen maski ilman välilyöntejä.</string>
+    <string name="operator_historical_data">Historialliset WHOWAS-tiedot</string>
+    <string name="operator_historical_data_desc">Isäntä ja tunnus kuuluvat käyttäjän viimeisimpään yhteyteen.</string>
+    <string name="operator_choose_channel">Valitse operaattorikanava</string>
+    <string name="operator_not_authorised">Käyttäjän toiminnot edellyttävät puolikäyttöistä tai korkeampaa tilaa tällä kanavalla.</string>
+    <string name="operator_reason_optional">Syy (valinnainen)</string>
+    <string name="operator_custom_reason">Mukautettu syy</string>
+    <string name="operator_duration">Kesto (esimerkiksi 3h)</string>
+    <string name="operator_invalid_duration">Syötä kesto, kuten 30m, 3h tai 1d.</string>
+    <string name="operator_confirm_title">Vahvista käyttäjän toiminta</string>
+    <string name="operator_confirm_action">Lisätäänkö %1$s malliin %2$s mallissa %3$s?</string>
+    <string name="operator_command_sent">Komento lähetetty</string>
+    <string name="file_upload_action">Lähetä tiedosto</string>
+    <string name="file_upload_title">Lähetä SimosNapilla</string>
+    <string name="file_upload_confirm">Lataa %1$s (%2$s) ja lähetä väliaikainen linkki osoitteeseen %3$s?</string>
+    <string name="file_upload_progress">Ladataan väliaikaista tiedostoa…</string>
+    <string name="file_upload_sent">Tiedosto ladattu ja linkki lähetetty</string>
+    <string name="file_upload_failed">Lataus epäonnistui: %s</string>
+    <string name="file_upload_send_failed">Tiedosto ladattiin, mutta linkkiä ei voitu lähettää: %s</string>
+    <string name="search_messages_title">Hae keskustelua</string>
+    <string name="search_messages_hint">Viestin teksti tai lempinimi</string>
+    <string name="search_messages_loading">Ladataan tallennettuja viestejä…</string>
+    <string name="search_messages_failed">Ei voitu ladata tallennettuja viestejä.</string>
+    <string name="search_messages_ready">Hae viimeisimmistä %d tallennetuista viesteistä.</string>
+    <string name="search_messages_no_results">Ei osumia.</string>
+    <string name="search_messages_count">Vastaa %1$d ja %2$d</string>
+    <string name="search_previous">Edellinen</string>
+    <string name="search_next">Seuraava</string>
+
+    <string name="action_delete_confirm_title">Oletko varma?</string>
+    <string name="action_delete_confirm_body">Haluatko varmasti poistaa %s? Tätä ei voi kumota.</string>
+
+    <!-- Format -->
+
+    <string name="format_bold">Lihavoitu</string>
+    <string name="format_italic">Kursiivi</string>
+    <string name="format_underline">Alleviivaus</string>
+    <string name="format_text_color">Tekstin väri</string>
+    <string name="format_fill_color">Taustaväri</string>
+    <string name="format_clear">Selkeä muotoilu</string>
+
+    <!-- Service -->
+
+    <string name="service_title">Yhdistetty IRC:ään</string>
+    <string name="service_open_private_chat">Avaa yksityinen keskustelu</string>
+    <string name="service_message_send_failed">Komentoa ei voitu lähettää IRC-palveluun</string>
+    <plurals name="service_status_connected">
+        <item quantity="one">Yhdistetty %d-verkkoon</item>
+        <item quantity="other">Yhdistetty %d-verkkoihin</item>
+    </plurals>
+    <plurals name="service_status_connecting">
+        <item quantity="one">muodostaa yhteyden %d-verkkoon</item>
+        <item quantity="other">muodostaa yhteyden %d-verkkoihin</item>
+    </plurals>
+    <plurals name="service_status_disconnected">
+        <item quantity="one">irrotettu %d-verkosta</item>
+        <item quantity="other">irrotettu %d-verkoista</item>
+    </plurals>
+    <plurals name="notify_multiple_messages">
+        <item quantity="one">%d lukematon viesti</item>
+        <item quantity="other">%d lukemattomat viestit</item>
+    </plurals>
+
+    <string name="notification_action_required">Tarvitaan käyttäjän toimia</string>
+
+    <string name="notification_channel_group_system">Muut ilmoitukset</string>
+    <string name="notification_channel_group_default">Ilmoitusten oletussäännöt</string>
+    <string name="notification_channel_group_user">Käyttäjäilmoitussäännöt</string>
+    <string name="notification_channel_idle">Tilailmoitus</string>
+    <string name="notification_channel_warning">Varoitusilmoitukset</string>
+
+    <!-- Connection errors -->
+
+    <string name="connection_error_no_nick">Ei nicksettiä</string>
+
+    <string name="connection_error_command_title">Virhe yhdistämisen jälkeisten komentojen käsittelyssä</string>
+    <string name="connection_error_command_notification_desc">Sisäinen virhe yritettäessä käsitellä yhteyden jälkeisiä komentoja.</string>
+    <plurals name="connection_error_command_dialog_content">
+        <item quantity="one">Seuraavan verkon komennon \"%s\" käsittelyssä tapahtui virhe:\n\n%s</item>
+        <item quantity="other">Seuraavien verkon komentojen käsittelyssä tapahtui virhe. \"%s\":\n\n%s</item>
+    </plurals>
+
+    <!-- Server list -->
+
+    <string name="server_list_header_active">aktiivinen</string>
+    <string name="server_list_header_inactive">Ei käytössä</string>
+    <plurals name="server_list_connected">
+        <item quantity="one">kytketty, %d kanava</item>
+        <item quantity="other">Yhdistetty, %d-kanavat</item>
+    </plurals>
+    <string name="server_list_connecting">Yhdistetään…</string>
+    <string name="server_list_disconnected">irrotettu</string>
+
+    <!-- Add server -->
+
+    <string name="add_server">Lisää uusi palvelin</string>
+    <string name="edit_server">Muokkaa palvelinta</string>
+    <string name="server_save_error">Palvelintietojen tallentaminen epäonnistui</string>
+    <string name="server_error_name_collision">Tämänniminen palvelin on jo olemassa</string>
+    <string name="server_error_name_empty">Palvelimen nimi ei voi olla tyhjä</string>
+    <string name="server_error_invalid_address">Virheellinen osoite</string>
+    <string name="server_error_invalid_port">Virheellinen portti</string>
+    <string name="server_address">Palvelimen osoite</string>
+    <string name="server_port">Italialainen</string>
+    <string name="server_ssl">Käytä SSL/TLS</string>
+    <plurals name="server_manage_custom_certs_text">
+        <item quantity="one">%d mukautettu sertifikaatti tallennettu</item>
+        <item quantity="other">%d mukautetut sertifikaatit tallennettu</item>
+    </plurals>
+    <string name="server_manage_custom_certs">Hallitse mukautettuja varmenteita</string>
+    <string name="server_password_unchanged">Ei muutoksia</string>
+    <string name="server_authentication_mode">Todennustila</string>
+    <string name="server_channels">Kanavien automaattinen yhdistäminen</string>
+    <string name="server_rejoin_channels">Liity uudelleen avattuihin kanaviin</string>
+    <string name="server_commands">Automaattisen suorituskomennot</string>
+    <string name="server_encoding">-koodaus</string>
+    <string name="server_nicks">lempinimet</string>
+    <string name="server_user">käyttäjä</string>
+    <string name="server_realname">Oikea nimi</string>
+    <string name="server_sasl_ext_none">Varmennetta ei ole asetettu</string>
+    <string name="server_sasl_ext_fp">Sertifikaatti sormenjälki: %s</string>
+    <string name="server_sasl_ext_import">Tuo PEM</string>
+    <string name="server_sasl_ext_create">Luo uusi</string>
+    <string name="error_cert_already_present">Määritetyssä tiedostossa on useampi kuin yksi varmennemerkintä.</string>
+    <string name="error_privkey_already_present">Määritetyssä tiedostossa on enemmän kuin yksi yksityinen avain.</string>
+    <string name="error_cert_or_privkey_missing">Määritetystä tiedostosta puuttuu joko yksityinen avain tai varmenne.</string>
+
+    <string-array name="server_auth_modes">
+        <item>Ei mitään</item>
+        <item>Käyttäjätunnus salasanalla (SASL)</item>
+        <item>-asiakassertifikaatti (CertFP)</item>
+    </string-array>
+    <string name="server_password">Palvelimen salasana</string>
+
+    <!-- Certificate manager -->
+
+    <string name="title_activity_certificate_manager">Sertifikaattiluettelo</string>
+
+    <string name="certificate_manager_empty">Mukautettuja varmenteita ei ole tallennettu.</string>
+
+    <!-- Certificate error dialog -->
+
+    <string name="certificate_error">%s\'s-sertifikaatin vahvistaminen epäonnistui</string>
+    <string name="certificate_error_ignore">Hyväksy ja jatka</string>
+    <string name="certificate_bad_cert">Järjestelmä ei tunnista seuraavaa sertifikaattia:</string>
+    <string name="certificate_bad_hostname">Isäntäkoneen varmenteessa (%1$s) antama isäntänimi ei vastaa isäntänimeä, johon muodostamme yhteyden (%2$s).</string>
+    <string name="certificate_error_footer">Sinun ei pitäisi\'t hyväksyä tätä sertifikaattia, jos et ole varma, mitä tämä tarkoittaa.</string>
+    <string name="certificate_error_remember">Muista poikkeus</string>
+
+    <!-- Channel list -->
+
+    <string name="title_activity_channel_list">Kanavaluettelo</string>
+    <string name="action_sort_member_count">Lajittele jäsenmäärän mukaan</string>
+
+    <plurals name="channel_list_title_with_member_count">
+        <item quantity="one">%s (%d-jäsen)</item>
+        <item quantity="other">%s (%d-jäsenet)</item>
+    </plurals>
+
+    <!-- Settings -->
+
+    <string name="title_activity_settings">Asetukset</string>
+
+    <string name="value_default">Oletus</string>
+    <string name="value_custom">Custom</string>
+    <string name="value_custom_specific">Custom (%s)</string>
+    <string name="value_none">Ei mitään</string>
+    <string name="value_any">Mikä tahansa</string>
+    <string name="value_always">Aina</string>
+    <string name="value_never">Ei koskaan</string>
+    <string name="value_preset">Esiasetus</string>
+    <string name="value_not_set">Ei asetettu</string>
+    <string name="value_total">Yhteensä</string>
+    <string name="value_copy">%s (kopio)</string>
+    <string name="entry_name">Nimi</string>
+    <string name="entry_text">Teksti</string>
+    <string name="entry_username">Käyttäjätunnus</string>
+    <string name="entry_password">Salasana</string>
+    <string name="entry_comment">Kommentti</string>
+
+    <string name="text_comma">", "</string>
+    <string name="text_and">\" ja \"</string>
+
+    <string name="error_generic">Tapahtui virhe.</string>
+    <string name="error_file_open">Tiedoston avaaminen epäonnistui.</string>
+
+    <!-- Time -->
+
+    <plurals name="time_seconds">
+        <item quantity="one">%d toinen</item>
+        <item quantity="other">%d sekuntia</item>
+    </plurals>
+    <plurals name="time_minutes">
+        <item quantity="one">%d minuutti</item>
+        <item quantity="other">%d minuuttia</item>
+    </plurals>
+    <plurals name="time_hours">
+        <item quantity="one">%d tunti</item>
+        <item quantity="other">%d tuntia</item>
+    </plurals>
+    <plurals name="time_days">
+        <item quantity="one">%d päivä</item>
+        <item quantity="other">%d päivää</item>
+    </plurals>
+
+    <!-- User settings -->
+
+    <string name="pref_header_user">Käyttäjätiedot</string>
+
+    <string name="pref_title_default_nick">Oletuslempinimet</string>
+    <string name="pref_title_default_user">Oletuskäyttäjä</string>
+    <string name="pref_title_default_realname">Oikea oletusnimi</string>
+    <string name="pref_title_default_quit_message">Katkaise yhteys (sulje) -viesti</string>
+    <string name="pref_title_default_part_message">Kanavan jätä viesti</string>
+
+    <string name="pref_value_default_quit_message">Quit</string>
+    <string name="pref_value_default_part_message">Leaving</string>
+
+    <!-- Interface settings -->
+
+    <string name="pref_header_interface">-liitäntä</string>
+    <string name="pref_header_language">Kieli</string>
+    <string name="pref_title_language">Sovelluksen kieli</string>
+    <string-array name="pref_entries_language">
+        <item>Järjestelmä (oletus)</item>
+        <item>Fontti</item>
+        <item>englanti</item>
+    </string-array>
+
+    <string name="pref_header_chat">Chat</string>
+    <string name="pref_title_font">Avain</string>
+    <string name="pref_title_font_size">Fonttikoko</string>
+    <string name="pref_title_hide_join_part">Piilota liittymis-/poistumisviestit</string>
+    <string name="pref_title_autocorrect">Ota tekstin automaattinen korjaus käyttöön</string>
+    <string name="pref_summary_autocorrect">Ota käyttöön näppäimistön toimittama automaattinen korjaus</string>
+    <string name="pref_title_appbar_compact_mode">Piilota verkon nimen otsikko</string>
+    <string name="pref_title_message_format">Viestin muoto</string>
+    <string name="pref_title_nick_autocomplete">Nikon/kanavan automaattinen täydennys</string>
+    <string name="pref_title_chat_box_always_multiline">Multiline lähettää tekstiruutu</string>
+    <string name="pref_summary_chat_box_always_multiline">Ota rivitys käyttöön tekstiruudussa ja korvaa lähetyspainike enterillä IME:ssä</string>
+    <string name="pref_title_chat_box_history_swipe_mode">Historiallinen pyyhkäisypohjainen navigointitila</string>
+    <string name="pref_title_chat_multi_scroll_mode">Käytä joukkoviestin valintatilaa</string>
+    <string name="pref_summary_chat_multi_scroll_mode">Ota aina vanha eräsanoman valintatila käyttöön</string>
+
+    <string name="pref_header_misc">Muuta</string>
+    <string name="pref_title_drawer_always_show_server">Näytä palvelin laatikossa</string>
+    <string name="pref_summary_drawer_always_show_server">Näytä aina Palvelin-välilehti laatikossa</string>
+    <string name="pref_title_chat_show_dcc_send">Ota käyttöön suora lähetys DCC:n kautta</string>
+    <string name="pref_summary_chat_show_dcc_send">Lisää Lähetä DCC:n kautta lähetysvalikkoon yksityisissä keskusteluissa</string>
+
+    <string name="pref_title_nick_autocomplete_show_button">Näytä painike</string>
+    <string name="pref_summary_nick_autocomplete_show_button">Näytä nick-automaattisen täydennyspainike</string>
+    <string name="pref_title_nick_autocomplete_double_tap">Kaksoisnapauta tekstikenttää</string>
+    <string name="pref_summary_nick_autocomplete_double_tap">Viimeistele nimimerkki tai kanava kaksoisnapauttamalla tekstikenttää</string>
+    <string name="pref_title_nick_autocomplete_suggestions">Ehdota nikkejä</string>
+    <string name="pref_summary_nick_autocomplete_suggestions">Näytä nimimerkkiehdotukset, kun olet kirjoittanut vähintään kaksi merkkiä</string>
+    <string name="pref_title_nick_autocomplete_at_suggestions">Ehdota merkintöjä \'@\':n jälkeen</string>
+    <string name="pref_summary_nick_autocomplete_at_suggestions">Näytä nimimerkkiehdotukset \'@\'-merkin jälkeen</string>
+    <string name="pref_title_nick_autocomplete_at_suggestions_remove_at">Poista \'@\' automaattisesti</string>
+    <string name="pref_summary_nick_autocomplete_at_suggestions_remove_at">Poista \'@\'-merkki ehdotuksen valinnan jälkeen</string>
+    <string name="pref_title_channel_autocomplete_suggestions">Ehdota kanavia</string>
+    <string name="pref_summary_channel_autocomplete_suggestions">Näytä kanavaehdotukset \'#\'-merkin kirjoittamisen jälkeen</string>
+
+    <string-array name="pref_entries_font">
+        <item>Oletus (Sans)</item>
+        <item>Serif</item>
+        <item>Monospace</item>
+    </string-array>
+    <string name="font_size_sample_text">Tämä on esimerkkiteksti, joka kertoo, miltä fonttikoko näyttää chatissa. Voit muuttaa sitä alla olevan liukusäätimen avulla.</string>
+
+    <string-array name="pref_entries_appbar_compact_mode">
+        <item>@string/value_never</item>
+        <item>@string/value_always</item>
+        <item>Jos viesteille on vähän tilaa</item>
+    </string-array>
+
+    <string-array name="pref_entries_chat_history_swipe_mode">
+        <item>Ei käytössä</item>
+        <item>Vaaka (edellinen vasemmalta oikealle)</item>
+        <item>Vaaka (edellinen oikealta vasemmalle)</item>
+        <item>Pysty (edellinen kuin ylhäältä alas)</item>
+        <item>Pysty (edellinen kuin alas ylös)</item>
+    </string-array>
+
+    <!-- Message format -->
+
+    <string name="title_activity_message_format_settings">Viestin muoto</string>
+
+    <string name="message_format">muoto</string>
+
+    <string name="message_format_date">Aikamuoto</string>
+    <string name="message_format_date_fixed_width">Kiinteä leveys</string>
+    <string name="message_format_normal">Viestin muoto</string>
+    <string name="message_format_normal_mention">Viesti mainintamuodolla</string>
+    <string name="message_format_action">Action (me) -viestimuoto</string>
+    <string name="message_format_action_mention">Action (me) -viesti mainintamuodolla</string>
+    <string name="message_format_notice">Ilmoitusviestin muoto</string>
+    <string name="message_format_event">Tapahtuman (liitty/poistu/jne.) viestin muoto</string>
+    <string name="message_format_event_hostname">Näytä käyttäjän isäntänimi</string>
+    <string name="message_format_date_invalid">Virheellinen päivämäärän/ajan muoto</string>
+
+    <string name="message_format_time">aika</string>
+    <string name="message_format_sender">-lähetin</string>
+    <string name="message_format_message">viesti</string>
+    <string name="message_format_sender_prefix">etuliite</string>
+    <string name="message_format_time_add">Aika</string>
+    <string name="message_format_sender_add">lähetin</string>
+    <string name="message_format_message_add">Viesti</string>
+    <string name="message_format_wrap_anchor_add">Kääriankkuri</string>
+    <string name="message_format_sender_prefix_add">Lähettäjän etuliite</string>
+
+    <string name="message_format_add_chip">Lisää muotosiru</string>
+    <string name="message_format_sender_color">Nick väri</string>
+
+    <string name="message_example_sender">lähettäjänimi</string>
+    <string name="message_example_message">Tämä on esimerkkiviesti.</string>
+
+    <string-array name="time_format_presets_desc">
+        <item>24 tunnin aika suluissa</item>
+        <item>24 tunnin aika</item>
+        <item>24 tunnin aika sekunneilla</item>
+        <item>12 tunnin aika</item>
+    </string-array>
+
+    <!-- Theme settings -->
+
+    <string name="pref_header_theme">teema</string>
+
+    <string name="theme_create_new">Luo uusi teema</string>
+    <string name="theme_custom_default_name">@string/value_custom</string>
+
+    <string name="title_activity_theme_editor">Teemaeditori</string>
+
+    <string name="theme_category_common">Yleinen</string>
+    <string name="theme_base">Perusteema</string>
+    <string name="theme_color_primary">Pääväri</string>
+    <string name="theme_color_primary_dark">Ensisijainen tumma väri</string>
+    <string name="theme_color_accent">Korostusväri</string>
+    <string name="theme_color_action_bar_text_primary">Appbar-tekstin väri</string>
+    <string name="theme_color_action_bar_text_secondary">Appbarin toissijainen tekstiväri</string>
+    <string name="theme_color_status_bar_light">Valon tilapalkki</string>
+    <string name="theme_color_background">Taustaväri</string>
+    <string name="theme_color_background_floating">Taustaväri (ponnahdusikkunat / kelluva)</string>
+    <string name="theme_color_text_primary">Tekstin ensisijainen väri</string>
+    <string name="theme_color_text_secondary">Toissijainen tekstin väri</string>
+    <string name="theme_color_icon">Ikonin väri</string>
+    <string name="theme_color_icon_opaque">Ikonin väri (läpinäkymätön, käytetään tekstin kanssa)</string>
+
+    <string name="theme_category_chat">Chat</string>
+    <string name="theme_category_chat_irc">IRC -muotoilukoodit</string>
+    <string name="theme_color_irc_black">musta</string>
+    <string name="theme_color_irc_white">Valkoinen</string>
+    <string name="theme_color_irc_blue">Sininen</string>
+    <string name="theme_color_irc_green">Vihreä</string>
+    <string name="theme_color_irc_light_red">Vaaleanpunainen</string>
+    <string name="theme_color_irc_brown">Ruskea</string>
+    <string name="theme_color_irc_purple">Purppura</string>
+    <string name="theme_color_irc_orange">Oranssi</string>
+    <string name="theme_color_irc_yellow">Keltainen</string>
+    <string name="theme_color_irc_light_green">Vaaleanvihreä</string>
+    <string name="theme_color_irc_cyan">syaani</string>
+    <string name="theme_color_irc_light_cyan">Vaalea syaani</string>
+    <string name="theme_color_irc_light_blue">Vaaleansininen</string>
+    <string name="theme_color_irc_pink">vaaleanpunainen</string>
+    <string name="theme_color_irc_gray">Harmaa</string>
+    <string name="theme_color_irc_light_gray">Vaaleanharmaa</string>
+    <string name="theme_category_chat_message">Viestit</string>
+    <string name="theme_color_message_timestamp">Viestin aikaleima</string>
+    <string name="theme_color_message_status_text">Viestin tilateksti</string>
+    <string name="theme_color_message_disconnected">Katkaisuviesti</string>
+    <string name="theme_color_message_topic">Aiheviesti</string>
+    <string name="theme_category_chat_member_list">Jäsenluettelo</string>
+    <string name="theme_color_member_owner">Omistajat</string>
+    <string name="theme_color_member_admin">Järjestelmänvalvojat</string>
+    <string name="theme_color_member_op">Operaattorit</string>
+    <string name="theme_color_member_half_op">Puolioperaattorit</string>
+    <string name="theme_color_member_voice">Äänijäsenet</string>
+    <string name="theme_color_member_normal">Normaalit jäsenet</string>
+
+    <string name="theme_default_dark">oletus (tumma)</string>
+
+    <!-- Notification settings -->
+
+    <string name="pref_header_notifications">Ilmoitukset</string>
+
+    <string name="notification_custom_rules">Mukautetut säännöt</string>
+    <string name="notification_tip_no_custom_rules">Mukautettuja sääntöjä ei ole. Voit lisätä sellaisen plus-painikkeella oikeassa alakulmassa.</string>
+    <string name="notification_custom_rule_deleted">Ilmoitussääntö poistettu.</string>
+    <string name="notification_rule_name_collision">Tämänniminen ilmoitussääntö on jo olemassa</string>
+    <string name="notification_rule_regex_invalid">Virheellinen säännöllinen lauseke</string>
+
+    <string name="notification_rule_nick">Nick mainitsee</string>
+    <string name="notification_rule_chan_messages">Kanavan viestit</string>
+    <string name="notification_rule_direct">Yksityisviestit</string>
+    <string name="notification_rule_notice">Yksityistiedot</string>
+    <string name="notification_rule_chan_notice">Kanavan huomautukset</string>
+    <string name="notification_rule_zncplayback">Poista ZNC-toistoilmoitukset käytöstä</string>
+
+    <string name="title_activity_edit_notification_settings">Ilmoitusasetukset</string>
+
+    <string name="notification_header_match">ottelu</string>
+    <string name="notification_match_mode">-tila</string>
+    <string name="notification_match_case">Kirjainherkkä</string>
+
+    <string-array name="notification_match_modes">
+        <item>Sisältää</item>
+        <item>Sisältää sanan</item>
+        <item>Regex</item>
+    </string-array>
+
+    <string name="notification_header_applies_to">Koskee</string>
+    <string name="notification_rule_server">palvelin</string>
+    <string name="notification_rule_summary_any_server">Mikä tahansa palvelin</string>
+    <string name="notification_rule_summary_any_channel">mikä tahansa kanava</string>
+    <plurals name="notification_rule_summary_multi_channels">
+        <item quantity="one">%d kanavat</item>
+        <item quantity="other">%d kanavat</item>
+    </plurals>
+    <string name="notification_rule_summary_any_nick">mikä tahansa nick</string>
+    <plurals name="notification_rule_summary_multi_nicks">
+        <item quantity="one">%d kolot</item>
+        <item quantity="other">%d kolot</item>
+    </plurals>
+
+    <string name="notification_header_options">Vaihtoehdot</string>
+    <string name="notification_mention">Käytä mainintamuotoilua</string>
+    <string name="notification_show">Näytä ilmoitus</string>
+    <string name="notification_sound">Ääni</string>
+    <string name="notification_vibration">Tärinä</string>
+    <string name="notification_priority">Priority</string>
+    <string name="notification_color">LED Väri</string>
+    <string name="notification_android_settings_link">Lisää asetuksia…</string>
+
+    <string-array name="notification_vibration_options">
+        <item>Oletus</item>
+        <item>lyhyt</item>
+        <item>pitkä</item>
+        <item>Ei käytössä</item>
+    </string-array>
+    <string-array name="notification_priority_options">
+        <item>Normaali</item>
+        <item>High (oletus)</item>
+        <item>Korkein</item>
+    </string-array>
+
+    <!-- Reconnect settings -->
+
+    <string name="pref_header_reconnect">Uudelleenkytkentä</string>
+    <string name="pref_title_start_on_boot">Käynnistä käynnistyksen yhteydessä</string>
+    <string name="pref_description_start_on_boot">Käynnistä sovellus automaattisesti järjestelmän uudelleenkäynnistyksen jälkeen</string>
+    <string name="pref_title_auto_reconnect">Yhdistä automaattisesti uudelleen</string>
+    <string name="pref_description_auto_reconnect">Yritä yhdistää automaattisesti uudelleen yhteyden katkeamisen jälkeen</string>
+    <string name="pref_title_reconnect_connchg">Seuraa liitettävyyden muutoksia</string>
+    <string name="pref_description_reconnect_connchg">Yritä muodostaa yhteys automaattisesti yhteyden muuttamisen jälkeen</string>
+    <string name="pref_title_reconnect_wifi">Yhdistä uudelleen vain WiFi-yhteydellä</string>
+    <string name="pref_description_reconnect_wifi">Yritä muodostaa yhteys uudelleen vain, kun käytät WiFi-yhteyttä</string>
+    <string name="pref_title_reconnect_pattern">Uudelleenkytkentäväli</string>
+    <string name="reconnect_header_interval">intervalli</string>
+    <string name="reconnect_header_tries">yrittää</string>
+
+    <plurals name="reconnect_desc_tries">
+        <item quantity="one">\"(%d try)\"</item>
+        <item quantity="other">\"(%d yrittää)\"</item>
+    </plurals>
+
+    <string-array name="duration_types">
+        <item>sekuntia</item>
+        <item>minuuttia</item>
+        <item>tuntia</item>
+    </string-array>
+
+    <!-- Ping settings (currently under reconnect settings) -->
+
+    <string name="pref_title_ping_enabled">Lähetä ajoittain syke</string>
+    <string name="pref_description_ping_enabled">Lähetä ajoittain syke (ping) palvelimelle varmistaaksesi, että yhteys on edelleen toiminnassa. Tämä voi lisätä akun kulumista.</string>
+    <string name="pref_title_ping_wifi">Lähetä sydämenlyönti vain WiFi-yhteydellä</string>
+    <string name="pref_description_ping_wifi">Lähetä syke vain, kun käytät WiFi-yhteyttä</string>
+    <string name="pref_title_ping_interval">Sykeväli</string>
+
+    <!-- Command aliases settings -->
+
+    <string name="pref_header_command_aliases">Komentoaliakset</string>
+    <string name="title_activity_edit_command_alias">Muokkaa komennon aliasta</string>
+    <string name="title_activity_add_command_alias">Lisää komennon alias</string>
+    <string name="title_activity_view_command_alias">Näytä komennon alias</string>
+
+    <string name="edit_command_alias_error_name_collision">Tällä nimellä ja syntaksilla varustettu komentoalias on jo olemassa.</string>
+
+    <string name="edit_command_alias_type">tyyppi</string>
+    <string name="edit_command_alias_syntax">Syntaksi</string>
+    <string name="edit_command_alias_channel">kanava</string>
+
+    <string-array name="edit_command_alias_types">
+        <item>Viesti</item>
+        <item>Asiakaskomento</item>
+        <item>Raw</item>
+    </string-array>
+
+    <!-- Storage settings -->
+
+    <string name="pref_header_storage">Säilytys</string>
+
+    <string name="pref_storage_chat_logs_title">Chat-historia</string>
+    <string name="pref_storage_change_limits">Muuta rajoja</string>
+    <string name="pref_storage_configuration_title">-kokoonpano</string>
+
+    <string name="pref_storage_reset_configuration">Nollaa kokoonpano</string>
+    <string name="pref_storage_reset_configuration_confirm">Oletko varma, että haluat nollata sovelluksen\'s-kokoonpanon? Kaikki palvelin- ja keskusteluhistoriatiedot menetetään.</string>
+
+    <string name="pref_storage_clear_all_chat_logs">Poista kaikki chat-lokit</string>
+    <string name="pref_storage_clear_all_chat_logs_confirm">Haluatko varmasti poistaa kaikki chat-lokit?</string>
+
+    <string name="pref_storage_clear_server_chat_logs">Poista palvelimen keskusteluhistoria</string>
+
+    <string name="pref_header_storage_limits">Rajat</string>
+    <string name="pref_storage_limit_global_title">Maailmanlaajuinen keskusteluhistorian tallennusraja</string>
+    <string name="pref_storage_limit_def_server_title">Palvelinkohtainen keskusteluhistorian tallennusraja</string>
+    <string name="pref_storage_no_limit">Ei rajoitusta</string>
+    <string name="pref_storage_limit_notice">Huomaa, että nämä ovat pehmeitä rajoja ja ne voidaan joskus ylittää.</string>
+
+    <string name="pref_storage_set_server_limit">Aseta palvelinraja</string>
+    <string name="pref_storage_change_server_limit">Muuta palvelimen rajaa</string>
+    <string name="pref_storage_remove_server_limit">Nollaa mukautettu palvelinraja</string>
+    <string name="pref_storage_limit_server_title">Palvelimen chatin tallennusraja</string>
+
+    <!-- Backup settings -->
+
+    <string name="pref_header_backup">Varmuuskopio</string>
+
+    <string name="backup_create">Luo uusi varmuuskopio</string>
+    <string name="backup_restore">Palauta varmuuskopio</string>
+
+    <string name="title_activity_backup">Varmuuskopio</string>
+    <string name="title_activity_restore">Restore</string>
+    <string name="title_activity_backup_password">Aseta salasana</string>
+    <string name="title_activity_backup_password_restore">Anna salasana</string>
+    <string name="title_activity_backup_progress">Varmuuskopion luominen</string>
+    <string name="title_activity_backup_progress_restore">Varmuuskopion palauttaminen</string>
+
+    <string name="backup_desc">Jotta voit palauttaa sovelluksen asetukset myöhemmin, esimerkiksi järjestelmän uudelleenasennuksen jälkeen, sinun kannattaa ehkä luoda asetusten varmuuskopio ja tallentaa se turvalliseen paikkaan.</string>
+    <string name="backup_password_text">Varmuuskopio sisältää kaikki asetuksesi, mukaan lukien palvelintiedot ja salaamattomat salasanat. On suositeltavaa asettaa salasana, jota tarvitaan tietojen palauttamiseen varmuuskopiosta.</string>
+    <string name="backup_restore_password_text">Määritetty varmuuskopio on suojattu salasanalla. Jotta voit palauttaa sen, sinun on syötettävä salasana.</string>
+
+    <string name="backup_created">Varmuuskopiotiedoston luominen onnistui.</string>
+    <string name="backup_cancelled">Varmuuskopion luominen on peruutettu.</string>
+    <string name="backup_restored">Varmuuskopiotiedoston palautus onnistui.</string>
+    <string name="backup_restore_cancelled">Restaurointi on peruutettu.</string>
+    <string name="backup_restore_invalid">Määritetty varmuuskopiotiedosto on virheellinen.</string>
+    <string name="backup_restore_invalid_password">Virheellinen salasana</string>
+    <string name="backup_restore_password_not_empty">Salasana ei saa olla tyhjä</string>
+
+    <!-- Setup -->
+
+    <string name="please_wait_generic">Odota…</string>
+
+    <!-- Ignore list -->
+
+    <string name="title_activity_ignore_list">Ohita luettelo</string>
+    <string name="title_activity_ignore_list_network">Ohita %s:n luettelo</string>
+    <string name="title_activity_edit_ignore_entry">Muokkaa ohitusmerkintää</string>
+    <string name="title_activity_add_ignore_entry">Lisää ohitusmerkintä</string>
+
+    <!-- User info -->
+
+    <string name="user_title_away">%s (poissa)</string>
+    <string name="user_nick">Nick</string>
+    <string name="user_hostname">Isäntänimi</string>
+    <string name="user_server">palvelin</string>
+    <string name="user_server_format">%s (%s)</string>
+    <string name="user_channels">-kanavat</string>
+    <string name="user_idle">Tyhjäkäyntiaika</string>
+    <string name="user_server_op">Palvelimen operaattorin tila</string>
+    <string name="user_server_op_desc">Tämä käyttäjä on IRC-palvelinoperaattori</string>
+    <string name="user_secure">Yhteyden suojaustila</string>
+    <string name="user_secure_desc">Tämä käyttäjä käyttää suojattua yhteyttä</string>
+    <string name="user_account">-tili</string>
+    <string name="user_away">Poissa viesti</string>
+
+    <string name="user_info_copied">Kopioitu %s leikepöydälle.</string>
+
+    <!-- Color picker -->
+
+    <string name="color_picker_title">Valitse väri</string>
+    <string name="color_picker_palette">Valitse väri paletista</string>
+
+    <string name="color_value_hex">Hex-koodi</string>
+    <string name="color_value_red">punainen</string>
+    <string name="color_value_green">Vihreä</string>
+    <string name="color_value_blue">Sininen</string>
+    <string name="color_value_alpha">Alpha</string>
+
+    <string-array name="color_picker_color_names">
+        <item>musta</item>
+        <item>Valkoinen</item>
+        <item>Sininen</item>
+        <item>Vihreä</item>
+        <item>Vaaleanpunainen</item>
+        <item>Ruskea</item>
+        <item>Purppura</item>
+        <item>Oranssi</item>
+        <item>Keltainen</item>
+        <item>Vaaleanvihreä</item>
+        <item>syaani</item>
+        <item>Vaalea syaani</item>
+        <item>Vaaleansininen</item>
+        <item>vaaleanpunainen</item>
+        <item>Harmaa</item>
+        <item>Vaaleanharmaa</item>
+    </string-array>
+
+    <!-- IRC link handler -->
+
+    <string name="title_activity_irc_link">Liity kanavaan</string>
+    <string name="irc_link_pick_header">Valitse liitäntä %2$s:n liittämiseksi %1$s:ssä</string>
+    <string name="irc_link_show_all">Näytä muut liitännät</string>
+
+    <!-- DCC -->
+
+    <string name="title_activity_dcc">DCC siirrot</string>
+    <string name="notification_channel_dcc">@string/title_activity_dcc</string>
+    <string name="dcc_summary_notification_title">DCC -siirrot käynnissä</string>
+    <plurals name="dcc_summary_notification_text">
+        <item quantity="one">%d siirto käynnissä</item>
+        <item quantity="other">%d -siirrot käynnissä</item>
+    </plurals>
+    <string name="dcc_active_upload_transfer_status">Lähetetään numeroon %s</string>
+    <string name="dcc_active_download_transfer_status">Ladataan kohteesta %s</string>
+    <string name="dcc_active_waiting_for_connection">Odotetaan yhteyttä…</string>
+    <string name="dcc_active_waiting_for_approval">Odotetaan käyttäjän hyväksyntää…</string>
+    <string name="dcc_approve_notification_body">%s (palvelimelta: %s) on lähettänyt sinulle tiedoston</string>
+    <string name="dcc_history_upload">Ladattu %2$s numeroon %3$s (%1$s)</string>
+    <string name="dcc_history_download">Ladattu %2$s kohteesta %3$s (%1$s)</string>
+    <string name="dcc_history_download_failed">%2$s:n lataaminen kohteesta %1$s epäonnistui</string>
+
+    <string name="dcc_approve_download_title">DCC tiedosto: %s</string>
+    <string name="dcc_approve_download_title_with_size">DCC tiedosto: %s (%s)</string>
+    <string name="dcc_approve_download_body">%s (palvelimelta: %s) on lähettänyt sinulle tiedoston.\n\nVaroitus: Tämä lataus lähetetään suojaamattoman &amp; salaamattoman yhteyden kautta. Kun hyväksyt tämän latauksen, toinen osapuoli näkee IP-osoitteesi. Sinun tulee hyväksyä se vain, jos luotat tähän käyttäjään.</string>
+    <string name="dcc_approve_download_enable_anyway">Ota silti käyttöön</string>
+
+    <string name="dcc_enable_send_warning_title">Turvavaroitus</string>
+    <string name="dcc_enable_send_warning_body">DCC on vanha peer to peer -tiedostonjakoprotokolla, ja tiedostot lähetetään suojaamattoman ja salaamattoman yhteyden kautta. Tämä tarkoittaa, että hyökkääjät voivat kopioida tai manipuloida kaikkia ominaisuudella lähetettyjä tietoja, erityisesti julkisissa WiFi-verkoissa.\nALisäksi protokollan\' luonteen vuoksi, kun jaat tiedostoja DCC:n avulla, annat myös IP-osoitteesi toiselle osapuolelle. DCC ei yleensä toimi mobiilidataa käytettäessä, eikä se välttämättä toimi joissakin WiFi-yhteyksissä.\n\n Tämän vuoksi suosittelemme, että käytät sen sijaan kolmannen osapuolen jakamispalveluita ja jaat linkin vain kohdekäyttäjän kanssa DCC:n sijaan.</string>
+
+    <string name="dcc_system_downloads_permission_dialog_title">Lataukset-kansion käyttöoikeus</string>
+    <string name="dcc_system_downloads_permission_dialog_text">Lataukset-kansion käyttöoikeus on evätty, ja siksi käytetään sovelluksen sisäistä lataushakemistoa. Jos tätä ei haluta, napsauta Kysy uudelleen.</string>
+
+    <string name="dcc_set_download_dir">Aseta lataushakemisto</string>
+    <string name="dcc_download_dir_application">Sovellus</string>
+    <string name="dcc_download_dir_system">järjestelmä</string>
+    <string name="dcc_download_dir_custom">Custom</string>
+
+    <string name="dcc_error_no_activity">Sovellusta ei löytynyt määritetyn tiedoston avaamiseksi</string>
+
+    <!-- Channel moderation, media sharing and local search -->
+    <string name="action_apply">Käytä</string>
+    <string name="action_whois">WHOIS</string>
+
+    <string name="channel_modes_menu">Kanavatilat</string>
+    <string name="action_list_channels">Listaa kanavat</string>
+    <string name="channel_modes_title">-tilat mallille %s</string>
+    <string name="channel_modes_loading">Ladataan aktiivisia kanavatiloja…</string>
+    <string name="channel_modes_failed">Kanavatiloja ei voitu ladata.</string>
+    <string name="channel_modes_timeout">Palvelin ei palauttanut aktiivisia kanavatiloja.</string>
+    <string name="channel_modes_none">Tämä palvelin ei mainostanut muokattavia lipputiloja.</string>
+    <string name="channel_modes_no_changes">Tilamuutoksia ei ole valittu.</string>
+    <string name="channel_modes_profile">Määritelmät: %s</string>
+    <string name="channel_modes_profile_inspircd3">InspIRCd 3</string>
+    <string name="channel_modes_profile_inspircd4">InspIRCd 4</string>
+    <string name="channel_modes_profile_generic">IRC vakio / palvelimen mainostamat tyypit</string>
+    <string name="channel_mode_key">Kanavapainike (+k)</string>
+    <string name="channel_mode_limit">Käyttäjäraja (+l)</string>
+    <string name="channel_mode_key_hint">Avain</string>
+    <string name="channel_mode_limit_hint">Enimmäiskäyttäjät</string>
+    <string name="channel_mode_value_required">Anna arvo tilalle +%s.</string>
+    <string name="channel_mode_desc_i">Vain kutsu -kanava</string>
+    <string name="channel_mode_desc_m">Vain äänekkäät tai etuoikeutetut käyttäjät voivat puhua</string>
+    <string name="channel_mode_desc_n">Estä viestit kanavan ulkopuolelta</string>
+    <string name="channel_mode_desc_t">Vain kanavaoperaattorit voivat vaihtaa aihetta</string>
+    <string name="channel_mode_desc_s">Salainen kanava, piilotettu julkisilta listoilta</string>
+    <string name="channel_mode_desc_p">Yksityinen kanava</string>
+    <string name="channel_mode_desc_c">Estä viestit, jotka sisältävät IRC-värejä</string>
+    <string name="channel_mode_desc_C">Estä CTCP-viestit</string>
+    <string name="channel_mode_desc_A">Salli kanavan jäsenten kutsua käyttäjiä</string>
+    <string name="channel_mode_desc_D">Piilota liitokset, kunnes käyttäjä puhuu</string>
+    <string name="channel_mode_desc_K">Poista KNOCK-pyynnöt käytöstä</string>
+    <string name="channel_mode_desc_M">Vain rekisteröityneet käyttäjät voivat puhua</string>
+    <string name="channel_mode_desc_N">Estä lempinimen muutokset</string>
+    <string name="channel_mode_desc_O">Kanava varattu IRC-operaattoreille</string>
+    <string name="channel_mode_desc_Q">Block potkut kanavasta</string>
+    <string name="channel_mode_desc_R">Vain rekisteröityneet käyttäjät voivat liittyä</string>
+    <string name="channel_mode_desc_S">Strip IRC värit ja muotoilut viesteistä</string>
+    <string name="channel_mode_desc_T">Estä NOTICE-viestit</string>
+    <string name="channel_mode_desc_U">Etuoikeutetut viestit näkyvät vain etuoikeutetuille käyttäjille</string>
+    <string name="channel_mode_desc_r">Rekisteröity kanava</string>
+    <string name="channel_mode_desc_u">Auditorium: piilota etuoikeutetut käyttäjät toisiltaan</string>
+    <string name="channel_mode_desc_z">Vaadi suojattu TLS-yhteys liittyäksesi</string>
+    <string name="channel_mode_desc_unknown">Palvelimen määrittämä kytkintila (ei parametria)</string>
+    <string name="channel_mode_managed">palvelimen tai palveluiden hallinnassa</string>
+
+    <string name="ban_list_menu">Kieltoluettelo</string>
+    <string name="ban_list_title">Kieltoluettelo mallille %s</string>
+    <string name="ban_list_loading">Ladataan kieltoluetteloa…</string>
+    <string name="ban_list_failed">Kieltoluetteloa ei voitu ladata.</string>
+    <string name="ban_list_host">Isäntä / maski</string>
+    <string name="ban_list_setter">Tekijä</string>
+    <string name="ban_list_date">Päivämäärä</string>
+    <string name="ban_list_select_all">Valitse kaikki</string>
+    <string name="ban_list_remove_selected">Poista valittu</string>
+    <string name="ban_list_empty">Kieltoluettelo on tyhjä.</string>
+    <string name="ban_list_unknown">Tuntematon</string>
+    <string name="ban_list_select_one">Valitse vähintään yksi esto.</string>
+    <string name="ban_list_confirm_title">Poistetaanko valitut kiellot?</string>
+    <string name="ban_list_cleanup">Puhdistus 6-30h</string>
+    <string name="ban_list_cleanup_none">Sopivia identiteetti- tai isäntäkieltoja ei löytynyt 6–30 tunnin ikäisiltä.</string>
+    <string name="ban_list_cleanup_confirm_title">Poistetaanko väliaikaiset kiellot?</string>
+    <plurals name="ban_list_cleanup_confirm_message">
+        <item quantity="one">%d kelvollinen kielto on valittu. j: ja R: merkinnät, tuntemattomat päivämäärät ja muut maskityypit eivät sisälly.</item>
+        <item quantity="other">%d kelvolliset kiellot on valittu. j: ja R: merkinnät, tuntemattomat päivämäärät ja muut maskityypit eivät sisälly.</item>
+    </plurals>
+    <string name="ban_list_cleanup_review">Tarkista valinta</string>
+    <string name="ban_list_cleanup_remove">Poista nyt</string>
+
+    <string name="youtube_search_empty">Kirjoita haku !yt.</string>
+    <string name="youtube_search_failed">YouTube-tulosta ei voitu hakea. Yritä myöhemmin uudelleen.</string>
+    <!-- Configurable quick commands -->
+    <string name="pref_header_quick_commands">Pikakomennot</string>
+    <string name="pref_header_operator_actions">Käyttäjän toimet</string>
+    <string name="pref_operator_reasons_header">esiasetetut Kickban ja TBAN syyt</string>
+    <string name="pref_operator_reason_number">Syy %1$d</string>
+    <string name="pref_operator_reason_empty">Ei asetettu</string>
+    <string name="pref_quick_commands_enabled">Ota pikakomennot käyttöön</string>
+    <string name="pref_quick_commands_enabled_desc">Prosessi käytössä! komennot paikallisesti ennen tulosten lähettämistä nykyiseen keskusteluun</string>
+    <string name="pref_quick_commands_words">Komennot ja aktivointisanat</string>
+    <string name="pref_quick_commands_services">Ulkoiset palvelut</string>
+    <string name="pref_quick_command_youtube">YouTube haku</string>
+    <string name="pref_quick_command_wiki">Wikipedia-haku</string>
+    <string name="pref_quick_command_calc">Laskin</string>
+    <string name="pref_quick_command_movie">Elokuvahaku</string>
+    <string name="pref_quick_command_time">Aika</string>
+    <string name="pref_quick_command_dictionary">Sanakirja</string>
+    <string name="pref_quick_command_enable_desc">Ota käyttöön %1$s ja sen mukautettu aktivointisana</string>
+    <string name="pref_quick_command_word">Aktivointisana: %1$s</string>
+    <string name="pref_quick_command_word_normalized">Aktivointisana korjattiin. Käytä! sen jälkeen kirjaimet, numerot tai alaviivat.</string>
+    <string name="pref_quick_command_word_duplicate">Tämä aktivointisana on jo käytössä. Oletusarvo on palautettu.</string>
+    <string name="pref_tmdb_key">TMDb API avain (v3)</string>
+    <string name="pref_tmdb_key_hint">App-avain mukana; napauta käyttääksesi toista näppäintä</string>
+    <string name="quick_command_empty">Kirjoita haku komennon jälkeen.</string>
+    <string name="quick_command_no_target">Avaa ensin kanava tai yksityinen keskustelu.</string>
+    <string name="quick_command_progress">Käsitellään komentoa…</string>
+    <string name="quick_command_sent">Pikakomennon tulos lähetetty.</string>
+    <string name="quick_command_send_failed">Tulos löytyi, mutta sitä ei voitu lähettää.</string>
+    <string name="quick_command_failed">Palvelu ei palauttanut käyttökelpoista tulosta. Yritä myöhemmin uudelleen.</string>
+    <string name="quick_movie_key_missing">Anna TMDb API -avain kohdassa Asetukset → Pikakomennot käyttääksesi elokuvahakua.</string>
+    <string name="quick_wiki_not_found">Wikipediasta ei löytynyt tulosta.</string>
+    <string name="quick_dictionary_empty">Kirjoita sana komennon jälkeen.</string>
+    <string name="quick_dictionary_not_found">Sanaa ei löytynyt Wikisanakirjasta.</string>
+    <string name="quick_dictionary_no_definition">Wikisanakirjasta ei ole saatavilla määritelmää.</string>
+    <string name="quick_movie_empty">Kirjoita elokuvan nimi komennon jälkeen.</string>
+    <string name="quick_movie_not_found">Elokuvaa ei löytynyt TMDb:stä.</string>
+    <string name="quick_movie_result">%1$s (%2$s) — TMDb-luokitus %3$s/10</string>
+    <string name="quick_time_not_found">Paikka tai aikavyöhyke ei tunnistettu.</string>
+    <string name="quick_time_result">Aika, %1$s: %2$s (%3$s)</string>
+    <string name="quick_calc_empty">Kirjoita lauseke komennon jälkeen.</string>
+    <string name="quick_calc_too_long">Lauseke on liian pitkä.</string>
+    <string name="quick_calc_invalid">Virheellinen matemaattinen lauseke.</string>
+
+    <string name="file_send_menu">Lähetä</string>
+    <string-array name="simosnap_send_options">
+        <item>Valitse kuva</item>
+        <item>Ota valokuva</item>
+        <item>Valitse video</item>
+        <item>Tallenna video</item>
+        <item>Valitse ääni</item>
+        <item>Nauhoita ääniviesti</item>
+        <item>Valitse toinen tiedosto</item>
+    </string-array>
+    <string name="media_capture_failed">Yhteensopivaa kaappaussovellusta ei ole saatavilla.</string>
+    <string name="voice_permission_required">Ääniviestin tallentamiseen tarvitaan mikrofonilupa.</string>
+    <string name="voice_record_failed">Äänen tallennusta ei voitu aloittaa.</string>
+    <string name="voice_record_title">Nauhoita ääniviesti</string>
+    <string name="voice_record_in_progress">Tallennus… %s</string>
+    <string name="voice_record_stop">Pysäytys</string>
+    <string name="voice_record_play">Toista</string>
+    <string name="voice_record_pause">Tauko</string>
+    <string name="voice_record_review">Tarkista ääniviesti</string>
+    <string name="voice_record_discard">Hävitä</string>
+    <string name="file_upload_send">Lähetä</string>
+    <string name="file_compress_failed">Kuvaa ei voitu pienentää.</string>
+    <string name="file_private_image_progress">Valmistellaan kuvaa ja poistetaan sijainnin metatietoja…</string>
+    <string name="pref_header_sharing">Jakaminen ja media</string>
+    <string name="pref_sharing_uploads">Simosnap -lataukset</string>
+    <string name="pref_sharing_uploads_desc">Näytä tiedostonjakotoiminnot, jotka lataavat sisältöä Simosnap:hen</string>
+    <string name="pref_sharing_send_options">Lähetä-valikko</string>
+    <string name="pref_sharing_pick_image">Valitse kuvat</string>
+    <string name="pref_sharing_pick_image_desc">Salli kuvien valitsemisen laitteesta</string>
+    <string name="pref_sharing_take_photo">Ota valokuvia</string>
+    <string name="pref_sharing_take_photo_desc">Anna järjestelmäkameran ottaa valokuva</string>
+    <string name="pref_sharing_pick_video">Valitse videoita</string>
+    <string name="pref_sharing_pick_video_desc">Salli olemassa olevien videoiden valitseminen</string>
+    <string name="pref_sharing_record_video">Tallenna videoita</string>
+    <string name="pref_sharing_record_video_desc">Käytä yhteensopivaa sovelluksen sisäistä videonauhuria</string>
+    <string name="pref_sharing_pick_audio">Valitse ääni</string>
+    <string name="pref_sharing_pick_audio_desc">Salli olemassa olevien äänitiedostojen valitseminen</string>
+    <string name="pref_sharing_record_voice">Äänitä ääniviestejä</string>
+    <string name="pref_sharing_record_voice_desc">Salli äänitys mikrofonilla</string>
+    <string name="pref_sharing_other_files">Valitse muut tiedostot</string>
+    <string name="pref_sharing_other_files_desc">Salli tuetut asiakirjat ja tekstitiedostot</string>
+    <string name="pref_sharing_viewing">Katselu</string>
+    <string name="pref_sharing_internal_viewer">Avaa media sovelluksen sisällä</string>
+    <string name="pref_sharing_internal_viewer_desc">Käytä sisäänrakennettua katseluohjelmaa kuva-, ääni- ja videolinkkejä varten</string>
+    <string name="video_recorder_title">Tallenna video</string>
+    <string name="video_recorder_ready">720p · H.264 · maksimi 60 sekuntia</string>
+    <string name="video_recorder_status">%1$s · %2$s / %3$s</string>
+    <string name="video_recorder_switch">Switch kamera</string>
+    <string name="video_recorder_start">Tallenna</string>
+    <string name="video_recorder_stop">Lopeta</string>
+    <string name="video_recorder_redo">Tallenna uudelleen</string>
+    <string name="video_recorder_camera_failed">Kameraa ei voitu avata.</string>
+    <string name="video_recorder_start_failed">Tallennusta ei voitu aloittaa yhteensopivilla asetuksilla.</string>
+    <string name="video_recorder_record_failed">Videota ei voitu tallentaa.</string>
+    <string name="video_recorder_permission_required">Videon tallentamiseen tarvitaan kameran ja mikrofonin käyttöoikeudet.</string>
+
+    <string name="media_checking">Tarkistetaan medialinkkiä…</string>
+    <string name="media_open_failed">Tätä linkkiä ei voitu avata.</string>
+    <string name="media_viewer_title">Media</string>
+    <string name="media_open_external">Avaa ulkopuolelta</string>
+    <string name="media_audio_label">Äänentoisto</string>
+
+</resources>

@@ -1,0 +1,92 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="io.mrarm.irc.MainActivity">
+    <item
+        android:id="@+id/action_join_channel"
+        android:title="@string/action_join_channel"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_list_channels"
+        android:title="@string/action_list_channels"
+        android:visible="false"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_message_user"
+        android:title="@string/action_message_user"
+        app:showAsAction="never|collapseActionView" />
+    <item
+        android:id="@+id/action_part_channel"
+        android:title="@string/action_part_channel"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_search_messages"
+        android:title="@string/search_messages_title"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_mentions"
+        android:title="@string/action_mentions"
+        android:visible="false"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_mark_read"
+        android:title="@string/action_mark_read"
+        android:visible="false"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_mark_mentions_read"
+        android:title="@string/action_mark_mentions_read"
+        android:visible="false"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_channel_modes"
+        android:title="@string/channel_modes_menu"
+        android:visible="false"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_channel_bans"
+        android:title="@string/ban_list_menu"
+        android:visible="false"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_send_media"
+        android:title="@string/file_send_menu"
+        android:visible="false"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_direct_whois"
+        android:title="@string/action_whois"
+        android:visible="false"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_members"
+        android:title="@string/channel_members"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_ignore_list"
+        android:title="@string/title_activity_ignore_list"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_reconnect"
+        android:title="@string/action_reconnect"
+        android:visible="false"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_disconnect"
+        android:title="@string/action_disconnect"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_disconnect_and_close"
+        android:title="@string/action_disconnect_and_close"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_close"
+        android:title="@string/action_close"
+        android:visible="false"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_format"
+        android:title="@string/message_format"
+        android:visible="false"
+        app:showAsAction="never" />
+</menu>

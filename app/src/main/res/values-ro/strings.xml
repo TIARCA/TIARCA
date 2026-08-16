@@ -1,0 +1,1020 @@
+<resources>
+    <string name="app_name">TIARCA</string>
+    <string name="pref_header_about">Despre TIARCA</string>
+    <string name="about_title">Despre TIARCA</string>
+    <string name="about_body">TIARCA — TIARCA este o altă aplicație Relay Chat\nVersiunea %1$s\n\nBazată pe Revolution IRC de Martin Řehák (mcmrarm).\n\nTIARCA modificări și întreținere: ediție comunitară.\n\nLicențiat sub Licența Publică Generală GNU v3. Codul sursă corespunzătoare și notificările trebuie să fie disponibile cu distribuțiile publice. licențele lor respective rămân în vigoare.\n\nPartajarea media poate utiliza serviciul extern Simosnap. Fișierele încărcate sunt guvernate de politicile privind disponibilitatea și păstrarea serviciului respectiv. \n\nAcest produs utilizează TMDB API, dar nu este aprobat sau certificat de TMDB.</string>
+
+    <!-- Chat -->
+
+    <string name="navigation_drawer_open">Deschideți sertarul de navigare</string>
+    <string name="navigation_drawer_close">Închideți sertarul de navigare</string>
+
+    <string name="tab_server">Stare de semi-operator al canalului</string>
+    <string name="message_hint">Trimiteți un mesaj</string>
+    <string name="message_join">%s s-a alăturat</string>
+    <string name="message_kick">%s a lovit %s (%s)</string>
+    <string name="message_part">%s a plecat (%s)</string>
+    <string name="message_part_no_message">%s a plecat</string>
+    <string name="message_quit">%s s-a deconectat (%s)</string>
+    <string name="message_nick_change">%s este acum cunoscut ca %s</string>
+    <string name="message_topic">Subiect: %s</string>
+    <string name="message_topic_whotime">Subiectul a fost stabilit de %s pe %s</string>
+    <string name="message_topic_by">Subiect: %s, setat de %s</string>
+    <string name="message_topic_none">Subiectul nu a fost setat</string>
+
+    <string name="message_host_info">Numele serverului este %s, rulând %s. Moduri de utilizator acceptate: %s, moduri de canal acceptate: %s</string>
+    <string name="message_motd">Mesajul zilei</string>
+    <string name="message_whois">%s\' informații despre utilizator</string>
+
+    <string name="message_mode">%s %s</string>
+    <string name="message_mode_set">set %s</string>
+    <string name="message_mode_unset">dezactivați %s</string>
+    <string name="message_mode_gave">a dat %s</string>
+    <string name="message_mode_removed">a eliminat %s</string>
+
+    <string name="message_mode_gave_to">%s până la %s</string>
+    <string name="message_mode_removed_from">%s de la %s</string>
+
+    <plurals name="message_mode_channel">
+        <item quantity="one">modul canal \'%s\'</item>
+        <item quantity="few">modurile de canal \'%s\'</item>
+        <item quantity="other">modurile de canal \'%s\'</item>
+    </plurals>
+    <string name="message_mode_channel_value">modul canal \'%s\' la %s</string>
+    <string name="message_mode_channel_ban">o interdicție pentru %s</string>
+    <string name="message_mode_nick_owner">starea proprietarului canalului</string>
+    <string name="message_mode_nick_admin">Stare operator de canal</string>
+    <string name="message_mode_nick_op">Stare de semi-operator al canalului</string>
+    <string name="message_mode_nick_half_op">Membrii</string>
+    <string name="message_mode_nick_voice">voce</string>
+
+    <string name="message_ctcp_ping">A primit un ping CTCP</string>
+    <string name="message_ctcp_version">A primit o versiune CTCP</string>
+
+    <string name="command_error_not_found">Nu a fost găsită o astfel de comandă.</string>
+    <string name="command_error_internal">A apărut o eroare internă la încercarea de a procesa comanda.</string>
+
+    <string name="command_send_raw">Trimiteți ca brut</string>
+
+    <string name="channel_topic">Subiect</string>
+    <string name="channel_topic_info">setat de %s pe %s</string>
+    <string name="channel_topic_none">Nu a fost stabilit niciun subiect</string>
+    <string name="channel_members">Font</string>
+
+
+    <string name="message_share_title">Partajați mesajele de chat</string>
+
+    <string name="message_new_messages">Mesaje noi</string>
+
+    <plurals name="unread_message_counter">
+        <item quantity="one">1 mesaj necitit</item>
+        <item quantity="few">%d mesaje necitite</item>
+        <item quantity="other">%d mesaje necitite</item>
+    </plurals>
+    <plurals name="mention_counter">
+        <item quantity="one">1 mențiune</item>
+        <item quantity="few">%d mențiuni</item>
+        <item quantity="other">%d mențiuni</item>
+    </plurals>
+    <string name="unread_counter_with_mentions">%1$s · %2$s</string>
+    <string name="unread_99_plus">99+ mesaje necitite</string>
+    <string name="action_mentions">Mențiuni</string>
+    <string name="action_mark_read">Marcați ca citit</string>
+    <string name="action_mark_mentions_read">Marcați toate mențiunile ca fiind citite</string>
+    <string name="mention_previous">Mențiune anterioară</string>
+    <string name="mention_next">Următoarea mențiune</string>
+    <string name="mention_position">Menționați %1$d din %2$d</string>
+    <string name="mention_none">Nu s-au găsit mențiuni în această conversație</string>
+    <string name="mention_unavailable">Această mențiune nu mai este disponibilă în istoricul chat-ului</string>
+    <string name="unread_backlog_title">Mesaje necitite</string>
+    <string name="unread_go_first">Accesați primul mesaj necitit</string>
+    <string name="unread_go_latest">Accesați cel mai recent și marcați ca citit</string>
+
+    <plurals name="message_delete_confirm">
+        <item quantity="one">Sunteți sigur că doriți să ștergeți mesajul selectat?</item>
+        <item quantity="few">Sunteți sigur că doriți să ștergeți mesajele %d selectate?</item>
+        <item quantity="other">Sunteți sigur că doriți să ștergeți mesajele %d selectate?</item>
+    </plurals>
+    <string name="message_delete_confirm_note">Mesajele vor fi șterse numai de pe acest dispozitiv.</string>
+
+    <!-- Actions -->
+
+    <string name="action_ok">OK</string>
+    <string name="action_done">Gata</string>
+    <string name="action_delete">Ștergeți</string>
+    <string name="action_edit">Editare</string>
+    <string name="action_cancel">Anulează</string>
+    <string name="action_expand">Extinde</string>
+    <string name="action_settings">Setări</string>
+    <string name="action_connect">Conectare</string>
+    <string name="action_disconnect">Deconectare</string>
+    <string name="action_reconnect">Reconectați</string>
+    <string name="action_open">Deschis</string>
+    <string name="action_back">Spate</string>
+    <string name="action_close">Închide</string>
+    <string name="accessibility_send_message">Trimite mesajul</string>
+    <string name="accessibility_complete_nickname">Completează pseudonimul</string>
+    <string name="action_disconnect_and_close">Deconectați și închideți</string>
+    <string name="action_servers">Gestionați serverele</string>
+    <string name="network_catalog_title">Adăugați un server</string>
+    <string name="network_catalog_manual">Adăugați manual</string>
+    <string name="network_catalog_manual_summary">Introduceți o adresă personalizată și setări de conexiune</string>
+    <string name="network_catalog_search_hint">Rețele de căutare</string>
+    <string name="network_catalog_sort_users">Majoritatea utilizatorilor</string>
+    <string name="network_catalog_sort_name">Nume A–Z</string>
+    <string name="network_catalog_approximately">aproximativ utilizatori %1$s · canale %2$s</string>
+    <string name="network_catalog_unavailable">nu este disponibilă</string>
+    <string name="network_catalog_confirm_title">Adăugați %1$s?</string>
+    <string name="network_catalog_confirm_body">Server: %1$s\nPort: %2$d\nSecuritate: %3$s\n\nDetaliile pot fi modificate înainte de salvare.</string>
+    <string name="network_catalog_tls">TLS activat</string>
+    <string name="network_catalog_plaintext">conexiune necriptată</string>
+    <string name="network_catalog_continue">Continuați</string>
+    <string name="network_catalog_offline_notice">Catalog offline · populație actualizată cu aplicația</string>
+    <string name="server_show_advanced">Setări avansate</string>
+    <string name="server_hide_advanced">Ascundeți setările avansate</string>
+    <string name="action_add_below">Adăugați mai jos</string>
+    <string name="action_add_rule">Adăugați o regulă</string>
+    <string name="action_reorder">Recomandă</string>
+    <string name="action_undo">Anulare</string>
+    <string name="action_copy">Copiere</string>
+    <string name="action_clone">Clonă</string>
+    <string name="action_continue">Continuați</string>
+    <string name="action_finish">Finisare</string>
+    <string name="action_search">Căutare</string>
+    <string name="action_search_ellipsis">Căutare...</string>
+    <string name="action_sort">Sortare</string>
+    <string name="action_sort_none">Nu sortați</string>
+    <string name="action_sort_name">Sortați după nume</string>
+    <string name="action_join_channel">Alăturați-vă canalului</string>
+    <string name="action_message_user">Mesaj utilizator</string>
+    <string name="action_part_channel">Părăsiți canalul</string>
+    <string name="action_close_direct">Închideți conversația</string>
+    <string name="action_clear_all">Ștergeți tot</string>
+    <string name="action_reset">Resetare</string>
+    <string name="action_exit">Ieșire</string>
+    <string name="action_reply">Răspuns</string>
+    <string name="action_share">Distribuie</string>
+    <string name="action_dcc_send">Trimite prin DCC</string>
+    <string name="action_accept">Accept</string>
+    <string name="action_reject">Respingere</string>
+    <string name="action_ask_again">Întrebați din nou</string>
+    <string name="action_rename">Redenumiți</string>
+    <string name="action_export">Export</string>
+    <string name="action_import_theme">Importați temă</string>
+
+    <!-- Channel operator actions -->
+    <string name="operator_actions">Acțiunile operatorului</string>
+    <string name="operator_actions_for">Acțiunile operatorului în %s</string>
+    <string name="operator_kick">Lovitură</string>
+    <string name="operator_kickban">Kickban gazdă</string>
+    <string name="operator_tban">Gazdă de interzicere temporară</string>
+    <string name="operator_mute">Dezactivați gazda</string>
+    <string name="operator_audi">Audi ident</string>
+    <string name="operator_unban_host">Eliminați interdicția exactă a gazdei</string>
+    <string name="operator_voice">Dă voce</string>
+    <string name="operator_mask">Ban masca</string>
+    <string name="operator_invalid_mask">Introduceți o mască validă fără spații.</string>
+    <string name="operator_historical_data">Date istorice WHOWAS</string>
+    <string name="operator_historical_data_desc">Gazda și identitatea aparțin celei mai recente conexiuni a utilizatorului.</string>
+    <string name="operator_choose_channel">Alegeți canalul operatorului</string>
+    <string name="operator_not_authorised">Acțiunile operatorului necesită starea de jumătate operațională sau mai mare pe acest canal.</string>
+    <string name="operator_reason_optional">Motiv (opțional)</string>
+    <string name="operator_custom_reason">Motiv personalizat</string>
+    <string name="operator_duration">Durată (de exemplu 3h)</string>
+    <string name="operator_invalid_duration">Introduceți o durată, cum ar fi 30m, 3h sau 1d.</string>
+    <string name="operator_confirm_title">Confirmați acțiunea operatorului</string>
+    <string name="operator_confirm_action">Aplicați %1$s la %2$s în %3$s?</string>
+    <string name="operator_command_sent">Comanda trimisă</string>
+    <string name="file_upload_action">Trimiteți fișier</string>
+    <string name="file_upload_title">Trimite cu SimosNap</string>
+    <string name="file_upload_confirm">Încărcați %1$s (%2$s) și trimiteți linkul temporar către %3$s?</string>
+    <string name="file_upload_progress">Se încarcă fișierul temporar...</string>
+    <string name="file_upload_sent">Fișier încărcat și linkul trimis</string>
+    <string name="file_upload_failed">Încărcarea nu a reușit: %s</string>
+    <string name="file_upload_send_failed">Fișierul a fost încărcat, dar linkul nu a putut fi trimis: %s</string>
+    <string name="search_messages_title">Căutați conversație</string>
+    <string name="search_messages_hint">Textul mesajului sau porecla</string>
+    <string name="search_messages_loading">Se încarcă mesajele salvate...</string>
+    <string name="search_messages_failed">Nu s-au putut încărca mesajele salvate.</string>
+    <string name="search_messages_ready">Căutați în cele mai recente mesaje salvate %d.</string>
+    <string name="search_messages_no_results">Nicio potrivire.</string>
+    <string name="search_messages_count">Potriviți %1$d cu %2$d</string>
+    <string name="search_previous">Anterior</string>
+    <string name="search_next">Următorul</string>
+
+    <string name="action_delete_confirm_title">Ești sigur?</string>
+    <string name="action_delete_confirm_body">Sigur doriți să ștergeți %s? Acest lucru nu poate fi anulat.</string>
+
+    <!-- Format -->
+
+    <string name="format_bold">Bold</string>
+    <string name="format_italic">Italică</string>
+    <string name="format_underline">Subliniere</string>
+    <string name="format_text_color">Culoarea textului</string>
+    <string name="format_fill_color">Culoare de fundal</string>
+    <string name="format_clear">Ștergeți formatarea</string>
+
+    <!-- Service -->
+
+    <string name="service_title">Conectat la IRC</string>
+    <string name="service_open_private_chat">Deschideți conversația privată</string>
+    <string name="service_message_send_failed">Comanda nu a putut fi trimisă către serviciul IRC</string>
+    <plurals name="service_status_connected">
+        <item quantity="one">Conectat la rețeaua %d</item>
+        <item quantity="few">Conectat la rețelele %d</item>
+        <item quantity="other">Conectat la rețelele %d</item>
+    </plurals>
+    <plurals name="service_status_connecting">
+        <item quantity="one">se conectează la rețeaua %d</item>
+        <item quantity="few">se conectează la rețelele %d</item>
+        <item quantity="other">se conectează la rețelele %d</item>
+    </plurals>
+    <plurals name="service_status_disconnected">
+        <item quantity="one">a fost deconectat de la rețeaua %d</item>
+        <item quantity="few">deconectat de la rețelele %d</item>
+        <item quantity="other">deconectat de la rețelele %d</item>
+    </plurals>
+    <plurals name="notify_multiple_messages">
+        <item quantity="one">%d mesaj necitit</item>
+        <item quantity="few">%d mesaje necitite</item>
+        <item quantity="other">%d mesaje necitite</item>
+    </plurals>
+
+    <string name="notification_action_required">Este necesară acțiunea utilizatorului</string>
+
+    <string name="notification_channel_group_system">Notificări diverse</string>
+    <string name="notification_channel_group_default">Reguli de notificare implicite</string>
+    <string name="notification_channel_group_user">Reguli de notificare a utilizatorului</string>
+    <string name="notification_channel_idle">Notificare de stare</string>
+    <string name="notification_channel_warning">Notificări de avertizare</string>
+
+    <!-- Connection errors -->
+
+    <string name="connection_error_no_nick">Nici un set de porecla</string>
+
+    <string name="connection_error_command_title">Eroare la procesarea comenzilor post-conectare</string>
+    <string name="connection_error_command_notification_desc">A apărut o eroare internă la încercarea de a procesa comenzile post-conectare.</string>
+    <plurals name="connection_error_command_dialog_content">
+        <item quantity="one">A apărut o eroare la procesarea următoarei comenzi pentru rețea \"%s\":\n\n%s</item>
+        <item quantity="few">A apărut o eroare la procesarea următoarelor comenzi pentru rețea \"%s\":\n\n%s</item>
+        <item quantity="other">A apărut o eroare la procesarea următoarelor comenzi pentru rețea \"%s\":\n\n%s</item>
+    </plurals>
+
+    <!-- Server list -->
+
+    <string name="server_list_header_active">Activ</string>
+    <string name="server_list_header_inactive">Inactiv</string>
+    <plurals name="server_list_connected">
+        <item quantity="one">Conectat, canal %d</item>
+        <item quantity="few">Conectat, canale %d</item>
+        <item quantity="other">Conectat, canale %d</item>
+    </plurals>
+    <string name="server_list_connecting">Se conectează...</string>
+    <string name="server_list_disconnected">Deconectat</string>
+
+    <!-- Add server -->
+
+    <string name="add_server">Adăugați un nou server</string>
+    <string name="edit_server">Editați un server</string>
+    <string name="server_save_error">Nu s-au salvat informațiile serverului</string>
+    <string name="server_error_name_collision">Există deja un server cu acest nume</string>
+    <string name="server_error_name_empty">Numele serverului nu poate fi necompletat</string>
+    <string name="server_error_invalid_address">Adresă nevalidă</string>
+    <string name="server_error_invalid_port">Port nevalid</string>
+    <string name="server_address">Adresa serverului</string>
+    <string name="server_port">Port</string>
+    <string name="server_ssl">Utilizați SSL/TLS</string>
+    <plurals name="server_manage_custom_certs_text">
+        <item quantity="one">%d certificat personalizat salvat</item>
+        <item quantity="few">%d certificate personalizate salvate</item>
+        <item quantity="other">%d certificate personalizate salvate</item>
+    </plurals>
+    <string name="server_manage_custom_certs">Gestionați certificatele personalizate</string>
+    <string name="server_password_unchanged">Neschimbat</string>
+    <string name="server_authentication_mode">Mod de autentificare</string>
+    <string name="server_channels">Conectare automată la canale</string>
+    <string name="server_rejoin_channels">Alăturați-vă din nou la canalele deschise</string>
+    <string name="server_commands">Comenzi de rulare automată</string>
+    <string name="server_encoding">Codificare</string>
+    <string name="server_nicks">Porecle</string>
+    <string name="server_user">Utilizator</string>
+    <string name="server_realname">Nume real</string>
+    <string name="server_sasl_ext_none">Nici un certificat setat</string>
+    <string name="server_sasl_ext_fp">Amprenta certificată: %s</string>
+    <string name="server_sasl_ext_import">Import PEM</string>
+    <string name="server_sasl_ext_create">Creați un nou</string>
+    <string name="error_cert_already_present">Fișierul specificat are mai mult de o singură intrare de certificat.</string>
+    <string name="error_privkey_already_present">Fișierul specificat are mai mult de o singură intrare de cheie privată.</string>
+    <string name="error_cert_or_privkey_missing">Fișierului specificat îi lipsește fie o cheie privată, fie un certificat.</string>
+
+    <string-array name="server_auth_modes">
+        <item>Nici unul</item>
+        <item>Nume de utilizator cu parola (SASL)</item>
+        <item>Certificat de client (CertFP)</item>
+    </string-array>
+    <string name="server_password">Parola server</string>
+
+    <!-- Certificate manager -->
+
+    <string name="title_activity_certificate_manager">Lista de certificate</string>
+
+    <string name="certificate_manager_empty">Nu sunt salvate certificate personalizate.</string>
+
+    <!-- Certificate error dialog -->
+
+    <string name="certificate_error">Nu s-a putut verifica certificatul %s\'</string>
+    <string name="certificate_error_ignore">Acceptați și continuați</string>
+    <string name="certificate_bad_cert">Următorul certificat nu este recunoscut de sistem:</string>
+    <string name="certificate_bad_hostname">Numele de gazdă furnizat în certificat (%1$s) de către gazdă nu se potrivește cu numele de gazdă la care ne conectăm (%2$s).</string>
+    <string name="certificate_error_footer">Nu ar trebui să \' să nu acceptați acest certificat dacă sunteți \' nu sunteți sigur ce înseamnă acest lucru.</string>
+    <string name="certificate_error_remember">Amintiți-vă excepția</string>
+
+    <!-- Channel list -->
+
+    <string name="title_activity_channel_list">Lista de canale</string>
+    <string name="action_sort_member_count">Sortați după numărul de membri</string>
+
+    <plurals name="channel_list_title_with_member_count">
+        <item quantity="one">%s (membru %d)</item>
+        <item quantity="few">%s (membrii %d)</item>
+        <item quantity="other">%s (membrii %d)</item>
+    </plurals>
+
+    <!-- Settings -->
+
+    <string name="title_activity_settings">Setări</string>
+
+    <string name="value_default">Implicit</string>
+    <string name="value_custom">Personalizat</string>
+    <string name="value_custom_specific">Personalizat (%s)</string>
+    <string name="value_none">Nici unul</string>
+    <string name="value_any">Oricare</string>
+    <string name="value_always">Întotdeauna</string>
+    <string name="value_never">Niciodată</string>
+    <string name="value_preset">Presetat</string>
+    <string name="value_not_set">Nesetat</string>
+    <string name="value_total">Total</string>
+    <string name="value_copy">%s (copie)</string>
+    <string name="entry_name">Nume</string>
+    <string name="entry_text">Text</string>
+    <string name="entry_username">Nume de utilizator</string>
+    <string name="entry_password">Parolă</string>
+    <string name="entry_comment">Comentariu</string>
+
+    <string name="text_comma">", "</string>
+    <string name="text_and">\" și \"</string>
+
+    <string name="error_generic">A apărut o eroare.</string>
+    <string name="error_file_open">Nu s-a putut deschide fișierul.</string>
+
+    <!-- Time -->
+
+    <plurals name="time_seconds">
+        <item quantity="one">%d secundă</item>
+        <item quantity="few">%d secunde</item>
+        <item quantity="other">%d secunde</item>
+    </plurals>
+    <plurals name="time_minutes">
+        <item quantity="one">%d minut</item>
+        <item quantity="few">%d minute</item>
+        <item quantity="other">%d minute</item>
+    </plurals>
+    <plurals name="time_hours">
+        <item quantity="one">%d oră</item>
+        <item quantity="few">%d ore</item>
+        <item quantity="other">%d ore</item>
+    </plurals>
+    <plurals name="time_days">
+        <item quantity="one">%d zi</item>
+        <item quantity="few">%d zile</item>
+        <item quantity="other">%d zile</item>
+    </plurals>
+
+    <!-- User settings -->
+
+    <string name="pref_header_user">Informații despre utilizator</string>
+
+    <string name="pref_title_default_nick">Poreclele implicite</string>
+    <string name="pref_title_default_user">Utilizator implicit</string>
+    <string name="pref_title_default_realname">Nume real implicit</string>
+    <string name="pref_title_default_quit_message">Mesaj de deconectare (ieșire).</string>
+    <string name="pref_title_default_part_message">Canal lăsați mesaj</string>
+
+    <string name="pref_value_default_quit_message">Quit</string>
+    <string name="pref_value_default_part_message">Leaving</string>
+
+    <!-- Interface settings -->
+
+    <string name="pref_header_interface">Interfață</string>
+    <string name="pref_header_language">Limba</string>
+    <string name="pref_title_language">Limba aplicației</string>
+    <string-array name="pref_entries_language">
+        <item>(implicit)</item>
+        <item>Italiano</item>
+        <item>engleză</item>
+    </string-array>
+
+    <string name="pref_header_chat">Chat</string>
+    <string name="pref_title_font">Format</string>
+    <string name="pref_title_font_size">Dimensiunea fontului</string>
+    <string name="pref_title_hide_join_part">Ascunde mesajele de intrare/ieșire</string>
+    <string name="pref_title_autocorrect">Activați corectarea automată a textului</string>
+    <string name="pref_summary_autocorrect">Activați corectarea automată furnizată de tastatură</string>
+    <string name="pref_title_appbar_compact_mode">Ascunde antetul numelui rețelei</string>
+    <string name="pref_title_message_format">Format mesaj</string>
+    <string name="pref_title_nick_autocomplete">Nick/canal de completare automată</string>
+    <string name="pref_title_chat_box_always_multiline">Casetă text de trimitere multilinie</string>
+    <string name="pref_summary_chat_box_always_multiline">Activați împachetarea cuvintelor în caseta de text și înlocuiți butonul de trimitere cu o introducere în IME</string>
+    <string name="pref_title_chat_box_history_swipe_mode">Mod de navigare bazat pe glisare istoric</string>
+    <string name="pref_title_chat_multi_scroll_mode">Utilizați un mod de selectare a mesajelor în lot</string>
+    <string name="pref_summary_chat_multi_scroll_mode">Activați întotdeauna vechiul mod de selectare a mesajelor lot</string>
+
+    <string name="pref_header_misc">Diverse</string>
+    <string name="pref_title_drawer_always_show_server">Afișați serverul în sertar</string>
+    <string name="pref_summary_drawer_always_show_server">Afișați întotdeauna fila Server în sertar</string>
+    <string name="pref_title_chat_show_dcc_send">Activați trimiterea directă prin DCC</string>
+    <string name="pref_summary_chat_show_dcc_send">Adăugați Trimitere prin DCC în meniul Trimitere în chat-urile private</string>
+
+    <string name="pref_title_nick_autocomplete_show_button">Afișează un buton</string>
+    <string name="pref_summary_nick_autocomplete_show_button">Afișați un buton de completare automată a pseudonimului</string>
+    <string name="pref_title_nick_autocomplete_double_tap">Atingeți de două ori câmpul de text</string>
+    <string name="pref_summary_nick_autocomplete_double_tap">Atingeți de două ori câmpul de text pentru a completa porecla sau canalul</string>
+    <string name="pref_title_nick_autocomplete_suggestions">Sugerați porecle</string>
+    <string name="pref_summary_nick_autocomplete_suggestions">Afișați sugestii de porecle după ce ați introdus cel puțin două caractere</string>
+    <string name="pref_title_nick_autocomplete_at_suggestions">Sugerați porecle după un \'@\'</string>
+    <string name="pref_summary_nick_autocomplete_at_suggestions">Afișați sugestii de porecle după un caracter \'@\'</string>
+    <string name="pref_title_nick_autocomplete_at_suggestions_remove_at">Eliminați automat \'@\'</string>
+    <string name="pref_summary_nick_autocomplete_at_suggestions_remove_at">Eliminați caracterul \'@\' după selectarea unei sugestii</string>
+    <string name="pref_title_channel_autocomplete_suggestions">Sugerați canale</string>
+    <string name="pref_summary_channel_autocomplete_suggestions">Afișați sugestiile de canale după ce ați introdus un caracter \'#\'</string>
+
+    <string-array name="pref_entries_font">
+        <item>Implicit (Sans)</item>
+        <item>Serif</item>
+        <item>Monospațiu</item>
+    </string-array>
+    <string name="font_size_sample_text">Acesta este un exemplu de text pentru a reflecta modul în care va arăta dimensiunea fontului în chat. Îl puteți schimba folosind glisorul de mai jos.</string>
+
+    <string-array name="pref_entries_appbar_compact_mode">
+        <item>@string/value_never</item>
+        <item>@string/value_always</item>
+        <item>Dacă există puțin spațiu pentru mesaje</item>
+    </string-array>
+
+    <string-array name="pref_entries_chat_history_swipe_mode">
+        <item>Dezactivat</item>
+        <item>Orizontală (anterior ca de la stânga la dreapta)</item>
+        <item>Orizontală (anterior ca de la dreapta la stânga)</item>
+        <item>Verticală (anterior ca de sus în jos)</item>
+        <item>Verticală (anterior ca de jos în sus)</item>
+    </string-array>
+
+    <!-- Message format -->
+
+    <string name="title_activity_message_format_settings">Format mesaj</string>
+
+    <string name="message_format">Prefixul</string>
+
+    <string name="message_format_date">Format oră</string>
+    <string name="message_format_date_fixed_width">Lățime fixă</string>
+    <string name="message_format_normal">Format mesaj</string>
+    <string name="message_format_normal_mention">Mesaj cu format de mențiune</string>
+    <string name="message_format_action">Format de mesaj de acțiune (me).</string>
+    <string name="message_format_action_mention">Mesaj de acțiune (eu) cu format de mențiune</string>
+    <string name="message_format_notice">Formatul mesajului de notificare</string>
+    <string name="message_format_event">Format de mesaj de eveniment (aderare/plecare/etc.).</string>
+    <string name="message_format_event_hostname">Afișează numele gazdei utilizatorului</string>
+    <string name="message_format_date_invalid">Invalid date/time format</string>
+
+    <string name="message_format_time">ora</string>
+    <string name="message_format_sender">expeditor</string>
+    <string name="message_format_message">Prefixul</string>
+    <string name="message_format_sender_prefix">Tema</string>
+    <string name="message_format_time_add">Ora</string>
+    <string name="message_format_sender_add">Expeditor</string>
+    <string name="message_format_message_add">Mesaj</string>
+    <string name="message_format_wrap_anchor_add">Ancoră înfășurată</string>
+    <string name="message_format_sender_prefix_add">Prefixul expeditorului</string>
+
+    <string name="message_format_add_chip">Add format chip</string>
+    <string name="message_format_sender_color">Culoare Nick</string>
+
+    <string name="message_example_sender">porecla expeditor</string>
+    <string name="message_example_message">This is an example message.</string>
+
+    <string-array name="time_format_presets_desc">
+        <item>24-hour time in brackets</item>
+        <item>24 de ore</item>
+        <item>24-hour time with seconds</item>
+        <item>Timp de 12 ore</item>
+    </string-array>
+
+    <!-- Theme settings -->
+
+    <string name="pref_header_theme">Modul</string>
+
+    <string name="theme_create_new">Create a new theme</string>
+    <string name="theme_custom_default_name">@string/value_custom</string>
+
+    <string name="title_activity_theme_editor">Editor de teme</string>
+
+    <string name="theme_category_common">Comun</string>
+    <string name="theme_base">Tema de bază</string>
+    <string name="theme_color_primary">Culoare primară</string>
+    <string name="theme_color_primary_dark">Primary dark color</string>
+    <string name="theme_color_accent">Culoare de accent</string>
+    <string name="theme_color_action_bar_text_primary">Appbar text color</string>
+    <string name="theme_color_action_bar_text_secondary">Culoarea secundară a textului Appbar</string>
+    <string name="theme_color_status_bar_light">Bară de stare luminoasă</string>
+    <string name="theme_color_background">Culoare de fundal</string>
+    <string name="theme_color_background_floating">Culoare de fundal (ferestre pop-up/plutitoare)</string>
+    <string name="theme_color_text_primary">Culoarea principală a textului</string>
+    <string name="theme_color_text_secondary">Culoare secundară a textului</string>
+    <string name="theme_color_icon">Culoarea pictogramei</string>
+    <string name="theme_color_icon_opaque">Culoare pictogramă (opac, folosit cu text)</string>
+
+    <string name="theme_category_chat">Chat</string>
+    <string name="theme_category_chat_irc">IRC coduri de formatare</string>
+    <string name="theme_color_irc_black">Negru</string>
+    <string name="theme_color_irc_white">Alb</string>
+    <string name="theme_color_irc_blue">Albastru</string>
+    <string name="theme_color_irc_green">Verde</string>
+    <string name="theme_color_irc_light_red">Roșu deschis</string>
+    <string name="theme_color_irc_brown">Maro</string>
+    <string name="theme_color_irc_purple">Mov</string>
+    <string name="theme_color_irc_orange">Portocaliu</string>
+    <string name="theme_color_irc_yellow">Galben</string>
+    <string name="theme_color_irc_light_green">Verde deschis</string>
+    <string name="theme_color_irc_cyan">Cyan</string>
+    <string name="theme_color_irc_light_cyan">Cyan deschis</string>
+    <string name="theme_color_irc_light_blue">Albastru deschis</string>
+    <string name="theme_color_irc_pink">Roz</string>
+    <string name="theme_color_irc_gray">Gri</string>
+    <string name="theme_color_irc_light_gray">Gri deschis</string>
+    <string name="theme_category_chat_message">Mesaje</string>
+    <string name="theme_color_message_timestamp">Marcaj temporal al mesajului</string>
+    <string name="theme_color_message_status_text">Text de stare a mesajului</string>
+    <string name="theme_color_message_disconnected">Mesaj de deconectare</string>
+    <string name="theme_color_message_topic">Mesaj subiect</string>
+    <string name="theme_category_chat_member_list">Lista de membri</string>
+    <string name="theme_color_member_owner">Proprietari</string>
+    <string name="theme_color_member_admin">Administratori</string>
+    <string name="theme_color_member_op">Operatori</string>
+    <string name="theme_color_member_half_op">Semi-operatori</string>
+    <string name="theme_color_member_voice">Membri vocali</string>
+    <string name="theme_color_member_normal">Membri normali</string>
+
+    <string name="theme_default_dark">Implicit (întunecat)</string>
+
+    <!-- Notification settings -->
+
+    <string name="pref_header_notifications">Notificări</string>
+
+    <string name="notification_custom_rules">Reguli personalizate</string>
+    <string name="notification_tip_no_custom_rules">Nu există reguli personalizate. Puteți adăuga unul cu butonul plus din colțul din dreapta jos.</string>
+    <string name="notification_custom_rule_deleted">Regula de notificare a fost ștearsă.</string>
+    <string name="notification_rule_name_collision">Există deja o regulă de notificare cu acest nume</string>
+    <string name="notification_rule_regex_invalid">Regex nevalid</string>
+
+    <string name="notification_rule_nick">Nick menționează</string>
+    <string name="notification_rule_chan_messages">Mesaje de canal</string>
+    <string name="notification_rule_direct">Mesaje private</string>
+    <string name="notification_rule_notice">Notificări private</string>
+    <string name="notification_rule_chan_notice">Notificări de canal</string>
+    <string name="notification_rule_zncplayback">Dezactivați notificările de redare ZNC</string>
+
+    <string name="title_activity_edit_notification_settings">Setări de notificare</string>
+
+    <string name="notification_header_match">Meci</string>
+    <string name="notification_match_mode">Canalul</string>
+    <string name="notification_match_case">Sensitiv la minuscule</string>
+
+    <string-array name="notification_match_modes">
+        <item>Conține</item>
+        <item>Conține cuvânt</item>
+        <item>Regex</item>
+    </string-array>
+
+    <string name="notification_header_applies_to">Se aplică la</string>
+    <string name="notification_rule_server">Stare de semi-operator al canalului</string>
+    <string name="notification_rule_summary_any_server">Orice server</string>
+    <string name="notification_rule_summary_any_channel">orice canal</string>
+    <plurals name="notification_rule_summary_multi_channels">
+        <item quantity="one">%d canale</item>
+        <item quantity="few">%d canale</item>
+        <item quantity="other">%d canale</item>
+    </plurals>
+    <string name="notification_rule_summary_any_nick">orice pseudonimă</string>
+    <plurals name="notification_rule_summary_multi_nicks">
+        <item quantity="one">%d nick-uri</item>
+        <item quantity="few">%d nick-uri</item>
+        <item quantity="other">%d nick-uri</item>
+    </plurals>
+
+    <string name="notification_header_options">Opțiuni</string>
+    <string name="notification_mention">Utilizați formatarea mențiunilor</string>
+    <string name="notification_show">Afișează notificarea</string>
+    <string name="notification_sound">Sunet</string>
+    <string name="notification_vibration">Vibrații</string>
+    <string name="notification_priority">Prioritate</string>
+    <string name="notification_color">LED Culoare</string>
+    <string name="notification_android_settings_link">Mai multe setări...</string>
+
+    <string-array name="notification_vibration_options">
+        <item>Implicit</item>
+        <item>Scurt</item>
+        <item>Lung</item>
+        <item>Dezactivat</item>
+    </string-array>
+    <string-array name="notification_priority_options">
+        <item>Normal</item>
+        <item>ridicat (implicit)</item>
+        <item>Cel mai înalt</item>
+    </string-array>
+
+    <!-- Reconnect settings -->
+
+    <string name="pref_header_reconnect">Reconectare</string>
+    <string name="pref_title_start_on_boot">Porniți la pornire</string>
+    <string name="pref_description_start_on_boot">Porniți automat aplicația după o repornire a sistemului</string>
+    <string name="pref_title_auto_reconnect">Reconectați automat</string>
+    <string name="pref_description_auto_reconnect">Încercați automat reconectarea după o pierdere a conexiunii</string>
+    <string name="pref_title_reconnect_connchg">Urmăriți modificările de conectivitate</string>
+    <string name="pref_description_reconnect_connchg">Încercați automat reconectarea după o schimbare a conectivității</string>
+    <string name="pref_title_reconnect_wifi">Reconectați-vă numai pe WiFi</string>
+    <string name="pref_description_reconnect_wifi">Încercați reconectarea numai în timp ce utilizați o conexiune WiFi</string>
+    <string name="pref_title_reconnect_pattern">Interval de reconectare</string>
+    <string name="reconnect_header_interval">Interval</string>
+    <string name="reconnect_header_tries">Încearcă</string>
+
+    <plurals name="reconnect_desc_tries">
+        <item quantity="one">\" (încercați %d)\"</item>
+        <item quantity="few">\" (Încercă %d)\"</item>
+        <item quantity="other">\" (Încercă %d)\"</item>
+    </plurals>
+
+    <string-array name="duration_types">
+        <item>secunde</item>
+        <item>minute</item>
+        <item>ore</item>
+    </string-array>
+
+    <!-- Ping settings (currently under reconnect settings) -->
+
+    <string name="pref_title_ping_enabled">Trimite periodic o bătaie a inimii</string>
+    <string name="pref_description_ping_enabled">Trimiteți periodic o bătăi de inimă (ping) către server pentru a vă asigura că conexiunea este încă activă. Acest lucru poate crește consumul bateriei.</string>
+    <string name="pref_title_ping_wifi">Trimiteți doar bătăile inimii pe WiFi</string>
+    <string name="pref_description_ping_wifi">Trimiteți doar bătăile inimii când utilizați o conexiune WiFi</string>
+    <string name="pref_title_ping_interval">Intervalul bătăilor inimii</string>
+
+    <!-- Command aliases settings -->
+
+    <string name="pref_header_command_aliases">Aliasuri de comandă</string>
+    <string name="title_activity_edit_command_alias">Editați un alias de comandă</string>
+    <string name="title_activity_add_command_alias">Adăugați un alias de comandă</string>
+    <string name="title_activity_view_command_alias">Vizualizați un alias de comandă</string>
+
+    <string name="edit_command_alias_error_name_collision">Există deja un alias de comandă cu acest nume și sintaxă.</string>
+
+    <string name="edit_command_alias_type">Tip</string>
+    <string name="edit_command_alias_syntax">Sintaxă</string>
+    <string name="edit_command_alias_channel">Configurare</string>
+
+    <string-array name="edit_command_alias_types">
+        <item>Mesaj</item>
+        <item>Comanda client</item>
+        <item>Brut</item>
+    </string-array>
+
+    <!-- Storage settings -->
+
+    <string name="pref_header_storage">Depozitare</string>
+
+    <string name="pref_storage_chat_logs_title">Istoricul chat-urilor</string>
+    <string name="pref_storage_change_limits">Modificați limitele</string>
+    <string name="pref_storage_configuration_title">Cont</string>
+
+    <string name="pref_storage_reset_configuration">Resetați configurația</string>
+    <string name="pref_storage_reset_configuration_confirm">Sunteți sigur că doriți să resetați configurația aplicației\'? Toate datele despre server și din istoricul chat-urilor se vor pierde.</string>
+
+    <string name="pref_storage_clear_all_chat_logs">Ștergeți toate jurnalele de chat</string>
+    <string name="pref_storage_clear_all_chat_logs_confirm">Sigur doriți să ștergeți toate jurnalele de chat?</string>
+
+    <string name="pref_storage_clear_server_chat_logs">Ștergeți istoricul chat-ului pe server</string>
+
+    <string name="pref_header_storage_limits">Limite</string>
+    <string name="pref_storage_limit_global_title">Limită globală de stocare a istoricului chatului</string>
+    <string name="pref_storage_limit_def_server_title">Limită de stocare a istoricului de chat pe server</string>
+    <string name="pref_storage_no_limit">Fără limită</string>
+    <string name="pref_storage_limit_notice">Vă rugăm să rețineți că acestea sunt limite slabe și uneori pot fi depășite.</string>
+
+    <string name="pref_storage_set_server_limit">Setați limita serverului</string>
+    <string name="pref_storage_change_server_limit">Modificați limita serverului</string>
+    <string name="pref_storage_remove_server_limit">Resetați limita de server personalizat</string>
+    <string name="pref_storage_limit_server_title">Limită de stocare a chat-ului pe server</string>
+
+    <!-- Backup settings -->
+
+    <string name="pref_header_backup">Backup</string>
+
+    <string name="backup_create">Creați o nouă copie de rezervă</string>
+    <string name="backup_restore">Restaurați o copie de rezervă</string>
+
+    <string name="title_activity_backup">Backup</string>
+    <string name="title_activity_restore">Restaurare</string>
+    <string name="title_activity_backup_password">Setați o parolă</string>
+    <string name="title_activity_backup_password_restore">Introduceți parola</string>
+    <string name="title_activity_backup_progress">Crearea unei copii de rezervă</string>
+    <string name="title_activity_backup_progress_restore">Restaurarea unei copii de rezervă</string>
+
+    <string name="backup_desc">Pentru a putea restabili setările aplicației mai târziu, de exemplu după o reinstalare a sistemului, este posibil să doriți să creați o copie de rezervă a configurației și să o salvați într-un loc sigur.</string>
+    <string name="backup_password_text">Backup-ul va conține toate setările dvs., inclusiv informațiile serverului și parolele necriptate. Este recomandat să setați o parolă care va fi necesară pentru a restabili datele din backup.</string>
+    <string name="backup_restore_password_text">Copia de rezervă specificată este protejată cu o parolă. Pentru a-l putea restaura, trebuie să introduceți parola.</string>
+
+    <string name="backup_created">Fișierul de rezervă a fost creat cu succes.</string>
+    <string name="backup_cancelled">Crearea copiei de rezervă a fost anulată.</string>
+    <string name="backup_restored">Fișierul de rezervă a fost restaurat cu succes.</string>
+    <string name="backup_restore_cancelled">Restaurarea a fost anulată.</string>
+    <string name="backup_restore_invalid">Fișierul de rezervă specificat este nevalid.</string>
+    <string name="backup_restore_invalid_password">Parolă nevalidă</string>
+    <string name="backup_restore_password_not_empty">Parola nu trebuie să fie goală</string>
+
+    <!-- Setup -->
+
+    <string name="please_wait_generic">Vă rugăm să așteptați...</string>
+
+    <!-- Ignore list -->
+
+    <string name="title_activity_ignore_list">Ignorați lista</string>
+    <string name="title_activity_ignore_list_network">Ignorați lista pentru %s</string>
+    <string name="title_activity_edit_ignore_entry">Editați o intrare ignorată</string>
+    <string name="title_activity_add_ignore_entry">Adăugați o intrare ignorată</string>
+
+    <!-- User info -->
+
+    <string name="user_title_away">%s (deplasare)</string>
+    <string name="user_nick">Nick</string>
+    <string name="user_hostname">Nume gazdă</string>
+    <string name="user_server">Stare de semi-operator al canalului</string>
+    <string name="user_server_format">%s (%s)</string>
+    <string name="user_channels">Canale</string>
+    <string name="user_idle">Timp inactiv</string>
+    <string name="user_server_op">Starea operatorului serverului</string>
+    <string name="user_server_op_desc">Acest utilizator este un operator de server IRC</string>
+    <string name="user_secure">Starea securității conexiunii</string>
+    <string name="user_secure_desc">Acest utilizator folosește o conexiune securizată</string>
+    <string name="user_account">Sistemul</string>
+    <string name="user_away">Mesaj de plecare</string>
+
+    <string name="user_info_copied">%s a fost copiat în clipboard.</string>
+
+    <!-- Color picker -->
+
+    <string name="color_picker_title">Alegeți o culoare</string>
+    <string name="color_picker_palette">Alegeți o culoare din paletă</string>
+
+    <string name="color_value_hex">Cod hexadecimal</string>
+    <string name="color_value_red">Roșu</string>
+    <string name="color_value_green">Verde</string>
+    <string name="color_value_blue">Albastru</string>
+    <string name="color_value_alpha">Alpha</string>
+
+    <string-array name="color_picker_color_names">
+        <item>Negru</item>
+        <item>Alb</item>
+        <item>Albastru</item>
+        <item>Verde</item>
+        <item>Roșu deschis</item>
+        <item>Maro</item>
+        <item>Mov</item>
+        <item>Portocaliu</item>
+        <item>Galben</item>
+        <item>Verde deschis</item>
+        <item>Cyan</item>
+        <item>Cyan deschis</item>
+        <item>Albastru deschis</item>
+        <item>Roz</item>
+        <item>Gri</item>
+        <item>Gri deschis</item>
+    </string-array>
+
+    <!-- IRC link handler -->
+
+    <string name="title_activity_irc_link">Alăturați-vă canalului</string>
+    <string name="irc_link_pick_header">Selectați o conexiune pentru a vă alătura %2$s pe %1$s</string>
+    <string name="irc_link_show_all">Afișați alte conexiuni</string>
+
+    <!-- DCC -->
+
+    <string name="title_activity_dcc">DCC transferuri</string>
+    <string name="notification_channel_dcc">@string/title_activity_dcc</string>
+    <string name="dcc_summary_notification_title">DCC transferuri în curs</string>
+    <plurals name="dcc_summary_notification_text">
+        <item quantity="one">%d transfer în curs</item>
+        <item quantity="few">%d transferuri în curs</item>
+        <item quantity="other">%d transferuri în curs</item>
+    </plurals>
+    <string name="dcc_active_upload_transfer_status">Se încarcă în %s</string>
+    <string name="dcc_active_download_transfer_status">Descărcare de pe %s</string>
+    <string name="dcc_active_waiting_for_connection">Se așteaptă conexiunea...</string>
+    <string name="dcc_active_waiting_for_approval">Se așteaptă aprobarea utilizatorului...</string>
+    <string name="dcc_approve_notification_body">%s (de pe server: %s) v-a trimis un fișier</string>
+    <string name="dcc_history_upload">%2$s încărcat în %3$s (%1$s)</string>
+    <string name="dcc_history_download">%2$s descărcat de la %3$s (%1$s)</string>
+    <string name="dcc_history_download_failed">Nu s-a putut descărca %2$s de pe %1$s</string>
+
+    <string name="dcc_approve_download_title">DCC fișier: %s</string>
+    <string name="dcc_approve_download_title_with_size">DCC fișier: %s (%s)</string>
+    <string name="dcc_approve_download_body">%s (de pe server: %s) v-a trimis un fișier.\n\nAvertisment: această descărcare va fi transmisă printr-o conexiune necriptată &amp; nesigură. Acceptarea acestei descărcări va permite celeilalte părți să vadă adresa dvs. IP. Ar trebui să-l acceptați numai dacă aveți încredere în acest utilizator.</string>
+    <string name="dcc_approve_download_enable_anyway">Activați oricum</string>
+
+    <string name="dcc_enable_send_warning_title">Avertisment de securitate</string>
+    <string name="dcc_enable_send_warning_body">DCC este un protocol vechi de partajare de fișiere peer-to-peer, iar fișierele sunt trimise printr-o conexiune nesigură și necriptată. Aceasta înseamnă că toate datele trimise folosind funcția pot fi potențial copiate sau manipulate de către atacatori, în special pe rețelele WiFi publice. DCC, în general, nu funcționează atunci când utilizați date mobile și este posibil să nu funcționeze cu unele conexiuni WiFi.\n\nDin acest motiv, vă recomandăm să utilizați servicii de partajare terță parte și să partajați doar un link cu utilizatorul țintă în loc de DCC.</string>
+
+    <string name="dcc_system_downloads_permission_dialog_title">Descarcă permisiunea folderului</string>
+    <string name="dcc_system_downloads_permission_dialog_text">Permisiunea pentru folderul Descărcări a fost refuzată și, prin urmare, va fi utilizat un director de descărcări intern al aplicației. Dacă acest lucru nu este dorit, vă rugăm să faceți clic din nou pe Întrebare.</string>
+
+    <string name="dcc_set_download_dir">Setați directorul de descărcare</string>
+    <string name="dcc_download_dir_application">Aplicație</string>
+    <string name="dcc_download_dir_system">Calculator</string>
+    <string name="dcc_download_dir_custom">Personalizat</string>
+
+    <string name="dcc_error_no_activity">Nu a fost găsită nicio aplicație pentru a deschide fișierul specificat</string>
+
+    <!-- Channel moderation, media sharing and local search -->
+    <string name="action_apply">Aplicați</string>
+    <string name="action_whois">WHOIS</string>
+
+    <string name="channel_modes_menu">Moduri de canal</string>
+    <string name="action_list_channels">Listează canale</string>
+    <string name="channel_modes_title">Moduri pentru %s</string>
+    <string name="channel_modes_loading">Se încarcă modurile de canal activ...</string>
+    <string name="channel_modes_failed">Nu s-au putut încărca modurile canalului.</string>
+    <string name="channel_modes_timeout">Serverul nu a returnat modurile de canal active.</string>
+    <string name="channel_modes_none">Acest server nu a făcut publicitate niciunui mod de semnalizare editabil.</string>
+    <string name="channel_modes_no_changes">Nu au fost selectate modificări de mod.</string>
+    <string name="channel_modes_profile">Definiții: %s</string>
+    <string name="channel_modes_profile_inspircd3">InspIRCd 3</string>
+    <string name="channel_modes_profile_inspircd4">InspIRCd 4</string>
+    <string name="channel_modes_profile_generic">IRC tipuri standard/anunțate pe server</string>
+    <string name="channel_mode_key">Tasta de canal (+k)</string>
+    <string name="channel_mode_limit">Limită utilizator (+l)</string>
+    <string name="channel_mode_key_hint">Cheie</string>
+    <string name="channel_mode_limit_hint">Numărul maxim de utilizatori</string>
+    <string name="channel_mode_value_required">Introduceți o valoare pentru modul +%s.</string>
+    <string name="channel_mode_desc_i">Canal numai pe invitație</string>
+    <string name="channel_mode_desc_m">Numai utilizatorii vocali sau privilegiați pot vorbi</string>
+    <string name="channel_mode_desc_n">Blocați mesajele din afara canalului</string>
+    <string name="channel_mode_desc_t">Numai operatorii de canal pot schimba subiectul</string>
+    <string name="channel_mode_desc_s">Canal secret, ascuns din listele publice</string>
+    <string name="channel_mode_desc_p">Canal privat</string>
+    <string name="channel_mode_desc_c">Blocați mesajele care conțin culori IRC</string>
+    <string name="channel_mode_desc_C">Blocați mesajele CTCP</string>
+    <string name="channel_mode_desc_A">Permite membrilor canalului să invite utilizatori</string>
+    <string name="channel_mode_desc_D">Ascunde conexiunile până când utilizatorul vorbește</string>
+    <string name="channel_mode_desc_K">Dezactivați solicitările KNOCK</string>
+    <string name="channel_mode_desc_M">Numai utilizatorii înregistrați pot vorbi</string>
+    <string name="channel_mode_desc_N">Blocați modificările poreclelor</string>
+    <string name="channel_mode_desc_O">Canal rezervat operatorilor IRC</string>
+    <string name="channel_mode_desc_Q">Blocați loviturile de pe canal</string>
+    <string name="channel_mode_desc_R">Numai utilizatorii înregistrați se pot alătura</string>
+    <string name="channel_mode_desc_S">Strip IRC culorile și formatarea din mesaje</string>
+    <string name="channel_mode_desc_T">Blocați mesajele NOTICE</string>
+    <string name="channel_mode_desc_U">Mesajele neprivilegiate sunt vizibile numai pentru utilizatorii privilegiați</string>
+    <string name="channel_mode_desc_r">Canal înregistrat</string>
+    <string name="channel_mode_desc_u">Auditorium: ascundeți utilizatorii neprivilegiati unii de alții</string>
+    <string name="channel_mode_desc_z">Necesită o conexiune sigură TLS pentru a te alătura</string>
+    <string name="channel_mode_desc_unknown">Mod de comutare definit de server (fără parametru)</string>
+    <string name="channel_mode_managed">gestionat de server sau servicii</string>
+
+    <string name="ban_list_menu">Lista interzise</string>
+    <string name="ban_list_title">Lista interzisă pentru %s</string>
+    <string name="ban_list_loading">Se încarcă lista de interdicții...</string>
+    <string name="ban_list_failed">Nu s-a putut încărca lista de interzicere.</string>
+    <string name="ban_list_host">Gazdă / mască</string>
+    <string name="ban_list_setter">Autor</string>
+    <string name="ban_list_date">Data</string>
+    <string name="ban_list_select_all">Selectați tot</string>
+    <string name="ban_list_remove_selected">Eliminați selectat</string>
+    <string name="ban_list_empty">Lista de interdicție este goală.</string>
+    <string name="ban_list_unknown">Necunoscut</string>
+    <string name="ban_list_select_one">Selectați cel puțin o interdicție.</string>
+    <string name="ban_list_confirm_title">Eliminați banurile selectate?</string>
+    <string name="ban_list_cleanup">Curățare 6–30 ore</string>
+    <string name="ban_list_cleanup_none">Nu au fost găsite interdicții de identificare sau gazdă eligibile între 6 și 30 de ore.</string>
+    <string name="ban_list_cleanup_confirm_title">Curățați interdicțiile temporare?</string>
+    <plurals name="ban_list_cleanup_confirm_message">
+        <item quantity="one">%d interdicția eligibilă este selectată. j: și R: intrările, datele necunoscute și alte tipuri de măști sunt excluse.</item>
+        <item quantity="few">%d interdicțiile eligibile sunt selectate. j: și R: intrările, datele necunoscute și alte tipuri de măști sunt excluse.</item>
+        <item quantity="other">%d interdicțiile eligibile sunt selectate. j: și R: intrările, datele necunoscute și alte tipuri de măști sunt excluse.</item>
+    </plurals>
+    <string name="ban_list_cleanup_review">Verificați selecția</string>
+    <string name="ban_list_cleanup_remove">Eliminați acum</string>
+
+    <string name="youtube_search_empty">Scrieți o căutare după !yt.</string>
+    <string name="youtube_search_failed">Nu a putut fi preluat niciun rezultat YouTube. Încercați din nou mai târziu.</string>
+    <!-- Configurable quick commands -->
+    <string name="pref_header_quick_commands">Comenzi rapide</string>
+    <string name="pref_header_operator_actions">Acțiunile operatorului</string>
+    <string name="pref_operator_reasons_header">Motive presetate Kickban și TBAN</string>
+    <string name="pref_operator_reason_number">Motivul %1$d</string>
+    <string name="pref_operator_reason_empty">Nesetat</string>
+    <string name="pref_quick_commands_enabled">Activați comenzile rapide</string>
+    <string name="pref_quick_commands_enabled_desc">Proces activat ! comenzile local înainte de a trimite rezultatul lor la chatul curent</string>
+    <string name="pref_quick_commands_words">Comenzi și cuvinte de activare</string>
+    <string name="pref_quick_commands_services">Servicii externe</string>
+    <string name="pref_quick_command_youtube">YouTube căutare</string>
+    <string name="pref_quick_command_wiki">căutare Wikipedia</string>
+    <string name="pref_quick_command_calc">Dicţionar</string>
+    <string name="pref_quick_command_movie">Căutare film</string>
+    <string name="pref_quick_command_time">Ora</string>
+    <string name="pref_quick_command_dictionary">Dicţionar</string>
+    <string name="pref_quick_command_enable_desc">Activați %1$s și cuvântul său de activare personalizat</string>
+    <string name="pref_quick_command_word">Cuvânt de activare: %1$s</string>
+    <string name="pref_quick_command_word_normalized">Cuvântul de activare a fost corectat. Foloseste! urmat de litere, cifre sau liniuțe de subliniere.</string>
+    <string name="pref_quick_command_word_duplicate">Cuvântul de activare este deja folosit. Valoarea implicită a fost restabilită.</string>
+    <string name="pref_tmdb_key">TMDb API cheie (v3)</string>
+    <string name="pref_tmdb_key_hint">Cheie de aplicație inclusă; atingeți pentru a utiliza o altă cheie</string>
+    <string name="quick_command_empty">Scrieți o căutare după comandă.</string>
+    <string name="quick_command_no_target">Deschideți mai întâi un canal sau o conversație privată.</string>
+    <string name="quick_command_progress">Se procesează comanda...</string>
+    <string name="quick_command_sent">Rezultatul comenzii rapide a fost trimis.</string>
+    <string name="quick_command_send_failed">Rezultatul a fost găsit, dar nu a putut fi trimis.</string>
+    <string name="quick_command_failed">Serviciul nu a returnat un rezultat utilizabil. Încercați din nou mai târziu.</string>
+    <string name="quick_movie_key_missing">Introduceți o cheie TMDb API în Setări → Comenzi rapide pentru a utiliza căutarea de filme.</string>
+    <string name="quick_wiki_not_found">Nu a fost găsit niciun rezultat pe Wikipedia.</string>
+    <string name="quick_dictionary_empty">Scrieți un cuvânt după comandă.</string>
+    <string name="quick_dictionary_not_found">Cuvântul nu a fost găsit pe Wikționar.</string>
+    <string name="quick_dictionary_no_definition">Nicio definiție nu este disponibilă pe Wikționar.</string>
+    <string name="quick_movie_empty">Scrieți un titlu de film după comandă.</string>
+    <string name="quick_movie_not_found">Nu a fost găsit niciun film pe TMDb.</string>
+    <string name="quick_movie_result">%1$s (%2$s) — Evaluare TMDb %3$s/10</string>
+    <string name="quick_time_not_found">Locul sau fusul orar nu sunt recunoscute.</string>
+    <string name="quick_time_result">Ora în %1$s: %2$s (%3$s)</string>
+    <string name="quick_calc_empty">Scrieți o expresie după comandă.</string>
+    <string name="quick_calc_too_long">Expresia este prea lungă.</string>
+    <string name="quick_calc_invalid">Expresie matematică nevalidă.</string>
+
+    <string name="file_send_menu">Trimite</string>
+    <string-array name="simosnap_send_options">
+        <item>Alegeți imaginea</item>
+        <item>Faceți o fotografie</item>
+        <item>Alegeți videoclipul</item>
+        <item>Înregistrați videoclip</item>
+        <item>Alegeți audio</item>
+        <item>Înregistrați mesajul vocal</item>
+        <item>Alegeți alt fișier</item>
+    </string-array>
+    <string name="media_capture_failed">Nu este disponibilă nicio aplicație de captură compatibilă.</string>
+    <string name="voice_permission_required">Este necesară permisiunea pentru microfon pentru a înregistra un mesaj vocal.</string>
+    <string name="voice_record_failed">Înregistrarea vocală nu a putut fi începută.</string>
+    <string name="voice_record_title">Înregistrați mesajul vocal</string>
+    <string name="voice_record_in_progress">Înregistrare... %s</string>
+    <string name="voice_record_stop">Oprire</string>
+    <string name="voice_record_play">Redă</string>
+    <string name="voice_record_pause">Pauză</string>
+    <string name="voice_record_review">Examinați mesajul vocal</string>
+    <string name="voice_record_discard">Renunță</string>
+    <string name="file_upload_send">Trimite</string>
+    <string name="file_compress_failed">Imaginea nu a putut fi redusă.</string>
+    <string name="file_private_image_progress">Se pregătește imaginea și se elimină metadatele locației...</string>
+    <string name="pref_header_sharing">Partajare și conținut media</string>
+    <string name="pref_sharing_uploads">Simosnap încărcări</string>
+    <string name="pref_sharing_uploads_desc">Afișați acțiunile de partajare a fișierelor care încarcă conținut pe Simosnap</string>
+    <string name="pref_sharing_send_options">Trimitere meniu</string>
+    <string name="pref_sharing_pick_image">Alegeți imagini</string>
+    <string name="pref_sharing_pick_image_desc">Permite selectarea imaginilor de pe dispozitiv</string>
+    <string name="pref_sharing_take_photo">Faceți fotografii</string>
+    <string name="pref_sharing_take_photo_desc">Permiteți camerei de sistem să facă o fotografie</string>
+    <string name="pref_sharing_pick_video">Alegeți videoclipuri</string>
+    <string name="pref_sharing_pick_video_desc">Permite selectarea videoclipurilor existente</string>
+    <string name="pref_sharing_record_video">Înregistrați videoclipuri</string>
+    <string name="pref_sharing_record_video_desc">Utilizați înregistrarea video în aplicație compatibilă</string>
+    <string name="pref_sharing_pick_audio">Alegeți audio</string>
+    <string name="pref_sharing_pick_audio_desc">Permite selectarea fișierelor audio existente</string>
+    <string name="pref_sharing_record_voice">Înregistrați mesaje vocale</string>
+    <string name="pref_sharing_record_voice_desc">Permite înregistrarea cu microfonul</string>
+    <string name="pref_sharing_other_files">Alegeți alte fișiere</string>
+    <string name="pref_sharing_other_files_desc">Permite documente și fișiere text acceptate</string>
+    <string name="pref_sharing_viewing">Vizualizare</string>
+    <string name="pref_sharing_internal_viewer">Deschideți media în interiorul aplicației</string>
+    <string name="pref_sharing_internal_viewer_desc">Utilizați vizualizatorul încorporat pentru legături de imagini, audio și video</string>
+    <string name="video_recorder_title">Înregistrați videoclip</string>
+    <string name="video_recorder_ready">720p · H.264 · maxim 60 de secunde</string>
+    <string name="video_recorder_status">%1$s · %2$s / %3$s</string>
+    <string name="video_recorder_switch">Comutați camera</string>
+    <string name="video_recorder_start">Înregistrează</string>
+    <string name="video_recorder_stop">Oprește</string>
+    <string name="video_recorder_redo">Înregistrați din nou</string>
+    <string name="video_recorder_camera_failed">Camera nu a putut fi deschisă.</string>
+    <string name="video_recorder_start_failed">Înregistrarea nu a putut fi pornită cu setări compatibile.</string>
+    <string name="video_recorder_record_failed">Videoclipul nu a putut fi salvat.</string>
+    <string name="video_recorder_permission_required">Permisiunile pentru cameră și microfon sunt necesare pentru a înregistra videoclipuri.</string>
+
+    <string name="media_checking">Se verifică linkul media...</string>
+    <string name="media_open_failed">Acest link nu a putut fi deschis.</string>
+    <string name="media_viewer_title">Media</string>
+    <string name="media_open_external">Deschide extern</string>
+    <string name="media_audio_label">Redare audio</string>
+
+</resources>
