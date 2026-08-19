@@ -46,3 +46,12 @@
 # Gson models used for the saved auto-connect list
 -keep class io.mrarm.irc.ServerConnectionManager$ConnectedServerInfo { *; }
 -keep class io.mrarm.irc.ServerConnectionManager$ConnectedServersList { *; }
+# Preserve TIARCA Gson models and adapters
+-keep class io.mrarm.irc.util.theme.ThemeInfo { *; }
+-keep class io.mrarm.irc.util.theme.ThemeInfo$ColorsAdapter { *; }
+
+-keepclasseswithmembers,allowobfuscation,includedescriptorclasses class * {
+    @com.google.gson.annotations.JsonAdapter <fields>;
+}
+
+-keep @com.google.gson.annotations.JsonAdapter class * { *; }
