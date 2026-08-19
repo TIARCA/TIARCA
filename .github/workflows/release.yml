@@ -1,0 +1,68 @@
+name: Build TIARCA Release
+
+on:
+  workflow_dispatch:
+
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Make Gradle executable
+        run: chmod +x gradlew
+
+      - name: Restore release keystore
+        shell: bash
+        run: |
+          echo "${{ secrets.TIARCA_RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > tiarca-release.jks
+
+      - name: Create keystore.properties
+        shell: bash
+        run: |
+          cat > keystore.properties <<EOF
+          storeFile=tiarca-release.jks
+          storePassword=${{ secrets.TIARCA_RELEASE_STORE_PASSWORD }}
+          keyAlias=${{ secrets.TIARCA_RELEASE_KEY_ALIAS }}
+          keyPassword=${{ secrets.TIARCA_RELEASE_KEY_PASSWORD }}
+          EOF
+
+      - name: Build signed release APK
+        run: ./gradlew :app:assembleRelease
+
+      - name: Find generated APK
+        id: apk
+        shell: bash
+        run: |
+          APK=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          echo "apk=$APK" >> "$GITHUB_OUTPUT"
+          echo "Generated APK: $APK"
+
+      - name: Upload APK as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TIARCA-release
+          path: ${{ steps.apk.outputs.apk }}
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.apk.outputs.apk }}
+          generate_release_notes: true
