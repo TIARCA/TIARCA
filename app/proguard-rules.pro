@@ -42,3 +42,7 @@
 -keep class * implements com.google.gson.TypeAdapterFactory
 -keep class * implements com.google.gson.JsonSerializer
 -keep class * implements com.google.gson.JsonDeserializer
+
+# Gson models used for the saved auto-connect list
+-keep class io.mrarm.irc.ServerConnectionManager$ConnectedServerInfo { *; }
+-keep class io.mrarm.irc.ServerConnectionManager$ConnectedServersList { *; }
