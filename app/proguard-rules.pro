@@ -36,6 +36,8 @@
 -dontwarn android.test.**
 
 # gson
+-keepattributes Signature
+-keepattributes *Annotation*
 -keep class * extends com.google.gson.TypeAdapter
 -keep class * implements com.google.gson.TypeAdapterFactory
 -keep class * implements com.google.gson.JsonSerializer
