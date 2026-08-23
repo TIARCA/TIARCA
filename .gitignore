@@ -7,6 +7,7 @@ build
 keystore.properties
 *.jks
 *.keystore
+distribution/
 /local.properties
 /crowdin.properties
 /.idea/workspace.xml
