@@ -30,13 +30,14 @@ public class DrawerNavigationView extends NavigationView {
     public WindowInsets dispatchApplyWindowInsets(WindowInsets insets) {
         if (mNavList == null)
             mNavList = findViewById(R.id.nav_list);
-        Insets systemBars = WindowInsetsCompat.toWindowInsetsCompat(insets, this)
-                .getInsets(WindowInsetsCompat.Type.systemBars());
+        WindowInsetsCompat compatInsets = WindowInsetsCompat.toWindowInsetsCompat(insets, this);
+        Insets systemBars = compatInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+        Insets ime = compatInsets.getInsets(WindowInsetsCompat.Type.ime());
         if (mNavList != null) {
             mNavList.setPadding(systemBars.left,
                     0,
                     systemBars.right,
-                    systemBars.bottom);
+                    Math.max(systemBars.bottom, ime.bottom));
             if (mNavList.getAdapter() instanceof DrawerMenuListAdapter)
                 ((DrawerMenuListAdapter) mNavList.getAdapter()).setHeaderPaddingTop(systemBars.top);
         }
