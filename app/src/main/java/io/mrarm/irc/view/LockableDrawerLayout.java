@@ -4,6 +4,8 @@ import android.content.Context;
 import android.graphics.Color;
 import android.os.Parcelable;
 import androidx.core.view.GravityCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.appcompat.graphics.drawable.DrawerArrowDrawable;
 import androidx.appcompat.widget.Toolbar;
@@ -11,6 +13,7 @@ import android.util.AttributeSet;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.WindowInsets;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -21,6 +24,7 @@ public class LockableDrawerLayout extends DrawerLayout {
 
     private boolean mLockable = false;
     private boolean mLocked = false;
+    private int mImeInsetBottom;
     private List<WeakReference<LockableStateListener>> mLockableListener = new ArrayList<>();
 
     public LockableDrawerLayout(Context context) {
@@ -147,6 +151,40 @@ public class LockableDrawerLayout extends DrawerLayout {
                 }
             }
         }
+    }
+
+    @Override
+    public WindowInsets dispatchApplyWindowInsets(WindowInsets insets) {
+        Insets ime = WindowInsetsCompat.toWindowInsetsCompat(insets, this)
+                .getInsets(WindowInsetsCompat.Type.ime());
+        if (mImeInsetBottom != ime.bottom) {
+            mImeInsetBottom = ime.bottom;
+            updateStartDrawerHeight();
+        }
+        return super.dispatchApplyWindowInsets(insets);
+    }
+
+    @Override
+    protected void onSizeChanged(int width, int height, int oldWidth, int oldHeight) {
+        super.onSizeChanged(width, height, oldWidth, oldHeight);
+        if (height != oldHeight)
+            updateStartDrawerHeight();
+    }
+
+    private void updateStartDrawerHeight() {
+        int drawerHeight = mImeInsetBottom > 0 && getHeight() > 0 ?
+                Math.max(0, getHeight() - mImeInsetBottom) : LayoutParams.MATCH_PARENT;
+        for (int i = 0; i < getChildCount(); ++i) {
+            View child = getChildAt(i);
+            LayoutParams params = (LayoutParams) child.getLayoutParams();
+            if ((GravityCompat.getAbsoluteGravity(params.gravity, getLayoutDirection()) &
+                    Gravity.HORIZONTAL_GRAVITY_MASK) != Gravity.LEFT ||
+                    params.height == drawerHeight)
+                continue;
+            params.height = drawerHeight;
+            child.setLayoutParams(params);
+        }
+        requestLayout();
     }
 
     @Override
