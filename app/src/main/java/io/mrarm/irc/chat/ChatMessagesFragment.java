@@ -93,6 +93,7 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
     private MessageSenderInfo mChannelTopicSetBy;
     private Date mChannelTopicSetOn;
     private RecyclerView mRecyclerView;
+    private int mMessagesBottomPadding;
     private ScrollPosLinearLayoutManager mLayoutManager;
     private ChatMessagesAdapter mAdapter;
     private ServerStatusMessagesAdapter mStatusAdapter;
@@ -256,7 +257,11 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
             mMentionPosition = rootView.findViewById(R.id.mention_position);
             mMentionPrevious = rootView.findViewById(R.id.mention_previous);
             mMentionNext = rootView.findViewById(R.id.mention_next);
+            mMessagesBottomPadding = mRecyclerView.getPaddingBottom();
         }
+        mMentionNavigation.addOnLayoutChangeListener((v, left, top, right, bottom,
+                                                       oldLeft, oldTop, oldRight, oldBottom) ->
+                updateMentionNavigationPadding());
         mLayoutManager = new ScrollPosLinearLayoutManager(getContext());
         mLayoutManager.setStackFromEnd(true);
         mRecyclerView.setLayoutManager(mLayoutManager);
@@ -427,6 +432,7 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
         mMentionRestoreMessage = item instanceof ChatMessagesAdapter.MessageItem ?
                 ((ChatMessagesAdapter.MessageItem) item).mMessageId : null;
         mMentionNavigation.setVisibility(View.VISIBLE);
+        mMentionNavigation.post(this::updateMentionNavigationPadding);
         showMention(oldestFirst ? 0 : mMentionIds.size() - 1);
     }
 
@@ -467,6 +473,7 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
     private void closeMentionNavigation(boolean restorePosition) {
         if (mMentionNavigation != null)
             mMentionNavigation.setVisibility(View.GONE);
+        updateMentionNavigationPadding();
         MessageId restore = mMentionRestoreMessage;
         mMentionRestoreMessage = null;
         mMentionIds.clear();
@@ -481,6 +488,15 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
         mConnection.getNotificationManager().getChannelManager(mChannelName, true)
                 .markAllMentionsReviewed();
         updateUnreadCounter();
+    }
+
+    private void updateMentionNavigationPadding() {
+        if (mRecyclerView == null || mMentionNavigation == null)
+            return;
+        int navigationHeight = mMentionNavigation.getVisibility() == View.VISIBLE ?
+                mMentionNavigation.getHeight() : 0;
+        mRecyclerView.setPadding(mRecyclerView.getPaddingLeft(), mRecyclerView.getPaddingTop(),
+                mRecyclerView.getPaddingRight(), mMessagesBottomPadding + navigationHeight);
     }
 
     @Override
