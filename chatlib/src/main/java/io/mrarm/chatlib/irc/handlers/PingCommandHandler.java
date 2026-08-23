@@ -20,10 +20,17 @@ public class PingCommandHandler implements CommandHandler {
     public void handle(ServerConnectionData connection, MessagePrefix sender, String command, List<String> params,
                        Map<String, String> tags)
             throws InvalidMessageException {
+        System.out.println("IRC keepalive: PING received; thread=" +
+                Thread.currentThread().getName());
         try {
             connection.getApi().sendCommand("PONG", true,
                     CommandHandler.getParamWithCheck(params, 0));
-        } catch (IOException ignored) {
+            System.out.println("IRC keepalive: PONG sent; thread=" +
+                    Thread.currentThread().getName());
+        } catch (IOException error) {
+            System.err.println("IRC keepalive: PONG failed; error=" +
+                    error.getClass().getSimpleName() + ", message=" + error.getMessage() +
+                    ", thread=" + Thread.currentThread().getName());
         }
     }
 

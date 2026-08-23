@@ -49,8 +49,18 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
     private final Runnable mConnectivityChangedRunnable = () -> {
         if (!mConnectivityMonitoringStarted)
             return;
+        Network activeNetwork = mConnectivityManager == null ? null :
+                mConnectivityManager.getActiveNetwork();
+        NetworkCapabilities capabilities = activeNetwork == null ? null :
+                mConnectivityManager.getNetworkCapabilities(activeNetwork);
         boolean connected = hasInternetConnectivity();
         boolean wifi = ServerConnectionManager.isWifiConnected(this);
+        Log.i(TAG, "Active network: id=" + activeNetwork + ", connected=" + connected +
+                ", validated=" + hasCapability(capabilities,
+                NetworkCapabilities.NET_CAPABILITY_VALIDATED) + ", wifi=" + wifi +
+                ", cellular=" + hasTransport(capabilities,
+                NetworkCapabilities.TRANSPORT_CELLULAR) + ", vpn=" +
+                hasTransport(capabilities, NetworkCapabilities.TRANSPORT_VPN));
         if (mLastInternetConnectivity != null && mLastInternetConnectivity == connected &&
                 mLastWifiConnectivity != null && mLastWifiConnectivity == wifi)
             return;
@@ -88,6 +98,7 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
     @Override
     public void onCreate() {
         super.onCreate();
+        Log.i(TAG, "Service created");
 
         WarningHelper.setAppContext(getApplicationContext());
 
@@ -104,6 +115,7 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
 
     @Override
     public void onDestroy() {
+        Log.i(TAG, "Service destroyed");
         super.onDestroy();
 
         if (ServerConnectionManager.hasInstance()) {
@@ -121,6 +133,8 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         String action = intent != null ? intent.getAction() : null;
+        Log.i(TAG, "Service start: action=" + action + ", flags=" + flags +
+                ", startId=" + startId);
         if (action == null)
             return START_STICKY;
         if (action.equals(ACTION_START_FOREGROUND)) {
@@ -171,6 +185,9 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
             } else {
                 startForeground(IDLE_NOTIFICATION_ID, notification.build());
             }
+            Log.i(TAG, "Foreground notification active: connected=" + connectedCount +
+                    ", connecting=" + connectingCount + ", disconnected=" +
+                    disconnectedCount);
         }
         return START_STICKY;
     }
@@ -237,11 +254,13 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
             mNetworkCallback = new ConnectivityManager.NetworkCallback() {
                 @Override
                 public void onAvailable(Network network) {
+                    Log.i(TAG, "Network available: id=" + network);
                     scheduleConnectivityChanged();
                 }
 
                 @Override
                 public void onLost(Network network) {
+                    Log.i(TAG, "Network lost: id=" + network);
                     // Re-read the active network: another transport may already have replaced it.
                     scheduleConnectivityChanged();
                 }
@@ -249,6 +268,14 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
                 @Override
                 public void onCapabilitiesChanged(Network network,
                                                   NetworkCapabilities capabilities) {
+                    Log.i(TAG, "Network capabilities changed: id=" + network +
+                            ", internet=" + hasCapability(capabilities,
+                            NetworkCapabilities.NET_CAPABILITY_INTERNET) + ", validated=" +
+                            hasCapability(capabilities,
+                            NetworkCapabilities.NET_CAPABILITY_VALIDATED) + ", wifi=" +
+                            hasTransport(capabilities, NetworkCapabilities.TRANSPORT_WIFI) +
+                            ", cellular=" + hasTransport(capabilities,
+                            NetworkCapabilities.TRANSPORT_CELLULAR));
                     scheduleConnectivityChanged();
                 }
             };
@@ -283,6 +310,14 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
                 mConnectivityManager.getNetworkCapabilities(activeNetwork);
         return capabilities != null &&
                 capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+    }
+
+    private static boolean hasCapability(NetworkCapabilities capabilities, int capability) {
+        return capabilities != null && capabilities.hasCapability(capability);
+    }
+
+    private static boolean hasTransport(NetworkCapabilities capabilities, int transport) {
+        return capabilities != null && capabilities.hasTransport(transport);
     }
 
 }

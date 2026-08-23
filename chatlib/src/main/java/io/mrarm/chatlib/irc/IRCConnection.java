@@ -112,6 +112,8 @@ public class IRCConnection extends ServerConnectionApi {
     }
 
     private void handleInput() {
+        System.out.println("IRC transport: reader started; thread=" +
+                Thread.currentThread().getName());
         try {
             while (true) {
                 String command = readCommand();
@@ -124,6 +126,12 @@ public class IRCConnection extends ServerConnectionApi {
                 }
             }
         } catch (IOException e) {
+            Socket currentSocket = socket;
+            System.err.println("IRC transport: reader stopped; error=" +
+                    e.getClass().getSimpleName() + ", message=" + e.getMessage() +
+                    ", socketPresent=" + (currentSocket != null) + ", socketClosed=" +
+                    (currentSocket != null && currentSocket.isClosed()) + ", thread=" +
+                    Thread.currentThread().getName());
             e.printStackTrace();
             socketInputStream = null;
             synchronized (socketOutputStream) {
@@ -374,6 +382,9 @@ public class IRCConnection extends ServerConnectionApi {
             }
             socketInputStream = socket.getInputStream();
             socketOutputStream = socket.getOutputStream();
+            System.out.println("IRC transport: socket opened; ssl=" + request.isUsingSSL() +
+                    ", keepAlive=" + socket.getKeepAlive() + ", soTimeout=" +
+                    socket.getSoTimeout());
             sendCommand(false, "CAP", false, "LS", "302");
             if (request.getServerPass() != null)
                 sendCommand(false, "PASS", request.getServerPass().contains(" ") ||

@@ -191,6 +191,8 @@ public class ServerConnectionInfo {
                         .registerHandler(new WhoXAccountHandler());
             }
             connection.addDisconnectListener((IRCConnection conn, Exception reason) -> {
+                Log.w("ServerConnectionInfo", "IRC transport disconnected: " +
+                        reason.getClass().getSimpleName() + ": " + reason.getMessage());
                 notifyDisconnected();
             });
             createdNewConnection = true;
