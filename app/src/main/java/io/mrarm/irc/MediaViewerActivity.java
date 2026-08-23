@@ -3,6 +3,9 @@ package io.mrarm.irc;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.ImageDecoder;
+import android.graphics.drawable.AnimatedImageDrawable;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.Gravity;
@@ -31,6 +34,7 @@ public class MediaViewerActivity extends ThemedActivity {
     public static final String ARG_URL = "url";
     public static final String ARG_MIME = "mime";
     private static final ExecutorService EXECUTOR = Executors.newCachedThreadPool();
+    private AnimatedImageDrawable mAnimatedImage;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,10 +72,10 @@ public class MediaViewerActivity extends ThemedActivity {
         ProgressBar progress = new ProgressBar(this);
         root.addView(progress, new LinearLayout.LayoutParams(-1, 0, 1));
         EXECUTOR.execute(() -> {
-            Bitmap bitmap = downloadImage(url);
+            Drawable drawable = downloadImage(url);
             runOnUiThread(() -> {
                 root.removeView(progress);
-                if (bitmap == null) {
+                if (drawable == null) {
                     Toast.makeText(this, R.string.media_open_failed, Toast.LENGTH_LONG).show();
                     finish();
                     return;
@@ -79,7 +83,11 @@ public class MediaViewerActivity extends ThemedActivity {
                 ImageView image = new ImageView(this);
                 image.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 image.setAdjustViewBounds(true);
-                image.setImageBitmap(bitmap);
+                image.setImageDrawable(drawable);
+                if (drawable instanceof AnimatedImageDrawable) {
+                    mAnimatedImage = (AnimatedImageDrawable) drawable;
+                    mAnimatedImage.start();
+                }
                 root.addView(image, new LinearLayout.LayoutParams(-1, 0, 1));
             });
         });
@@ -108,7 +116,7 @@ public class MediaViewerActivity extends ThemedActivity {
         player.requestFocus();
     }
 
-    private Bitmap downloadImage(String address) {
+    private Drawable downloadImage(String address) {
         HttpURLConnection connection = null;
         File file = new File(getCacheDir(), "preview-" + System.nanoTime());
         try {
@@ -129,20 +137,33 @@ public class MediaViewerActivity extends ThemedActivity {
                     output.write(buffer, 0, read);
                 }
             }
-            BitmapFactory.Options bounds = new BitmapFactory.Options();
-            bounds.inJustDecodeBounds = true;
-            BitmapFactory.decodeFile(file.getAbsolutePath(), bounds);
-            int sample = 1;
-            while (bounds.outWidth / sample > 2048 || bounds.outHeight / sample > 2048)
-                sample *= 2;
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inSampleSize = sample;
-            return BitmapFactory.decodeFile(file.getAbsolutePath(), options);
+            return ImageDecoder.decodeDrawable(ImageDecoder.createSource(file),
+                    (decoder, info, source) -> {
+                        int width = info.getSize().getWidth();
+                        int height = info.getSize().getHeight();
+                        float scale = Math.min(1f, 2048f / Math.max(width, height));
+                        decoder.setTargetSize(Math.max(1, Math.round(width * scale)),
+                                Math.max(1, Math.round(height * scale)));
+                    });
         } catch (Exception error) {
             return null;
         } finally {
             if (connection != null) connection.disconnect();
             file.delete();
         }
+    }
+
+    @Override
+    protected void onPause() {
+        if (mAnimatedImage != null)
+            mAnimatedImage.stop();
+        super.onPause();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (mAnimatedImage != null)
+            mAnimatedImage.start();
     }
 }
