@@ -439,7 +439,11 @@ public class ChatFragment extends Fragment implements
     @Override
     public void onChannelListChanged(ServerConnectionInfo connection, List<String> newChannels) {
         runOnUiThreadIfViewAttached(() -> {
+            String currentChannel = getCurrentChannel();
             mSectionsPagerAdapter.updateChannelList();
+            int currentPosition = mSectionsPagerAdapter.findChannel(currentChannel);
+            if (currentChannel != null && currentPosition != 0)
+                mViewPager.setCurrentItem(currentPosition, false);
             checkForAutoOpenChannel();
         });
     }
