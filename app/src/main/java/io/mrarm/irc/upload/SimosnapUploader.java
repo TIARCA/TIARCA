@@ -48,14 +48,18 @@ public final class SimosnapUploader {
 
     private SimosnapUploader() { }
 
-    public static void confirmAndUpload(Activity activity, ServerConnectionInfo connection,
-                                        String targetNick, Uri uri) {
+    public interface UploadCallback {
+        void onUploaded(String url);
+    }
+
+    public static void uploadForInsertion(Activity activity, ServerConnectionInfo connection,
+                                          Uri uri, UploadCallback callback) {
         if (!(connection.getApiInstance() instanceof IRCConnection))
             return;
         try {
             FileInfo file = readFileInfo(activity.getContentResolver(), uri);
             if (file.mime.startsWith("image/") && !file.mime.equals("image/gif")) {
-                preparePrivateImage(activity, connection, targetNick, uri, file);
+                preparePrivateImage(activity, connection, null, uri, file, callback);
                 return;
             }
             String validation = validate(file);
@@ -63,26 +67,49 @@ public final class SimosnapUploader {
                 Toast.makeText(activity, validation, Toast.LENGTH_LONG).show();
                 return;
             }
-            showConfirmation(activity, connection, targetNick, uri, file);
+            acquireTokenAndUpload(activity, connection, null, uri, file, callback);
+        } catch (IOException e) {
+            Toast.makeText(activity, R.string.error_file_open, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    public static void confirmAndUpload(Activity activity, ServerConnectionInfo connection,
+                                        String targetNick, Uri uri) {
+        if (!(connection.getApiInstance() instanceof IRCConnection))
+            return;
+        try {
+            FileInfo file = readFileInfo(activity.getContentResolver(), uri);
+            if (file.mime.startsWith("image/") && !file.mime.equals("image/gif")) {
+                preparePrivateImage(activity, connection, targetNick, uri, file, null);
+                return;
+            }
+            String validation = validate(file);
+            if (validation != null) {
+                Toast.makeText(activity, validation, Toast.LENGTH_LONG).show();
+                return;
+            }
+            showConfirmation(activity, connection, targetNick, uri, file, null);
         } catch (IOException e) {
             Toast.makeText(activity, R.string.error_file_open, Toast.LENGTH_SHORT).show();
         }
     }
 
     private static void showConfirmation(Activity activity, ServerConnectionInfo connection,
-                                         String targetNick, Uri uri, FileInfo file) {
+                                         String targetNick, Uri uri, FileInfo file,
+                                         UploadCallback callback) {
             new AlertDialog.Builder(activity)
                     .setTitle(R.string.file_upload_title)
                     .setMessage(activity.getString(R.string.file_upload_confirm,
                             file.name, formatSize(file.size), targetNick))
                     .setNegativeButton(R.string.action_cancel, null)
                     .setPositiveButton(R.string.action_ok, (dialog, which) ->
-                            acquireTokenAndUpload(activity, connection, targetNick, uri, file))
+                            acquireTokenAndUpload(activity, connection, targetNick, uri, file, callback))
                     .show();
     }
 
     private static void preparePrivateImage(Activity activity, ServerConnectionInfo connection,
-                                            String targetNick, Uri uri, FileInfo original) {
+                                            String targetNick, Uri uri, FileInfo original,
+                                            UploadCallback callback) {
         ProgressUi progress = ProgressUi.show(activity, 0,
                 R.string.file_private_image_progress, false);
         EXECUTOR.execute(() -> {
@@ -98,7 +125,7 @@ public final class SimosnapUploader {
                     if (validation != null)
                         Toast.makeText(activity, validation, Toast.LENGTH_LONG).show();
                     else
-                        showConfirmation(activity, connection, targetNick, cleanUri, clean);
+                                            showConfirmation(activity, connection, targetNick, cleanUri, clean, callback);
                 });
             } catch (Exception error) {
                 activity.runOnUiThread(() -> {
@@ -175,7 +202,8 @@ public final class SimosnapUploader {
     }
 
     private static void acquireTokenAndUpload(Activity activity, ServerConnectionInfo connection,
-                                               String targetNick, Uri uri, FileInfo file) {
+                                               String targetNick, Uri uri, FileInfo file,
+                                               UploadCallback callback) {
         IRCConnection irc = (IRCConnection) connection.getApiInstance();
         CommandHandlerList handlers = irc.getServerConnectionData().getCommandHandlerList();
         ExtJwtCommandHandler handler = handlers.getHandler(ExtJwtCommandHandler.class);
@@ -184,31 +212,31 @@ public final class SimosnapUploader {
             handlers.registerHandler(handler);
         }
         AtomicBoolean started = new AtomicBoolean(false);
-        ExtJwtCommandHandler.Callback callback = token -> {
+        ExtJwtCommandHandler.Callback jwtCallback = token -> {
             if (started.compareAndSet(false, true))
-                startUpload(activity, irc, targetNick, uri, file, token);
+                startUpload(activity, irc, targetNick, uri, file, token, callback);
         };
-        handler.request(callback);
+        handler.request(jwtCallback);
         ExtJwtCommandHandler finalHandler = handler;
         irc.sendCommandRaw("EXTJWT *", null, error -> {
             if (started.compareAndSet(false, true)) {
-                finalHandler.cancel(callback);
-                startUpload(activity, irc, targetNick, uri, file, null);
+                finalHandler.cancel(jwtCallback);
+                startUpload(activity, irc, targetNick, uri, file, null, callback);
             }
         });
         // Networks without EXTJWT may not send an error the old library understands.
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             if (started.compareAndSet(false, true)) {
-                finalHandler.cancel(callback);
-                startUpload(activity, irc, targetNick, uri, file, null);
+                finalHandler.cancel(jwtCallback);
+                startUpload(activity, irc, targetNick, uri, file, null, callback);
             }
         }, 6000);
     }
 
     private static void startUpload(Activity activity, IRCConnection irc, String targetNick,
-                                    Uri uri, FileInfo file, String token) {
+                                    Uri uri, FileInfo file, String token, UploadCallback callback) {
         if (Looper.myLooper() != Looper.getMainLooper()) {
-            activity.runOnUiThread(() -> startUpload(activity, irc, targetNick, uri, file, token));
+            activity.runOnUiThread(() -> startUpload(activity, irc, targetNick, uri, file, token, callback));
             return;
         }
         UploadControl control = new UploadControl();
@@ -221,6 +249,13 @@ public final class SimosnapUploader {
                                 progress.setProgress(file.size > 0 ?
                                         (int) (sent * 100 / file.size) : 0)));
                 String publicUrl = toFriendlyUrl(url);
+                if (callback != null) {
+                    activity.runOnUiThread(() -> {
+                        progress.dismiss(activity);
+                        callback.onUploaded(publicUrl);
+                    });
+                    return;
+                }
                 irc.sendMessage(targetNick, "File condiviso: " + publicUrl, response ->
                         activity.runOnUiThread(() -> {
                             progress.dismiss(activity);

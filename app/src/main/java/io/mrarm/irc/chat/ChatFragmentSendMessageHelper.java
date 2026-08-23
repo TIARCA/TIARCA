@@ -1,7 +1,9 @@
 package io.mrarm.irc.chat;
 
 import android.app.Dialog;
+import android.app.Activity;
 import android.content.Context;
+import android.net.Uri;
 import android.graphics.Typeface;
 import androidx.annotation.NonNull;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
@@ -36,7 +38,9 @@ import io.mrarm.irc.MainActivity;
 import io.mrarm.irc.R;
 import io.mrarm.irc.ServerConnectionInfo;
 import io.mrarm.irc.config.QuickCommandSettings;
+import io.mrarm.irc.config.SharingSettings;
 import io.mrarm.irc.dialog.UserBottomSheetDialog;
+import io.mrarm.irc.upload.SimosnapUploader;
 import io.mrarm.irc.util.AutoMultilineTextListener;
 import io.mrarm.irc.util.ColoredTextBuilder;
 import io.mrarm.irc.util.ImageViewTintUtils;
@@ -93,6 +97,7 @@ public class ChatFragmentSendMessageHelper implements SendMessageHelper.Callback
         mSendText.setAdapter(mChannelMembersListAdapter);
         mSendText.setCommandListAdapter(new CommandListSuggestionsAdapter(mContext));
         mSendText.setConnectionContext(connectionInfo);
+        mSendText.setImagePasteListener(uri -> uploadPastedImage(connectionInfo, uri));
         if (connectionInfo.getApiInstance() instanceof ServerConnectionApi)
             mSendText.setChannelTypes(((ServerConnectionApi) connectionInfo.getApiInstance())
                     .getServerConnectionData().getSupportList().getSupportedChannelTypes());
@@ -219,6 +224,31 @@ public class ChatFragmentSendMessageHelper implements SendMessageHelper.Callback
 
     public void setMessageText(String text) {
         mSendText.setText(text);
+    }
+
+    private boolean uploadPastedImage(ServerConnectionInfo connection, Uri uri) {
+        if (!(mContext instanceof Activity) || !SharingSettings.uploadsEnabled(mContext))
+            return false;
+        String channel = mCurrentChannel;
+        SimosnapUploader.uploadForInsertion((Activity) mContext, connection, uri,
+                url -> insertUploadedUrl(channel, url));
+        return true;
+    }
+
+    private void insertUploadedUrl(String channel, String url) {
+        if (channel == null ? mCurrentChannel != null : !channel.equals(mCurrentChannel)) {
+            ChannelUIData data = mFragment.getConnectionInfo().getChatUIData()
+                    .getOrCreateChannelData(channel);
+            String text = data.getCurrentText().toString();
+            data.setCurrentText(text + (text.isEmpty() || Character.isWhitespace(
+                    text.charAt(text.length() - 1)) ? "" : " ") + url);
+            return;
+        }
+        int position = Math.max(0, mSendText.getSelectionStart());
+        String prefix = position > 0 && !Character.isWhitespace(mSendText.getText()
+                .charAt(position - 1)) ? " " : "";
+        mSendText.getText().insert(position, prefix + url);
+        mSendText.setSelection(position + prefix.length() + url.length());
     }
 
     public void sendMessage() {

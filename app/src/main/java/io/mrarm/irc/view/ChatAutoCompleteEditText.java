@@ -2,7 +2,10 @@ package io.mrarm.irc.view;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.ClipboardManager;
+import android.content.ClipData;
 import android.content.res.Resources;
+import android.net.Uri;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import androidx.recyclerview.widget.RecyclerView;
 import android.text.Editable;
@@ -57,6 +60,11 @@ public class ChatAutoCompleteEditText extends FormattableEditText implements
     private int mHistoryDirtyIndex = Integer.MIN_VALUE;
     private SendTextGestureListener mGestureListener;
     private GestureDetector mGestureDetector;
+    private ImagePasteListener mImagePasteListener;
+
+    public interface ImagePasteListener {
+        boolean onImagePasted(Uri uri);
+    }
 
     public ChatAutoCompleteEditText(Context context) {
         super(context);
@@ -106,6 +114,26 @@ public class ChatAutoCompleteEditText extends FormattableEditText implements
 
     public void setConnectionContext(ServerConnectionInfo info) {
         mConnection = info;
+    }
+
+    public void setImagePasteListener(ImagePasteListener listener) {
+        mImagePasteListener = listener;
+    }
+
+    @Override
+    public boolean onTextContextMenuItem(int id) {
+        if (id == android.R.id.paste && mImagePasteListener != null) {
+            ClipboardManager clipboard = (ClipboardManager) getContext()
+                    .getSystemService(Context.CLIPBOARD_SERVICE);
+            ClipData clip = clipboard == null ? null : clipboard.getPrimaryClip();
+            if (clip != null && clip.getDescription().hasMimeType("image/*") &&
+                    clip.getItemCount() > 0) {
+                Uri uri = clip.getItemAt(0).getUri();
+                if (uri != null && mImagePasteListener.onImagePasted(uri))
+                    return true;
+            }
+        }
+        return super.onTextContextMenuItem(id);
     }
 
     private void setCurrentCommandAdapter(boolean command) {
