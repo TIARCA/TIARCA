@@ -450,7 +450,7 @@ public class UserBottomSheetDialog {
                 .setTitle(actionId)
                 .setMessage(mContext.getString(R.string.operator_confirm_action,
                         mContext.getString(actionId), mNick, mSourceChannel))
-                .setView(kickban ? createReasonInput(reason) : reason)
+                .setView(createReasonInput(reason))
                 .setNegativeButton(R.string.action_cancel, null)
                 .setPositiveButton(R.string.action_ok, (dialog, which) -> {
                     String kickCommand = "KICK " + mSourceChannel + " " + mNick;
