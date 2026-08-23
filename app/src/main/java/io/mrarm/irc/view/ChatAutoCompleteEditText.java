@@ -8,6 +8,8 @@ import android.content.res.Resources;
 import android.net.Uri;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.core.view.ContentInfoCompat;
+import androidx.core.view.ViewCompat;
 import android.text.Editable;
 import android.util.AttributeSet;
 import android.view.GestureDetector;
@@ -91,6 +93,8 @@ public class ChatAutoCompleteEditText extends FormattableEditText implements
         }));
         mGestureListener = new SendTextGestureListener();
         mGestureDetector = new GestureDetector(getContext(), mGestureListener);
+        ViewCompat.setOnReceiveContentListener(this, new String[] { "image/*" },
+                (view, payload) -> receiveImageContent(payload));
 
         onSettingChanged();
     }
@@ -134,6 +138,18 @@ public class ChatAutoCompleteEditText extends FormattableEditText implements
             }
         }
         return super.onTextContextMenuItem(id);
+    }
+
+    private ContentInfoCompat receiveImageContent(ContentInfoCompat payload) {
+        if (mImagePasteListener == null || !payload.getClip().getDescription()
+                .hasMimeType("image/*") || payload.getClip().getItemCount() == 0)
+            return payload;
+        Uri uri = payload.getClip().getItemAt(0).getUri();
+        if (uri == null)
+            return payload;
+        if (mImagePasteListener.onImagePasted(uri))
+            return null;
+        return payload;
     }
 
     private void setCurrentCommandAdapter(boolean command) {
