@@ -15,6 +15,7 @@ import android.provider.MediaStore;
 import android.content.pm.PackageManager;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -142,6 +143,20 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
         mFakeToolbar = findViewById(R.id.fake_toolbar);
 
         mDrawerLayout = findViewById(R.id.drawer_layout);
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (handleMainBackPressed())
+                    return;
+                setEnabled(false);
+                try {
+                    getOnBackPressedDispatcher().onBackPressed();
+                } finally {
+                    setEnabled(true);
+                }
+            }
+        });
 
         mDrawerHelper = new DrawerHelper(this);
         mDrawerHelper.registerListeners();
@@ -429,13 +444,20 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
         }
     }
 
-    @Override
-    public void onBackPressed() {
-        if (mBackReturnToServerList) {
-            openManageServers();
-            return;
+    private boolean handleMainBackPressed() {
+        if (mDrawerLayout.isDrawerOpen(GravityCompat.END)) {
+            mDrawerLayout.closeDrawer(GravityCompat.END);
+            return true;
         }
-        super.onBackPressed();
+        if (mDrawerLayout.isDrawerOpen(GravityCompat.START) && !mDrawerLayout.isCurrentlyLocked()) {
+            mDrawerLayout.closeDrawer(GravityCompat.START);
+            return true;
+        }
+        if (!(getCurrentFragment() instanceof ServerListFragment)) {
+            openManageServers();
+            return true;
+        }
+        return false;
     }
 
     @Override
