@@ -234,9 +234,9 @@ public final class ChannelBanListDialog {
 
         String mask = entry.mask.trim();
         String lower = mask.toLowerCase(Locale.ROOT);
-        if (lower.startsWith("j:") || lower.startsWith("r:"))
+        if (lower.startsWith("j:") || lower.startsWith("r:") || lower.startsWith("u:"))
             return false;
-        if (lower.startsWith("m:") || lower.startsWith("u:"))
+        if (lower.startsWith("m:"))
             mask = mask.substring(2);
         else if (mask.indexOf(':') >= 0)
             return false;
@@ -247,6 +247,8 @@ public final class ChannelBanListDialog {
             return false;
         String ident = mask.substring(bang + 1, at);
         String host = mask.substring(at + 1);
+        if ("*".equals(host) && hasSpecificPart(ident))
+            return false;
         return hasSpecificPart(ident) || hasSpecificPart(host);
     }
 

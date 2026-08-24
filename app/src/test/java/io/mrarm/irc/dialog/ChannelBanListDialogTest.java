@@ -17,18 +17,25 @@ public class ChannelBanListDialogTest {
     }
 
     @Test
-    public void includesIdentHostMuteAndAudiMasksInWindow() {
+    public void includesHostAndMuteMasksInWindow() {
         assertTrue(ChannelBanListDialog.isCleanupCandidate(entry("*!*@example.host", 12), NOW));
-        assertTrue(ChannelBanListDialog.isCleanupCandidate(entry("*!ident@*", 12), NOW));
+        assertTrue(ChannelBanListDialog.isCleanupCandidate(entry("*!ident@example.host", 12), NOW));
         assertTrue(ChannelBanListDialog.isCleanupCandidate(entry("m:*!*@example.host", 12), NOW));
-        assertTrue(ChannelBanListDialog.isCleanupCandidate(entry("u:*!ident@*", 12), NOW));
     }
 
     @Test
-    public void excludesProtectedAndUnknownExtbans() {
+    public void excludesProtectedUserAndUnknownExtbans() {
         assertFalse(ChannelBanListDialog.isCleanupCandidate(entry("j:*!*@example.host", 12), NOW));
         assertFalse(ChannelBanListDialog.isCleanupCandidate(entry("R:registered-account", 12), NOW));
         assertFalse(ChannelBanListDialog.isCleanupCandidate(entry("a:account", 12), NOW));
+        assertFalse(ChannelBanListDialog.isCleanupCandidate(entry("u:*!ident@*", 12), NOW));
+        assertFalse(ChannelBanListDialog.isCleanupCandidate(entry("u:*!*@example.host", 12), NOW));
+        assertFalse(ChannelBanListDialog.isCleanupCandidate(entry("u:*!*@*", 12), NOW));
+    }
+
+    @Test
+    public void excludesIdentOnlyMasks() {
+        assertFalse(ChannelBanListDialog.isCleanupCandidate(entry("*!ident@*", 12), NOW));
     }
 
     @Test
