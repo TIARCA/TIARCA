@@ -1,5 +1,9 @@
 # TIARCA — Changelog
 
+## v0.7.1
+
+- Resi cliccabili i nickname strutturati nei messaggi evento IRC JOIN, PART, QUIT, KICK, cambio nickname, MODE utente e TOPIC. Il tocco riutilizza il pannello utente esistente con contesto canale e fallback WHOIS/WHOWAS.
+
 ## v0.6.6
 
 - Corretto il focus delle conversazioni private: l'arrivo di un nuovo PVT non sposta più automaticamente la conversazione attiva, evitando di inviare per errore il testo al destinatario sbagliato.
