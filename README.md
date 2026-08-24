@@ -13,6 +13,10 @@ Questo repository contiene il codice sorgente di TIARCA. Non rappresenta una pub
 * comandi rapidi configurabili, inclusi `!yt`, `!wiki`, `!calc`, `!movie`, `!ora` e `!dizionario`;
 * catalogo di network IRC, configurazione multiserver e numerose correzioni di compatibilità Android.
 
+## Changelog
+
+Consulta il [changelog completo](CHANGELOG.md) per lo storico delle modifiche di TIARCA.
+
 ## Compilazione
 
 Aprire il progetto con Android Studio e usare JDK 21 per Gradle. Il progetto richiede Android SDK 36; per una build di sviluppo eseguire:
