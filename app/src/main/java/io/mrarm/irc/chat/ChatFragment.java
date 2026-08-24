@@ -219,12 +219,7 @@ public class ChatFragment extends Fragment implements
         final boolean[] longPressTriggered = { false };
         Runnable showMenu = () -> {
             longPressTriggered[0] = true;
-            tab.select();
-            FragmentActivity activity = getActivity();
-            if (activity instanceof MainActivity) {
-                activity.invalidateOptionsMenu();
-                mTabLayout.post(() -> ((MainActivity) activity).getToolbar().showOverflowMenu());
-            }
+            showChannelActions((String) tab.getTag());
         };
         tabView.setOnTouchListener((view, event) -> {
             if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
@@ -242,6 +237,20 @@ public class ChatFragment extends Fragment implements
             }
             return true;
         });
+    }
+
+    public void showChannelActions(String channel) {
+        if (mViewPager == null || mTabLayout == null)
+            return;
+        int position = mSectionsPagerAdapter.findChannel(channel);
+        if (position < 0)
+            return;
+        mViewPager.setCurrentItem(position);
+        FragmentActivity activity = getActivity();
+        if (activity instanceof MainActivity) {
+            activity.invalidateOptionsMenu();
+            mTabLayout.post(() -> ((MainActivity) activity).getToolbar().showOverflowMenu());
+        }
     }
 
     private void updateTabLayoutTab(TabLayout.Tab tab) {

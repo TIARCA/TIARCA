@@ -154,6 +154,18 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
             else
                 openServer(server, channel);
         });
+        mDrawerHelper.setChannelLongClickListener((ServerConnectionInfo server, String channel) -> {
+            mDrawerLayout.closeDrawers();
+            ChatFragment fragment;
+            Fragment f = getCurrentFragment();
+            if (f instanceof ChatFragment && ((ChatFragment) f).getConnectionInfo() == server) {
+                fragment = (ChatFragment) f;
+            } else {
+                fragment = openServer(server, channel);
+                getSupportFragmentManager().executePendingTransactions();
+            }
+            fragment.showChannelActions(channel);
+        });
         mDrawerHelper.getManageServersItem().setOnClickListener((View v) -> {
             mDrawerLayout.closeDrawers();
             openManageServers();

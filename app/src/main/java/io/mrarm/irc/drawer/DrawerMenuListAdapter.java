@@ -45,6 +45,7 @@ public class DrawerMenuListAdapter extends RecyclerView.Adapter<RecyclerView.Vie
     private TreeMap<Integer, ServerConnectionInfo> mItemIndexToServerMap = new TreeMap<>();
     private int mCurrentItemCount;
     private ChannelClickListener mChannelClickListener;
+    private ChannelLongClickListener mChannelLongClickListener;
     private ServerConnectionInfo mSelectedItemServer;
     private String mSelectedItemChannel;
     private WeakReference<DrawerMenuItem> mSelectedMenuItem;
@@ -98,6 +99,10 @@ public class DrawerMenuListAdapter extends RecyclerView.Adapter<RecyclerView.Vie
 
     public void setChannelClickListener(ChannelClickListener listener) {
         mChannelClickListener = listener;
+    }
+
+    public void setChannelLongClickListener(ChannelLongClickListener listener) {
+        mChannelLongClickListener = listener;
     }
 
     public int getSelectedItemIndex() {
@@ -400,7 +405,8 @@ public class DrawerMenuListAdapter extends RecyclerView.Adapter<RecyclerView.Vie
 
     }
 
-    public class ChannelHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
+    public class ChannelHolder extends RecyclerView.ViewHolder implements View.OnClickListener,
+            View.OnLongClickListener {
 
         private DrawerMenuListAdapter mAdapter;
         private View mView;
@@ -430,6 +436,7 @@ public class DrawerMenuListAdapter extends RecyclerView.Adapter<RecyclerView.Vie
                 mChannel = null;
                 mName.setText(R.string.tab_server);
             }
+            mView.setOnLongClickListener(mChannel == null ? null : this);
 
             if (mAdapter.mSelectedItemServer != null && mAdapter.mSelectedItemServer == info &&
                     (mAdapter.mSelectedItemChannel == mChannel ||
@@ -471,6 +478,13 @@ public class DrawerMenuListAdapter extends RecyclerView.Adapter<RecyclerView.Vie
         public void onClick(View v) {
             if (mAdapter.mChannelClickListener != null)
                 mAdapter.mChannelClickListener.openChannel(mConnection, mChannel);
+        }
+
+        @Override
+        public boolean onLongClick(View v) {
+            if (mAdapter.mChannelLongClickListener != null)
+                mAdapter.mChannelLongClickListener.showChannelActions(mConnection, mChannel);
+            return true;
         }
 
     }
@@ -518,6 +532,12 @@ public class DrawerMenuListAdapter extends RecyclerView.Adapter<RecyclerView.Vie
     public interface ChannelClickListener {
 
         void openChannel(ServerConnectionInfo server, String channel);
+
+    }
+
+    public interface ChannelLongClickListener {
+
+        void showChannelActions(ServerConnectionInfo server, String channel);
 
     }
 

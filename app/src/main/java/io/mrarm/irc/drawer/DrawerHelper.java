@@ -137,6 +137,10 @@ public class DrawerHelper implements ServerConnectionManager.ConnectionsListener
         mAdapter.setChannelClickListener(listener);
     }
 
+    public void setChannelLongClickListener(DrawerMenuListAdapter.ChannelLongClickListener listener) {
+        mAdapter.setChannelLongClickListener(listener);
+    }
+
     public DrawerMenuItem getManageServersItem() {
         return mManageServersItem;
     }
