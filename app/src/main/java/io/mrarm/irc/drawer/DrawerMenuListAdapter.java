@@ -436,7 +436,7 @@ public class DrawerMenuListAdapter extends RecyclerView.Adapter<RecyclerView.Vie
                 mChannel = null;
                 mName.setText(R.string.tab_server);
             }
-            mView.setOnLongClickListener(mChannel == null ? null : this);
+            mView.setOnLongClickListener(this);
 
             if (mAdapter.mSelectedItemServer != null && mAdapter.mSelectedItemServer == info &&
                     (mAdapter.mSelectedItemChannel == mChannel ||
