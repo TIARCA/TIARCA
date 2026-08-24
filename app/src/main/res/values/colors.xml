@@ -7,6 +7,7 @@
     <color name="colorPrimary">#3F51B5</color>
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>
+    <color name="appThemeTextColorSecondary">@color/abc_secondary_text_material_light</color>
 
     <color name="appBackground">@color/background_material_light</color>
     <color name="appBackgroundFloating">@color/background_floating_material_light</color>

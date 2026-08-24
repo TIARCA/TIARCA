@@ -9,6 +9,7 @@
         <item name="android:colorBackground">@color/appBackground</item>
         <item name="android:windowBackground">@color/appBackground</item>
         <item name="colorBackgroundFloating">@color/appBackgroundFloating</item>
+        <item name="android:textColorSecondary">@color/appThemeTextColorSecondary</item>
 
         <item name="actionBarTheme">@style/AppTheme.AppBarOverlay</item>
 
