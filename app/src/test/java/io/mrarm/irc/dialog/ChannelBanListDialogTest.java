@@ -17,9 +17,9 @@ public class ChannelBanListDialogTest {
     }
 
     @Test
-    public void includesHostAndMuteMasksInWindow() {
+    public void includesHostOnlyAndMuteMasksInWindow() {
         assertTrue(ChannelBanListDialog.isCleanupCandidate(entry("*!*@example.host", 12), NOW));
-        assertTrue(ChannelBanListDialog.isCleanupCandidate(entry("*!ident@example.host", 12), NOW));
+        assertTrue(ChannelBanListDialog.isCleanupCandidate(entry("nickname!*@example.host", 12), NOW));
         assertTrue(ChannelBanListDialog.isCleanupCandidate(entry("m:*!*@example.host", 12), NOW));
     }
 
@@ -30,12 +30,15 @@ public class ChannelBanListDialogTest {
         assertFalse(ChannelBanListDialog.isCleanupCandidate(entry("a:account", 12), NOW));
         assertFalse(ChannelBanListDialog.isCleanupCandidate(entry("u:*!ident@*", 12), NOW));
         assertFalse(ChannelBanListDialog.isCleanupCandidate(entry("u:*!*@example.host", 12), NOW));
+        assertFalse(ChannelBanListDialog.isCleanupCandidate(entry("u:*!ident@example.host", 12), NOW));
         assertFalse(ChannelBanListDialog.isCleanupCandidate(entry("u:*!*@*", 12), NOW));
     }
 
     @Test
-    public void excludesIdentOnlyMasks() {
+    public void excludesIdentMasks() {
         assertFalse(ChannelBanListDialog.isCleanupCandidate(entry("*!ident@*", 12), NOW));
+        assertFalse(ChannelBanListDialog.isCleanupCandidate(entry("*!ident@example.host", 12), NOW));
+        assertFalse(ChannelBanListDialog.isCleanupCandidate(entry("nickname!ident@example.host", 12), NOW));
     }
 
     @Test
@@ -44,6 +47,7 @@ public class ChannelBanListDialogTest {
         assertFalse(ChannelBanListDialog.isCleanupCandidate(entry("*!*@example.host", 31), NOW));
         assertFalse(ChannelBanListDialog.isCleanupCandidate(
                 new BanListCommandHandler.Entry("*!*@example.host", "operator", 0), NOW));
+        assertFalse(ChannelBanListDialog.isCleanupCandidate(entry("*!*@*", 12), NOW));
         assertFalse(ChannelBanListDialog.isCleanupCandidate(entry("nickname!*@*", 12), NOW));
     }
 }

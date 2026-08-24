@@ -247,9 +247,9 @@ public final class ChannelBanListDialog {
             return false;
         String ident = mask.substring(bang + 1, at);
         String host = mask.substring(at + 1);
-        if ("*".equals(host) && hasSpecificPart(ident))
+        if (hasSpecificPart(ident))
             return false;
-        return hasSpecificPart(ident) || hasSpecificPart(host);
+        return hasSpecificPart(host);
     }
 
     private static boolean hasSpecificPart(String value) {
