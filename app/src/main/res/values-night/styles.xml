@@ -6,4 +6,9 @@
         <item name="android:textColor">#DEFFFFFF</item>
     </style>
 
+    <style name="AppTheme">
+        <item name="android:textColorSecondary">#FFA9A9A9</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
 </resources>

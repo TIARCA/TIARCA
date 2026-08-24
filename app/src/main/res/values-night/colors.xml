@@ -7,9 +7,8 @@
     <color name="iconColor">#FFFFFFFF</color>
     <color name="iconColorText">#FFFFFFFF</color>
 
-    <!-- Matches the default custom theme supplied with the project. -->
-    <color name="colorPrimary">#7D30989F</color>
-    <color name="colorPrimaryDark">#3A185C</color>
+    <color name="colorPrimary">#96329696</color>
+    <color name="colorPrimaryDark">#96A020F0</color>
     <color name="colorAccent">#FF4081</color>
 
     <color name="rippleColor">@color/ripple_material_dark</color>
@@ -29,13 +28,27 @@
     <color name="messageStatusText">#BDBDBD</color>
     <color name="messageTopic">#fff</color>
 
-    <color name="ircGray">#757575</color>
-    <color name="ircLightGray">#E0E0E0</color>
+    <color name="ircBlack">#FF000000</color>
+    <color name="ircBlue">#FF0077FF</color>
+    <color name="ircGreen">#FF00C957</color>
+    <color name="ircLightRed">#FFFF0031</color>
+    <color name="ircBrown">#FFAA4044</color>
+    <color name="ircPurple">#FFA020F0</color>
+    <color name="ircOrange">#FFFF6400</color>
+    <color name="ircYellow">#FFFFD700</color>
+    <color name="ircLightGreen">#FF39FF14</color>
+    <color name="ircCyan">#FF00B7EB</color>
+    <color name="ircLightCyan">#FF00FFFF</color>
+    <color name="ircLightBlue">#FF00BFFF</color>
+    <color name="ircPink">#FFFF1493</color>
+    <color name="ircGray">#FF808080</color>
+    <color name="ircLightGray">#FFD3D3D3</color>
 
-    <color name="memberOwner">#FFC107</color>
-    <color name="memberOp">#8BC34A</color>
-    <color name="memberHalfOp">#009688</color>
-    <color name="memberVoice">#03A9F4</color>
+    <color name="memberOwner">#FFFFD700</color>
+    <color name="memberAdmin">#FFAA4044</color>
+    <color name="memberOp">#FF39FF14</color>
+    <color name="memberHalfOp">#FF00BFFF</color>
+    <color name="memberVoice">#FF00FFFF</color>
     <color name="memberNormal">#fff</color>
 
     <color name="formatDefaultColorIndicator">#5CFFFFFF</color>
