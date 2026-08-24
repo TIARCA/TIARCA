@@ -152,10 +152,18 @@ public class ServerConnectionData {
 
     public void onChannelLeft(String channelName) {
         String lChannelName = channelName.toLowerCase();
+        ChannelData channelData;
         synchronized (joinedChannels) {
-            if (!joinedChannels.containsKey(lChannelName))
+            channelData = joinedChannels.remove(lChannelName);
+            if (channelData == null)
                 return;
-            joinedChannels.remove(lChannelName);
+        }
+        try {
+            for (ChannelData.Member member : new ArrayList<>(channelData.getMembers()))
+                getUserInfoApi().setUserChannelPresence(member.getUserUUID(), channelData.getName(), false,
+                        null, null).get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
         }
         synchronized (channelListListeners) {
             if (channelListListeners.size() > 0) {
