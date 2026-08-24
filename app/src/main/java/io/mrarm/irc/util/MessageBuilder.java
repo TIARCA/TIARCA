@@ -312,9 +312,27 @@ public class MessageBuilder {
         return buildColoredMessage(nick, IRCColorUtils.getNickColor(mContext, nick), false);
     }
 
+    private CharSequence buildClickableColoredNick(String nick, NickClickSpanFactory clickSpanFactory) {
+        CharSequence coloredNick = buildColoredNick(nick);
+        if (clickSpanFactory == null || nick == null || nick.isEmpty())
+            return coloredNick;
+        ClickableSpan clickSpan = getNickClickSpan(nick, clickSpanFactory);
+        if (clickSpan == null)
+            return coloredNick;
+        SpannableString clickableNick = new SpannableString(coloredNick);
+        clickableNick.setSpan(clickSpan, 0, nick.length(),
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return clickableNick;
+    }
+
     private CharSequence buildColoredNickWithHostname(MessageSenderInfo sender) {
+        return buildColoredNickWithHostname(sender, null);
+    }
+
+    private CharSequence buildColoredNickWithHostname(MessageSenderInfo sender,
+                                                       NickClickSpanFactory clickSpanFactory) {
         if (!mEventMessageShowHostname || sender == null)
-            return buildColoredNick(sender == null ? null : sender.getNick());
+            return buildClickableColoredNick(sender == null ? null : sender.getNick(), clickSpanFactory);
 
         String nick = sender.getNick();
         int color = IRCColorUtils.getNickColor(mContext, nick);
@@ -323,14 +341,27 @@ public class MessageBuilder {
                 (sender.getHost() != null ? "@" + sender.getHost() : 0));
         spannable.setSpan(new ForegroundColorSpan(color), 0, nick.length(),
                 Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        ClickableSpan clickSpan = getNickClickSpan(nick, clickSpanFactory);
+        if (clickSpan != null)
+            spannable.setSpan(clickSpan, 0, nick.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         return spannable;
     }
 
     public CharSequence buildMessage(MessageInfo message) {
-        return buildMessage(message, null);
+        return buildMessage(message, (ClickableSpan) null);
     }
 
     public CharSequence buildMessage(MessageInfo message, ClickableSpan senderClickSpan) {
+        return buildMessage(message, senderClickSpan, null);
+    }
+
+    public CharSequence buildMessage(MessageInfo message, NickClickSpanFactory clickSpanFactory) {
+        String senderNick = message.getSender() == null ? null : message.getSender().getNick();
+        return buildMessage(message, getNickClickSpan(senderNick, clickSpanFactory), clickSpanFactory);
+    }
+
+    private CharSequence buildMessage(MessageInfo message, ClickableSpan senderClickSpan,
+                                      NickClickSpanFactory clickSpanFactory) {
         String senderNick = message.getSender() == null ? null : message.getSender().getNick();
         switch (message.getType()) {
             case NORMAL:
@@ -348,35 +379,40 @@ public class MessageBuilder {
             case JOIN:
                 return processFormat(mEventMessageFormat, message.getDate(), null,
                         SpannableStringHelper.getText(mContext, R.string.message_join,
-                                buildColoredNickWithHostname(message.getSender())));
+                                buildColoredNickWithHostname(message.getSender(), clickSpanFactory)));
             case PART:
                 return processFormat(mEventMessageFormat, message.getDate(), null,
                         SpannableStringHelper.getText(mContext,
                                 message.getMessage() == null ? R.string.message_part_no_message : R.string.message_part,
-                                buildColoredNickWithHostname(message.getSender()), message.getMessage()));
+                                buildColoredNickWithHostname(message.getSender(), clickSpanFactory),
+                                message.getMessage()));
             case KICK: {
                 String kickedNick = ((KickMessageInfo) message).getKickedNick();
                 return processFormat(mEventMessageFormat, message.getDate(), null,
                         SpannableStringHelper.getText(mContext,
-                                R.string.message_kick, buildColoredNick(senderNick),
-                                buildColoredNick(kickedNick),
+                                R.string.message_kick,
+                                buildClickableColoredNick(senderNick, clickSpanFactory),
+                                buildClickableColoredNick(kickedNick, clickSpanFactory),
                                 message.getMessage()));
             }
             case QUIT:
                 return processFormat(mEventMessageFormat, message.getDate(), null,
                         SpannableStringHelper.getText(mContext, R.string.message_quit,
-                                buildColoredNickWithHostname(message.getSender()), message.getMessage()));
+                                buildColoredNickWithHostname(message.getSender(), clickSpanFactory),
+                                message.getMessage()));
             case NICK_CHANGE: {
                 String newNick = ((NickChangeMessageInfo) message).getNewNick();
                 SpannableStringBuilder ssb = (SpannableStringBuilder)
                         SpannableStringHelper.getText(mContext, R.string.message_nick_change,
-                                buildColoredNick(senderNick), buildColoredNick(newNick));
+                                buildClickableColoredNick(senderNick, clickSpanFactory),
+                                buildClickableColoredNick(newNick, clickSpanFactory));
                 return processFormat(mEventMessageFormat, message.getDate(), null,
                         ssb);
             }
             case MODE:
                 return processFormat(mEventMessageFormat, message.getDate(), null,
-                        buildModeMessage(senderNick, ((ChannelModeMessageInfo) message).getEntries()));
+                        buildModeMessage(senderNick, ((ChannelModeMessageInfo) message).getEntries(),
+                                clickSpanFactory));
             case TOPIC: {
                 if (message.getMessage() == null)
                     return processFormat(mEventMessageFormat, message.getDate(), null,
@@ -389,7 +425,7 @@ public class MessageBuilder {
                             SpannableStringHelper.getText(mContext, R.string.message_topic, topicText));
                 return processFormat(mEventMessageFormat, message.getDate(), null,
                         SpannableStringHelper.getText(mContext, R.string.message_topic_by,
-                                topicText, buildColoredNick(senderNick)));
+                                topicText, buildClickableColoredNick(senderNick, clickSpanFactory)));
             }
             case TOPIC_WHOTIME: {
                 TopicWhoTimeMessageInfo topicMessage = (TopicWhoTimeMessageInfo) message;
@@ -398,7 +434,7 @@ public class MessageBuilder {
                         DateUtils.FORMAT_SHOW_DATE | DateUtils.FORMAT_SHOW_TIME);
                 return processFormat(mEventMessageFormat, message.getDate(), null,
                         SpannableStringHelper.getText(mContext, R.string.message_topic_whotime,
-                                buildColoredNick(topicMessage.getSetBy().getNick()),
+                                buildClickableColoredNick(topicMessage.getSetBy().getNick(), clickSpanFactory),
                                 topicSetOnStr));
             }
             case DISCONNECT_WARNING:
@@ -408,10 +444,22 @@ public class MessageBuilder {
     }
 
     public CharSequence buildMessageWithMention(MessageInfo message) {
-        return buildMessageWithMention(message, null);
+        return buildMessageWithMention(message, (ClickableSpan) null);
     }
 
     public CharSequence buildMessageWithMention(MessageInfo message, ClickableSpan senderClickSpan) {
+        return buildMessageWithMention(message, senderClickSpan, null);
+    }
+
+    public CharSequence buildMessageWithMention(MessageInfo message,
+                                                 NickClickSpanFactory clickSpanFactory) {
+        String senderNick = message.getSender() == null ? null : message.getSender().getNick();
+        return buildMessageWithMention(message, getNickClickSpan(senderNick, clickSpanFactory),
+                clickSpanFactory);
+    }
+
+    private CharSequence buildMessageWithMention(MessageInfo message, ClickableSpan senderClickSpan,
+                                                  NickClickSpanFactory clickSpanFactory) {
         switch (message.getType()) {
             case NORMAL:
                 return processFormat(mMentionMessageFormat, message.getDate(), message.getSender(),
@@ -422,7 +470,7 @@ public class MessageBuilder {
                         LinkHelper.addLinks(IRCColorUtils.getFormattedString(mContext, message.getMessage())),
                         senderClickSpan);
         }
-        return buildMessage(message, senderClickSpan);
+        return buildMessage(message, senderClickSpan, clickSpanFactory);
     }
 
     public CharSequence buildStatusMessage(StatusMessageInfo message) {
@@ -480,7 +528,8 @@ public class MessageBuilder {
     }
 
     private CharSequence buildModeMessage(String senderNick,
-                                          List<ChannelModeMessageInfo.Entry> list) {
+                                          List<ChannelModeMessageInfo.Entry> list,
+                                          NickClickSpanFactory clickSpanFactory) {
         Map<String, Set<Character>> addNickModes = new HashMap<>();
         Map<String, Set<Character>> removeNickModes = new HashMap<>();
         Set<Character> flagModes = new HashSet<>();
@@ -561,7 +610,9 @@ public class MessageBuilder {
             SpannableStringBuilder setBuilder = new SpannableStringBuilder();
             for (Map.Entry<String, Set<Character>> entry : addNickModes.entrySet()) {
                 if (entry.getValue().size() > 0)
-                    appendDelim(setBuilder, SpannableStringHelper.getText(mContext, R.string.message_mode_gave_to, buildNickModeList(entry.getValue()), buildColoredNick(entry.getKey())));
+                    appendDelim(setBuilder, SpannableStringHelper.getText(mContext,
+                            R.string.message_mode_gave_to, buildNickModeList(entry.getValue()),
+                            buildClickableColoredNick(entry.getKey(), clickSpanFactory)));
             }
             if (setBuilder.length() > 0)
                 appendDelim(msg, SpannableStringHelper.getText(mContext, R.string.message_mode_gave, setBuilder));
@@ -570,12 +621,21 @@ public class MessageBuilder {
             SpannableStringBuilder setBuilder = new SpannableStringBuilder();
             for (Map.Entry<String, Set<Character>> entry : removeNickModes.entrySet()) {
                 if (entry.getValue().size() > 0)
-                    appendDelim(setBuilder, SpannableStringHelper.getText(mContext, R.string.message_mode_removed_from, buildNickModeList(entry.getValue()), buildColoredNick(entry.getKey())));
+                    appendDelim(setBuilder, SpannableStringHelper.getText(mContext,
+                            R.string.message_mode_removed_from, buildNickModeList(entry.getValue()),
+                            buildClickableColoredNick(entry.getKey(), clickSpanFactory)));
             }
             if (setBuilder.length() > 0)
                 appendDelim(msg, SpannableStringHelper.getText(mContext, R.string.message_mode_removed, setBuilder));
         }
-        return SpannableStringHelper.getText(mContext, R.string.message_mode, buildColoredNick(senderNick), msg);
+        return SpannableStringHelper.getText(mContext, R.string.message_mode,
+                buildClickableColoredNick(senderNick, clickSpanFactory), msg);
+    }
+
+    private ClickableSpan getNickClickSpan(String nick, NickClickSpanFactory clickSpanFactory) {
+        if (clickSpanFactory == null || nick == null || nick.isEmpty())
+            return null;
+        return clickSpanFactory.create(nick);
     }
 
     private String setToString(Set<Character> s) {
@@ -694,6 +754,10 @@ public class MessageBuilder {
             builder.removeSpan(span);
         }
         return new SpannableString(builder);
+    }
+
+    public interface NickClickSpanFactory {
+        ClickableSpan create(String nick);
     }
 
     public static class MetaChipSpan extends SimpleChipSpan {

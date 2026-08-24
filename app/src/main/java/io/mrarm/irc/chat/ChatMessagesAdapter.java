@@ -459,10 +459,9 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             mText.setMovementMethod(LinkMovementMethod.getInstance());
         }
 
-        private ClickableSpan createSenderClickSpan(MessageInfo message) {
-            if (message.getSender() == null || message.getSender().getNick() == null)
+        private ClickableSpan createNickClickSpan(String nick) {
+            if (nick == null || nick.isEmpty())
                 return null;
-            final String nick = message.getSender().getNick();
             return new ClickableSpan() {
                 @Override
                 public void onClick(@NonNull View widget) {
@@ -499,13 +498,13 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                 setSelected(mSelectedItems.contains(getItemId()) ||
                         mMultiSelectListener.isElementHighlighted(getItemId()), false);
 
-            ClickableSpan senderClickSpan = createSenderClickSpan(message);
+            MessageBuilder.NickClickSpanFactory nickClickSpanFactory = this::createNickClickSpan;
             if (NotificationManager.getInstance().shouldMessageUseMentionFormatting(mFragment.getConnectionInfo(), mFragment.getChannelName(), message))
                 mText.setText(AlignToPointSpan.apply(mText, MessageBuilder.getInstance(mText.getContext())
-                        .buildMessageWithMention(message, senderClickSpan)));
+                        .buildMessageWithMention(message, nickClickSpanFactory)));
             else
                 mText.setText(AlignToPointSpan.apply(mText, MessageBuilder.getInstance(mText.getContext())
-                        .buildMessage(message, senderClickSpan)));
+                        .buildMessage(message, nickClickSpanFactory)));
 
             if (mSelectListener != null) {
                 int position = getBindingAdapterPosition();
