@@ -12,9 +12,10 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Temporary: keep reinstallations clean while testing first-run setup. -->
     <application
         android:name=".IRCApplication"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:manageSpaceActivity=".StorageSettingsActivity"
