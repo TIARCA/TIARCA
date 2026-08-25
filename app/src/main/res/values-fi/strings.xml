@@ -880,8 +880,8 @@
     <string name="ban_list_unknown">Tuntematon</string>
     <string name="ban_list_select_one">Valitse vähintään yksi esto.</string>
     <string name="ban_list_confirm_title">Poistetaanko valitut kiellot?</string>
-    <string name="ban_list_cleanup">Puhdistus 6-30h</string>
-    <string name="ban_list_cleanup_none">Sopivia identiteetti- tai isäntäkieltoja ei löytynyt 6–30 tunnin ikäisiltä.</string>
+    <string name="ban_list_cleanup">Puhdistus 48–72h</string>
+    <string name="ban_list_cleanup_none">Sopivia identiteetti- tai isäntäkieltoja ei löytynyt 48–72 tunnin ikäisiltä.</string>
     <string name="ban_list_cleanup_confirm_title">Poistetaanko väliaikaiset kiellot?</string>
     <plurals name="ban_list_cleanup_confirm_message">
         <item quantity="one">%d kelvollinen kielto on valittu. j: ja R: merkinnät, tuntemattomat päivämäärät ja muut maskityypit eivät sisälly.</item>

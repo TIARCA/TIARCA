@@ -879,8 +879,8 @@
     <string name="ban_list_unknown">Unknown</string>
     <string name="ban_list_select_one">Select at least one ban.</string>
     <string name="ban_list_confirm_title">Remove selected bans?</string>
-    <string name="ban_list_cleanup">Clean up 6–30h</string>
-    <string name="ban_list_cleanup_none">No eligible ident or host bans were found between 6 and 30 hours old.</string>
+    <string name="ban_list_cleanup">Clean up 48–72h</string>
+    <string name="ban_list_cleanup_none">No eligible ident or host bans were found between 48 and 72 hours old.</string>
     <string name="ban_list_cleanup_confirm_title">Clean up temporary bans?</string>
     <plurals name="ban_list_cleanup_confirm_message">
         <item quantity="one">%d eligible ban is selected. j: and R: entries, unknown dates and other mask types are excluded.</item>

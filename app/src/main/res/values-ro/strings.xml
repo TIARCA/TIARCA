@@ -900,8 +900,8 @@
     <string name="ban_list_unknown">Necunoscut</string>
     <string name="ban_list_select_one">Selectați cel puțin o interdicție.</string>
     <string name="ban_list_confirm_title">Eliminați banurile selectate?</string>
-    <string name="ban_list_cleanup">Curățare 6–30 ore</string>
-    <string name="ban_list_cleanup_none">Nu au fost găsite interdicții de identificare sau gazdă eligibile între 6 și 30 de ore.</string>
+    <string name="ban_list_cleanup">Curățare 48–72 ore</string>
+    <string name="ban_list_cleanup_none">Nu au fost găsite interdicții de identificare sau gazdă eligibile între 48 și 72 de ore.</string>
     <string name="ban_list_cleanup_confirm_title">Curățați interdicțiile temporare?</string>
     <plurals name="ban_list_cleanup_confirm_message">
         <item quantity="one">%d interdicția eligibilă este selectată. j: și R: intrările, datele necunoscute și alte tipuri de măști sunt excluse.</item>

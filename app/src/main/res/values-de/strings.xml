@@ -880,8 +880,8 @@
     <string name="ban_list_unknown">Unbekannt</string>
     <string name="ban_list_select_one">Wählen Sie mindestens ein Verbot aus.</string>
     <string name="ban_list_confirm_title">Ausgewählte Sperren entfernen?</string>
-    <string name="ban_list_cleanup">Reinigung 6–30 Stunden</string>
-    <string name="ban_list_cleanup_none">Es wurden keine berechtigten Ident- oder Host-Sperren gefunden, die zwischen 6 und 30 Stunden alt sind.</string>
+    <string name="ban_list_cleanup">Reinigung 48–72 Stunden</string>
+    <string name="ban_list_cleanup_none">Es wurden keine berechtigten Ident- oder Host-Sperren gefunden, die zwischen 48 und 72 Stunden alt sind.</string>
     <string name="ban_list_cleanup_confirm_title">Temporäre Verbote aufräumen?</string>
     <plurals name="ban_list_cleanup_confirm_message">
         <item quantity="one">%d berechtigtes Verbot ist ausgewählt. j: und R: Einträge, unbekannte Daten und andere Maskentypen sind ausgeschlossen.</item>

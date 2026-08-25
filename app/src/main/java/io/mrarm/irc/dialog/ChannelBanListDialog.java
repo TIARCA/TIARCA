@@ -29,8 +29,8 @@ import io.mrarm.irc.irc.BanListCommandHandler;
 /** Sortable, multi-select channel ban list. */
 public final class ChannelBanListDialog {
 
-    private static final long CLEANUP_MIN_AGE_SECONDS = 6L * 60L * 60L;
-    private static final long CLEANUP_MAX_AGE_SECONDS = 30L * 60L * 60L;
+    private static final long CLEANUP_MIN_AGE_SECONDS = 48L * 60L * 60L;
+    private static final long CLEANUP_MAX_AGE_SECONDS = 72L * 60L * 60L;
 
     private final Activity activity;
     private final ServerConnectionInfo connection;

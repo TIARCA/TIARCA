@@ -5,6 +5,7 @@
 - Migliorato il primo avvio dei server: se manca il nickname, il tap apre direttamente **Modifica un server**. Salvando senza nickname viene generato un valore `TIARCA####`; viene generato e mantenuto anche un ident privacy-friendly `TIARCA####`. Il nome utente personalizzato è ora una scelta esplicita nelle Informazioni sull'utente.
 - Corretto il comportamento delle schermate con moduli quando è aperta la tastiera: **Modifica un server** e la personalizzazione tema restano scorribili e i campi non vengono più coperti dall'IME.
 - Corretto il flusso **Scatta foto** alla prima esecuzione: TIARCA richiede ora il permesso fotocamera prima di avviare l'acquisizione.
+- Modificato l'intervallo della pulizia automatica dei ban da 6–30 ore a 48–72 ore.
 
 ## v0.7.1
 

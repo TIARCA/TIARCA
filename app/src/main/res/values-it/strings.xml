@@ -882,8 +882,8 @@
     <string name="ban_list_unknown">Sconosciuto</string>
     <string name="ban_list_select_one">Seleziona almeno un ban.</string>
     <string name="ban_list_confirm_title">Rimuovere i ban selezionati?</string>
-    <string name="ban_list_cleanup">Pulizia 6–30 ore</string>
-    <string name="ban_list_cleanup_none">Nessun ban idoneo su ident o host trovato tra 6 e 30 ore.</string>
+    <string name="ban_list_cleanup">Pulizia 48–72 ore</string>
+    <string name="ban_list_cleanup_none">Nessun ban idoneo su ident o host trovato tra 48 e 72 ore.</string>
     <string name="ban_list_cleanup_confirm_title">Rimuovere i ban temporanei?</string>
     <plurals name="ban_list_cleanup_confirm_message">
         <item quantity="one">È selezionato %d ban idoneo. Sono esclusi j:, R:, date sconosciute e altri tipi di mask.</item>

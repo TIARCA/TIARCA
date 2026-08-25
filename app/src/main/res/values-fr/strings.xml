@@ -880,8 +880,8 @@
     <string name="ban_list_unknown">Inconnu</string>
     <string name="ban_list_select_one">Sélectionnez au moins une interdiction.</string>
     <string name="ban_list_confirm_title">Supprimer les interdictions sélectionnées ?</string>
-    <string name="ban_list_cleanup">Nettoyage 6 à 30 heures</string>
-    <string name="ban_list_cleanup_none">Aucune interdiction d\'identification ou d\'hôte éligible n\'a été trouvée entre 6 et 30 heures.</string>
+    <string name="ban_list_cleanup">Nettoyage 48 à 72 heures</string>
+    <string name="ban_list_cleanup_none">Aucune interdiction d\'identification ou d\'hôte éligible n\'a été trouvée entre 48 et 72 heures.</string>
     <string name="ban_list_cleanup_confirm_title">Nettoyer les interdictions temporaires ?</string>
     <plurals name="ban_list_cleanup_confirm_message">
         <item quantity="one">L’interdiction éligible %d est sélectionnée. j : et R : les entrées, les dates inconnues et les autres types de masques sont exclus.</item>
