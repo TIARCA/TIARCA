@@ -23,6 +23,21 @@ import static org.junit.Assert.assertTrue;
 public class AwayNotifyCapabilityTest {
 
     @Test
+    public void bareAwayNotifyClearsAwayState() throws Exception {
+        ServerConnectionData connection = new ServerConnectionData();
+        SimpleUserInfoApi users = new SimpleUserInfoApi();
+        connection.setUserInfoApi(users);
+        connection.setMessageStorageApi(new SimpleMessageStorageApi());
+        users.resolveUser("Pippo", "ident", "host", null, null).get();
+        connection.setUserAway("Pippo", "ident", "host", true, "A cena");
+        connection.getCommandHandlerList().registerHandler(new AwayNotifyCapability());
+
+        new MessageHandler(connection).handleLine(":Pippo!ident@host AWAY");
+
+        assertFalse(users.getUser("Pippo", null, null, null, null).get().isAway());
+    }
+
+    @Test
     public void awayNotifyUpdatesAllSharedChannelsAndClearsOnQuit() throws Exception {
         ServerConnectionData connection = new ServerConnectionData();
         SimpleUserInfoApi users = new SimpleUserInfoApi();

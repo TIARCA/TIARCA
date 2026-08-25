@@ -45,11 +45,16 @@ public class MessageHandler {
             }
         }
         int commandEndI = line.indexOf(' ', prefixEndI + 1);
-        if (commandEndI == -1)
-            throw new InvalidMessageException();
-        String command = line.substring(prefixEndI + 1, commandEndI);
-        String paramsRaw = line.substring(commandEndI + 1);
-        List<String> params = parseParams(paramsRaw);
+        String command;
+        List<String> params;
+        if (commandEndI == -1) {
+            command = line.substring(prefixEndI + 1);
+            params = new ArrayList<>();
+        } else {
+            command = line.substring(prefixEndI + 1, commandEndI);
+            String paramsRaw = line.substring(commandEndI + 1);
+            params = parseParams(paramsRaw);
+        }
         commandHandlerList.getHandlerFor(command).handle(connection, prefix, command, params, tags);
     }
 

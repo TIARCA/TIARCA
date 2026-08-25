@@ -2,7 +2,7 @@
 
 ## v0.7.3
 
-- Aggiunto il supporto IRCv3 `away-notify`, con aggiornamento in tempo reale dello stato away degli utenti sui server compatibili.
+- Aggiunto il supporto IRCv3 `away-notify`, con aggiornamento in tempo reale dello stato away degli utenti sui server compatibili senza mostrare gli eventi tecnici AWAY nella scheda SERVER.
 - Corretta la selezione e copia del testo nella scheda SERVER.
 - Corretta la chiusura delle conversazioni private, che poteva interferire con la chiusura dei canali.
 - Corretti i messaggi inviati nelle query aperte tramite **Scrivi all'utente**, ora mostrati correttamente anche localmente.
