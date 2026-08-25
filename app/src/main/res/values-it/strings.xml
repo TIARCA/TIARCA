@@ -947,6 +947,7 @@
         <item>Scegli un altro file</item>
     </string-array>
     <string name="media_capture_failed">Non è disponibile alcuna applicazione di acquisizione compatibile.</string>
+    <string name="camera_permission_required">Per scattare una foto è necessaria l\'autorizzazione della fotocamera.</string>
     <string name="voice_permission_required">Per registrare un messaggio vocale è necessaria l\'autorizzazione del microfono.</string>
     <string name="voice_record_failed">Impossibile avviare la registrazione vocale.</string>
     <string name="voice_record_title">Registra un messaggio vocale</string>

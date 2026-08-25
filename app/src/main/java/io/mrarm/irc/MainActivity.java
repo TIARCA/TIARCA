@@ -84,6 +84,7 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
 
     private static final int REQUEST_CODE_RECORD_AUDIO_PERMISSION = 106;
     private static final int REQUEST_CODE_RECORD_VIDEO_PERMISSION = 107;
+    private static final int REQUEST_CODE_CAPTURE_PHOTO_PERMISSION = 108;
 
     private NightModeRecreateHelper mNightModeHelper = new NightModeRecreateHelper(this);
     private LockableDrawerLayout mDrawerLayout;
@@ -809,22 +810,28 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
             recordSimosnapVideo(connection, targetNick);
             return;
         }
+        mSimosnapUploadConnection = connection;
+        mSimosnapUploadTarget = targetNick;
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) !=
+                PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[] { Manifest.permission.CAMERA },
+                    REQUEST_CODE_CAPTURE_PHOTO_PERMISSION);
+            return;
+        }
+        startSimosnapPhotoCapture();
+    }
+
+    private void startSimosnapPhotoCapture() {
         try {
             File directory = new File(getCacheDir(), "uploads");
             if (!directory.exists() && !directory.mkdirs())
                 throw new IOException("Cannot create capture directory");
-            File output = new File(directory, (video ? "video-" : "photo-") +
-                    System.currentTimeMillis() + (video ? ".mp4" : ".jpg"));
+            File output = new File(directory, "photo-" + System.currentTimeMillis() + ".jpg");
             Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", output);
-            Intent intent = new Intent(video ? MediaStore.ACTION_VIDEO_CAPTURE :
-                    MediaStore.ACTION_IMAGE_CAPTURE);
+            Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
             intent.putExtra(MediaStore.EXTRA_OUTPUT, uri);
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION |
                     Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-            if (video)
-                intent.putExtra(MediaStore.EXTRA_SIZE_LIMIT, 18L * 1024 * 1024);
-            mSimosnapUploadConnection = connection;
-            mSimosnapUploadTarget = targetNick;
             mSimosnapCaptureUri = uri;
             mCaptureSimosnapPhotoLauncher.launch(intent);
         } catch (Exception error) {
@@ -889,6 +896,17 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
             else {
                 Toast.makeText(this, R.string.video_recorder_permission_required,
                         Toast.LENGTH_LONG).show();
+                mSimosnapUploadConnection = null;
+                mSimosnapUploadTarget = null;
+            }
+            return;
+        }
+        if (requestCode == REQUEST_CODE_CAPTURE_PHOTO_PERMISSION) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED &&
+                    mSimosnapUploadConnection != null && mSimosnapUploadTarget != null) {
+                startSimosnapPhotoCapture();
+            } else {
+                Toast.makeText(this, R.string.camera_permission_required, Toast.LENGTH_LONG).show();
                 mSimosnapUploadConnection = null;
                 mSimosnapUploadTarget = null;
             }

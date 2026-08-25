@@ -944,6 +944,7 @@
         <item>Choose another file</item>
     </string-array>
     <string name="media_capture_failed">No compatible capture application is available.</string>
+    <string name="camera_permission_required">Camera permission is required to take a photo.</string>
     <string name="voice_permission_required">Microphone permission is required to record a voice message.</string>
     <string name="voice_record_failed">Voice recording could not be started.</string>
     <string name="voice_record_title">Record voice message</string>
