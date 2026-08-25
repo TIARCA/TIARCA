@@ -1,5 +1,9 @@
 # TIARCA — Changelog
 
+## v0.7.2
+
+- Migliorato il primo avvio dei server: se manca il nickname, il tap apre direttamente **Modifica un server**. Salvando senza nickname viene generato un valore `TIARCA####`; viene generato e mantenuto anche un ident privacy-friendly `TIARCA####`. Il nome utente personalizzato è ora una scelta esplicita nelle Informazioni sull'utente.
+
 ## v0.7.1
 
 - Resi cliccabili i nickname strutturati nei messaggi evento IRC JOIN, PART, QUIT, KICK, cambio nickname, MODE utente e TOPIC. Il tocco riutilizza il pannello utente esistente con contesto canale e fallback WHOIS/WHOWAS.

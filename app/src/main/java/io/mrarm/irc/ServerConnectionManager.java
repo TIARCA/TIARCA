@@ -4,7 +4,8 @@ import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
-import android.widget.Toast;
+import android.app.Activity;
+import android.content.Intent;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -25,6 +26,7 @@ import javax.net.ssl.TrustManager;
 import io.mrarm.chatlib.irc.IRCConnectionRequest;
 import io.mrarm.chatlib.irc.cap.SASLOptions;
 import io.mrarm.irc.config.AppSettings;
+import io.mrarm.irc.config.IdentitySettings;
 import io.mrarm.irc.config.ServerConfigData;
 import io.mrarm.irc.config.ServerConfigManager;
 import io.mrarm.irc.config.SettingsHelper;
@@ -162,12 +164,7 @@ public class ServerConnectionManager {
             if (request.getNickList() == null)
                 throw new NickNotSetException();
         }
-        if (data.user != null)
-            request.setUser(data.user);
-        else if (AppSettings.getDefaultUser() != null && AppSettings.getDefaultUser().length() > 0)
-            request.setUser(AppSettings.getDefaultUser());
-        else
-            request.setUser(request.getNickList().get(0));
+        request.setUser(IdentitySettings.getUsername(mContext, data));
         if (data.realname != null)
             request.setRealName(data.realname);
         else if (AppSettings.getDefaultRealname() != null && AppSettings.getDefaultRealname().length() > 0)
@@ -216,10 +213,16 @@ public class ServerConnectionManager {
     public void tryCreateConnection(ServerConfigData data, Context activity) {
         if (ServerConnectionManager.getInstance(getContext()).hasConnection(data.uuid))
             return;
+        if (!IdentitySettings.hasConfiguredNickname(data)) {
+            Intent intent = EditServerActivity.getLaunchIntent(activity, data);
+            if (!(activity instanceof Activity))
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            activity.startActivity(intent);
+            return;
+        }
         try {
             createConnection(data);
-        } catch (NickNotSetException e) {
-            Toast.makeText(activity, R.string.connection_error_no_nick, Toast.LENGTH_SHORT).show();
+        } catch (NickNotSetException ignored) {
         }
     }
 

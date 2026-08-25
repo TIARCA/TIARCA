@@ -57,6 +57,7 @@ import java.util.UUID;
 import io.mrarm.irc.config.ServerCertificateManager;
 import io.mrarm.irc.config.ServerConfigData;
 import io.mrarm.irc.config.ServerConfigManager;
+import io.mrarm.irc.config.IdentitySettings;
 import io.mrarm.irc.util.ExpandIconStateHelper;
 import io.mrarm.irc.util.PEMParser;
 import io.mrarm.irc.util.SimpleTextWatcher;
@@ -200,6 +201,7 @@ public class EditServerActivity extends ThemedActivity {
             mServerUserExpandContent.setVisibility(mServerUserExpandContent.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
             ExpandIconStateHelper.animateSetExpanded(mServerUserExpandIcon, mServerUserExpandContent.getVisibility() == View.VISIBLE);
         });
+        mServerUser.setEnabled(IdentitySettings.isCustomUsernameEnabled(this));
 
         mServerName.addTextChangedListener(new SimpleTextWatcher((Editable s) -> mServerNameCtr.setErrorEnabled(false)));
         mServerPort.addTextChangedListener(new SimpleTextWatcher((Editable s) -> mServerPortCtr.setErrorEnabled(false)));
@@ -412,10 +414,13 @@ public class EditServerActivity extends ThemedActivity {
         mEditServer.setConnectionAddresses(Arrays.asList(mServerAddress.getItems()));
         mEditServer.port = Integer.parseInt(mServerPort.getText().toString());
         mEditServer.ssl = mServerSSL.isChecked();
-        mEditServer.nicks = Arrays.asList(mServerNick.getItems());
-        if (mEditServer.nicks.size() == 0)
-            mEditServer.nicks = null;
-        mEditServer.user = nullifyIfEmpty(mServerUser.getText().toString());
+        String[] nicks = mServerNick.getItems();
+        if (IdentitySettings.hasNickname(nicks))
+            mEditServer.nicks = Arrays.asList(nicks);
+        else
+            mEditServer.nicks = Arrays.asList(IdentitySettings.createAutomaticIdentity());
+        if (IdentitySettings.isCustomUsernameEnabled(this))
+            mEditServer.user = nullifyIfEmpty(mServerUser.getText().toString());
         mEditServer.realname = nullifyIfEmpty(mServerRealname.getText().toString());
         mEditServer.pass = nullifyIfEmpty(mServerPass.getPassword());
         int authModeInt = mServerAuthMode.getSelectedItemPosition();

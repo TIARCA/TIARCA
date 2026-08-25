@@ -380,6 +380,7 @@
     <string name="pref_header_user">Informazioni sull\'utente</string>
 
     <string name="pref_title_default_nick">Soprannomi predefiniti</string>
+    <string name="pref_title_custom_username">Usa nome utente personalizzato</string>
     <string name="pref_title_default_user">Utente predefinito</string>
     <string name="pref_title_default_realname">Nome reale predefinito</string>
     <string name="pref_title_default_quit_message">Messaggio di disconnessione (esci).</string>
