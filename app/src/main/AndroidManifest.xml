@@ -81,7 +81,8 @@
         </activity>
         <activity
             android:name=".EditServerActivity"
-            android:label="@string/edit_server" />
+            android:label="@string/edit_server"
+            android:windowSoftInputMode="adjustResize|stateHidden" />
         <activity
             android:name=".NetworkCatalogActivity"
             android:label="@string/network_catalog_title" />
@@ -115,7 +116,8 @@
         <activity
             android:name=".ThemeEditorActivity"
             android:label="@string/title_activity_theme_editor"
-            android:theme="@style/AppTheme.NoActionBar" />
+            android:theme="@style/AppTheme.NoActionBar"
+            android:windowSoftInputMode="adjustResize|stateHidden" />
         <activity
             android:name=".StorageSettingsActivity"
             android:exported="true"

@@ -44,8 +44,10 @@ public class OpaqueStatusBarRelativeLayout extends RelativeLayout {
 
         ViewCompat.setOnApplyWindowInsetsListener(this, (View v, WindowInsetsCompat insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
             mTopInset = systemBars.top;
-            setPadding(systemBars.left, mTopInset, systemBars.right, systemBars.bottom);
+            setPadding(systemBars.left, mTopInset, systemBars.right,
+                    Math.max(systemBars.bottom, ime.bottom));
             ViewCompat.postInvalidateOnAnimation(this);
             return WindowInsetsCompat.CONSUMED;
         });

@@ -17,6 +17,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -26,6 +27,9 @@ import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import org.spongycastle.asn1.x500.X500Name;
 import org.spongycastle.asn1.x509.SubjectPublicKeyInfo;
@@ -146,6 +150,20 @@ public class EditServerActivity extends ThemedActivity {
 
         setContentView(R.layout.activity_edit_server);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        ViewGroup content = findViewById(android.R.id.content);
+        View form = content.getChildAt(0);
+        int formPaddingLeft = form.getPaddingLeft();
+        int formPaddingTop = form.getPaddingTop();
+        int formPaddingRight = form.getPaddingRight();
+        int formPaddingBottom = form.getPaddingBottom();
+        ViewCompat.setOnApplyWindowInsetsListener(form, (view, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
+            view.setPadding(formPaddingLeft, formPaddingTop, formPaddingRight,
+                    formPaddingBottom + Math.max(systemBars.bottom, ime.bottom));
+            return insets;
+        });
+        ViewCompat.requestApplyInsets(form);
 
         mServerName = findViewById(R.id.server_name);
         mServerNameCtr = findViewById(R.id.server_name_ctr);
