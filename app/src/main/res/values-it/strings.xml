@@ -3,7 +3,8 @@
     <string name="app_name">TIARCA</string>
     <string name="pref_header_about">Informazioni su TIARCA</string>
     <string name="about_title">Informazioni su TIARCA</string>
-    <string name="about_body">TIARCA — TIARCA è un\'altra app di chat di inoltro\nVersione %1$s\n\nBasato su Revolution IRC di Martin Řehák (mcmrarm).\n\nTIARCA modifiche e manutenzione: edizione comunitaria.\n\nLicenza sotto la Licenza pubblica generale GNU v3. Il codice sorgente e gli avvisi corrispondenti devono essere resi disponibili con le distribuzioni pubbliche.\n\nInclude librerie Android open source; le rispettive licenze rimangono in vigore.\n\nLa condivisione multimediale può utilizzare il servizio Simosnap esterno. I file caricati sono regolati dalle politiche di disponibilità e conservazione del servizio.\n\nQuesto prodotto utilizza l’API TMDB, ma non è approvato né certificato da TMDB.</string>
+    <string name="about_body">TIARCA — TIARCA è un\'altra app di chat di inoltro\nVersione %1$s\n\nProgetto originale\nTIARCA è un fork di Revolution IRC, originariamente sviluppato da MrARM/MCMrARM e distribuito con licenza GNU GPLv3.\n\nTIARCA ne prosegue lo sviluppo come progetto indipendente con modifiche, correzioni e nuove funzionalità.\n\nLicenza sotto la Licenza pubblica generale GNU v3. Il codice sorgente e gli avvisi corrispondenti devono essere resi disponibili con le distribuzioni pubbliche.\n\nInclude librerie Android open source; le rispettive licenze rimangono in vigore.\n\nLa condivisione multimediale può utilizzare il servizio Simosnap esterno. I file caricati sono regolati dalle politiche di disponibilità e conservazione del servizio.\n\nQuesto prodotto utilizza l’API TMDB, ma non è approvato né certificato da TMDB.</string>
+    <string name="about_revolution_github">Revolution IRC su GitHub</string>
 
     <!-- Chat -->
 

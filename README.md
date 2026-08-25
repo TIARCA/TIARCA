@@ -1,7 +1,9 @@
 TIARCA
 ======
 
-TIARCA (*TIARCA Is Another Relay Chat App*) è un client IRC Android basato su Revolution IRC.
+TIARCA (*TIARCA Is Another Relay Chat App*) è un fork di [Revolution IRC](https://github.com/MCMrARM/revolution-irc), client IRC Android originariamente sviluppato da MrARM/MCMrARM.
+
+TIARCA ne prosegue lo sviluppo come progetto indipendente, mantenendo la licenza GNU GPLv3 e introducendo nuove funzionalità, correzioni e aggiornamenti per le versioni moderne di Android. Il lavoro originale di Revolution IRC e le successive modifiche di TIARCA restano chiaramente distinti.
 
 Questo repository contiene il codice sorgente di TIARCA. Non rappresenta una pubblicazione su F-Droid o Google Play; gli APK distribuiti tramite GitHub Releases saranno indicati esplicitamente nella pagina delle release.
 

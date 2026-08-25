@@ -2,7 +2,8 @@
     <string name="app_name">TIARCA</string>
     <string name="pref_header_about">About TIARCA</string>
     <string name="about_title">About TIARCA</string>
-    <string name="about_body">TIARCA — TIARCA Is Another Relay Chat App\nVersion %1$s\n\nBased on Revolution IRC by Martin Řehák (mcmrarm).\n\nTIARCA modifications and maintenance: community edition.\n\nLicensed under the GNU General Public License v3. The corresponding source code and notices must be made available with public distributions.\n\nIncludes open-source Android libraries; their respective licences remain in force.\n\nMedia sharing may use the external Simosnap service. Uploaded files are governed by that service’s availability and retention policies.\n\nThis product uses the TMDB API but is not endorsed or certified by TMDB.</string>
+    <string name="about_body">TIARCA — TIARCA Is Another Relay Chat App\nVersion %1$s\n\nOriginal project\nTIARCA is a fork of Revolution IRC, originally developed by MrARM/MCMrARM and distributed under the GNU GPLv3.\n\nTIARCA continues its independent development with modifications, fixes and new features.\n\nLicensed under the GNU General Public License v3. The corresponding source code and notices must be made available with public distributions.\n\nIncludes open-source Android libraries; their respective licences remain in force.\n\nMedia sharing may use the external Simosnap service. Uploaded files are governed by that service’s availability and retention policies.\n\nThis product uses the TMDB API but is not endorsed or certified by TMDB.</string>
+    <string name="about_revolution_github">Revolution IRC on GitHub</string>
 
     <!-- Chat -->
 

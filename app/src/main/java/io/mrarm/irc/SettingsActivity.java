@@ -1,6 +1,7 @@
 package io.mrarm.irc;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
@@ -121,6 +122,9 @@ public class SettingsActivity extends ThemedActivity {
                             .setTitle(R.string.about_title)
                             .setMessage(v.getContext().getString(R.string.about_body,
                                     BuildConfig.VERSION_NAME))
+                            .setNeutralButton(R.string.about_revolution_github, (dialog, which) ->
+                                    v.getContext().startActivity(new Intent(Intent.ACTION_VIEW,
+                                            Uri.parse("https://github.com/MCMrARM/revolution-irc"))))
                             .setPositiveButton(android.R.string.ok, null)
                             .show()));
             return ret;
