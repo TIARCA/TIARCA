@@ -16,6 +16,7 @@ import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ArrayAdapter;
 import android.widget.LinearLayout;
@@ -405,6 +406,11 @@ public class UserBottomSheetDialog {
                     showKickDialog(true);
                     return true;
                 });
+        menu.addItem(mContext.getString(R.string.operator_kickban_ident), R.drawable.ic_delete,
+                true, item -> {
+                    showKickbanIdentDialog();
+                    return true;
+                });
         menu.addItem(mContext.getString(R.string.operator_tban), R.drawable.ic_history,
                 hostAvailable, item -> {
                     showTbanDialog();
@@ -438,14 +444,29 @@ public class UserBottomSheetDialog {
     }
 
     private void showKickDialog(boolean kickban) {
+        if (kickban && !isSafeIrcParameter(mHost))
+            return;
+        showKickDialog(kickban ? "*!*@" + mHost : null,
+                kickban ? R.string.operator_kickban : R.string.operator_kick);
+    }
+
+    private void showKickbanIdentDialog() {
+        if (!isSafeIrcParameter(mUser)) {
+            Toast.makeText(mContext, R.string.operator_ident_unavailable, Toast.LENGTH_LONG).show();
+            return;
+        }
+        showKickDialog("*!" + mUser + "@*", R.string.operator_kickban_ident);
+    }
+
+    private void showKickDialog(String banMask, int actionId) {
+        boolean kickban = banMask != null;
         if (!isSafeIrcParameter(mNick) || (!mTargetPresent && !kickban) ||
-                (kickban && !isSafeIrcParameter(mHost)))
+                (kickban && !isSafeIrcParameter(banMask)))
             return;
 
         EditText reason = new EditText(mContext);
         reason.setHint(R.string.operator_reason_optional);
         reason.setSingleLine(true);
-        int actionId = kickban ? R.string.operator_kickban : R.string.operator_kick;
         new AlertDialog.Builder(mContext)
                 .setTitle(actionId)
                 .setMessage(mContext.getString(R.string.operator_confirm_action,
@@ -461,9 +482,9 @@ public class UserBottomSheetDialog {
                         // Some networks enforce a newly set ban immediately. Kick first so the
                         // operator-provided reason is not lost with a subsequent 441 reply.
                         sendRawCommand(kickCommand);
-                        sendRawCommand("MODE " + mSourceChannel + " +b *!*@" + mHost);
+                        sendRawCommand("MODE " + mSourceChannel + " +b " + banMask);
                     } else if (kickban) {
-                        sendRawCommand("MODE " + mSourceChannel + " +b *!*@" + mHost);
+                        sendRawCommand("MODE " + mSourceChannel + " +b " + banMask);
                     } else if (mTargetPresent) {
                         sendRawCommand(kickCommand);
                     }
@@ -539,33 +560,49 @@ public class UserBottomSheetDialog {
             int padding = (int) (20 * mContext.getResources().getDisplayMetrics().density);
             container.setPadding(padding, 0, padding, 0);
         }
-        List<String> reasons = OperatorReasonSettings.getReasons(mContext);
-        if (!reasons.isEmpty()) {
-            List<String> options = new ArrayList<>();
-            options.add(mContext.getString(R.string.operator_custom_reason));
-            options.addAll(reasons);
-            Spinner spinner = new Spinner(mContext);
-            ArrayAdapter<String> adapter = new ArrayAdapter<>(mContext,
-                    R.layout.simple_spinner_item, android.R.id.text1, options);
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-            spinner.setAdapter(adapter);
-            spinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
-                @Override
-                public void onItemSelected(android.widget.AdapterView<?> parent, View view,
-                                           int position, long id) {
-                    if (position > 0) {
-                        reason.setText(options.get(position));
-                        reason.setSelection(reason.length());
+        List<String> options = new ArrayList<>(OperatorReasonSettings.getReasons(mContext));
+        int customReasonPosition = options.size();
+        options.add(mContext.getString(R.string.operator_custom_reason));
+        Spinner spinner = new Spinner(mContext);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(mContext,
+                R.layout.simple_spinner_item, android.R.id.text1, options);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
+        spinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(android.widget.AdapterView<?> parent, View view,
+                                       int position, long id) {
+                if (position == customReasonPosition) {
+                    if (reason.getParent() == null) {
+                        reason.setText("");
+                        container.addView(reason);
+                    }
+                    reason.requestFocus();
+                    reason.post(() -> {
+                        InputMethodManager inputMethodManager = (InputMethodManager) mContext
+                                .getSystemService(Context.INPUT_METHOD_SERVICE);
+                        if (inputMethodManager != null)
+                            inputMethodManager.showSoftInput(reason,
+                                    InputMethodManager.SHOW_IMPLICIT);
+                    });
+                } else {
+                    reason.setText(options.get(position));
+                    if (reason.getParent() != null) {
+                        InputMethodManager inputMethodManager = (InputMethodManager) mContext
+                                .getSystemService(Context.INPUT_METHOD_SERVICE);
+                        if (inputMethodManager != null)
+                            inputMethodManager.hideSoftInputFromWindow(reason.getWindowToken(), 0);
+                        reason.clearFocus();
+                        container.removeView(reason);
                     }
                 }
+            }
 
-                @Override
-                public void onNothingSelected(android.widget.AdapterView<?> parent) {
-                }
-            });
-            container.addView(spinner);
-        }
-        container.addView(reason);
+            @Override
+            public void onNothingSelected(android.widget.AdapterView<?> parent) {
+            }
+        });
+        container.addView(spinner);
         return container;
     }
 

@@ -6,6 +6,7 @@
 - Corretto il comportamento delle schermate con moduli quando è aperta la tastiera: **Modifica un server** e la personalizzazione tema restano scorribili e i campi non vengono più coperti dall'IME.
 - Corretto il flusso **Scatta foto** alla prima esecuzione: TIARCA richiede ora il permesso fotocamera prima di avviare l'acquisizione.
 - Modificato l'intervallo della pulizia automatica dei ban da 6–30 ore a 48–72 ore.
+- Migliorati i dialog delle azioni di moderazione: i motivi predefiniti non duplicano più il campo testo ed è disponibile **Messaggio personalizzato…**. Aggiunta l’azione **Kickban ident**, che applica la mask `*!ident@*` e poi espelle l’utente.
 
 ## v0.7.1
 

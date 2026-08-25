@@ -163,6 +163,7 @@
     <string name="operator_actions_for">Operator actions in %s</string>
     <string name="operator_kick">Kick</string>
     <string name="operator_kickban">Kickban host</string>
+    <string name="operator_kickban_ident">Kickban ident</string>
     <string name="operator_tban">Temporary ban host</string>
     <string name="operator_mute">Mute host</string>
     <string name="operator_audi">Audi ident</string>
@@ -170,12 +171,13 @@
     <string name="operator_voice">Give voice</string>
     <string name="operator_mask">Ban mask</string>
     <string name="operator_invalid_mask">Enter a valid mask without spaces.</string>
+    <string name="operator_ident_unavailable">The user ident is not available.</string>
     <string name="operator_historical_data">Historical WHOWAS data</string>
     <string name="operator_historical_data_desc">Host and ident belong to the user’s most recent connection.</string>
     <string name="operator_choose_channel">Choose operator channel</string>
     <string name="operator_not_authorised">Operator actions require half-op status or higher in this channel.</string>
     <string name="operator_reason_optional">Reason (optional)</string>
-    <string name="operator_custom_reason">Custom reason</string>
+    <string name="operator_custom_reason">Custom message…</string>
     <string name="operator_duration">Duration (for example 3h)</string>
     <string name="operator_invalid_duration">Enter a duration such as 30m, 3h or 1d.</string>
     <string name="operator_confirm_title">Confirm operator action</string>

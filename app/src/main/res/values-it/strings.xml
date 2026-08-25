@@ -164,6 +164,7 @@
     <string name="operator_actions_for">Azioni operatore in %s</string>
     <string name="operator_kick">Kick</string>
     <string name="operator_kickban">Kickban su host</string>
+    <string name="operator_kickban_ident">Kickban ident</string>
     <string name="operator_tban">Ban temporaneo su host</string>
     <string name="operator_mute">Mute su host</string>
     <string name="operator_audi">Audi su ident</string>
@@ -171,12 +172,13 @@
     <string name="operator_voice">Assegna voice</string>
     <string name="operator_mask">Mask del ban</string>
     <string name="operator_invalid_mask">Inserisci una maschera valida senza spazi.</string>
+    <string name="operator_ident_unavailable">L’ident dell’utente non è disponibile.</string>
     <string name="operator_historical_data">Dati storici WHOWAS</string>
     <string name="operator_historical_data_desc">Host e ident appartengono alla connessione più recente dell\'utente.</string>
     <string name="operator_choose_channel">Scegli il canale in cui sei operatore</string>
     <string name="operator_not_authorised">Le azioni dell\'operatore richiedono lo stato half-op o superiore in questo canale.</string>
     <string name="operator_reason_optional">Motivazione (facoltativa)</string>
-    <string name="operator_custom_reason">Motivo personalizzato</string>
+    <string name="operator_custom_reason">Messaggio personalizzato…</string>
     <string name="operator_duration">Durata (per esempio 3h)</string>
     <string name="operator_invalid_duration">Inserisci una durata come 30 minuti, 3 ore o 1 giorno.</string>
     <string name="operator_confirm_title">Conferma azione operatore</string>
