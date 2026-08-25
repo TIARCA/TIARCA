@@ -620,6 +620,9 @@ public class ServerConnectionInfo {
     public void closePrivateConversation(String channel, String reason) {
         if (channel == null || channel.isEmpty())
             return;
+        // Locally opened queries are not necessarily present in chatlib's joined-channel map.
+        // Remove the visible entry now; leaveChannel below still removes any backing chatlib entry.
+        removeStoredConversation(channel);
         Map<String, String> aliases;
         synchronized (this) {
             aliases = new LinkedHashMap<>(mQueryNickAliases);
