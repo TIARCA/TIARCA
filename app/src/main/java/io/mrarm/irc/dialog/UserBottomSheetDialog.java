@@ -40,6 +40,7 @@ import io.mrarm.chatlib.NoSuchChannelException;
 import io.mrarm.chatlib.irc.ChannelData;
 import io.mrarm.chatlib.irc.IRCConnection;
 import io.mrarm.chatlib.irc.ServerConnectionData;
+import io.mrarm.chatlib.user.UserInfo;
 import io.mrarm.irc.MainActivity;
 import io.mrarm.irc.R;
 import io.mrarm.irc.ServerConnectionInfo;
@@ -109,9 +110,16 @@ public class UserBottomSheetDialog {
         mHost = info.getHost();
         mAccount = info.getLoggedInAsAccount();
         SimosnapAvatarManager.rememberAccount(mConnection, info.getNick(), mAccount);
-        setUser(info.getNick(), info.getUser(), info.getRealName(), (info.getAwayMessage() != null));
-        if (info.getAwayMessage() != null)
-            addEntry(R.string.user_away, info.getAwayMessage());
+        String awayMessage = info.getAwayMessage();
+        boolean away = awayMessage != null;
+        UserInfo knownUser = getKnownUser(info.getNick());
+        if (knownUser != null && knownUser.isAway()) {
+            away = true;
+            awayMessage = knownUser.getAwayMessage();
+        }
+        setUser(info.getNick(), info.getUser(), info.getRealName(), away);
+        if (awayMessage != null)
+            addEntry(R.string.user_away, awayMessage);
         addEntry(R.string.user_hostname, info.getHost());
         if (info.getServer() != null)
             addEntry(R.string.user_server, mContext.getString(R.string.user_server_format, info.getServer(), info.getServerInfo()));
@@ -448,6 +456,17 @@ public class UserBottomSheetDialog {
             return;
         showKickDialog(kickban ? "*!*@" + mHost : null,
                 kickban ? R.string.operator_kickban : R.string.operator_kick);
+    }
+
+    private UserInfo getKnownUser(String nick) {
+        if (mConnection == null || mConnection.getApiInstance() == null)
+            return null;
+        try {
+            return mConnection.getApiInstance().getUserInfoApi()
+                    .getUser(nick, null, null, null, null).get();
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     private void showKickbanIdentDialog() {

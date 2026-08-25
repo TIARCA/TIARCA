@@ -22,6 +22,7 @@ public class AwayCommandHandler implements CommandHandler {
                        Map<String, String> tags) throws InvalidMessageException {
         String nick = CommandHandler.getParamWithCheck(params, 1);
         String message = params.get(params.size() - 1);
+        connection.setUserAway(nick, null, null, true, message);
         WhoisCommandHandler whoisHandler = connection.getCommandHandlerList().getHandler(WhoisCommandHandler.class);
         if (whoisHandler != null)
             whoisHandler.onAwayMessage(nick, message);

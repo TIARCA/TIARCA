@@ -10,6 +10,7 @@ import io.mrarm.chatlib.NoSuchChannelException;
 import io.mrarm.chatlib.dto.MessageInfo;
 import io.mrarm.chatlib.irc.cap.CapabilityManager;
 import io.mrarm.chatlib.message.WritableMessageStorageApi;
+import io.mrarm.chatlib.user.UserInfo;
 import io.mrarm.chatlib.user.WritableUserInfoApi;
 
 public class ServerConnectionData {
@@ -183,6 +184,23 @@ public class ServerConnectionData {
         getCapabilityManager().reset();
         try {
             getUserInfoApi().clearAllUsersChannelPresences(null, null).get();
+            getUserInfoApi().clearAllUsersAwayStates(null, null).get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /** Updates one user's away state and refreshes every channel list containing that user. */
+    public void setUserAway(String nick, String user, String host, boolean away, String message) {
+        try {
+            UserInfo userInfo = getUserInfoApi().getUser(nick, user, host, null, null).get();
+            getUserInfoApi().setUserAway(userInfo.getUUID(), away, message, null, null).get();
+            for (String channel : new ArrayList<>(userInfo.getChannels())) {
+                try {
+                    getJoinedChannelData(channel).callMemberListChanged();
+                } catch (NoSuchChannelException ignored) {
+                }
+            }
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
         }

@@ -28,6 +28,7 @@ import io.mrarm.irc.util.SpannableStringHelper;
 import io.mrarm.irc.util.StyledAttributesHelper;
 import io.mrarm.irc.util.SimosnapAvatarLoader;
 import io.mrarm.irc.util.SimosnapAvatarManager;
+import io.mrarm.chatlib.user.UserInfo;
 
 public class ChannelInfoAdapter extends RecyclerView.Adapter {
 
@@ -203,10 +204,21 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
             mConnection = connection;
             mChannel = channel;
             bindText(mText, nickWithPrefix);
+            mText.setAlpha(isAway(connection, nickWithPrefix.getNick()) ? 0.55f : 1f);
             mText.setTag(nickWithPrefix.getNick());
             String account = SimosnapAvatarManager.getAccount(connection,
                     nickWithPrefix.getNick());
             SimosnapAvatarLoader.load(mAvatar, account, false, null);
+        }
+
+        private static boolean isAway(ServerConnectionInfo connection, String nick) {
+            try {
+                UserInfo user = connection.getApiInstance().getUserInfoApi()
+                        .getUser(nick, null, null, null, null).get();
+                return user != null && user.isAway();
+            } catch (Exception ignored) {
+                return false;
+            }
         }
 
         public static void bindText(TextView text, NickWithPrefix nickWithPrefix) {

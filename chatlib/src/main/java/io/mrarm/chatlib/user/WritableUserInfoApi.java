@@ -14,6 +14,11 @@ public interface WritableUserInfoApi extends UserInfoApi {
     Future<Void> setUserChannelPresence(UUID user, String channel, boolean present, ResponseCallback<Void> callback,
                                         ResponseErrorCallback errorCallback);
 
+    Future<Void> setUserAway(UUID user, boolean away, String message, ResponseCallback<Void> callback,
+                             ResponseErrorCallback errorCallback);
+
     Future<Void> clearAllUsersChannelPresences(ResponseCallback<Void> callback, ResponseErrorCallback errorCallback);
+
+    Future<Void> clearAllUsersAwayStates(ResponseCallback<Void> callback, ResponseErrorCallback errorCallback);
 
 }

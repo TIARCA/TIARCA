@@ -29,6 +29,7 @@ public class CapabilityManager {
         registerCapability(new BatchCapability());
         registerCapability(new ServerTimeCapability());
         registerCapability(new MultiPrefixCapability());
+        registerCapability(new AwayNotifyCapability());
         registerCapability(new ZNCSelfMessageCapability());
     }
 

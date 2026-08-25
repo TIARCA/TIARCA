@@ -7,6 +7,8 @@ public class UserInfo {
     private UUID uuid;
     private String currentNick;
     private boolean connected = false;
+    private boolean away = false;
+    private String awayMessage;
     private HashSet<String> channels = new HashSet<>();
 
     public UserInfo(UUID uuid, String nick) {
@@ -18,6 +20,8 @@ public class UserInfo {
         this.uuid = userInfo.uuid;
         this.currentNick = userInfo.currentNick;
         this.connected = userInfo.connected;
+        this.away = userInfo.away;
+        this.awayMessage = userInfo.awayMessage;
         this.channels = (HashSet<String>) userInfo.channels.clone();
     }
 
@@ -37,6 +41,14 @@ public class UserInfo {
         return connected;
     }
 
+    public boolean isAway() {
+        return away;
+    }
+
+    public String getAwayMessage() {
+        return awayMessage;
+    }
+
     public Set<String> getChannels() {
         return channels;
     }
@@ -50,6 +62,11 @@ public class UserInfo {
 
     void clearChannelPresences() {
         channels.clear();
+    }
+
+    void setAway(boolean away, String message) {
+        this.away = away;
+        this.awayMessage = away ? message : null;
     }
 
 }

@@ -1,5 +1,12 @@
 # TIARCA — Changelog
 
+## v0.7.3
+
+- Aggiunto il supporto IRCv3 `away-notify`, con aggiornamento in tempo reale dello stato away degli utenti sui server compatibili.
+- Corretta la selezione e copia del testo nella scheda SERVER.
+- Corretta la chiusura delle conversazioni private, che poteva interferire con la chiusura dei canali.
+- Corretti i messaggi inviati nelle query aperte tramite **Scrivi all'utente**, ora mostrati correttamente anche localmente.
+
 ## v0.7.2
 
 - Migliorato il primo avvio dei server: se manca il nickname, il tap apre direttamente **Modifica un server**. Salvando senza nickname viene generato un valore `TIARCA####`; viene generato e mantenuto anche un ident privacy-friendly `TIARCA####`. Il nome utente personalizzato è ora una scelta esplicita nelle Informazioni sull'utente.

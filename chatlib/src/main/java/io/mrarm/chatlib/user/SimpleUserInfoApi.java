@@ -151,12 +151,36 @@ public class SimpleUserInfoApi implements WritableUserInfoApi {
     }
 
     @Override
+    public Future<Void> setUserAway(UUID user, boolean away, String message, ResponseCallback<Void> callback,
+                                    ResponseErrorCallback errorCallback) {
+        return SimpleRequestExecutor.run(() -> {
+            synchronized (SimpleUserInfoApi.this) {
+                UserInfo userInfo = uuidToUserInfo.get(user);
+                userInfo.setAway(away, message);
+            }
+            return null;
+        }, callback, errorCallback);
+    }
+
+    @Override
     public Future<Void> clearAllUsersChannelPresences(ResponseCallback<Void> callback,
                                                       ResponseErrorCallback errorCallback) {
         return SimpleRequestExecutor.run(() -> {
             synchronized (SimpleUserInfoApi.this) {
                 for (UserInfo userInfo : uuidToUserInfo.values())
                     userInfo.clearChannelPresences();
+            }
+            return null;
+        }, callback, errorCallback);
+    }
+
+    @Override
+    public Future<Void> clearAllUsersAwayStates(ResponseCallback<Void> callback,
+                                                ResponseErrorCallback errorCallback) {
+        return SimpleRequestExecutor.run(() -> {
+            synchronized (SimpleUserInfoApi.this) {
+                for (UserInfo userInfo : uuidToUserInfo.values())
+                    userInfo.setAway(false, null);
             }
             return null;
         }, callback, errorCallback);
