@@ -6,7 +6,6 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.graphics.Typeface;
 import androidx.recyclerview.widget.RecyclerView;
-import android.text.method.LinkMovementMethod;
 import android.text.TextPaint;
 import android.text.style.ClickableSpan;
 import android.util.TypedValue;
@@ -32,6 +31,7 @@ import io.mrarm.irc.dialog.MenuBottomSheetDialog;
 import io.mrarm.irc.util.AlignToPointSpan;
 import io.mrarm.irc.util.IRCColorUtils;
 import io.mrarm.irc.util.MessageBuilder;
+import io.mrarm.irc.util.SelectableLinkMovementMethod;
 
 public class ServerStatusMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
@@ -116,11 +116,7 @@ public class ServerStatusMessagesAdapter extends RecyclerView.Adapter<RecyclerVi
         public MessageHolder(View v) {
             super(v);
             mText = v.findViewById(R.id.chat_message);
-            mText.setTextIsSelectable(true);
-            // setTextIsSelectable installs its own movement method. Apply LinkMovementMethod
-            // afterwards so service nick spans and ordinary links remain clickable while the
-            // text can still be selected and copied.
-            mText.setMovementMethod(LinkMovementMethod.getInstance());
+            configureSelectableText(mText);
             v.setOnLongClickListener(view -> {
                 int position = getBindingAdapterPosition();
                 if (position == RecyclerView.NO_POSITION)
@@ -210,6 +206,8 @@ public class ServerStatusMessagesAdapter extends RecyclerView.Adapter<RecyclerVi
             //setExpanded(true);
 
             mExpandedText.setTypeface(Typeface.MONOSPACE);
+            configureSelectableText(mText);
+            configureSelectableText(mExpandedText);
 
             v.setOnClickListener((View view) -> {
                 StatusMessageInfo msg = mMessages.getMessages().get(mPosition);
@@ -250,6 +248,11 @@ public class ServerStatusMessagesAdapter extends RecyclerView.Adapter<RecyclerVi
                     message.getMessage()));
         }
 
+    }
+
+    private static void configureSelectableText(TextView text) {
+        text.setTextIsSelectable(true);
+        text.setMovementMethod(SelectableLinkMovementMethod.getInstance());
     }
 
 }
