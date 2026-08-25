@@ -10,7 +10,6 @@ import io.mrarm.irc.MainActivity;
 import io.mrarm.irc.R;
 import io.mrarm.irc.ServerConnectionInfo;
 import io.mrarm.irc.view.ListSearchView;
-import io.mrarm.chatlib.dto.MessageList;
 
 public class UserSearchDialog extends SearchDialog {
 
@@ -39,15 +38,7 @@ public class UserSearchDialog extends SearchDialog {
             cancel();
             return;
         }
-        mConnection.getApiInstance().getMessageStorageApi().getMessages(target, 1,
-                null, null, (MessageList messages) -> {
-                    if (messages != null && !messages.getMessages().isEmpty()) {
-                        mConnection.addStoredConversation(target);
-                        openConversation(target);
-                    } else {
-                        openOnlineConversation(target);
-                    }
-                }, error -> openOnlineConversation(target));
+        openOnlineConversation(target);
         cancel();
     }
 
