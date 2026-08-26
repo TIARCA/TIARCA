@@ -1,6 +1,7 @@
 package io.mrarm.irc.util;
 
 import android.text.Layout;
+import android.text.Selection;
 import android.text.Spannable;
 import android.text.method.ArrowKeyMovementMethod;
 import android.text.style.ClickableSpan;
@@ -18,10 +19,16 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
     private float downY;
     private long downTime;
     private LongClickableSpan pressedLongSpan;
+    private Spannable pressedBuffer;
     private boolean longPressTriggered;
     private final Runnable longPressRunnable = new Runnable() {
         @Override public void run() {
             if (pressedLongSpan != null && pressedWidget != null) {
+                // The TextView's native long-press starts text selection. It is not wanted
+                // when the gesture was targeted at a nickname span.
+                pressedWidget.cancelLongPress();
+                if (pressedBuffer != null)
+                    Selection.removeSelection(pressedBuffer);
                 longPressTriggered = pressedLongSpan.onLongClick(pressedWidget);
             }
         }
@@ -45,14 +52,17 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
             longPressTriggered = false;
             pressedWidget = pressedLongSpan == null ? null : widget;
             if (pressedLongSpan != null) {
+                // Consume only nickname-span long presses. Normal message text keeps the
+                // TextView's native selection/copy behavior.
+                pressedBuffer = buffer;
+                widget.cancelLongPress();
                 widget.postDelayed(longPressRunnable, ViewConfiguration.getLongPressTimeout());
                 return true;
             }
         } else if (event.getActionMasked() == MotionEvent.ACTION_MOVE && pressedLongSpan != null &&
                 !isWithinTouchSlop(widget, event)) {
             widget.removeCallbacks(longPressRunnable);
-            pressedLongSpan = null;
-            pressedWidget = null;
+            clearLongPress();
         } else if (event.getActionMasked() == MotionEvent.ACTION_UP &&
                 isShortTap(widget, event)) {
             widget.removeCallbacks(longPressRunnable);
@@ -93,6 +103,7 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
 
     private void clearLongPress() {
         pressedLongSpan = null;
+        pressedBuffer = null;
         pressedWidget = null;
         longPressTriggered = false;
     }
