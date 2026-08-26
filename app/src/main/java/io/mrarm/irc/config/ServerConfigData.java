@@ -53,6 +53,7 @@ public class ServerConfigData {
     public List<String> execCommandsConnected;
 
     public List<IgnoreEntry> ignoreList;
+    public List<MonitoredUser> monitoredUsers;
 
     public long storageLimit;
 
@@ -165,6 +166,15 @@ public class ServerConfigData {
             hostRegex = SimpleWildcardPattern.compile(host);
         }
 
+    }
+
+    /** Persisted per-network configuration and last known standard MONITOR state. */
+    public static class MonitoredUser {
+        public String nick;
+        public String currentNick;
+        public boolean online;
+        public boolean notifyOnline;
+        public boolean notifyOffline;
     }
 
 }

@@ -39,6 +39,7 @@ import io.mrarm.irc.util.StubMessageStorageApi;
 import io.mrarm.irc.util.UserAutoRunCommandHelper;
 import io.mrarm.irc.irc.ChannelModeSnapshotHandler;
 import io.mrarm.irc.irc.WhoXAccountHandler;
+import io.mrarm.irc.irc.MonitoredUsersManager;
 import io.mrarm.irc.irc.ServiceMessageCommandHandler;
 import io.mrarm.irc.irc.SelfKickCommandHandler;
 import io.mrarm.chatlib.irc.handlers.KickCommandHandler;
@@ -73,6 +74,7 @@ public class ServerConnectionInfo {
     private final Set<String> mServiceNicks = new LinkedHashSet<>();
     /** Old query nick -> current nick, for stale channel-list callbacks after NICK. */
     private final Map<String, String> mQueryNickAliases = new LinkedHashMap<>();
+    private final MonitoredUsersManager mMonitoredUsers;
 
     public ServerConnectionInfo(ServerConnectionManager manager, ServerConfigData config,
                                 IRCConnectionRequest connectionRequest, SASLOptions saslOptions,
@@ -82,6 +84,7 @@ public class ServerConnectionInfo {
         mConnectionRequest = connectionRequest;
         mSASLOptions = saslOptions;
         mNotificationData = new NotificationManager.ConnectionManager(this);
+        mMonitoredUsers = new MonitoredUsersManager(config);
         mChannels = joinChannels;
         if (mChannels != null)
             Collections.sort(mChannels, String::compareToIgnoreCase);
@@ -169,10 +172,13 @@ public class ServerConnectionInfo {
                 connection.getServerConnectionData().getCommandHandlerList()
                         .registerHandler(new SelfKickCommandHandler(kickHandler));
             }
+            ServerConnectionData monitoredConnectionData = connection.getServerConnectionData();
             connection.getUserInfoApi().subscribeNickChanges((info, oldNick, newNick) -> {
                 renameServiceNick(oldNick, newNick);
                 renamePrivateConversation(oldNick, newNick);
+                mMonitoredUsers.onNickChanged(monitoredConnectionData, oldNick, newNick);
             }, null, null);
+            monitoredConnectionData.getCommandHandlerList().registerHandler(mMonitoredUsers);
             // Install the channel-mode snapshot wrapper before the network thread starts.
             // CommandHandlerList accepts only one handler per command, so registering it
             // later from the dialog would collide with ModeCommandHandler on numeric 324.
@@ -210,6 +216,7 @@ public class ServerConnectionInfo {
                 setConnected(true);
                 mCurrentReconnectAttempt = 0;
                 mEndpointFailoverAttempts = 0;
+                mMonitoredUsers.synchronize(fConnection.getServerConnectionData());
 
                 if (mServerConfig.execCommandsConnected != null) {
                     if (mAutoRunHelper == null)
@@ -395,6 +402,8 @@ public class ServerConnectionInfo {
     public UUID getUUID() {
         return mServerConfig.uuid;
     }
+
+    public MonitoredUsersManager getMonitoredUsersManager() { return mMonitoredUsers; }
 
     public String getName() {
         return mServerConfig.name;

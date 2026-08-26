@@ -12,6 +12,11 @@ public class ServerSupportList {
     private ModeList channelModesValueExactUnset = new ModeList("k"); // single value, has add&remove param
     private ModeList channelModesValue = new ModeList("l"); // single value, has add param
     private ModeList channelModesFlag = new ModeList("imnpst"); // no params
+    private int monitorLimit = -1;
+
+    /** -1 means that the server did not advertise standard IRC MONITOR support. */
+    public int getMonitorLimit() { return monitorLimit; }
+    public void setMonitorLimit(int monitorLimit) { this.monitorLimit = monitorLimit; }
 
     public NickPrefixList getSupportedNickPrefixes() {
         synchronized (this) {
