@@ -165,12 +165,12 @@ public final class MonitoredUsersManager implements CommandHandler {
 
     public void list(ServerConnectionData data) throws IOException {
         if (!isSupported(data)) { lastError = "This server does not support MONITOR."; return; }
-        data.getApi().sendCommand("MONITOR", false, "L");
+        send(data, "L");
     }
 
     public void clear(ServerConnectionData data) throws IOException {
         if (!isSupported(data)) { lastError = "This server does not support MONITOR."; return; }
-        data.getApi().sendCommand("MONITOR", false, "C");
+        send(data, "C");
         synchronizedUsers.clear();
         usersOverLimit.clear();
         clearRuntimePresence();
@@ -273,11 +273,15 @@ public final class MonitoredUsersManager implements CommandHandler {
     private void send(ServerConnectionData data, String... params) {
         if (data == null || data.getApi() == null) return;
         try {
-            debug("send MONITOR " + joinParams(params) + " sync=" + syncState);
-            data.getApi().sendCommand("MONITOR", false, params);
-        } catch (IOException e) {
+            debug("queue MONITOR " + joinParams(params) + " sync=" + syncState);
+            data.getApi().sendCommand("MONITOR", false, params, null, e -> {
+                lastError = "Could not synchronize MONITOR.";
+                debug("send-failed MONITOR " + joinParams(params) + " exception=" +
+                        e.getClass().getSimpleName() + " message=" + e.getMessage());
+            });
+        } catch (RuntimeException e) {
             lastError = "Could not synchronize MONITOR.";
-            debug("send-failed MONITOR " + joinParams(params) + " exception=" +
+            debug("queue-failed MONITOR " + joinParams(params) + " exception=" +
                     e.getClass().getSimpleName() + " message=" + e.getMessage());
         }
     }
@@ -312,7 +316,7 @@ public final class MonitoredUsersManager implements CommandHandler {
     }
 
     private static void debug(String message) {
-        System.out.println(DEBUG_TAG + " " + message);
+        System.out.println(DEBUG_TAG + " thread=" + Thread.currentThread().getName() + " " + message);
     }
 
     private static IRCCaseMapping getCaseMapping(ServerConnectionData data) {

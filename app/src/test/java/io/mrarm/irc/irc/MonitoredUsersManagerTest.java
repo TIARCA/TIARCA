@@ -7,8 +7,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.mrarm.chatlib.ResponseCallback;
+import io.mrarm.chatlib.ResponseErrorCallback;
 import io.mrarm.chatlib.irc.ServerConnectionData;
 import io.mrarm.chatlib.irc.handlers.ISupportCommandHandler;
 import io.mrarm.chatlib.test.TestApiImpl;
@@ -185,6 +189,40 @@ public class MonitoredUsersManagerTest {
         assertEquals(Arrays.asList("MONITOR + Pippo", "MONITOR S", "MONITOR L"), api.commands);
     }
 
+    @Test public void uiAddRemoveAndRenameQueueNetworkWritesInOrder() throws Exception {
+        QueuedRecordingApi api = new QueuedRecordingApi();
+        ServerConnectionData data = api.getServerConnectionData();
+        applySupport(data, "MONITOR=2");
+        MonitoredUsersManager manager = new MonitoredUsersManager(new ServerConfigData());
+        manager.synchronize(data);
+        manager.handle(data, null, "733", Arrays.asList("me", "end"), Collections.emptyMap());
+        api.clearQueued();
+
+        manager.addMonitoredUser(data, "Pippo", false, false);
+        assertTrue(api.commands.isEmpty());
+        assertEquals(1, api.queued.size());
+        api.runQueued();
+        assertEquals(Arrays.asList("MONITOR + Pippo"), api.commands);
+
+        api.commands.clear();
+        manager.onNickChanged(data, "Pippo", "PippoAway");
+        assertTrue(api.commands.isEmpty());
+        assertEquals(2, api.queued.size());
+        api.runQueued();
+        assertEquals(Arrays.asList("MONITOR - Pippo", "MONITOR + PippoAway"), api.commands);
+
+        api.commands.clear();
+        manager.updateNotificationPreferences(data, "PippoAway", true, true);
+        assertTrue(api.queued.isEmpty());
+        assertTrue(api.commands.isEmpty());
+
+        manager.removeMonitoredUser(data, "PippoAway");
+        assertTrue(api.commands.isEmpty());
+        assertEquals(1, api.queued.size());
+        api.runQueued();
+        assertEquals(Arrays.asList("MONITOR - PippoAway"), api.commands);
+    }
+
     @Test public void keepsEntriesOverMonitorLimitAndExposesServerError() throws Exception {
         ServerConnectionData data = supportedData("MONITOR=2");
         MonitoredUsersManager manager = new MonitoredUsersManager(new ServerConfigData());
@@ -227,7 +265,35 @@ public class MonitoredUsersManagerTest {
         final List<String> commands = new ArrayList<>();
         RecordingApi() { super("me"); }
         @Override public void sendCommand(String command, boolean isLastArgFullLine, String... args) {
+            throw new AssertionError("MONITOR must use the queued sendCommand overload");
+        }
+        @Override public Future<Void> sendCommand(String command, boolean isLastArgFullLine,
+                                                   String[] args, ResponseCallback<Void> callback,
+                                                   ResponseErrorCallback errorCallback) {
             commands.add(command + " " + String.join(" ", args));
+            if (callback != null) callback.onResponse(null);
+            return CompletableFuture.completedFuture(null);
+        }
+    }
+
+    private static class QueuedRecordingApi extends RecordingApi {
+        final List<Runnable> queued = new ArrayList<>();
+        @Override public Future<Void> sendCommand(String command, boolean isLastArgFullLine,
+                                                   String[] args, ResponseCallback<Void> callback,
+                                                   ResponseErrorCallback errorCallback) {
+            CompletableFuture<Void> future = new CompletableFuture<>();
+            queued.add(() -> {
+                commands.add(command + " " + String.join(" ", args));
+                if (callback != null) callback.onResponse(null);
+                future.complete(null);
+            });
+            return future;
+        }
+        void clearQueued() { queued.clear(); commands.clear(); }
+        void runQueued() {
+            List<Runnable> copy = new ArrayList<>(queued);
+            queued.clear();
+            for (Runnable runnable : copy) runnable.run();
         }
     }
 }

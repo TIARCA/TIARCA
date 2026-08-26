@@ -59,7 +59,8 @@ public class IRCConnection extends ServerConnectionApi {
             socketOutputStream.write(data);
             if (string.regionMatches(true, 0, "MONITOR ", 0, 8))
                 System.out.println(MONITOR_DEBUG + " wire-send socket=" +
-                        System.identityHashCode(socket) + " line=" + string);
+                        System.identityHashCode(socket) + " thread=" +
+                        Thread.currentThread().getName() + " line=" + string);
             String printStr = string;
             for (String s : AUTH_COMMAND_PREFIXES) {
                 if (string.regionMatches(true, 0, s, 0, s.length())) {
