@@ -735,6 +735,24 @@
     <string name="title_activity_ignore_list_network">Ignora elenco per %s</string>
     <string name="title_activity_edit_ignore_entry">Modifica una voce da ignorare</string>
     <string name="title_activity_add_ignore_entry">Aggiungi una voce da ignorare</string>
+    <string name="action_ignore_user">Ignora utente</string>
+    <string name="ignore_user_title">Ignora %s</string>
+    <string name="ignore_identify_by">Identifica tramite</string>
+    <string name="ignore_nickname">Nickname</string>
+    <string name="ignore_nickname_value">Nickname: %s</string>
+    <string name="ignore_ident">Ident</string>
+    <string name="ignore_ident_value">Ident: %s</string>
+    <string name="ignore_host">Host</string>
+    <string name="ignore_host_value">Host: %s</string>
+    <string name="ignore_messages">Ignora</string>
+    <string name="ignore_duration">Durata</string>
+    <string name="ignore_always">Sempre</string>
+    <string name="ignore_custom_duration">Personalizzata</string>
+    <string name="ignore_hours">Ore</string>
+    <string name="ignore_invalid_duration">Inserisci un numero positivo di ore</string>
+    <string name="ignore_select_identity">Seleziona almeno un criterio di identificazione</string>
+    <string name="action_ignore">Ignora</string>
+    <string name="action_remove_ignore">Rimuovi Ignore</string>
 
     <!-- User info -->
 

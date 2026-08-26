@@ -144,6 +144,8 @@ public class ServerConfigData {
         public String user;
         public String host;
         public String comment;
+        /** Absolute expiry time in milliseconds, or 0 for a permanent entry. */
+        public long expiresAt;
         public transient Pattern nickRegex;
         public transient Pattern userRegex;
         public transient Pattern hostRegex;
@@ -152,6 +154,10 @@ public class ServerConfigData {
         public boolean matchDirectNotices = true;
         public boolean matchChannelMessages = true;
         public boolean matchChannelNotices = true;
+
+        public boolean isExpired(long now) {
+            return expiresAt > 0 && expiresAt <= now;
+        }
 
         public void updateRegexes() {
             nickRegex = SimpleWildcardPattern.compile(nick);

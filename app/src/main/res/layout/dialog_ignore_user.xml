@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingLeft="24dp"
+        android:paddingRight="24dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ignore_identify_by"
+            android:textAppearance="@style/TextAppearance.AppCompat.Subhead" />
+
+        <CheckBox
+            android:id="@+id/nick"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ignore_nickname" />
+
+        <CheckBox
+            android:id="@+id/user"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ignore_ident" />
+
+        <CheckBox
+            android:id="@+id/host"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ignore_host" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/ignore_messages"
+            android:textAppearance="@style/TextAppearance.AppCompat.Subhead" />
+
+        <CheckBox
+            android:id="@+id/channel_messages"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/notification_rule_chan_messages" />
+
+        <CheckBox
+            android:id="@+id/direct_messages"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/notification_rule_direct" />
+
+        <CheckBox
+            android:id="@+id/channel_notices"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/notification_rule_chan_notice" />
+
+        <CheckBox
+            android:id="@+id/direct_notices"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/notification_rule_notice" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/ignore_duration"
+            android:textAppearance="@style/TextAppearance.AppCompat.Subhead" />
+
+        <RadioGroup
+            android:id="@+id/duration_group"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <RadioButton
+                android:id="@+id/always"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/ignore_always" />
+
+            <RadioButton
+                android:id="@+id/custom"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/ignore_custom_duration" />
+        </RadioGroup>
+
+        <EditText
+            android:id="@+id/hours"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/ignore_hours"
+            android:inputType="number"
+            android:visibility="gone" />
+    </LinearLayout>
+</ScrollView>

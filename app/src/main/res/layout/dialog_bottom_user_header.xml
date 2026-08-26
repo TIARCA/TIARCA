@@ -80,6 +80,19 @@
         app:srcCompat="@drawable/ic_more_vert" />
 
     <ImageButton
+        android:id="@+id/ignore_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_toLeftOf="@id/operator_button"
+        android:layout_toStartOf="@id/operator_button"
+        android:padding="16dp"
+        android:background="?attr/actionBarItemBackground"
+        android:contentDescription="@string/action_ignore_user"
+        app:tint="@color/abc_primary_text_material_dark"
+        app:srcCompat="@drawable/ic_close" />
+
+    <ImageButton
         android:id="@+id/file_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

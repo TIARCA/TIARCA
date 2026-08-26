@@ -351,6 +351,9 @@ public class UserBottomSheetDialog {
                 ? View.VISIBLE : View.GONE);
         operatorButton.setOnClickListener((View v) -> showOperatorMenu());
 
+        view.findViewById(R.id.ignore_button).setOnClickListener(v ->
+                IgnoreUserDialog.show(mContext, mConnection, mNick, mUser, mHost));
+
         View fileButton = view.findViewById(R.id.file_button);
         fileButton.setVisibility(SharingSettings.hasAnySendOption(mContext)
                 ? View.VISIBLE : View.GONE);
