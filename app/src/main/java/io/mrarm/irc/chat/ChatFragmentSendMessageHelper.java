@@ -226,6 +226,19 @@ public class ChatFragmentSendMessageHelper implements SendMessageHelper.Callback
         mSendText.setText(text);
     }
 
+    /** Inserts a channel mention without changing the current conversation or sending it. */
+    public void insertMention(String nick) {
+        if (nick == null || nick.trim().isEmpty() || mCurrentChannel == null)
+            return;
+        String mention = nick.trim() + ": ";
+        int position = Math.max(0, mSendText.getSelectionStart());
+        String prefix = position > 0 && !Character.isWhitespace(mSendText.getText().charAt(position - 1))
+                ? " " : "";
+        mSendText.getText().insert(position, prefix + mention);
+        mSendText.setSelection(position + prefix.length() + mention.length());
+        mSendText.requestFocus();
+    }
+
     private boolean uploadPastedImage(ServerConnectionInfo connection, Uri uri) {
         if (!(mContext instanceof Activity) || !SharingSettings.uploadsEnabled(mContext))
             return false;

@@ -73,6 +73,11 @@ public final class MonitoredUsersManager implements CommandHandler {
     public boolean isMonitored(String nick) { return find(nick, IRCCaseMapping.RFC1459) != null; }
     public boolean isMonitored(ServerConnectionData data, String nick) { return find(nick, getCaseMapping(data)) != null; }
 
+    /** Returns the existing entry for contextual UI actions, if any. */
+    public ServerConfigData.MonitoredUser getMonitoredUser(ServerConnectionData data, String nick) {
+        return find(nick, getCaseMapping(data));
+    }
+
     public ServerConfigData.MonitoredUser addMonitoredUser(String nick, boolean notifyOnline, boolean notifyOffline) {
         return addMonitoredUser(null, nick, notifyOnline, notifyOffline);
     }

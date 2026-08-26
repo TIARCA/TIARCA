@@ -144,6 +144,9 @@
     <string name="action_sort_name">Sort by name</string>
     <string name="action_join_channel">Join channel</string>
     <string name="action_message_user">Message user</string>
+    <string name="action_open_private">Open private chat</string>
+    <string name="action_mention_user">Mention</string>
+    <string name="action_edit_monitor_user">Edit monitoring</string>
     <string name="action_part_channel">Leave channel</string>
     <string name="action_close_direct">Close conversation</string>
     <string name="action_clear_all">Clear all</string>
@@ -170,6 +173,7 @@
     <string name="operator_audi">Audi ident</string>
     <string name="operator_unban_host">Remove exact host ban</string>
     <string name="operator_voice">Give voice</string>
+    <string name="operator_devoice">Remove voice</string>
     <string name="operator_mask">Ban mask</string>
     <string name="operator_invalid_mask">Enter a valid mask without spaces.</string>
     <string name="operator_ident_unavailable">The user ident is not available.</string>

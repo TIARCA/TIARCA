@@ -11,7 +11,6 @@ import android.text.SpannableStringBuilder;
 import android.text.TextPaint;
 import android.text.style.ClickableSpan;
 import android.text.format.DateUtils;
-import android.text.method.LinkMovementMethod;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -37,6 +36,9 @@ import io.mrarm.irc.util.LongPressSelectTouchListener;
 import io.mrarm.irc.util.MessageBuilder;
 import io.mrarm.irc.util.StyledAttributesHelper;
 import io.mrarm.irc.dialog.UserBottomSheetDialog;
+import io.mrarm.irc.dialog.NicknameContextMenu;
+import io.mrarm.irc.util.LongClickableSpan;
+import io.mrarm.irc.util.SelectableLinkMovementMethod;
 
 public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
         implements LongPressSelectTouchListener.Listener, ChatSelectTouchListener.AdapterInterface {
@@ -456,13 +458,13 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                 mText.setBackground(mItemBackground.getConstantState().newDrawable());
             else
                 mText.setBackground(null);
-            mText.setMovementMethod(LinkMovementMethod.getInstance());
+            mText.setMovementMethod(SelectableLinkMovementMethod.getInstance());
         }
 
         private ClickableSpan createNickClickSpan(String nick) {
             if (nick == null || nick.isEmpty())
                 return null;
-            return new ClickableSpan() {
+            return new LongClickableSpan() {
                 @Override
                 public void onClick(@NonNull View widget) {
                     UserBottomSheetDialog dialog = new UserBottomSheetDialog(widget.getContext());
@@ -472,6 +474,13 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                     Dialog shownDialog = dialog.show();
                     if (mFragment.getActivity() instanceof MainActivity)
                         ((MainActivity) mFragment.getActivity()).setFragmentDialog(shownDialog);
+                }
+
+                @Override
+                public boolean onLongClick(@NonNull View widget) {
+                    NicknameContextMenu.show(widget.getContext(), mFragment.getConnectionInfo(), nick,
+                            mFragment.getChannelName());
+                    return true;
                 }
 
                 @Override

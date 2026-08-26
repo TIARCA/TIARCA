@@ -145,6 +145,9 @@
     <string name="action_sort_name">Ordina per nome</string>
     <string name="action_join_channel">Entra nel canale</string>
     <string name="action_message_user">Scrivi all’utente</string>
+    <string name="action_open_private">Apri PVT</string>
+    <string name="action_mention_user">Menziona</string>
+    <string name="action_edit_monitor_user">Modifica monitoraggio</string>
     <string name="action_part_channel">Esci dal canale</string>
     <string name="action_close_direct">Chiudi conversazione</string>
     <string name="action_clear_all">Cancella tutto</string>
@@ -171,6 +174,7 @@
     <string name="operator_audi">Audi su ident</string>
     <string name="operator_unban_host">Rimuovi ban esatto sull’host</string>
     <string name="operator_voice">Assegna voice</string>
+    <string name="operator_devoice">Rimuovi voice</string>
     <string name="operator_mask">Mask del ban</string>
     <string name="operator_invalid_mask">Inserisci una maschera valida senza spazi.</string>
     <string name="operator_ident_unavailable">L’ident dell’utente non è disponibile.</string>

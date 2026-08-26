@@ -27,11 +27,13 @@ import io.mrarm.irc.MainActivity;
 import io.mrarm.irc.R;
 import io.mrarm.irc.ServerConnectionInfo;
 import io.mrarm.irc.dialog.UserBottomSheetDialog;
+import io.mrarm.irc.dialog.NicknameContextMenu;
 import io.mrarm.irc.dialog.MenuBottomSheetDialog;
 import io.mrarm.irc.util.AlignToPointSpan;
 import io.mrarm.irc.util.IRCColorUtils;
 import io.mrarm.irc.util.MessageBuilder;
 import io.mrarm.irc.util.SelectableLinkMovementMethod;
+import io.mrarm.irc.util.LongClickableSpan;
 
 public class ServerStatusMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
@@ -173,12 +175,18 @@ public class ServerStatusMessagesAdapter extends RecyclerView.Adapter<RecyclerVi
         final String nick = message.getSender();
         if (!mConnection.isKnownServiceNick(nick))
             return null;
-        return new ClickableSpan() {
+        return new LongClickableSpan() {
             @Override
             public void onClick(@NonNull View widget) {
                 mConnection.addStoredConversation(nick);
                 if (widget.getContext() instanceof MainActivity)
                     ((MainActivity) widget.getContext()).openServer(mConnection, nick);
+            }
+
+            @Override
+            public boolean onLongClick(@NonNull View widget) {
+                NicknameContextMenu.show(widget.getContext(), mConnection, nick, null);
+                return true;
             }
 
             @Override

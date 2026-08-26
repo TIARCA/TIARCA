@@ -70,6 +70,7 @@ public class UserBottomSheetDialog {
     private boolean mTargetPresent;
     private List<String> mPendingChannelChoices;
     private boolean mAway;
+    private boolean mShowOperatorActionsAfterData;
     private List<Pair<String, String>> mEntries = new ArrayList<>();
 
     private HeaderHelper mHeader;
@@ -150,6 +151,7 @@ public class UserBottomSheetDialog {
             mAdapter.notifyDataSetChanged();
         resolveManualChannel(info);
         refreshChannelState();
+        showOperatorActionsWhenReady();
     }
 
     private void requestWhowas(String nick) {
@@ -189,6 +191,7 @@ public class UserBottomSheetDialog {
         if (mAdapter != null)
             mAdapter.notifyDataSetChanged();
         refreshChannelState();
+        showOperatorActionsWhenReady();
     }
 
     private String formatTime(int seconds) {
@@ -266,30 +269,7 @@ public class UserBottomSheetDialog {
     }
 
     private boolean hasOperatorPrivileges(String channel) {
-        if (mConnection == null || !(mConnection.getApiInstance() instanceof IRCConnection))
-            return false;
-        IRCConnection irc = (IRCConnection) mConnection.getApiInstance();
-        String ownNick = irc.getServerConnectionData().getUserNick();
-        NickWithPrefix own = findMember(channel, ownNick);
-        if (own == null || own.getNickPrefixes() == null)
-            return false;
-        String prefixes = own.getNickPrefixes().toString();
-        ModeList supportedPrefixes = irc.getServerConnectionData().getSupportList()
-                .getSupportedNickPrefixes();
-        ModeList supportedModes = irc.getServerConnectionData().getSupportList()
-                .getSupportedNickPrefixModes();
-        for (int i = 0; i < prefixes.length(); i++) {
-            char prefix = prefixes.charAt(i);
-            int index = supportedPrefixes.find(prefix);
-            if (index >= 0 && index < supportedModes.length()) {
-                char mode = supportedModes.get(index);
-                if (mode == 'h' || mode == 'o' || mode == 'a' || mode == 'q')
-                    return true;
-            }
-            if (prefix == '%' || prefix == '@' || prefix == '&' || prefix == '~')
-                return true;
-        }
-        return false;
+        return hasOperatorPrivileges(mConnection, channel);
     }
 
     private boolean isNickPresent(String channel, String nick) {
@@ -445,10 +425,14 @@ public class UserBottomSheetDialog {
                             "MODE " + mSourceChannel + " -b ", "*!*@" + mHost);
                     return true;
                 });
-        menu.addItem(mContext.getString(R.string.operator_voice), R.drawable.ic_add_circle_outline,
+        NickWithPrefix targetMember = findMember(mSourceChannel, mNick);
+        boolean targetHasVoice = targetMember != null && targetMember.getNickPrefixes() != null &&
+                targetMember.getNickPrefixes().contains('v');
+        int voiceAction = targetHasVoice ? R.string.operator_devoice : R.string.operator_voice;
+        menu.addItem(mContext.getString(voiceAction), R.drawable.ic_add_circle_outline,
                 mTargetPresent, item -> {
-                    showSimpleConfirmation(R.string.operator_voice,
-                            "MODE " + mSourceChannel + " +v " + mNick);
+                    showSimpleConfirmation(voiceAction,
+                            "MODE " + mSourceChannel + " " + (targetHasVoice ? "-v " : "+v ") + mNick);
                     return true;
                 });
         menu.show();
@@ -459,6 +443,61 @@ public class UserBottomSheetDialog {
             return;
         showKickDialog(kickban ? "*!*@" + mHost : null,
                 kickban ? R.string.operator_kickban : R.string.operator_kick);
+    }
+
+    /** Shared eligibility check for nickname context actions. */
+    public static boolean hasOperatorPrivileges(ServerConnectionInfo connection, String channel) {
+        if (connection == null || !(connection.getApiInstance() instanceof IRCConnection) || channel == null)
+            return false;
+        IRCConnection irc = (IRCConnection) connection.getApiInstance();
+        String ownNick = irc.getServerConnectionData().getUserNick();
+        try {
+            ChannelData channelData = irc.getServerConnectionData().getJoinedChannelData(channel);
+            for (NickWithPrefix member : channelData.getMembersAsNickPrefixList()) {
+                if (!ownNick.equalsIgnoreCase(member.getNick()) || member.getNickPrefixes() == null)
+                    continue;
+                String prefixes = member.getNickPrefixes().toString();
+                ModeList supportedPrefixes = irc.getServerConnectionData().getSupportList()
+                        .getSupportedNickPrefixes();
+                ModeList supportedModes = irc.getServerConnectionData().getSupportList()
+                        .getSupportedNickPrefixModes();
+                for (int i = 0; i < prefixes.length(); i++) {
+                    int index = supportedPrefixes.find(prefixes.charAt(i));
+                    if (index >= 0 && index < supportedModes.length()) {
+                        char mode = supportedModes.get(index);
+                        if (mode == 'h' || mode == 'o' || mode == 'a' || mode == 'q')
+                            return true;
+                    }
+                    char prefix = prefixes.charAt(i);
+                    if (prefix == '%' || prefix == '@' || prefix == '&' || prefix == '~')
+                        return true;
+                }
+                return false;
+            }
+        } catch (NoSuchChannelException | RuntimeException ignored) { }
+        return false;
+    }
+
+    /** Opens the established moderation menu after WHOIS/WHOWAS has supplied host and ident data. */
+    public static void showOperatorActions(Context context, ServerConnectionInfo connection, String nick,
+                                           String sourceChannel) {
+        if (context == null || connection == null || nick == null || nick.trim().isEmpty())
+            return;
+        UserBottomSheetDialog dialog = new UserBottomSheetDialog(context);
+        dialog.setConnection(connection);
+        dialog.setSourceChannel(sourceChannel);
+        dialog.mShowOperatorActionsAfterData = true;
+        dialog.requestData(nick.trim(), connection.getApiInstance());
+    }
+
+    private void showOperatorActionsWhenReady() {
+        if (!mShowOperatorActionsAfterData)
+            return;
+        mShowOperatorActionsAfterData = false;
+        if (mContext instanceof android.app.Activity)
+            ((android.app.Activity) mContext).runOnUiThread(this::showOperatorMenu);
+        else
+            showOperatorMenu();
     }
 
     private UserInfo getKnownUser(String nick) {

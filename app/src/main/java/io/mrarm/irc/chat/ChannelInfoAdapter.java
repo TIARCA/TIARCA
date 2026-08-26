@@ -22,6 +22,7 @@ import io.mrarm.irc.MainActivity;
 import io.mrarm.irc.R;
 import io.mrarm.irc.ServerConnectionInfo;
 import io.mrarm.irc.dialog.UserBottomSheetDialog;
+import io.mrarm.irc.dialog.NicknameContextMenu;
 import io.mrarm.irc.util.IRCColorUtils;
 import io.mrarm.irc.util.LinkHelper;
 import io.mrarm.irc.util.SpannableStringHelper;
@@ -197,6 +198,12 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
                 Dialog d = dialog.show();
                 if (view.getContext() instanceof MainActivity)
                     ((MainActivity) view.getContext()).setFragmentDialog(d);
+            });
+            v.setOnLongClickListener(view -> {
+                Object nick = mText.getTag();
+                if (nick instanceof String)
+                    NicknameContextMenu.show(view.getContext(), mConnection, (String) nick, mChannel);
+                return true;
             });
         }
 
