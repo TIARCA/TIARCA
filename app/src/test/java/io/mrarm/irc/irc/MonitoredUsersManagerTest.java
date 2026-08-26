@@ -144,6 +144,47 @@ public class MonitoredUsersManagerTest {
         assertTrue(saves.get() >= 2);
     }
 
+    @Test public void editingUsersWhileReadyUpdatesMonitorWithoutChangingConnectionState() throws Exception {
+        RecordingApi api = new RecordingApi();
+        ServerConnectionData data = api.getServerConnectionData();
+        applySupport(data, "MONITOR=2");
+        AtomicInteger saves = new AtomicInteger();
+        MonitoredUsersManager manager = new MonitoredUsersManager(new ServerConfigData(), saves::incrementAndGet);
+        manager.synchronize(data);
+        manager.handle(data, null, "733", Arrays.asList("me", "end"), Collections.emptyMap());
+        assertEquals(MonitoredUsersManager.SyncState.READY, manager.getSyncState());
+
+        api.commands.clear();
+        manager.addMonitoredUser(data, "Pippo", true, false);
+        assertEquals(Arrays.asList("MONITOR + Pippo"), api.commands);
+        assertEquals(MonitoredUsersManager.SyncState.READY, manager.getSyncState());
+
+        api.commands.clear();
+        manager.updateNotificationPreferences(data, "Pippo", false, true);
+        assertTrue(api.commands.isEmpty());
+        assertEquals(MonitoredUsersManager.SyncState.READY, manager.getSyncState());
+
+        manager.removeMonitoredUser(data, "Pippo");
+        assertEquals(Arrays.asList("MONITOR - Pippo"), api.commands);
+        assertEquals(MonitoredUsersManager.SyncState.READY, manager.getSyncState());
+        assertEquals(3, saves.get());
+    }
+
+    @Test public void offlineAdditionIsPersistedAndAppliedByTheNextSync() throws Exception {
+        RecordingApi api = new RecordingApi();
+        ServerConnectionData data = api.getServerConnectionData();
+        applySupport(data, "MONITOR=2");
+        AtomicInteger saves = new AtomicInteger();
+        MonitoredUsersManager manager = new MonitoredUsersManager(new ServerConfigData(), saves::incrementAndGet);
+
+        manager.addMonitoredUser("Pippo", false, false);
+        assertEquals(1, saves.get());
+        assertTrue(api.commands.isEmpty());
+
+        manager.synchronize(data);
+        assertEquals(Arrays.asList("MONITOR + Pippo", "MONITOR S", "MONITOR L"), api.commands);
+    }
+
     @Test public void keepsEntriesOverMonitorLimitAndExposesServerError() throws Exception {
         ServerConnectionData data = supportedData("MONITOR=2");
         MonitoredUsersManager manager = new MonitoredUsersManager(new ServerConfigData());

@@ -167,6 +167,18 @@ public class ServerConfigManager {
     }
 
     public void saveServer(ServerConfigData data) throws IOException {
+        saveServer(data, true);
+    }
+
+    /**
+     * Persists configuration that does not alter IRC connection parameters.
+     * This deliberately avoids broadcasting a connection update to listeners.
+     */
+    public void saveServerConfiguration(ServerConfigData data) throws IOException {
+        saveServer(data, false);
+    }
+
+    private void saveServer(ServerConfigData data, boolean notifyListeners) throws IOException {
         boolean existed = false;
         synchronized (this) {
             if (mServersMap.containsKey(data.uuid)) {
@@ -182,6 +194,8 @@ public class ServerConfigManager {
             SettingsHelper.getGson().toJson(data, writer);
             writer.close();
         }
+        if (!notifyListeners)
+            return;
         synchronized (mListeners) {
             if (existed) {
                 for (ConnectionsListener listener : mListeners)

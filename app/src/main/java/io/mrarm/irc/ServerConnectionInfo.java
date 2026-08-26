@@ -86,7 +86,7 @@ public class ServerConnectionInfo {
         mSASLOptions = saslOptions;
         mNotificationData = new NotificationManager.ConnectionManager(this);
         mMonitoredUsers = new MonitoredUsersManager(config, () ->
-                ServerConfigManager.getInstance(mManager.getContext()).saveServer(mServerConfig));
+                ServerConfigManager.getInstance(mManager.getContext()).saveServerConfiguration(mServerConfig));
         mMonitoredUsersNotifications = new MonitoredUsersNotificationManager(mManager.getContext(), this);
         mMonitoredUsers.addListener(mMonitoredUsersNotifications);
         mChannels = joinChannels;
