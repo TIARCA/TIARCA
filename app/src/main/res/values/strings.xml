@@ -747,6 +747,7 @@
     <string name="monitor_notification_online">%s came online</string>
     <string name="monitor_notification_offline">%s went offline</string>
     <string name="monitor_notification_channel">Monitored users</string>
+    <string name="monitor_notifications_enabled">Notifications enabled</string>
     <string name="title_activity_ignore_list_network">Ignore list for %s</string>
     <string name="title_activity_edit_ignore_entry">Edit an ignore entry</string>
     <string name="title_activity_add_ignore_entry">Add an ignore entry</string>
