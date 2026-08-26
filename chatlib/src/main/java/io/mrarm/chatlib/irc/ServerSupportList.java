@@ -13,10 +13,16 @@ public class ServerSupportList {
     private ModeList channelModesValue = new ModeList("l"); // single value, has add param
     private ModeList channelModesFlag = new ModeList("imnpst"); // no params
     private int monitorLimit = -1;
+    private IRCCaseMapping caseMapping = IRCCaseMapping.RFC1459;
 
     /** -1 means that the server did not advertise standard IRC MONITOR support. */
     public int getMonitorLimit() { return monitorLimit; }
     public void setMonitorLimit(int monitorLimit) { this.monitorLimit = monitorLimit; }
+
+    public IRCCaseMapping getCaseMapping() { return caseMapping; }
+    public void setCaseMapping(IRCCaseMapping caseMapping) {
+        this.caseMapping = caseMapping == null ? IRCCaseMapping.RFC1459 : caseMapping;
+    }
 
     public NickPrefixList getSupportedNickPrefixes() {
         synchronized (this) {

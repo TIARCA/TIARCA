@@ -168,11 +168,12 @@ public class ServerConfigData {
 
     }
 
-    /** Persisted per-network configuration and last known standard MONITOR state. */
+    /** Persisted per-network MONITOR configuration; presence itself is connection runtime state. */
     public static class MonitoredUser {
         public String nick;
         public String currentNick;
-        public boolean online;
+        /** Presence is reconstructed from MONITOR for every connection and is not persisted. */
+        public transient boolean online;
         public boolean notifyOnline;
         public boolean notifyOffline;
     }

@@ -84,7 +84,8 @@ public class ServerConnectionInfo {
         mConnectionRequest = connectionRequest;
         mSASLOptions = saslOptions;
         mNotificationData = new NotificationManager.ConnectionManager(this);
-        mMonitoredUsers = new MonitoredUsersManager(config);
+        mMonitoredUsers = new MonitoredUsersManager(config, () ->
+                ServerConfigManager.getInstance(mManager.getContext()).saveServer(mServerConfig));
         mChannels = joinChannels;
         if (mChannels != null)
             Collections.sort(mChannels, String::compareToIgnoreCase);
@@ -306,6 +307,7 @@ public class ServerConnectionInfo {
     }
 
     private void notifyDisconnected() {
+        mMonitoredUsers.onDisconnected();
         synchronized (this) {
             // A failed socket can report both the connect error callback and the disconnect
             // listener. Process that failure once, otherwise two callbacks would skip an
