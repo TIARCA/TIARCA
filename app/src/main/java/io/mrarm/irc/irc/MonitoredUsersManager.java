@@ -25,6 +25,7 @@ public final class MonitoredUsersManager implements CommandHandler {
     public interface Listener {
         void onPresenceUpdated(ServerConfigData.MonitoredUser user, PresenceUpdate update);
         void onSyncStateChanged(SyncState state);
+        default void onMonitoredUserChanged(ServerConfigData.MonitoredUser user) { }
     }
 
     public interface ConfigPersister { void persist() throws IOException; }
@@ -83,6 +84,7 @@ public final class MonitoredUsersManager implements CommandHandler {
             existing.notifyOnline = notifyOnline;
             existing.notifyOffline = notifyOffline;
             persistConfiguration();
+            notifyUserChanged(existing);
             return existing;
         }
         if (config.monitoredUsers == null) config.monitoredUsers = new ArrayList<>();
@@ -93,6 +95,7 @@ public final class MonitoredUsersManager implements CommandHandler {
         user.notifyOffline = notifyOffline;
         config.monitoredUsers.add(user);
         persistConfiguration();
+        notifyUserChanged(user);
         if (data != null && syncState == SyncState.READY && isSupported(data)) synchronizeAddedUser(data, user);
         return user;
     }
@@ -106,6 +109,7 @@ public final class MonitoredUsersManager implements CommandHandler {
         usersOverLimit.remove(user);
         config.monitoredUsers.remove(user);
         persistConfiguration();
+        notifyUserChanged(user);
         if (wasSynchronized && data != null && isSupported(data))
             send(data, "-", user.currentNick == null ? user.nick : user.currentNick);
         return true;
@@ -121,6 +125,7 @@ public final class MonitoredUsersManager implements CommandHandler {
         user.notifyOnline = online;
         user.notifyOffline = offline;
         persistConfiguration();
+        notifyUserChanged(user);
     }
 
     /** Rebuilds runtime presence after registration. Server MONITOR state remains authoritative. */
@@ -200,6 +205,7 @@ public final class MonitoredUsersManager implements CommandHandler {
             boolean changed = user.online != online;
             user.online = online;
             user.currentNick = nick;
+            notifyUserChanged(user);
             if (syncState == SyncState.SYNCING) notifyPresence(user, PresenceUpdate.INITIAL_STATE);
             else if (syncState == SyncState.READY && changed)
                 notifyPresence(user, online ? PresenceUpdate.BECAME_ONLINE : PresenceUpdate.BECAME_OFFLINE);
@@ -212,6 +218,7 @@ public final class MonitoredUsersManager implements CommandHandler {
         String previousNick = user.currentNick == null ? user.nick : user.currentNick;
         user.currentNick = newNick;
         persistConfiguration();
+        notifyUserChanged(user);
         if (!isSupported(data) || !synchronizedUsers.contains(user)) return;
         send(data, "-", previousNick);
         send(data, "+", newNick);
@@ -236,6 +243,10 @@ public final class MonitoredUsersManager implements CommandHandler {
         for (Listener listener : new ArrayList<>(listeners)) listener.onPresenceUpdated(user, update);
     }
 
+    private void notifyUserChanged(ServerConfigData.MonitoredUser user) {
+        for (Listener listener : new ArrayList<>(listeners)) listener.onMonitoredUserChanged(user);
+    }
+
     private void clearRuntimePresence() { for (ServerConfigData.MonitoredUser user : getMonitoredUsers()) user.online = false; }
 
     private void persistConfiguration() {
@@ -253,8 +264,8 @@ public final class MonitoredUsersManager implements CommandHandler {
     private ServerConfigData.MonitoredUser find(String nick, IRCCaseMapping mapping) {
         if (nick == null) return null;
         for (ServerConfigData.MonitoredUser user : getMonitoredUsers()) {
-            if ((user.currentNick != null && mapping.equals(user.currentNick, nick)) ||
-                    (user.nick != null && mapping.equals(user.nick, nick))) return user;
+            String currentNick = user.currentNick == null ? user.nick : user.currentNick;
+            if (currentNick != null && mapping.equals(currentNick, nick)) return user;
         }
         return null;
     }

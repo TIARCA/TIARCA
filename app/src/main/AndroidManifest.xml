@@ -97,6 +97,9 @@
             android:name=".IgnoreListActivity"
             android:label="@string/title_activity_ignore_list" />
         <activity
+            android:name=".MonitoredUsersActivity"
+            android:label="@string/title_activity_monitored_users" />
+        <activity
             android:name=".EditIgnoreEntryActivity"
             android:label="@string/title_activity_edit_ignore_entry" />
         <activity

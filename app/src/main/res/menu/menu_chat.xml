@@ -67,6 +67,10 @@
         android:title="@string/title_activity_ignore_list"
         app:showAsAction="never" />
     <item
+        android:id="@+id/action_monitored_users"
+        android:title="@string/title_activity_monitored_users"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/action_reconnect"
         android:title="@string/action_reconnect"
         android:visible="false"

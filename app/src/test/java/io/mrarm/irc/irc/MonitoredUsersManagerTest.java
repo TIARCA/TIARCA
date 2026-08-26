@@ -104,6 +104,24 @@ public class MonitoredUsersManagerTest {
         assertEquals(MonitoredUsersManager.SyncState.SYNCING, manager.getSyncState());
     }
 
+    @Test public void observedNickChangesKeepOneEntryAndDoNotFollowReusedOldNick() throws Exception {
+        ServerConnectionData data = supportedData("MONITOR=2", "CASEMAPPING=rfc1459");
+        ServerConfigData config = new ServerConfigData();
+        MonitoredUsersManager manager = new MonitoredUsersManager(config);
+        manager.addMonitoredUser(data, "Pippo", false, false);
+        manager.synchronize(data);
+        manager.handle(data, null, "733", Arrays.asList("me", "end"), Collections.emptyMap());
+        manager.onNickChanged(data, "Pippo", "PippoAway");
+        manager.onNickChanged(data, "PippoAway", "PippoCena");
+        manager.onNickChanged(data, "PippoCena", "Pippo");
+        assertEquals(1, manager.getMonitoredUsers().size());
+        assertEquals("Pippo", manager.getMonitoredUsers().get(0).currentNick);
+        manager.onNickChanged(data, "Pippo", "PippoAway");
+        manager.handle(data, null, "730", Arrays.asList("me", "Pippo!other@host"), Collections.emptyMap());
+        assertEquals("PippoAway", manager.getMonitoredUsers().get(0).currentNick);
+        assertFalse(manager.getMonitoredUsers().get(0).online);
+    }
+
     @Test public void keepsEntriesOverMonitorLimitAndExposesServerError() throws Exception {
         ServerConnectionData data = supportedData("MONITOR=2");
         MonitoredUsersManager manager = new MonitoredUsersManager(new ServerConfigData());

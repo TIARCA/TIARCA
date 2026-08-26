@@ -226,7 +226,13 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
             server = ServerConnectionManager.getInstance(this).getConnection(
                     UUID.fromString(serverUUID));
         if (server != null) {
-            ChatFragment fragment = openServer(server, intent.getStringExtra(ARG_CHANNEL_NAME),
+            String channel = intent.getStringExtra(ARG_CHANNEL_NAME);
+            if (channel != null && server.getApiInstance() instanceof ServerConnectionApi &&
+                    !channel.isEmpty() && !((ServerConnectionApi) server.getApiInstance())
+                    .getServerConnectionData().getSupportList().getSupportedChannelTypes()
+                    .contains(channel.charAt(0)))
+                server.addStoredConversation(channel);
+            ChatFragment fragment = openServer(server, channel,
                     intent.getStringExtra(ARG_MESSAGE_ID), false);
             if (Intent.ACTION_SEND.equals(intent.getAction()) &&
                     "text/plain".equals(intent.getType())) {
@@ -632,6 +638,11 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
             ServerConnectionInfo info = ((ChatFragment) getCurrentFragment()).getConnectionInfo();
             Intent intent = new Intent(this, IgnoreListActivity.class);
             intent.putExtra(IgnoreListActivity.ARG_SERVER_UUID, info.getUUID().toString());
+            startActivity(intent);
+        } else if (id == R.id.action_monitored_users) {
+            ServerConnectionInfo info = ((ChatFragment) getCurrentFragment()).getConnectionInfo();
+            Intent intent = new Intent(this, MonitoredUsersActivity.class);
+            intent.putExtra(MonitoredUsersActivity.ARG_SERVER_UUID, info.getUUID().toString());
             startActivity(intent);
         } else if (id == R.id.action_disconnect) {
             ((ChatFragment) getCurrentFragment()).getConnectionInfo().disconnect();

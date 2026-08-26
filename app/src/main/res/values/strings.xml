@@ -729,6 +729,24 @@
     <!-- Ignore list -->
 
     <string name="title_activity_ignore_list">Ignore list</string>
+    <string name="title_activity_monitored_users">Monitored users</string>
+    <string name="title_activity_monitored_users_network">Monitored users on %s</string>
+    <string name="action_monitor_user">Monitor user</string>
+    <string name="action_remove_monitored_user">Remove from monitored users</string>
+    <string name="monitor_user_title">Monitor %s</string>
+    <string name="monitor_user_nickname">Nickname</string>
+    <string name="monitor_user_presence">Monitor presence</string>
+    <string name="monitor_user_notify_online">Notify when they come online</string>
+    <string name="monitor_user_notify_offline">Notify when they go offline</string>
+    <string name="monitor_status_online">Online</string>
+    <string name="monitor_status_offline">Offline</string>
+    <string name="monitor_status_away">Away</string>
+    <string name="monitor_status_unavailable">Presence unavailable</string>
+    <string name="monitor_status_over_limit">Not monitored: server limit reached</string>
+    <string name="monitor_server_unsupported">This server does not support MONITOR.</string>
+    <string name="monitor_notification_online">%s came online</string>
+    <string name="monitor_notification_offline">%s went offline</string>
+    <string name="monitor_notification_channel">Monitored users</string>
     <string name="title_activity_ignore_list_network">Ignore list for %s</string>
     <string name="title_activity_edit_ignore_entry">Edit an ignore entry</string>
     <string name="title_activity_add_ignore_entry">Add an ignore entry</string>

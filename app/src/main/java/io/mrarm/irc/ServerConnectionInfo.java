@@ -75,6 +75,7 @@ public class ServerConnectionInfo {
     /** Old query nick -> current nick, for stale channel-list callbacks after NICK. */
     private final Map<String, String> mQueryNickAliases = new LinkedHashMap<>();
     private final MonitoredUsersManager mMonitoredUsers;
+    private final MonitoredUsersNotificationManager mMonitoredUsersNotifications;
 
     public ServerConnectionInfo(ServerConnectionManager manager, ServerConfigData config,
                                 IRCConnectionRequest connectionRequest, SASLOptions saslOptions,
@@ -86,6 +87,8 @@ public class ServerConnectionInfo {
         mNotificationData = new NotificationManager.ConnectionManager(this);
         mMonitoredUsers = new MonitoredUsersManager(config, () ->
                 ServerConfigManager.getInstance(mManager.getContext()).saveServer(mServerConfig));
+        mMonitoredUsersNotifications = new MonitoredUsersNotificationManager(mManager.getContext(), this);
+        mMonitoredUsers.addListener(mMonitoredUsersNotifications);
         mChannels = joinChannels;
         if (mChannels != null)
             Collections.sort(mChannels, String::compareToIgnoreCase);
