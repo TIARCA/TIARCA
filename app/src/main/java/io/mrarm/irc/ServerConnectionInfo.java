@@ -46,6 +46,8 @@ import io.mrarm.chatlib.irc.handlers.KickCommandHandler;
 
 public class ServerConnectionInfo {
 
+    private static final String MONITOR_DEBUG = "TIARCA-MONITOR-DEBUG";
+
     private static Handler mReconnectHandler = new Handler(Looper.getMainLooper());
 
     private ServerConnectionManager mManager;
@@ -90,6 +92,8 @@ public class ServerConnectionInfo {
         mMonitoredUsersNotifications = new MonitoredUsersNotificationManager(mManager.getContext(), this);
         mMonitoredUsers.addListener(mMonitoredUsersNotifications);
         mChannels = joinChannels;
+        Log.i(MONITOR_DEBUG, "connection-created server=" + config.uuid + " instance=" +
+                System.identityHashCode(this));
         if (mChannels != null)
             Collections.sort(mChannels, String::compareToIgnoreCase);
     }
@@ -123,6 +127,9 @@ public class ServerConnectionInfo {
     }
 
     public void connect() {
+        Log.i(MONITOR_DEBUG, "connect-called server=" + getUUID() + " instance=" +
+                System.identityHashCode(this) + " connected=" + mConnected +
+                " connecting=" + mConnecting + " disconnecting=" + mDisconnecting);
         synchronized (this) {
             if (mDisconnecting)
                 throw new RuntimeException("Trying to connect with mDisconnecting set");
@@ -201,6 +208,9 @@ public class ServerConnectionInfo {
                         .registerHandler(new WhoXAccountHandler());
             }
             connection.addDisconnectListener((IRCConnection conn, Exception reason) -> {
+                Log.e(MONITOR_DEBUG, "transport-callback server=" + getUUID() + " instance=" +
+                        System.identityHashCode(this) + " exception=" +
+                        reason.getClass().getSimpleName() + " message=" + reason.getMessage());
                 Log.w("ServerConnectionInfo", "IRC transport disconnected: " +
                         reason.getClass().getSimpleName() + ": " + reason.getMessage());
                 notifyDisconnected();
@@ -238,6 +248,8 @@ public class ServerConnectionInfo {
                 fConnection.joinChannels(joinChannels, null, null);
 
         }, (Exception e) -> {
+            Log.e(MONITOR_DEBUG, "connect-error server=" + getUUID() + " instance=" +
+                    System.identityHashCode(this), e);
             if (e instanceof UserOverrideTrustManager.UserRejectedCertificateException ||
                     (e.getCause() != null && e.getCause() instanceof
                             UserOverrideTrustManager.UserRejectedCertificateException)) {
@@ -255,6 +267,8 @@ public class ServerConnectionInfo {
     }
 
     private void disconnect(boolean userExecutedQuit) {
+        Log.i(MONITOR_DEBUG, "explicit-disconnect server=" + getUUID() + " instance=" +
+                System.identityHashCode(this) + " userQuit=" + userExecutedQuit);
         synchronized (this) {
             mUserDisconnectRequest = true;
             mReconnectHandler.removeCallbacks(mReconnectRunnable);
@@ -310,6 +324,10 @@ public class ServerConnectionInfo {
     }
 
     private void notifyDisconnected() {
+        Log.w(MONITOR_DEBUG, "notifyDisconnected server=" + getUUID() + " instance=" +
+                System.identityHashCode(this) + " connected=" + mConnected +
+                " connecting=" + mConnecting + " disconnecting=" + mDisconnecting +
+                " userRequest=" + mUserDisconnectRequest);
         mMonitoredUsers.onDisconnected();
         synchronized (this) {
             // A failed socket can report both the connect error callback and the disconnect
@@ -356,6 +374,8 @@ public class ServerConnectionInfo {
         if (reconnectDelay == -1)
             return;
         Log.i("ServerConnectionInfo", "Queuing reconnect in " + reconnectDelay + " ms");
+        Log.w(MONITOR_DEBUG, "reconnect-scheduled server=" + getUUID() + " delayMs=" +
+                reconnectDelay + " instance=" + System.identityHashCode(this));
         mReconnectQueueTime = System.nanoTime();
         mReconnectHandler.postDelayed(mReconnectRunnable, reconnectDelay);
     }
@@ -737,6 +757,8 @@ public class ServerConnectionInfo {
     }
 
     private Runnable mReconnectRunnable = () -> {
+        Log.w(MONITOR_DEBUG, "reconnect-runnable server=" + getUUID() + " instance=" +
+                System.identityHashCode(this));
         mReconnectQueueTime = -1L;
         if (!AppSettings.isReconnectEnabled() || (AppSettings.isReconnectWiFiOnly() &&
                 !ServerConnectionManager.isWifiConnected(mManager.getContext())))

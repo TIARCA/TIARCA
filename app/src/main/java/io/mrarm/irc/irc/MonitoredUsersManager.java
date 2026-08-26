@@ -16,6 +16,7 @@ import io.mrarm.irc.config.ServerConfigData;
 
 /** Standard IRC MONITOR state. Configuration is persisted; presence is connection runtime state. */
 public final class MonitoredUsersManager implements CommandHandler {
+    private static final String DEBUG_TAG = "TIARCA-MONITOR-DEBUG";
     public static final int RPL_MONONLINE = 730, RPL_MONOFFLINE = 731, RPL_MONLIST = 732,
             RPL_ENDOFMONLIST = 733, ERR_MONLISTFULL = 734;
 
@@ -94,6 +95,8 @@ public final class MonitoredUsersManager implements CommandHandler {
         user.notifyOnline = notifyOnline;
         user.notifyOffline = notifyOffline;
         config.monitoredUsers.add(user);
+        debug("add nick=" + user.currentNick + " sync=" + syncState +
+                " supported=" + (data != null && isSupported(data)));
         persistConfiguration();
         notifyUserChanged(user);
         if (data != null && syncState == SyncState.READY && isSupported(data)) synchronizeAddedUser(data, user);
@@ -108,6 +111,8 @@ public final class MonitoredUsersManager implements CommandHandler {
         boolean wasSynchronized = synchronizedUsers.remove(user);
         usersOverLimit.remove(user);
         config.monitoredUsers.remove(user);
+        debug("remove nick=" + (user.currentNick == null ? user.nick : user.currentNick) +
+                " sync=" + syncState + " serverSynchronized=" + wasSynchronized);
         persistConfiguration();
         notifyUserChanged(user);
         if (wasSynchronized && data != null && isSupported(data))
@@ -124,6 +129,8 @@ public final class MonitoredUsersManager implements CommandHandler {
         if (user == null) throw new IllegalArgumentException("nick");
         user.notifyOnline = online;
         user.notifyOffline = offline;
+        debug("notification-preferences nick=" + nick + " online=" + online +
+                " offline=" + offline + " sync=" + syncState);
         persistConfiguration();
         notifyUserChanged(user);
     }
@@ -182,6 +189,7 @@ public final class MonitoredUsersManager implements CommandHandler {
     public void handle(ServerConnectionData data, MessagePrefix sender, String command, List<String> params,
                        java.util.Map<String, String> tags) throws InvalidMessageException {
         int numeric = CommandHandler.toNumeric(command);
+        debug("numeric=" + numeric + " sync=" + syncState + " params=" + params.size());
         if (numeric == ERR_MONLISTFULL) {
             serverLimitReached = true;
             lastError = "The server MONITOR limit has been reached.";
@@ -251,14 +259,27 @@ public final class MonitoredUsersManager implements CommandHandler {
 
     private void persistConfiguration() {
         if (persister == null) return;
-        try { persister.persist(); }
-        catch (IOException e) { lastError = "Could not save monitored users."; }
+        try {
+            debug("persist-start server=" + config.uuid);
+            persister.persist();
+            debug("persist-complete server=" + config.uuid);
+        } catch (IOException e) {
+            lastError = "Could not save monitored users.";
+            debug("persist-failed server=" + config.uuid + " exception=" +
+                    e.getClass().getSimpleName() + " message=" + e.getMessage());
+        }
     }
 
     private void send(ServerConnectionData data, String... params) {
         if (data == null || data.getApi() == null) return;
-        try { data.getApi().sendCommand("MONITOR", false, params); }
-        catch (IOException e) { lastError = "Could not synchronize MONITOR."; }
+        try {
+            debug("send MONITOR " + joinParams(params) + " sync=" + syncState);
+            data.getApi().sendCommand("MONITOR", false, params);
+        } catch (IOException e) {
+            lastError = "Could not synchronize MONITOR.";
+            debug("send-failed MONITOR " + joinParams(params) + " exception=" +
+                    e.getClass().getSimpleName() + " message=" + e.getMessage());
+        }
     }
 
     private ServerConfigData.MonitoredUser find(String nick, IRCCaseMapping mapping) {
@@ -279,6 +300,19 @@ public final class MonitoredUsersManager implements CommandHandler {
         StringBuilder result = new StringBuilder();
         for (String nick : nicks) { if (result.length() > 0) result.append(','); result.append(nick); }
         return result.toString();
+    }
+
+    private static String joinParams(String[] params) {
+        StringBuilder result = new StringBuilder();
+        if (params != null) for (String param : params) {
+            if (result.length() > 0) result.append(' ');
+            result.append(param);
+        }
+        return result.toString();
+    }
+
+    private static void debug(String message) {
+        System.out.println(DEBUG_TAG + " " + message);
     }
 
     private static IRCCaseMapping getCaseMapping(ServerConnectionData data) {

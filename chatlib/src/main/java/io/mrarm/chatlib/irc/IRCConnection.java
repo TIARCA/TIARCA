@@ -26,6 +26,8 @@ import java.util.concurrent.Future;
 
 public class IRCConnection extends ServerConnectionApi {
 
+    private static final String MONITOR_DEBUG = "TIARCA-MONITOR-DEBUG";
+
     private static final MessageCommandHandler selfMessageHandler = new MessageCommandHandler();
 
     private static final String[] AUTH_COMMAND_PREFIXES = new String[] { "PASS ", "OPER", "PRIVMSG NickServ :IDENTIFY ",
@@ -55,6 +57,9 @@ public class IRCConnection extends ServerConnectionApi {
             if (data.length > 512)
                 throw new IOException("Too long message");
             socketOutputStream.write(data);
+            if (string.regionMatches(true, 0, "MONITOR ", 0, 8))
+                System.out.println(MONITOR_DEBUG + " wire-send socket=" +
+                        System.identityHashCode(socket) + " line=" + string);
             String printStr = string;
             for (String s : AUTH_COMMAND_PREFIXES) {
                 if (string.regionMatches(true, 0, s, 0, s.length())) {
@@ -69,6 +74,10 @@ public class IRCConnection extends ServerConnectionApi {
     }
 
     private void sendCommand(boolean flush, String command, boolean isLastArgFullLine, String... args) throws IOException {
+        sendCommandRaw(formatCommand(command, isLastArgFullLine, args), flush);
+    }
+
+    static String formatCommand(String command, boolean isLastArgFullLine, String... args) {
         StringBuilder builder = new StringBuilder();
         builder.append(command); // TODO: validate
         builder.append(' ');
@@ -84,7 +93,7 @@ public class IRCConnection extends ServerConnectionApi {
             }
             builder.append(args[i]);
         }
-        sendCommandRaw(builder.toString(), flush);
+        return builder.toString();
     }
 
     @Override
@@ -118,6 +127,9 @@ public class IRCConnection extends ServerConnectionApi {
             while (true) {
                 String command = readCommand();
                 System.out.println("Got: " + command);
+                if (isMonitorReply(command))
+                    System.out.println(MONITOR_DEBUG + " wire-receive socket=" +
+                            System.identityHashCode(socket) + " line=" + command);
                 try {
                     inputHandler.handleLine(command);
                 } catch (InvalidMessageException e) {
@@ -127,6 +139,9 @@ public class IRCConnection extends ServerConnectionApi {
             }
         } catch (IOException e) {
             Socket currentSocket = socket;
+            System.err.println(MONITOR_DEBUG + " reader-disconnect socket=" +
+                    System.identityHashCode(currentSocket) + " exception=" +
+                    e.getClass().getSimpleName() + " message=" + e.getMessage());
             System.err.println("IRC transport: reader stopped; error=" +
                     e.getClass().getSimpleName() + ", message=" + e.getMessage() +
                     ", socketPresent=" + (currentSocket != null) + ", socketClosed=" +
@@ -180,6 +195,8 @@ public class IRCConnection extends ServerConnectionApi {
     }
 
     public void disconnect(boolean cleanly) {
+        System.out.println(MONITOR_DEBUG + " transport-disconnect socket=" +
+                System.identityHashCode(socket) + " cleanly=" + cleanly);
         if (socket != null) {
             if (cleanly) {
                 try {
@@ -195,6 +212,11 @@ public class IRCConnection extends ServerConnectionApi {
             } catch (IOException ignored) {
             }
         }
+    }
+
+    private static boolean isMonitorReply(String line) {
+        return line != null && (line.contains(" 730 ") || line.contains(" 731 ") ||
+                line.contains(" 732 ") || line.contains(" 733 ") || line.contains(" 734 "));
     }
 
     public Future<Void> disconnect(ResponseCallback<Void> callback, ResponseErrorCallback errorCallback) {
