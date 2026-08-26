@@ -5,10 +5,13 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.mrarm.chatlib.irc.ServerConnectionData;
 import io.mrarm.chatlib.irc.handlers.ISupportCommandHandler;
+import io.mrarm.chatlib.test.TestApiImpl;
 import io.mrarm.irc.config.ServerConfigData;
 
 import static org.junit.Assert.assertEquals;
@@ -122,6 +125,25 @@ public class MonitoredUsersManagerTest {
         assertFalse(manager.getMonitoredUsers().get(0).online);
     }
 
+    @Test public void observedNickChangePersistsCurrentNickAndUpdatesMonitorTarget() throws Exception {
+        RecordingApi api = new RecordingApi();
+        ServerConnectionData data = api.getServerConnectionData();
+        applySupport(data, "MONITOR=2");
+        ServerConfigData config = new ServerConfigData();
+        AtomicInteger saves = new AtomicInteger();
+        MonitoredUsersManager manager = new MonitoredUsersManager(config, saves::incrementAndGet);
+        manager.addMonitoredUser(data, "Pippo", true, false);
+        manager.synchronize(data);
+        manager.handle(data, null, "733", Arrays.asList("me", "end"), Collections.emptyMap());
+        api.commands.clear();
+        manager.onNickChanged(data, "Pippo", "PippoAway");
+        assertEquals("PippoAway", config.monitoredUsers.get(0).currentNick);
+        assertEquals(Arrays.asList("MONITOR - Pippo", "MONITOR + PippoAway"), api.commands);
+        ServerConfigData restored = new Gson().fromJson(new Gson().toJson(config), ServerConfigData.class);
+        assertEquals("PippoAway", restored.monitoredUsers.get(0).currentNick);
+        assertTrue(saves.get() >= 2);
+    }
+
     @Test public void keepsEntriesOverMonitorLimitAndExposesServerError() throws Exception {
         ServerConnectionData data = supportedData("MONITOR=2");
         MonitoredUsersManager manager = new MonitoredUsersManager(new ServerConfigData());
@@ -148,11 +170,23 @@ public class MonitoredUsersManagerTest {
 
     private static ServerConnectionData supportedData(String... tokens) throws Exception {
         ServerConnectionData data = new ServerConnectionData();
+        applySupport(data, tokens);
+        return data;
+    }
+
+    private static void applySupport(ServerConnectionData data, String... tokens) throws Exception {
         String[] params = new String[tokens.length + 2];
         params[0] = "me";
         System.arraycopy(tokens, 0, params, 1, tokens.length);
         params[params.length - 1] = "supported";
         new ISupportCommandHandler().handle(data, null, "005", Arrays.asList(params), Collections.emptyMap());
-        return data;
+    }
+
+    private static class RecordingApi extends TestApiImpl {
+        final List<String> commands = new ArrayList<>();
+        RecordingApi() { super("me"); }
+        @Override public void sendCommand(String command, boolean isLastArgFullLine, String... args) {
+            commands.add(command + " " + String.join(" ", args));
+        }
     }
 }

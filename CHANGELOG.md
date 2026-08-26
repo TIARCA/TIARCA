@@ -1,5 +1,22 @@
 # TIARCA — Changelog
 
+## v0.7.5
+
+### Ignore evoluto
+
+- Aggiunto Ignore contestuale: il nickname è il criterio predefinito, mentre ident e host sono selezionabili esplicitamente quando disponibili.
+- Le categorie messaggi canale, messaggi privati, notice canale e notice privati sono configurabili separatamente.
+- Le regole sono permanenti per impostazione predefinita oppure possono avere una durata personalizzata in ore; sono modificabili e rimovibili dalla stessa Ignore list.
+- Le regole e i backup esistenti restano compatibili.
+
+### Utenti monitorati
+
+- Aggiunta la schermata **Utenti monitorati** per network, basata su IRC MONITOR rilevato tramite `ISUPPORT MONITOR=<limite>` e sui numerici 730–734.
+- Mostrati gli stati Online, Away e Offline; sono indicati anche l'assenza del supporto MONITOR e le entry oltre il limite del server.
+- La sync iniziale e dopo reconnect non genera false notifiche; le notifiche opzionali di accesso/disconnessione aprono il PVT del nickname corrente.
+- I cambi nickname osservati aggiornano MONITOR dal vecchio al nuovo nick, rispettano il case mapping IRC e proteggono dal riuso del vecchio nickname da parte di un altro utente.
+- Configurazione e preferenze sono persistenti e incluse nel backup/ripristino; nessun polling è utilizzato. Lo stato away esistente viene riutilizzato quando disponibile.
+
 ## v0.7.3
 
 - Aggiunto il supporto IRCv3 `away-notify`, con aggiornamento in tempo reale dello stato away degli utenti sui server compatibili senza mostrare gli eventi tecnici AWAY nella scheda SERVER.
