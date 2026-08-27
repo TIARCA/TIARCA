@@ -1,5 +1,9 @@
 # TIARCA — Changelog
 
+## v0.7.9
+
+- Corretto il tap intermittente sui nickname e link nei messaggi: un tocco normale non dipende più da una soglia temporale troppo breve, mentre il long press mantiene il menu rapido.
+
 ## v0.7.8
 
 - Aggiunta la ricerca client-side nella lista utenti del drawer destro per i canali con almeno 30 utenti.

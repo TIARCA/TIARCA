@@ -17,10 +17,11 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
 
     private float downX;
     private float downY;
-    private long downTime;
+    private ClickableSpan pressedSpan;
     private LongClickableSpan pressedLongSpan;
     private Spannable pressedBuffer;
     private boolean longPressTriggered;
+    private boolean longPressInvoked;
     private final Runnable longPressRunnable = new Runnable() {
         @Override public void run() {
             if (pressedLongSpan != null && pressedWidget != null) {
@@ -29,6 +30,7 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
                 pressedWidget.cancelLongPress();
                 if (pressedBuffer != null)
                     Selection.removeSelection(pressedBuffer);
+                longPressInvoked = true;
                 longPressTriggered = pressedLongSpan.onLongClick(pressedWidget);
             }
         }
@@ -47,9 +49,11 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
         if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
             downX = event.getX();
             downY = event.getY();
-            downTime = event.getEventTime();
-            pressedLongSpan = getLongClickableSpan(widget, buffer, event);
+            pressedSpan = getClickableSpan(widget, buffer, event);
+            pressedLongSpan = pressedSpan instanceof LongClickableSpan
+                    ? (LongClickableSpan) pressedSpan : null;
             longPressTriggered = false;
+            longPressInvoked = false;
             pressedWidget = pressedLongSpan == null ? null : widget;
             if (pressedLongSpan != null) {
                 // Consume only nickname-span long presses. Normal message text keeps the
@@ -59,39 +63,36 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
                 widget.postDelayed(longPressRunnable, ViewConfiguration.getLongPressTimeout());
                 return true;
             }
-        } else if (event.getActionMasked() == MotionEvent.ACTION_MOVE && pressedLongSpan != null &&
+        } else if (event.getActionMasked() == MotionEvent.ACTION_MOVE && pressedSpan != null &&
                 !isWithinTouchSlop(widget, event)) {
             widget.removeCallbacks(longPressRunnable);
-            clearLongPress();
-        } else if (event.getActionMasked() == MotionEvent.ACTION_UP &&
-                isShortTap(widget, event)) {
-            widget.removeCallbacks(longPressRunnable);
-            if (pressedLongSpan != null) {
-                pressedLongSpan.onClick(widget);
-                clearLongPress();
-                return true;
-            }
-            ClickableSpan span = getClickableSpan(widget, buffer, event);
-            if (span != null) {
-                span.onClick(widget);
-                return true;
-            }
+            clearPressedSpan();
         } else if (event.getActionMasked() == MotionEvent.ACTION_UP && pressedLongSpan != null) {
             widget.removeCallbacks(longPressRunnable);
             boolean handled = longPressTriggered;
-            clearLongPress();
+            if (shouldInvokeSpanClick(longPressInvoked, isWithinTouchSlop(widget, event))) {
+                pressedLongSpan.onClick(widget);
+                handled = true;
+            }
+            clearPressedSpan();
             return handled;
-        } else if (event.getActionMasked() == MotionEvent.ACTION_CANCEL && pressedLongSpan != null) {
+        } else if (event.getActionMasked() == MotionEvent.ACTION_UP && pressedSpan != null) {
+            ClickableSpan span = pressedSpan;
+            boolean handled = isWithinTouchSlop(widget, event);
+            clearPressedSpan();
+            if (handled) {
+                span.onClick(widget);
+                return true;
+            }
+        } else if (event.getActionMasked() == MotionEvent.ACTION_CANCEL && pressedSpan != null) {
             widget.removeCallbacks(longPressRunnable);
-            clearLongPress();
-            return true;
+            clearPressedSpan();
         }
         return super.onTouchEvent(widget, buffer, event);
     }
 
-    private boolean isShortTap(TextView widget, MotionEvent event) {
-        return event.getEventTime() - downTime <= ViewConfiguration.getTapTimeout() &&
-                isWithinTouchSlop(widget, event);
+    static boolean shouldInvokeSpanClick(boolean longPressInvoked, boolean withinTouchSlop) {
+        return !longPressInvoked && withinTouchSlop;
     }
 
     private boolean isWithinTouchSlop(TextView widget, MotionEvent event) {
@@ -101,11 +102,13 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
         return dx * dx + dy * dy <= slop * slop;
     }
 
-    private void clearLongPress() {
+    private void clearPressedSpan() {
+        pressedSpan = null;
         pressedLongSpan = null;
         pressedBuffer = null;
         pressedWidget = null;
         longPressTriggered = false;
+        longPressInvoked = false;
     }
 
     private static ClickableSpan getClickableSpan(TextView widget, Spannable buffer,
@@ -121,16 +124,4 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
         return spans.length == 0 ? null : spans[0];
     }
 
-    private static LongClickableSpan getLongClickableSpan(TextView widget, Spannable buffer,
-                                                          MotionEvent event) {
-        Layout layout = widget.getLayout();
-        if (layout == null)
-            return null;
-        int x = (int) event.getX() - widget.getTotalPaddingLeft() + widget.getScrollX();
-        int y = (int) event.getY() - widget.getTotalPaddingTop() + widget.getScrollY();
-        int line = layout.getLineForVertical(y);
-        int offset = layout.getOffsetForHorizontal(line, x);
-        LongClickableSpan[] spans = buffer.getSpans(offset, offset, LongClickableSpan.class);
-        return spans.length == 0 ? null : spans[0];
-    }
 }
