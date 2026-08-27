@@ -45,17 +45,42 @@ final class MonitoredUsersAdapter extends RecyclerView.Adapter<MonitoredUsersAda
             return new Status(context.getString(R.string.monitor_status_unavailable), R.color.appThemeTextColorSecondary);
         if (manager.getSyncState() != MonitoredUsersManager.SyncState.READY)
             return new Status(context.getString(R.string.monitor_status_unavailable), R.color.appThemeTextColorSecondary);
-        if (!manager.isSynchronizedWithServer(user))
+        if (manager.getAliasesOverLimit(user).size() == manager.getAliases(user).size())
             return new Status(context.getString(R.string.monitor_status_over_limit), R.color.serverListInactive);
-        if (!user.online)
+        List<ServerConfigData.MonitoredAlias> overLimit = manager.getAliasesOverLimit(user);
+        List<ServerConfigData.MonitoredAlias> online = manager.getOnlineAliases(user);
+        if (online.isEmpty() && !overLimit.isEmpty())
+            return new Status(context.getString(R.string.monitor_status_partial_unavailable),
+                    R.color.serverListInactive);
+        if (online.isEmpty())
             return new Status(context.getString(R.string.monitor_status_offline), R.color.serverListDisconnected);
-        UserInfo known = getKnownUser(user.currentNick == null ? user.nick : user.currentNick);
-        if (known != null && known.isAway()) {
-            String status = context.getString(R.string.monitor_status_away);
-            return new Status(known.getAwayMessage() == null || known.getAwayMessage().isEmpty() ? status :
-                    status + " · " + known.getAwayMessage(), R.color.userAwayColorPrimary);
+        String suffix = overLimit.isEmpty() ? "" :
+                " · " + context.getString(R.string.monitor_status_some_aliases_over_limit);
+        if (online.size() > 1) {
+            boolean allKnownAway = true;
+            for (ServerConfigData.MonitoredAlias alias : online) {
+                UserInfo known = getKnownUser(alias.nick);
+                if (known == null || !known.isAway()) { allKnownAway = false; break; }
+            }
+            String count = context.getResources().getQuantityString(
+                    R.plurals.monitor_status_aliases_online, online.size(), online.size());
+            return new Status((allKnownAway ? context.getString(R.string.monitor_status_away) +
+                    " · " : "") + count + suffix, allKnownAway ? R.color.userAwayColorPrimary :
+                    R.color.serverListConnected);
         }
-        return new Status(context.getString(R.string.monitor_status_online), R.color.serverListConnected);
+        ServerConfigData.MonitoredAlias active = online.get(0);
+        UserInfo known = getKnownUser(active.nick);
+        if (known != null && known.isAway()) {
+            String status = active.nick.equals(user.nick) ?
+                    context.getString(R.string.monitor_status_away) :
+                    context.getString(R.string.monitor_status_away_as, active.nick);
+            if (known.getAwayMessage() != null && !known.getAwayMessage().isEmpty())
+                status += " · " + known.getAwayMessage();
+            return new Status(status + suffix, R.color.userAwayColorPrimary);
+        }
+        String status = active.nick.equals(user.nick) ? context.getString(R.string.monitor_status_online) :
+                context.getString(R.string.monitor_status_online_as, active.nick);
+        return new Status(status + suffix, R.color.serverListConnected);
     }
 
     private UserInfo getKnownUser(String nick) {
@@ -81,7 +106,8 @@ final class MonitoredUsersAdapter extends RecyclerView.Adapter<MonitoredUsersAda
             notifications = itemView.findViewById(R.id.notifications);
             itemView.setOnClickListener(v -> {
                 if (user != null && connection != null)
-                    ((MonitoredUsersActivity) v.getContext()).openPrivateConversation(user.currentNick == null ? user.nick : user.currentNick);
+                    ((MonitoredUsersActivity) v.getContext()).openPrivateConversation(
+                            manager.getPreferredNick(user));
             });
             itemView.setOnLongClickListener(v -> {
                 if (user != null && connection != null)
@@ -92,7 +118,7 @@ final class MonitoredUsersAdapter extends RecyclerView.Adapter<MonitoredUsersAda
 
         void bind(ServerConfigData.MonitoredUser value) {
             user = value;
-            String nick = value.currentNick == null ? value.nick : value.currentNick;
+            String nick = value.nick;
             Status state = getStatus(itemView.getContext(), value);
             nickname.setText(nick);
             nickname.setTextColor(StyledAttributesHelper.getColor(itemView.getContext(), android.R.attr.textColorPrimary, Color.BLACK));

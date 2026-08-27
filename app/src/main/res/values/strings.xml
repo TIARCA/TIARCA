@@ -756,6 +756,22 @@
     <string name="monitor_notification_offline">%s went offline</string>
     <string name="monitor_notification_channel">Monitored users</string>
     <string name="monitor_notifications_enabled">Notifications enabled</string>
+    <string name="monitor_primary_nickname">Primary nickname</string>
+    <string name="monitor_aliases">Monitored aliases</string>
+    <string name="action_add_monitor_alias">Add alias</string>
+    <string name="action_add_alias_confirm">Add</string>
+    <string name="action_remove_alias">Remove</string>
+    <string name="monitor_alias_observed">learned from nickname change</string>
+    <string name="monitor_alias_duplicate">This nickname is already in the group.</string>
+    <string name="monitor_alias_conflict">This nickname is already monitored in the group %s.</string>
+    <string name="monitor_status_online_as">Online as %s</string>
+    <string name="monitor_status_away_as">Away as %s</string>
+    <string name="monitor_status_some_aliases_over_limit">some aliases exceed the server limit</string>
+    <string name="monitor_status_partial_unavailable">Presence partially unavailable: server limit reached</string>
+    <plurals name="monitor_status_aliases_online">
+        <item quantity="one">%d alias online</item>
+        <item quantity="other">%d aliases online</item>
+    </plurals>
     <string name="title_activity_ignore_list_network">Ignore list for %s</string>
     <string name="title_activity_edit_ignore_entry">Edit an ignore entry</string>
     <string name="title_activity_add_ignore_entry">Add an ignore entry</string>

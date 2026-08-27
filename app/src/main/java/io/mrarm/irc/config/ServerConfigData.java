@@ -170,12 +170,26 @@ public class ServerConfigData {
 
     /** Persisted per-network MONITOR configuration; presence itself is connection runtime state. */
     public static class MonitoredUser {
+        /** Stable display nickname. Kept for compatibility with pre-alias configurations. */
         public String nick;
+        /** Last nickname reached by an observed NICK chain. Kept for backup compatibility. */
         public String currentNick;
-        /** Presence is reconstructed from MONITOR for every connection and is not persisted. */
+        /** Persisted nicknames belonging to this client-side monitored group. */
+        public List<MonitoredAlias> aliases;
+        /** Aggregate compatibility field; reconstructed from aliases for every connection. */
         public transient boolean online;
         public boolean notifyOnline;
         public boolean notifyOffline;
+    }
+
+    public static class MonitoredAlias {
+        public static final String ORIGIN_MANUAL = "manual";
+        public static final String ORIGIN_OBSERVED_NICK_CHANGE = "observed_nick_change";
+
+        public String nick;
+        public String origin;
+        /** Presence is reconstructed from MONITOR and is never persisted. */
+        public transient boolean online;
     }
 
 }
