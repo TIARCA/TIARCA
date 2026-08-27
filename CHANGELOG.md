@@ -1,5 +1,9 @@
 # TIARCA — Changelog
 
+## v0.7.10
+
+- Ripristinate le ottimizzazioni R8 e la rimozione delle risorse inutilizzate nella build release, riducendo sensibilmente le dimensioni dell'APK.
+
 ## v0.7.9
 
 - Corretto il tap intermittente sui nickname e link nei messaggi: un tocco normale non dipende più da una soglia temporale troppo breve, mentre il long press mantiene il menu rapido.
