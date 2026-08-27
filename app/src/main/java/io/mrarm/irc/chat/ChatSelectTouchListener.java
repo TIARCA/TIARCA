@@ -1,13 +1,11 @@
 package io.mrarm.irc.chat;
 
-import android.annotation.TargetApi;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.graphics.Rect;
-import android.os.Build;
 import androidx.recyclerview.widget.RecyclerView;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
@@ -20,7 +18,6 @@ import android.view.View;
 import android.widget.TextView;
 
 import io.mrarm.irc.R;
-import io.mrarm.irc.util.LongPressSelectTouchListener;
 import io.mrarm.irc.util.RecyclerViewScrollerRunnable;
 import io.mrarm.irc.util.TextSelectionHandlePopup;
 import io.mrarm.irc.util.TextSelectionHelper;
@@ -60,7 +57,7 @@ public class ChatSelectTouchListener implements RecyclerView.OnItemTouchListener
     private TextSelectionHandlePopup mLeftHandle;
     private TextSelectionHandlePopup mRightHandle;
 
-    private LongPressSelectTouchListener mMultiSelectListener;
+    private DeleteSelectionListener mDeleteSelectionListener;
 
     private int[] mTmpLocation = new int[2];
     private int[] mTmpLocation2 = new int[2];
@@ -84,8 +81,8 @@ public class ChatSelectTouchListener implements RecyclerView.OnItemTouchListener
         recyclerView.addOnAttachStateChangeListener(this);
     }
 
-    public void setMultiSelectListener(LongPressSelectTouchListener selectListener) {
-        mMultiSelectListener = selectListener;
+    public void setDeleteSelectionListener(DeleteSelectionListener listener) {
+        mDeleteSelectionListener = listener;
     }
 
     @Override
@@ -189,8 +186,6 @@ public class ChatSelectTouchListener implements RecyclerView.OnItemTouchListener
 
     @Override
     public boolean onInterceptTouchEvent(RecyclerView rv, MotionEvent e) {
-        if (((ChatMessagesAdapter) mRecyclerView.getAdapter()).getSelectedItems().size() > 0)
-            return false;
         if (e.getActionMasked() == MotionEvent.ACTION_DOWN) {
             mTouchDownX = e.getX();
             mTouchDownY = e.getY();
@@ -238,12 +233,8 @@ public class ChatSelectTouchListener implements RecyclerView.OnItemTouchListener
     public void startLongPressSelect() {
         clearSelection();
 
-        ((ChatMessagesAdapter) mRecyclerView.getAdapter()).clearSelection();
-        if (!mLastTouchInText && mMultiSelectListener != null) {
-            mMultiSelectListener.startSelectMode(mRecyclerView.getAdapter().getItemId(
-                    getItemPosition(mLastTouchTextId)));
+        if (!mLastTouchInText)
             return;
-        }
 
         TextView textView = findTextViewByItemId(mLastTouchTextId);
         if (textView == null)
@@ -284,6 +275,12 @@ public class ChatSelectTouchListener implements RecyclerView.OnItemTouchListener
                 builder.append(text);
         }
         return builder;
+    }
+
+    public void deleteSelectedMessages() {
+        if (mSelectionStartId != -1 && mDeleteSelectionListener != null)
+            mDeleteSelectionListener.onDeleteSelectedMessages(this,
+                    getItemPosition(mSelectionStartId), getItemPosition(mSelectionEndId));
     }
 
     public void clearSelection() {
@@ -539,6 +536,9 @@ public class ChatSelectTouchListener implements RecyclerView.OnItemTouchListener
                     clearSelection();
                     mode.finish();
                     return true;
+                case R.id.action_delete:
+                    deleteSelectedMessages();
+                    return true;
                 default:
                     return false;
             }
@@ -624,6 +624,11 @@ public class ChatSelectTouchListener implements RecyclerView.OnItemTouchListener
     public interface AdapterInterface {
         CharSequence getTextAt(int position);
         int getItemPosition(long id);
+    }
+
+    public interface DeleteSelectionListener {
+        void onDeleteSelectedMessages(ChatSelectTouchListener selection, int startPosition,
+                                      int endPosition);
     }
 
 }

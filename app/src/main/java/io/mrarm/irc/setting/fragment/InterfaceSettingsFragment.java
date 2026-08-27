@@ -33,7 +33,6 @@ import io.mrarm.irc.ThemeEditorActivity;
 import io.mrarm.irc.ThemedActivity;
 import io.mrarm.irc.config.AppSettings;
 import io.mrarm.irc.config.ChatSettings;
-import io.mrarm.irc.config.NickAutocompleteSettings;
 import io.mrarm.irc.config.SettingsHelper;
 import io.mrarm.irc.dialog.MenuBottomSheetDialog;
 import io.mrarm.irc.setting.CheckBoxSetting;
@@ -56,7 +55,6 @@ public class InterfaceSettingsFragment extends SettingsListFragment
 
     private ClickableSetting mMessageFormatItem;
     private MessageInfo mSampleMessage;
-    private ClickableSetting mAutocompleteItem;
     private ActivityResultLauncher<Intent> mThemeEditorLauncher;
     private ActivityResultLauncher<Intent> mImportThemeLauncher;
 
@@ -119,22 +117,9 @@ public class InterfaceSettingsFragment extends SettingsListFragment
         mMessageFormatItem = new ClickableSetting(getString(R.string.pref_title_message_format), null)
                 .setIntent(new Intent(getActivity(), MessageFormatSettingsActivity.class));
         a.add(mMessageFormatItem);
-        mAutocompleteItem = new ClickableSetting(getString(R.string.pref_title_nick_autocomplete), null)
-                .setOnClickListener((View v) -> {
-                    ((SettingsActivity) getActivity()).setFragment(
-                            new AutocompletePreferenceFragment());
-                });
-        a.add(mAutocompleteItem);
         a.add(new CheckBoxSetting(getString(R.string.pref_title_chat_box_always_multiline),
                 getString(R.string.pref_summary_chat_box_always_multiline))
                 .linkSetting(prefs, ChatSettings.PREF_SEND_BOX_ALWAYS_MULTILINE));
-        a.add(new ListSetting(getString(R.string.pref_title_chat_box_history_swipe_mode),
-                getResources().getStringArray(R.array.pref_entries_chat_history_swipe_mode),
-                getResources().getStringArray(R.array.pref_entry_values_chat_history_swipe_mode))
-                .linkSetting(prefs, ChatSettings.PREF_SEND_BOX_HISTORY_SWIPE_MODE));
-        a.add(new CheckBoxSetting(getString(R.string.pref_title_chat_multi_scroll_mode),
-                getString(R.string.pref_summary_chat_multi_scroll_mode))
-                .linkSetting(prefs, ChatSettings.PREF_ONLY_MULTI_SELECT_MODE));
 
         a.add(new SettingsHeader(getString(R.string.pref_header_misc)));
         a.add(new CheckBoxSetting(getString(R.string.pref_title_drawer_always_show_server),
@@ -246,27 +231,6 @@ public class InterfaceSettingsFragment extends SettingsListFragment
         mMessageFormatItem.setDescription(MessageBuilder.getInstance(getActivity())
                 .buildMessage(mSampleMessage));
 
-        StringBuilder builder = new StringBuilder();
-        if (NickAutocompleteSettings.isButtonVisible())
-            appendString(builder, getString(R.string.pref_title_nick_autocomplete_show_button));
-        if (NickAutocompleteSettings.isDoubleTapEnabled())
-            appendString(builder, getString(R.string.pref_title_nick_autocomplete_double_tap));
-        if (NickAutocompleteSettings.areSuggestionsEnabled())
-            appendString(builder, getString(R.string.pref_title_nick_autocomplete_suggestions));
-        if (NickAutocompleteSettings.areAtSuggestionsEnabled())
-            appendString(builder, getString(R.string.pref_title_nick_autocomplete_at_suggestions));
-        if (NickAutocompleteSettings.areChannelSuggestionsEnabled())
-            appendString(builder, getString(R.string.pref_title_channel_autocomplete_suggestions));
-        mAutocompleteItem.setDescription(builder.toString());
-    }
-
-    private void appendString(StringBuilder builder, String str) {
-        if (builder.length() > 0) {
-            builder.append(getString(R.string.text_comma));
-            builder.append(str.substring(0, 1).toLowerCase() + str.substring(1));
-        } else {
-            builder.append(str);
-        }
     }
 
 

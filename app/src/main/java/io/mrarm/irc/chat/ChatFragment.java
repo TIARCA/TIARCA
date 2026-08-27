@@ -32,7 +32,6 @@ import io.mrarm.irc.R;
 import io.mrarm.irc.ServerConnectionInfo;
 import io.mrarm.irc.ServerConnectionManager;
 import io.mrarm.irc.config.ChatSettings;
-import io.mrarm.irc.config.NickAutocompleteSettings;
 import io.mrarm.irc.config.SettingsHelper;
 import io.mrarm.irc.config.UiSettingChangeCallback;
 
@@ -268,14 +267,12 @@ public class ChatFragment extends Fragment implements
             ChatSettings.PREF_APPBAR_COMPACT_MODE,
             ChatSettings.PREF_TEXT_AUTOCORRECT_ENABLED,
             ChatSettings.PREF_FONT,
-            ChatSettings.PREF_SEND_BOX_ALWAYS_MULTILINE,
-            NickAutocompleteSettings.PREF_SHOW_BUTTON,
-            NickAutocompleteSettings.PREF_DOUBLE_TAP
+            ChatSettings.PREF_SEND_BOX_ALWAYS_MULTILINE
     })
     private void onSettingChange() {
         if (getView() != null)
             updateToolbarCompactLayoutStatus(getView().getBottom() - getView().getTop());
-        mSendHelper.setTabButtonVisible(NickAutocompleteSettings.isButtonVisible());
+        mSendHelper.setTabButtonVisible(true);
         mSendHelper.setMessageFieldTypeface(ChatSettings.getFont());
         mSendHelper.setAutocorrectEnabled(ChatSettings.isTextAutocorrectEnabled());
         mSendHelper.setAlwaysMultiline(ChatSettings.isSendBoxAlwaysMultiline());

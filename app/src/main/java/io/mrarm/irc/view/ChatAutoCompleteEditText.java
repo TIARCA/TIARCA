@@ -30,9 +30,6 @@ import io.mrarm.irc.chat.ChatSuggestionsAdapter;
 import io.mrarm.irc.chat.CommandListSuggestionsAdapter;
 import io.mrarm.irc.config.ChatSettings;
 import io.mrarm.irc.config.CommandAliasManager;
-import io.mrarm.irc.config.NickAutocompleteSettings;
-import io.mrarm.irc.config.SettingsHelper;
-import io.mrarm.irc.config.UiSettingChangeCallback;
 import io.mrarm.irc.util.CommandAliasSyntaxParser;
 import io.mrarm.irc.util.SelectableRecyclerViewAdapter;
 import io.mrarm.irc.util.SimpleTextWatcher;
@@ -96,7 +93,10 @@ public class ChatAutoCompleteEditText extends FormattableEditText implements
         ViewCompat.setOnReceiveContentListener(this, new String[] { "image/*" },
                 (view, payload) -> receiveImageContent(payload));
 
-        onSettingChanged();
+        mDoThresholdSuggestions = false;
+        mDoAtSuggestions = true;
+        mAtSuggestionsRemoveAt = true;
+        mDoChannelSuggestions = true;
     }
 
     public void setSuggestionsListView(View suggestionsContainer, View suggestionsCard, RecyclerView suggestionsList) {
@@ -275,34 +275,6 @@ public class ChatAutoCompleteEditText extends FormattableEditText implements
     }
 
     @Override
-    protected void onAttachedToWindow() {
-        super.onAttachedToWindow();
-        SettingsHelper.registerCallbacks(this);
-        onSettingChanged();
-    }
-
-    @Override
-    protected void onDetachedFromWindow() {
-        super.onDetachedFromWindow();
-        SettingsHelper.unregisterCallbacks(this);
-    }
-
-    @UiSettingChangeCallback(keys = {
-            NickAutocompleteSettings.PREF_SUGGESTIONS,
-            NickAutocompleteSettings.PREF_AT_SUGGESTIONS,
-            NickAutocompleteSettings.PREF_AT_SUGGESTIONS_REMOVE_AT,
-            NickAutocompleteSettings.PREF_CHANNEL_SUGGESTIONS
-    })
-    private void onSettingChanged() {
-        mDoThresholdSuggestions = NickAutocompleteSettings.areSuggestionsEnabled();
-        mDoAtSuggestions =  NickAutocompleteSettings.areAtSuggestionsEnabled();
-        mAtSuggestionsRemoveAt = NickAutocompleteSettings.isAtSuggestionsRemoveAtEnabled();
-        mDoChannelSuggestions = NickAutocompleteSettings.areChannelSuggestionsEnabled();
-        if (mAdapter != null)
-            mAdapter.setEnabledSuggestions(true, mDoChannelSuggestions, false);
-    }
-
-    @Override
     public void onItemClick(Object item) {
         CharSequence val;
         if (item instanceof NickWithPrefix) {
@@ -451,57 +423,21 @@ public class ChatAutoCompleteEditText extends FormattableEditText implements
 
     private class SendTextGestureListener extends GestureDetector.SimpleOnGestureListener {
 
-        private int mLastTextPos;
-        private int mDoubleTapTextPos;
         private boolean mHistorySwipeDetected = false;
         private boolean mHistorySwipePrevious = false;
 
         @Override
         public boolean onDown(MotionEvent e) {
-            mLastTextPos = getSelectionStart();
             return true;
         }
 
         @Override
-        public boolean onDoubleTap(MotionEvent e) {
-            mDoubleTapTextPos = mLastTextPos;
-            return NickAutocompleteSettings.isDoubleTapEnabled();
-        }
-
-        @Override
-        public boolean onDoubleTapEvent(MotionEvent e) {
-            if (e.getAction() == MotionEvent.ACTION_UP &&
-                    NickAutocompleteSettings.isDoubleTapEnabled()) {
-                setSelection(mDoubleTapTextPos);
-                requestTabComplete();
-                return true;
-            }
-            return false;
-        }
-
-        @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            String swipeMode = ChatSettings.getSendBoxHistorySwipeMode();
-            if (swipeMode.equals(SettingsHelper.SWIPE_DISABLED))
-                return false;
-
             velocityX /= Resources.getSystem().getDisplayMetrics().density;
             velocityY /= Resources.getSystem().getDisplayMetrics().density;
-            if (swipeMode.equals(SettingsHelper.SWIPE_DOWN_TO_UP) ||
-                    swipeMode.equals(SettingsHelper.SWIPE_UP_TO_DOWN)) {
-                float t = velocityX;
-                //noinspection SuspiciousNameCombination
-                velocityX = velocityY;
-                velocityY = t;
-            } else if (!swipeMode.equals(SettingsHelper.SWIPE_LEFT_TO_RIGHT) &&
-                    !swipeMode.equals(SettingsHelper.SWIPE_RIGHT_TO_LEFT)) {
-                return false;
-            }
             if (Math.abs(velocityX) > 50 && Math.abs(velocityY) < Math.abs(velocityX * 0.6)) {
                 mHistorySwipeDetected = true;
-                mHistorySwipePrevious = swipeMode.equals(SettingsHelper.SWIPE_LEFT_TO_RIGHT) ||
-                        swipeMode.equals(SettingsHelper.SWIPE_UP_TO_DOWN)
-                        ? velocityX > 0.f : velocityX < 0.f;
+                mHistorySwipePrevious = velocityX > 0.f;
                 return true;
             }
             return false;

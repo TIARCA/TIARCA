@@ -102,9 +102,6 @@ public class SettingsHelper implements SharedPreferences.OnSharedPreferenceChang
         o = ChatSettings.getDefaultValue(key);
         if (o != null)
             return o;
-        o = NickAutocompleteSettings.getDefaultValue(key);
-        if (o != null)
-            return o;
         return null;
     }
 

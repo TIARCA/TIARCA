@@ -2,25 +2,17 @@ package io.mrarm.irc.chat;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.ClipData;
-import android.content.ClipboardManager;
-import android.content.Context;
-import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.appcompat.view.ActionMode;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -63,7 +55,6 @@ import io.mrarm.irc.ServerConnectionManager;
 import io.mrarm.irc.config.ChatSettings;
 import io.mrarm.irc.config.MessageFormatSettings;
 import io.mrarm.irc.config.UiSettingChangeCallback;
-import io.mrarm.irc.util.LongPressSelectTouchListener;
 import io.mrarm.irc.util.ScrollPosLinearLayoutManager;
 import io.mrarm.irc.config.SettingsHelper;
 
@@ -240,7 +231,6 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
 
         mConnection.getNotificationManager().removeUnreadMessageCountCallback(this);
 
-        hideMessagesActionMenu();
     }
 
     @Override
@@ -343,24 +333,16 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
         if (mAdapter != null) {
             mRecyclerView.setAdapter(mAdapter);
 
-            LongPressSelectTouchListener selectTouchListener =
-                    new LongPressSelectTouchListener(mRecyclerView);
-            mAdapter.setMultiSelectListener(selectTouchListener);
+            ChatSelectTouchListener selectTouchListener = new ChatSelectTouchListener(mRecyclerView);
+            selectTouchListener.setActionModeStateCallback((android.view.ActionMode actionMode,
+                                                            boolean visible) -> {
+                if (actionMode.getType() == android.view.ActionMode.TYPE_FLOATING)
+                    return;
+                ((ChatFragment) getParentFragment()).setTabsHidden(visible);
+            });
+            selectTouchListener.setDeleteSelectionListener(this::confirmDeleteSelectedMessages);
+            mAdapter.setSelectListener(selectTouchListener);
             mRecyclerView.addOnItemTouchListener(selectTouchListener);
-
-            if (!ChatSettings.shouldUseOnlyMultiSelectMode()) {
-                ChatSelectTouchListener newSelectTouchListener =
-                        new ChatSelectTouchListener(mRecyclerView);
-                newSelectTouchListener.setMultiSelectListener(selectTouchListener);
-                newSelectTouchListener.setActionModeStateCallback((android.view.ActionMode actionMode,
-                                                                boolean b) -> {
-                    if (actionMode.getType() == android.view.ActionMode.TYPE_FLOATING)
-                        return;
-                    ((ChatFragment) getParentFragment()).setTabsHidden(b);
-                });
-                mAdapter.setSelectListener(newSelectTouchListener);
-                mRecyclerView.addOnItemTouchListener(newSelectTouchListener);
-            }
         } else if (mStatusAdapter != null) {
             mRecyclerView.setAdapter(mStatusAdapter);
         }
@@ -742,7 +724,6 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
         mMainHandler.removeCallbacks(mReleaseOffscreenMessages);
         if (mAdapter != null)
             mMainHandler.postDelayed(mReleaseOffscreenMessages, OFFSCREEN_RELEASE_DELAY_MS);
-        hideMessagesActionMenu();
         super.onPause();
         MainActivity activity = (MainActivity) getActivity();
         if (mConnection != null && (activity == null || !activity.isAppExiting()))
@@ -971,104 +952,25 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
             updateParentCurrentChannel();
     }
 
-    public void showMessagesActionMenu() {
-        if (mMessagesActionModeCallback == null)
-            mMessagesActionModeCallback = new MessagesActionModeCallback();
-        if (mMessagesActionModeCallback.mActionMode == null)
-            mMessagesActionModeCallback.mActionMode = ((MainActivity) getActivity()).startSupportActionMode(mMessagesActionModeCallback);
+    private void confirmDeleteSelectedMessages(ChatSelectTouchListener selection, int start,
+                                               int end) {
+        List<MessageId> messageIds = mAdapter.getMessageIdsInRange(start, end);
+        int count = messageIds.size();
+        if (count == 0)
+            return;
+        new AlertDialog.Builder(getContext())
+                .setTitle(R.string.action_delete_confirm_title)
+                .setMessage(getResources().getQuantityString(R.plurals.message_delete_confirm, count,
+                        count) + "\n\n" + getResources().getString(R.string.message_delete_confirm_note))
+                .setPositiveButton(R.string.action_delete, (dialog, which) -> {
+                    mAdapter.hideMessagesInRange(start, end);
+                    mAdapter.notifyDataSetChanged();
+                    mConnection.getApiInstance().getMessageStorageApi().deleteMessages(mChannelName,
+                            messageIds, null, null);
+                    selection.clearSelection();
+                })
+                .setNegativeButton(R.string.action_cancel, null)
+                .show();
     }
-
-    public void hideMessagesActionMenu() {
-        if (mMessagesActionModeCallback != null && mMessagesActionModeCallback.mActionMode != null) {
-            mMessagesActionModeCallback.mActionMode.finish();
-            mMessagesActionModeCallback.mActionMode = null;
-        }
-    }
-
-    public void copySelectedMessages() {
-        CharSequence messages = mAdapter.getSelectedMessages();
-        ClipboardManager clipboard = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
-        clipboard.setPrimaryClip(ClipData.newPlainText("IRC Messages", messages));
-    }
-
-    public void shareSelectedMessages() {
-        CharSequence messages = mAdapter.getSelectedMessages();
-        Intent intent = new Intent(Intent.ACTION_SEND);
-        intent.putExtra(Intent.EXTRA_TEXT, messages);
-        intent.setType("text/plain");
-        mRecyclerView.getContext().startActivity(Intent.createChooser(intent,
-                getString(R.string.message_share_title)));
-    }
-
-    public void deleteSelectedMessages() {
-        List<MessageId> msgIds = mAdapter.getSelectedMessageIds();
-        for (Long l : mAdapter.getSelectedItems()) {
-            ChatMessagesAdapter.Item i = mAdapter.getMessage(mAdapter.getItemPosition(l));
-            if (i instanceof ChatMessagesAdapter.MessageItem)
-                ((ChatMessagesAdapter.MessageItem) i).mHidden = true;
-        }
-        mAdapter.notifyDataSetChanged();
-        mConnection.getApiInstance().getMessageStorageApi().deleteMessages(mChannelName, msgIds,
-                null, null);
-    }
-
-
-    private MessagesActionModeCallback mMessagesActionModeCallback;
-
-    private class MessagesActionModeCallback implements ActionMode.Callback {
-
-        public ActionMode mActionMode;
-
-        @Override
-        public boolean onCreateActionMode(ActionMode mode, Menu menu) {
-            MenuInflater inflater = mode.getMenuInflater();
-            inflater.inflate(R.menu.menu_context_messages_full, menu);
-            ((ChatFragment) getParentFragment()).setTabsHidden(true);
-            mActionMode = mode;
-            return true;
-        }
-
-        @Override
-        public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
-            return false;
-        }
-
-        @Override
-        public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
-            switch (item.getItemId()) {
-                case R.id.action_copy:
-                    copySelectedMessages();
-                    mode.finish();
-                    return true;
-                case R.id.action_share:
-                    shareSelectedMessages();
-                    mode.finish();
-                    return true;
-                case R.id.action_delete: {
-                    int cnt = mAdapter.getSelectedItems().size();
-                    new AlertDialog.Builder(getContext())
-                            .setTitle(R.string.action_delete_confirm_title)
-                            .setMessage(getResources().getQuantityString(R.plurals.message_delete_confirm, cnt, cnt) + "\n\n" + getResources().getString(R.string.message_delete_confirm_note))
-                            .setPositiveButton(R.string.action_delete, (di, w) -> {
-                                deleteSelectedMessages();
-                                mode.finish();
-                            })
-                            .setNegativeButton(R.string.action_cancel, null)
-                            .show();
-                    return true;
-                }
-                default:
-                    return false;
-            }
-        }
-
-        @Override
-        public void onDestroyActionMode(ActionMode mode) {
-            ((ChatFragment) getParentFragment()).setTabsHidden(false);
-            mAdapter.clearSelection();
-            mActionMode = null;
-        }
-
-    };
 
 }

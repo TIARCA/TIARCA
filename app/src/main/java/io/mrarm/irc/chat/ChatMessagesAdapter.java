@@ -1,13 +1,12 @@
 package io.mrarm.irc.chat;
 
 import android.content.Context;
-import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.Typeface;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-import android.text.SpannableStringBuilder;
 import android.text.TextPaint;
 import android.text.style.ClickableSpan;
 import android.text.format.DateUtils;
@@ -21,10 +20,7 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
 
 import io.mrarm.chatlib.dto.MessageId;
 import io.mrarm.chatlib.dto.MessageInfo;
@@ -32,16 +28,15 @@ import io.mrarm.irc.NotificationManager;
 import io.mrarm.irc.MainActivity;
 import io.mrarm.irc.R;
 import io.mrarm.irc.util.AlignToPointSpan;
-import io.mrarm.irc.util.LongPressSelectTouchListener;
 import io.mrarm.irc.util.MessageBuilder;
-import io.mrarm.irc.util.StyledAttributesHelper;
 import io.mrarm.irc.dialog.UserBottomSheetDialog;
 import io.mrarm.irc.dialog.NicknameContextMenu;
 import io.mrarm.irc.util.LongClickableSpan;
 import io.mrarm.irc.util.SelectableLinkMovementMethod;
+import io.mrarm.irc.util.StyledAttributesHelper;
 
 public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
-        implements LongPressSelectTouchListener.Listener, ChatSelectTouchListener.AdapterInterface {
+        implements ChatSelectTouchListener.AdapterInterface {
 
     private static final int TYPE_MESSAGE = 0;
     private static final int TYPE_DAY_MARKER = 1;
@@ -51,12 +46,8 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     private ChatMessagesFragment mFragment;
     private List<Item> mMessages;
     private List<Item> mPrependedMessages;
-    private LongPressSelectTouchListener mMultiSelectListener;
     private ChatSelectTouchListener mSelectListener;
-    private Set<Long> mSelectedItems = new TreeSet<>();
-    private Set<BaseHolder> mSelectedVH = new HashSet<>();
-    private Drawable mItemBackground;
-    private Drawable mSelectedItemBackground;
+    private Drawable mMessageFlashBackground;
     private Typeface mTypeface;
     private int mFontSize;
     private long mItemIdOffset = -1000000000L;
@@ -70,14 +61,11 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     public ChatMessagesAdapter(ChatMessagesFragment fragment, List<MessageInfo> messages,
                                List<MessageId> messageIds) {
         mFragment = fragment;
-        StyledAttributesHelper ta = StyledAttributesHelper.obtainStyledAttributes(fragment.getContext(),
-                new int[] { R.attr.selectableItemBackground, R.attr.colorControlHighlight });
-        // mItemBackground = ta.getDrawable(R.attr.selectableItemBackground);
-        int color = ta.getColor(R.attr.colorControlHighlight, 0);
-        //color = ColorUtils.setAlphaComponent(color, Color.alpha(color) / 2);
-        mSelectedItemBackground = new ColorDrawable(color);
-        ta.recycle();
-
+        StyledAttributesHelper attributes = StyledAttributesHelper.obtainStyledAttributes(
+                fragment.getContext(), new int[] { R.attr.colorControlHighlight });
+        mMessageFlashBackground = new ColorDrawable(attributes.getColor(R.attr.colorControlHighlight,
+                0));
+        attributes.recycle();
         setMessages(messages, messageIds);
         setHasStableIds(true);
     }
@@ -130,12 +118,20 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         if (position < 0 || position >= getItemCount())
             return;
         long itemId = getItemId(position);
-        onElementHighlighted(recyclerView, itemId, true);
-        recyclerView.postDelayed(() -> onElementHighlighted(recyclerView, itemId, false), 300L);
-        recyclerView.postDelayed(() -> onElementHighlighted(recyclerView, itemId, true), 550L);
-        recyclerView.postDelayed(() -> onElementHighlighted(recyclerView, itemId, false), 850L);
-        recyclerView.postDelayed(() -> onElementHighlighted(recyclerView, itemId, true), 1100L);
-        recyclerView.postDelayed(() -> onElementHighlighted(recyclerView, itemId, false), 1550L);
+        setMessageFlashHighlighted(recyclerView, itemId, true);
+        recyclerView.postDelayed(() -> setMessageFlashHighlighted(recyclerView, itemId, false), 300L);
+        recyclerView.postDelayed(() -> setMessageFlashHighlighted(recyclerView, itemId, true), 550L);
+        recyclerView.postDelayed(() -> setMessageFlashHighlighted(recyclerView, itemId, false), 850L);
+        recyclerView.postDelayed(() -> setMessageFlashHighlighted(recyclerView, itemId, true), 1100L);
+        recyclerView.postDelayed(() -> setMessageFlashHighlighted(recyclerView, itemId, false), 1550L);
+    }
+
+    private void setMessageFlashHighlighted(RecyclerView recyclerView, long itemId,
+                                             boolean highlighted) {
+        RecyclerView.ViewHolder holder = recyclerView.findViewHolderForItemId(itemId);
+        if (holder != null)
+            holder.itemView.setBackground(highlighted
+                    ? mMessageFlashBackground.getConstantState().newDrawable() : null);
     }
 
     private void deleteMessageInternal(int index) {
@@ -216,8 +212,6 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         mPrependedMessages = new ArrayList<>();
         mFirstMessageDay = -1;
         mLastMessageDay = -1;
-        mSelectedItems.clear();
-        mSelectedVH.clear();
         notifyDataSetChanged();
     }
 
@@ -257,45 +251,22 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         mSelectListener = selectListener;
     }
 
-    public void setMultiSelectListener(LongPressSelectTouchListener selectListener) {
-        mMultiSelectListener = selectListener;
-        if (selectListener != null)
-            selectListener.setListener(this);
-    }
-
-    public Set<Long> getSelectedItems() {
-        return mSelectedItems;
-    }
-
-    public List<MessageId> getSelectedMessageIds() {
-        Set<Long> items = getSelectedItems();
+    public List<MessageId> getMessageIdsInRange(int start, int end) {
         List<MessageId> ret = new ArrayList<>();
-        for (Long msgIndex : items) {
-            Item item = getMessage(getItemPosition(msgIndex));
+        for (int i = start; i <= end; i++) {
+            Item item = getMessage(i);
             if (item instanceof MessageItem)
                 ret.add(((MessageItem) item).mMessageId);
         }
         return ret;
     }
 
-    public CharSequence getSelectedMessages() {
-        Set<Long> items = getSelectedItems();
-        SpannableStringBuilder builder = new SpannableStringBuilder();
-        boolean first = true;
-        for (Long msgIndex : items) {
-            if (first)
-                first = false;
-            else
-                builder.append('\n');
-            builder.append(getTextAt(getItemPosition(msgIndex)));
+    public void hideMessagesInRange(int start, int end) {
+        for (int i = start; i <= end; i++) {
+            Item item = getMessage(i);
+            if (item instanceof MessageItem)
+                ((MessageItem) item).mHidden = true;
         }
-        return builder;
-    }
-
-    public void clearSelection() {
-        for (BaseHolder viewHolder : mSelectedVH)
-            viewHolder.setSelected(false, false, false);
-        mSelectedItems.clear();
     }
 
     @Override
@@ -327,11 +298,6 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         } else if (viewType == TYPE_DAY_MARKER) {
             ((DayMarkerHolder) holder).bind((DayMarkerItem) msg);
         }
-    }
-
-    @Override
-    public void onViewRecycled(@NonNull RecyclerView.ViewHolder holder) {
-        ((BaseHolder) holder).unbind();
     }
 
     @Override
@@ -373,67 +339,7 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         return (int) (id + mItemIdOffset);
     }
 
-    @Override
-    public void onElementSelected(RecyclerView recyclerView, long itemId) {
-        if (mSelectedItems.size() == 0)
-            mFragment.showMessagesActionMenu();
-        mSelectedItems.add(itemId);
-        onElementHighlighted(recyclerView, itemId, true);
-    }
-
-    @Override
-    public void onElementHighlighted(RecyclerView recyclerView, long itemId, boolean highlight) {
-        BaseHolder holder = (BaseHolder) recyclerView.findViewHolderForItemId(itemId);
-        if (holder != null)
-            holder.setSelected(highlight || mSelectedItems.contains(itemId), false);
-    }
-
-    private abstract class BaseHolder extends RecyclerView.ViewHolder {
-
-        protected boolean mSelected = false;
-
-        public BaseHolder(View itemView) {
-            super(itemView);
-        }
-
-        public boolean isSelected() {
-            return mSelected;
-        }
-
-        public void setSelected(boolean selected, boolean updateAdapter, boolean updateVHList) {
-            if (updateVHList) {
-                if (selected)
-                    mSelectedVH.add(this);
-                else
-                    mSelectedVH.remove(this);
-            }
-            if (mSelected == selected)
-                return;
-            mSelected = selected;
-            if (updateAdapter) {
-                if (selected)
-                    mSelectedItems.add(getItemId());
-                else
-                    mSelectedItems.remove(getItemId());
-            }
-            itemView.setBackground(selected
-                    ? mSelectedItemBackground.getConstantState().newDrawable()
-                    : (mItemBackground != null ? mItemBackground.getConstantState().newDrawable() : null));
-            if (mSelectedItems.size() == 0)
-                mFragment.hideMessagesActionMenu();
-        }
-
-        public void setSelected(boolean selected, boolean updateAdapter) {
-            setSelected(selected, updateAdapter, true);
-        }
-
-        public void unbind() {
-            mSelectedVH.remove(this);
-        }
-
-    }
-
-    public class MessageHolder extends BaseHolder {
+    public class MessageHolder extends RecyclerView.ViewHolder {
 
         private TextView mText;
         private ViewGroup.LayoutParams mDefaultLayoutParams;
@@ -442,22 +348,11 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             super(v);
             mDefaultLayoutParams = v.getLayoutParams();
             mText = v.findViewById(R.id.chat_message);
-            mText.setOnClickListener((View view) -> {
-                if (mSelectedItems.size() > 0)
-                    setSelected(!isSelected(), true);
-            });
             mText.setOnLongClickListener((View view) -> {
-                if (mSelectListener != null && mSelectedItems.size() == 0) {
+                if (mSelectListener != null)
                     mSelectListener.startLongPressSelect();
-                } else {
-                    mMultiSelectListener.startSelectMode(getItemId());
-                }
                 return true;
             });
-            if (mItemBackground != null)
-                mText.setBackground(mItemBackground.getConstantState().newDrawable());
-            else
-                mText.setBackground(null);
             mText.setMovementMethod(SelectableLinkMovementMethod.getInstance());
         }
 
@@ -502,10 +397,6 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                 mText.setTypeface(mTypeface);
             if (mFontSize != -1)
                 mText.setTextSize(TypedValue.COMPLEX_UNIT_SP, mFontSize);
-
-            if (mMultiSelectListener != null)
-                setSelected(mSelectedItems.contains(getItemId()) ||
-                        mMultiSelectListener.isElementHighlighted(getItemId()), false);
 
             MessageBuilder.NickClickSpanFactory nickClickSpanFactory = this::createNickClickSpan;
             if (NotificationManager.getInstance().shouldMessageUseMentionFormatting(mFragment.getConnectionInfo(), mFragment.getChannelName(), message))
@@ -554,7 +445,7 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
     }
 
-    public class DayMarkerHolder extends BaseHolder {
+    public class DayMarkerHolder extends RecyclerView.ViewHolder {
 
         private TextView mText;
 
