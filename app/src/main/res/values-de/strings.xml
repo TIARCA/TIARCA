@@ -413,7 +413,6 @@
     <string name="pref_title_chat_multi_scroll_mode">Verwenden Sie einen Batch-Nachrichtenauswahlmodus</string>
     <string name="pref_summary_chat_multi_scroll_mode">Aktivieren Sie immer den alten Batch-Nachrichtenauswahlmodus</string>
 
-    <string name="pref_header_misc">Verschiedenes</string>
     <string name="pref_title_chat_show_dcc_send">Aktivieren Sie das direkte Senden über DCC</string>
     <string name="pref_summary_chat_show_dcc_send">Fügen Sie „Senden über DCC“ zum Menü „Senden“ in privaten Chats hinzu</string>
 

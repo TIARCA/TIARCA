@@ -422,7 +422,6 @@
     <string name="pref_title_chat_multi_scroll_mode">Utilizzare una modalità di selezione dei messaggi batch</string>
     <string name="pref_summary_chat_multi_scroll_mode">Abilita sempre la vecchia modalità di selezione dei messaggi batch</string>
 
-    <string name="pref_header_misc">Varie</string>
     <string name="pref_title_chat_show_dcc_send">Abilita l\'invio diretto tramite DCC</string>
     <string name="pref_summary_chat_show_dcc_send">Aggiunge Invia tramite DCC al menu Invia delle chat private</string>
 

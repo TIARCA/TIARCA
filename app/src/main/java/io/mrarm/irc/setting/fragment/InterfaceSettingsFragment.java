@@ -121,7 +121,6 @@ public class InterfaceSettingsFragment extends SettingsListFragment
                 getString(R.string.pref_summary_chat_box_always_multiline))
                 .linkSetting(prefs, ChatSettings.PREF_SEND_BOX_ALWAYS_MULTILINE));
 
-        a.add(new SettingsHeader(getString(R.string.pref_header_misc)));
         MessageSenderInfo testSender = new MessageSenderInfo(
                 getString(R.string.message_example_sender), "", "", null, null);
         Date date = MessageFormatSettingsActivity.getSampleMessageTime();

@@ -445,7 +445,6 @@
     <string name="pref_title_chat_multi_scroll_mode">Użyj trybu wyboru komunikatów wsadowych</string>
     <string name="pref_summary_chat_multi_scroll_mode">Zawsze włączaj stary tryb wyboru komunikatów wsadowych</string>
 
-    <string name="pref_header_misc">Różne</string>
     <string name="pref_title_chat_show_dcc_send">Włącz bezpośrednie wysyłanie poprzez DCC</string>
     <string name="pref_summary_chat_show_dcc_send">Dodaj Wyślij przez DCC do menu Wyślij w czatach prywatnych</string>
 

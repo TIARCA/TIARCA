@@ -413,7 +413,6 @@
     <string name="pref_title_chat_multi_scroll_mode">Usar um modo de seleção de mensagens em lote</string>
     <string name="pref_summary_chat_multi_scroll_mode">Sempre habilite o antigo modo de seleção de mensagens em lote</string>
 
-    <string name="pref_header_misc">Diversos</string>
     <string name="pref_title_chat_show_dcc_send">Habilitar envio direto via DCC</string>
     <string name="pref_summary_chat_show_dcc_send">Adicionar Enviar via DCC ao menu Enviar em bate-papos privados</string>
 
