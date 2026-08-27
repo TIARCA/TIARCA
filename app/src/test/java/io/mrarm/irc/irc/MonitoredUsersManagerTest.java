@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -251,6 +252,73 @@ public class MonitoredUsersManagerTest {
                 manager.getAliases(user).get(0).origin);
         assertTrue(user.notifyOnline);
         assertTrue(user.notifyOffline);
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    @Test public void migratesGenericMapAndMixedLegacyEntriesWithoutDataLoss() {
+        String json = "{\"monitoredUsers\":[" +
+                "\"SingleNick\"," +
+                "{\"nick\":\"OldNick\",\"currentNickname\":\"OldAway\"," +
+                "\"notifyOnline\":true,\"notifyOffline\":false}," +
+                "{\"nick\":\"Grouped\",\"currentNick\":\"GroupedAway\"," +
+                "\"notifyOnline\":false,\"notifyOffline\":true,\"aliases\":[" +
+                "{\"nick\":\"Grouped\",\"origin\":\"manual\"}," +
+                "{\"nick\":\"GroupedAway\",\"origin\":\"observed_nick_change\"}]}]}";
+        Map root = new Gson().fromJson(json, Map.class);
+        List genericEntries = (List) root.get("monitoredUsers");
+        assertTrue(genericEntries.get(1) instanceof Map);
+
+        ServerConfigData config = new ServerConfigData();
+        config.monitoredUsers = (List<ServerConfigData.MonitoredUser>) (List<?>) genericEntries;
+        AtomicInteger saves = new AtomicInteger();
+        MonitoredUsersManager manager = new MonitoredUsersManager(config, saves::incrementAndGet);
+
+        assertEquals(1, saves.get());
+        assertEquals(3, manager.getMonitoredUsers().size());
+        ServerConfigData.MonitoredUser single = manager.getMonitoredUsers().get(0);
+        assertEquals("SingleNick", single.nick);
+        assertEquals(1, manager.getAliases(single).size());
+
+        ServerConfigData.MonitoredUser old = manager.getMonitoredUsers().get(1);
+        assertEquals("OldNick", old.nick);
+        assertEquals("OldAway", old.currentNick);
+        assertTrue(old.notifyOnline);
+        assertFalse(old.notifyOffline);
+        assertEquals(2, manager.getAliases(old).size());
+
+        ServerConfigData.MonitoredUser grouped = manager.getMonitoredUsers().get(2);
+        assertEquals("Grouped", grouped.nick);
+        assertEquals("GroupedAway", grouped.currentNick);
+        assertFalse(grouped.notifyOnline);
+        assertTrue(grouped.notifyOffline);
+        assertEquals(2, manager.getAliases(grouped).size());
+        assertEquals(ServerConfigData.MonitoredAlias.ORIGIN_OBSERVED_NICK_CHANGE,
+                manager.getAliases(grouped).get(1).origin);
+
+        ServerConfigData restored = new Gson().fromJson(new Gson().toJson(config),
+                ServerConfigData.class);
+        AtomicInteger secondSaves = new AtomicInteger();
+        MonitoredUsersManager restoredManager = new MonitoredUsersManager(restored,
+                secondSaves::incrementAndGet);
+        assertEquals(0, secondSaves.get());
+        assertEquals(3, restoredManager.getMonitoredUsers().size());
+        assertEquals("OldAway", restoredManager.getMonitoredUsers().get(1).currentNick);
+        assertTrue(restoredManager.getMonitoredUsers().get(1).notifyOnline);
+        assertTrue(restoredManager.getMonitoredUsers().get(2).notifyOffline);
+        assertEquals(2, restoredManager.getAliases(
+                restoredManager.getMonitoredUsers().get(2)).size());
+    }
+
+    @Test public void missingOrEmptyMonitorListNeedsNoMigration() {
+        ServerConfigData missing = new Gson().fromJson("{}", ServerConfigData.class);
+        assertTrue(new MonitoredUsersManager(missing).getMonitoredUsers().isEmpty());
+
+        ServerConfigData empty = new ServerConfigData();
+        empty.monitoredUsers = new ArrayList<>();
+        AtomicInteger saves = new AtomicInteger();
+        assertTrue(new MonitoredUsersManager(empty, saves::incrementAndGet)
+                .getMonitoredUsers().isEmpty());
+        assertEquals(0, saves.get());
     }
 
     @Test public void manualAliasesRejectDuplicatesAndCrossGroupConflictsUsingCaseMapping()

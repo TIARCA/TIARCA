@@ -50,6 +50,12 @@
 -keep class io.mrarm.irc.util.theme.ThemeInfo { *; }
 -keep class io.mrarm.irc.util.theme.ThemeInfo$ColorsAdapter { *; }
 
+# Server configurations are read reflectively by Gson. Keeping this model also preserves the
+# generic List element signatures required to deserialize monitored users and aliases as their
+# concrete types instead of generic maps.
+-keep,allowoptimization class io.mrarm.irc.config.ServerConfigData { *; }
+-keep,allowoptimization class io.mrarm.irc.config.ServerConfigData$* { *; }
+
 -keepclasseswithmembers,allowobfuscation,includedescriptorclasses class * {
     @com.google.gson.annotations.JsonAdapter <fields>;
 }

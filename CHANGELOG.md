@@ -1,5 +1,9 @@
 # TIARCA — Changelog
 
+## v0.7.12
+
+- Corretto un crash all'avvio durante la migrazione delle liste di utenti monitorati esistenti.
+
 ## v0.7.11
 
 - Corretto definitivamente il campo **Messaggio personalizzato…** nei dialog Kick, Kickban e TBAN: il testo è ora editabile e la tastiera si apre quando il dialog riacquista il focus.

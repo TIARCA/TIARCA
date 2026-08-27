@@ -1,10 +1,13 @@
 package io.mrarm.irc.irc;
 
+import android.util.Log;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import io.mrarm.chatlib.irc.CommandHandler;
@@ -16,6 +19,7 @@ import io.mrarm.irc.config.ServerConfigData;
 
 /** Standard IRC MONITOR state grouped into persistent client-side nickname aliases. */
 public final class MonitoredUsersManager implements CommandHandler {
+    private static final String TAG = "MonitoredUsers";
     public static final int RPL_MONONLINE = 730, RPL_MONOFFLINE = 731, RPL_MONLIST = 732,
             RPL_ENDOFMONLIST = 733, ERR_MONLISTFULL = 734;
 
@@ -65,7 +69,7 @@ public final class MonitoredUsersManager implements CommandHandler {
     public MonitoredUsersManager(ServerConfigData config, ConfigPersister persister) {
         this.config = config;
         this.persister = persister;
-        normalizeLegacyEntries();
+        if (normalizeLegacyEntries()) persistConfiguration();
     }
 
     @Override public Object[] getHandledCommands() { return new Object[] {730, 731, 732, 733, 734}; }
@@ -500,23 +504,166 @@ public final class MonitoredUsersManager implements CommandHandler {
             if (alias.online) { user.online = true; break; }
     }
 
-    private void normalizeLegacyEntries() {
-        if (config.monitoredUsers == null) return;
-        for (ServerConfigData.MonitoredUser user : config.monitoredUsers) ensureAliases(user);
+    private boolean normalizeLegacyEntries() {
+        if (config.monitoredUsers == null) return false;
+
+        List<?> entries = config.monitoredUsers;
+        ArrayList<ServerConfigData.MonitoredUser> normalized = new ArrayList<>();
+        boolean changed = false;
+        for (Object entry : entries) {
+            ServerConfigData.MonitoredUser user = toMonitoredUser(entry);
+            if (user == null) {
+                Log.w(TAG, "Ignoring an unrecoverable malformed monitored-user entry");
+                changed = true;
+                continue;
+            }
+            if (user != entry) changed = true;
+            changed |= ensureAliases(user);
+            if (user.nick == null || user.aliases.isEmpty()) {
+                Log.w(TAG, "Ignoring a monitored-user entry without a recoverable nickname");
+                changed = true;
+                continue;
+            }
+            normalized.add(user);
+        }
+        if (changed || normalized.size() != entries.size())
+            config.monitoredUsers = normalized;
+        return changed;
     }
 
-    private void ensureAliases(ServerConfigData.MonitoredUser user) {
-        if (user.aliases == null) user.aliases = new ArrayList<>();
+    private ServerConfigData.MonitoredUser toMonitoredUser(Object entry) {
+        if (entry instanceof ServerConfigData.MonitoredUser)
+            return (ServerConfigData.MonitoredUser) entry;
+        if (entry instanceof CharSequence) {
+            String nick = normalizedString(entry);
+            if (nick == null) return null;
+            ServerConfigData.MonitoredUser user = new ServerConfigData.MonitoredUser();
+            user.nick = nick;
+            user.currentNick = nick;
+            return user;
+        }
+        if (!(entry instanceof Map)) return null;
+
+        Map<?, ?> values = (Map<?, ?>) entry;
+        ServerConfigData.MonitoredUser user = new ServerConfigData.MonitoredUser();
+        user.nick = firstString(values, "nick", "nickname", "displayNick");
+        user.currentNick = firstString(values, "currentNick", "currentNickname");
+        user.notifyOnline = booleanValue(values.get("notifyOnline"));
+        user.notifyOffline = booleanValue(values.get("notifyOffline"));
+        user.aliases = toAliases(values.get("aliases"));
+        return user;
+    }
+
+    private boolean ensureAliases(ServerConfigData.MonitoredUser user) {
+        boolean changed = false;
+        String normalizedNick = normalizedString(user.nick);
+        if (user.nick != normalizedNick &&
+                (user.nick == null || !user.nick.equals(normalizedNick))) changed = true;
+        user.nick = normalizedNick;
+        String normalizedCurrentNick = normalizedString(user.currentNick);
+        if (user.currentNick != normalizedCurrentNick &&
+                (user.currentNick == null || !user.currentNick.equals(normalizedCurrentNick))) changed = true;
+        user.currentNick = normalizedCurrentNick;
+
+        List<?> existingAliases = user.aliases;
+        if (existingAliases != null) {
+            for (Object entry : existingAliases) {
+                if (!(entry instanceof ServerConfigData.MonitoredAlias)) {
+                    changed = true;
+                    continue;
+                }
+                ServerConfigData.MonitoredAlias alias =
+                        (ServerConfigData.MonitoredAlias) entry;
+                if (alias.origin == null || normalizedString(alias.nick) == null ||
+                        !alias.nick.equals(normalizedString(alias.nick))) changed = true;
+            }
+        }
+        ArrayList<ServerConfigData.MonitoredAlias> aliases = toAliases(existingAliases);
+        if (existingAliases == null || aliases.size() != existingAliases.size()) changed = true;
+        if (existingAliases != null) {
+            for (int i = 0; i < aliases.size() && !changed; i++)
+                if (aliases.get(i) != existingAliases.get(i)) changed = true;
+        }
+        user.aliases = aliases;
+
         IRCCaseMapping mapping = IRCCaseMapping.RFC1459;
-        if (user.nick != null && findAliasInGroup(user, user.nick, mapping) == null)
+        if (user.nick != null && findAliasInGroup(user, user.nick, mapping) == null) {
             user.aliases.add(newAlias(user.nick, ServerConfigData.MonitoredAlias.ORIGIN_MANUAL));
-        if (user.currentNick != null && findAliasInGroup(user, user.currentNick, mapping) == null)
+            changed = true;
+        }
+        if (user.currentNick != null && findAliasInGroup(user, user.currentNick, mapping) == null) {
             user.aliases.add(newAlias(user.currentNick,
                     ServerConfigData.MonitoredAlias.ORIGIN_OBSERVED_NICK_CHANGE));
-        if (user.nick == null && !user.aliases.isEmpty()) user.nick = user.aliases.get(0).nick;
-        if (user.currentNick == null) user.currentNick = user.nick;
-        for (ServerConfigData.MonitoredAlias alias : user.aliases)
-            if (alias.origin == null) alias.origin = ServerConfigData.MonitoredAlias.ORIGIN_MANUAL;
+            changed = true;
+        }
+        if (user.nick == null && !user.aliases.isEmpty()) {
+            user.nick = user.aliases.get(0).nick;
+            changed = true;
+        }
+        if (user.currentNick == null && user.nick != null) {
+            user.currentNick = user.nick;
+            changed = true;
+        }
+        return changed;
+    }
+
+    private ArrayList<ServerConfigData.MonitoredAlias> toAliases(Object value) {
+        ArrayList<ServerConfigData.MonitoredAlias> result = new ArrayList<>();
+        if (value == null) return result;
+        if (value instanceof Iterable) {
+            for (Object entry : (Iterable<?>) value) addAliasIfValid(result, toAlias(entry));
+        } else {
+            addAliasIfValid(result, toAlias(value));
+        }
+        return result;
+    }
+
+    private ServerConfigData.MonitoredAlias toAlias(Object entry) {
+        if (entry instanceof ServerConfigData.MonitoredAlias) {
+            ServerConfigData.MonitoredAlias alias = (ServerConfigData.MonitoredAlias) entry;
+            alias.nick = normalizedString(alias.nick);
+            if (alias.origin == null)
+                alias.origin = ServerConfigData.MonitoredAlias.ORIGIN_MANUAL;
+            return alias;
+        }
+        String nick;
+        String origin = null;
+        if (entry instanceof Map) {
+            Map<?, ?> values = (Map<?, ?>) entry;
+            nick = firstString(values, "nick", "nickname");
+            origin = normalizedString(values.get("origin"));
+        } else {
+            nick = normalizedString(entry);
+        }
+        if (nick == null) return null;
+        return newAlias(nick, origin == null ? ServerConfigData.MonitoredAlias.ORIGIN_MANUAL : origin);
+    }
+
+    private void addAliasIfValid(List<ServerConfigData.MonitoredAlias> aliases,
+                                 ServerConfigData.MonitoredAlias alias) {
+        if (alias == null || alias.nick == null) return;
+        for (ServerConfigData.MonitoredAlias existing : aliases)
+            if (IRCCaseMapping.RFC1459.equals(existing.nick, alias.nick)) return;
+        aliases.add(alias);
+    }
+
+    private static String firstString(Map<?, ?> values, String... keys) {
+        for (String key : keys) {
+            String value = normalizedString(values.get(key));
+            if (value != null) return value;
+        }
+        return null;
+    }
+
+    private static String normalizedString(Object value) {
+        if (!(value instanceof CharSequence)) return null;
+        String result = value.toString().trim();
+        return result.isEmpty() ? null : result;
+    }
+
+    private static boolean booleanValue(Object value) {
+        if (value instanceof Boolean) return (Boolean) value;
+        return value instanceof CharSequence && Boolean.parseBoolean(value.toString());
     }
 
     private AliasMatch findAlias(String nick, IRCCaseMapping mapping) {
