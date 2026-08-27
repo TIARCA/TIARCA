@@ -3,21 +3,30 @@ package io.mrarm.irc.chat;
 import android.app.Dialog;
 import android.graphics.Color;
 import androidx.recyclerview.widget.RecyclerView;
+import android.text.Editable;
 import android.text.SpannableString;
 import android.text.Spanned;
+import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.text.format.DateUtils;
 import android.text.method.LinkMovementMethod;
 import android.text.style.ForegroundColorSpan;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.ImageView;
+import android.widget.ImageButton;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 import io.mrarm.chatlib.dto.NickWithPrefix;
+import io.mrarm.chatlib.irc.IRCCaseMapping;
+import io.mrarm.chatlib.irc.IRCConnection;
 import io.mrarm.irc.MainActivity;
 import io.mrarm.irc.R;
 import io.mrarm.irc.ServerConnectionInfo;
@@ -36,6 +45,9 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
     public static final int TYPE_HEADER = 0;
     public static final int TYPE_TOPIC = 1;
     public static final int TYPE_MEMBER = 2;
+    public static final int TYPE_SEARCH = 3;
+
+    private static final int MEMBER_SEARCH_THRESHOLD = 30;
 
     private ServerConnectionInfo mConnection;
     private String mChannel;
@@ -43,18 +55,28 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
     private String mTopicSetBy;
     private Date mTopicSetOn;
     private List<NickWithPrefix> mMembers;
+    private List<NickWithPrefix> mVisibleMembers = new ArrayList<>();
+    private String mSearchQuery = "";
+    private EditText mSearchInput;
 
     public ChannelInfoAdapter() {
     }
 
     public void setData(ServerConnectionInfo connection, String channel, String topic, String topicSetBy,
                         Date topicSetOn, List<NickWithPrefix> members) {
+        boolean contextChanged = connection != mConnection || !TextUtils.equals(channel, mChannel);
         mConnection = connection;
         mChannel = channel;
         mTopic = topic;
         mTopicSetBy = topicSetBy;
         mTopicSetOn = topicSetOn;
         mMembers = members;
+        boolean showMemberSearch = isMemberSearchVisible(getMemberCount());
+        if (contextChanged || !showMemberSearch)
+            mSearchQuery = "";
+        if (!showMemberSearch)
+            onDrawerClosed();
+        rebuildVisibleMembers();
         SimosnapAvatarManager.requestChannelAccounts(connection, channel,
                 this::notifyDataSetChanged);
         notifyDataSetChanged();
@@ -62,6 +84,16 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
 
     public List<NickWithPrefix> getMembers() {
         return mMembers;
+    }
+
+    public void onDrawerClosed() {
+        if (mSearchInput == null)
+            return;
+        InputMethodManager inputMethodManager = (InputMethodManager) mSearchInput.getContext()
+                .getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+        if (inputMethodManager != null)
+            inputMethodManager.hideSoftInputFromWindow(mSearchInput.getWindowToken(), 0);
+        mSearchInput.clearFocus();
     }
 
     @Override
@@ -74,6 +106,10 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
             View view = LayoutInflater.from(viewGroup.getContext())
                     .inflate(R.layout.chat_topic, viewGroup, false);
             return new TopicHolder(view);
+        } else if (viewType == TYPE_SEARCH) {
+            View view = LayoutInflater.from(viewGroup.getContext())
+                    .inflate(R.layout.chat_member_search, viewGroup, false);
+            return new SearchHolder(view, this);
         } else { // TYPE_MEMBER
             View view = LayoutInflater.from(viewGroup.getContext())
                     .inflate(R.layout.chat_member, viewGroup, false);
@@ -89,22 +125,77 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
                     : R.string.channel_members);
         else if (type == TYPE_TOPIC)
             ((TopicHolder) holder).bind(mTopic, mTopicSetBy, mTopicSetOn);
+        else if (type == TYPE_SEARCH)
+            ((SearchHolder) holder).bind(mSearchQuery);
         else if (type == TYPE_MEMBER)
-            ((MemberHolder) holder).bind(mConnection, mChannel, mMembers.get(position - 3));
+            ((MemberHolder) holder).bind(mConnection, mChannel,
+                    mVisibleMembers.get(position - getMemberStart()));
     }
 
     @Override
     public int getItemCount() {
-        return 3 + (mMembers != null ? mMembers.size() : 0);
+        return getMemberStart() + mVisibleMembers.size();
     }
 
     @Override
     public int getItemViewType(int position) {
-        if (position == 0 || position == 2)
+        if (position == 0 || position == getMemberHeaderPosition())
             return TYPE_HEADER;
         if (position == 1)
             return TYPE_TOPIC;
+        if (isMemberSearchVisible(getMemberCount()) && position == 2)
+            return TYPE_SEARCH;
         return TYPE_MEMBER;
+    }
+
+    static boolean isMemberSearchVisible(int memberCount) {
+        return memberCount >= MEMBER_SEARCH_THRESHOLD;
+    }
+
+    static boolean matchesMemberSearch(String nick, String query, IRCCaseMapping caseMapping) {
+        return caseMapping != null && caseMapping.contains(nick, query == null ? "" : query);
+    }
+
+    private int getMemberCount() {
+        return mMembers == null ? 0 : mMembers.size();
+    }
+
+    private int getMemberHeaderPosition() {
+        return isMemberSearchVisible(getMemberCount()) ? 3 : 2;
+    }
+
+    private int getMemberStart() {
+        return getMemberHeaderPosition() + 1;
+    }
+
+    private void setSearchQuery(String query) {
+        String normalized = query == null ? "" : query.trim();
+        if (TextUtils.equals(mSearchQuery, normalized))
+            return;
+        mSearchQuery = normalized;
+        rebuildVisibleMembers();
+        notifyDataSetChanged();
+    }
+
+    private void rebuildVisibleMembers() {
+        if (mMembers == null) {
+            mVisibleMembers = new ArrayList<>();
+            return;
+        }
+        if (mSearchQuery.isEmpty()) {
+            mVisibleMembers = mMembers;
+            return;
+        }
+        IRCCaseMapping caseMapping = IRCCaseMapping.RFC1459;
+        if (mConnection != null && mConnection.getApiInstance() instanceof IRCConnection)
+            caseMapping = ((IRCConnection) mConnection.getApiInstance()).getServerConnectionData()
+                    .getSupportList().getCaseMapping();
+        List<NickWithPrefix> filtered = new ArrayList<>();
+        for (NickWithPrefix member : mMembers) {
+            if (member != null && matchesMemberSearch(member.getNick(), mSearchQuery, caseMapping))
+                filtered.add(member);
+        }
+        mVisibleMembers = filtered;
     }
 
     public static class TextHolder extends RecyclerView.ViewHolder {
@@ -177,6 +268,40 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
             }
         }
 
+    }
+
+    private static class SearchHolder extends RecyclerView.ViewHolder {
+
+        private final ChannelInfoAdapter adapter;
+        private final EditText input;
+        private final ImageButton clear;
+
+        SearchHolder(View view, ChannelInfoAdapter adapter) {
+            super(view);
+            this.adapter = adapter;
+            input = view.findViewById(R.id.member_search_input);
+            clear = view.findViewById(R.id.member_search_clear);
+            input.addTextChangedListener(new TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence text, int start, int count,
+                                                        int after) { }
+
+                @Override public void onTextChanged(CharSequence text, int start, int before,
+                                                    int count) {
+                    adapter.setSearchQuery(text.toString());
+                    clear.setVisibility(text.length() == 0 ? View.GONE : View.VISIBLE);
+                }
+
+                @Override public void afterTextChanged(Editable text) { }
+            });
+            clear.setOnClickListener(v -> input.setText(""));
+        }
+
+        void bind(String query) {
+            adapter.mSearchInput = input;
+            if (!TextUtils.equals(input.getText(), query))
+                input.setText(query);
+            clear.setVisibility(query.isEmpty() ? View.GONE : View.VISIBLE);
+        }
     }
 
     public static class MemberHolder extends RecyclerView.ViewHolder {

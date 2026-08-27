@@ -1,5 +1,9 @@
 # TIARCA — Changelog
 
+## v0.7.8
+
+- Aggiunta la ricerca client-side nella lista utenti del drawer destro per i canali con almeno 30 utenti.
+
 ## v0.7.7
 
 - Corretta l'apertura della tastiera quando si seleziona **Messaggio personalizzato…** nei dialog Kick, Kickban e TBAN.

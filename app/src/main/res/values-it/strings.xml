@@ -61,6 +61,8 @@
     <string name="channel_topic_info">impostato da %s su %s</string>
     <string name="channel_topic_none">Nessun argomento è stato impostato</string>
     <string name="channel_members">Membri</string>
+    <string name="member_search_hint">Cerca utenti</string>
+    <string name="member_search_clear">Cancella ricerca utenti</string>
 
 
     <string name="message_share_title">Condividi i messaggi di chat</string>

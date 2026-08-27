@@ -18,6 +18,26 @@ public enum IRCCaseMapping {
         return true;
     }
 
+    /** Returns whether {@code value} contains {@code query} using this IRC case mapping. */
+    public boolean contains(String value, String query) {
+        if (value == null || query == null)
+            return false;
+        if (query.isEmpty())
+            return true;
+        if (query.length() > value.length())
+            return false;
+        for (int start = 0; start <= value.length() - query.length(); start++) {
+            int index = 0;
+            while (index < query.length() &&
+                    fold(value.charAt(start + index)) == fold(query.charAt(index))) {
+                index++;
+            }
+            if (index == query.length())
+                return true;
+        }
+        return false;
+    }
+
     private char fold(char character) {
         if (character >= 'A' && character <= 'Z')
             character = (char) (character + ('a' - 'A'));
