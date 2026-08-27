@@ -18,6 +18,7 @@ import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ArrayAdapter;
@@ -636,22 +637,20 @@ public class UserBottomSheetDialog {
             public void onItemSelected(android.widget.AdapterView<?> parent, View view,
                                        int position, long id) {
                 if (position == customReasonPosition) {
-                    boolean inserted = false;
-                    if (reason.getParent() == null) {
+                    if (reason.getVisibility() != View.VISIBLE) {
                         reason.setText("");
-                        container.addView(reason);
-                        inserted = true;
                     }
-                    focusAndShowReasonKeyboard(reason, inserted);
+                    reason.setVisibility(View.VISIBLE);
+                    focusAndShowReasonKeyboard(reason);
                 } else {
                     reason.setText(options.get(position));
-                    if (reason.getParent() != null) {
+                    if (reason.getVisibility() == View.VISIBLE) {
                         InputMethodManager inputMethodManager = (InputMethodManager) mContext
                                 .getSystemService(Context.INPUT_METHOD_SERVICE);
                         if (inputMethodManager != null)
                             inputMethodManager.hideSoftInputFromWindow(reason.getWindowToken(), 0);
                         reason.clearFocus();
-                        container.removeView(reason);
+                        reason.setVisibility(View.GONE);
                     }
                 }
             }
@@ -660,32 +659,55 @@ public class UserBottomSheetDialog {
             public void onNothingSelected(android.widget.AdapterView<?> parent) {
             }
         });
+        reason.setEnabled(true);
+        reason.setFocusable(true);
+        reason.setFocusableInTouchMode(true);
+        reason.setVisibility(View.GONE);
         container.addView(spinner);
+        // Keep the editor in the hierarchy before AlertDialog.show(). AlertDialog otherwise
+        // treats the custom view as having no text input and may mark its window as unable to
+        // interact with the IME; adding an EditText later does not undo that window flag.
+        container.addView(reason);
         return container;
     }
 
-    /** Requests the IME only after a dynamically inserted custom-reason field has been laid out. */
-    private void focusAndShowReasonKeyboard(EditText reason, boolean waitForLayout) {
+    /** Requests the IME after the Spinner popup has returned window focus to the dialog. */
+    private void focusAndShowReasonKeyboard(EditText reason) {
         reason.requestFocus();
-        if (!waitForLayout) {
+        if (reason.hasWindowFocus()) {
             requestReasonKeyboard(reason);
             return;
         }
-        reason.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
-            @Override
-            public void onLayoutChange(View view, int left, int top, int right, int bottom,
-                                       int oldLeft, int oldTop, int oldRight, int oldBottom) {
-                reason.removeOnLayoutChangeListener(this);
+
+        ViewTreeObserver observer = reason.getViewTreeObserver();
+        ViewTreeObserver.OnWindowFocusChangeListener listener =
+                new ViewTreeObserver.OnWindowFocusChangeListener() {
+            @Override public void onWindowFocusChanged(boolean hasFocus) {
+                if (!hasFocus)
+                    return;
+                ViewTreeObserver currentObserver = reason.getViewTreeObserver();
+                if (currentObserver.isAlive())
+                    currentObserver.removeOnWindowFocusChangeListener(this);
                 requestReasonKeyboard(reason);
             }
+        };
+        observer.addOnWindowFocusChangeListener(listener);
+        // Cover the race where the popup returned focus between the check and registration.
+        reason.post(() -> {
+            if (!reason.hasWindowFocus())
+                return;
+            ViewTreeObserver currentObserver = reason.getViewTreeObserver();
+            if (currentObserver.isAlive())
+                currentObserver.removeOnWindowFocusChangeListener(listener);
+            requestReasonKeyboard(reason);
         });
     }
 
     private void requestReasonKeyboard(EditText reason) {
         reason.post(() -> {
-            if (reason.getWindowToken() == null)
+            if (reason.getVisibility() != View.VISIBLE || !reason.isFocused() ||
+                    !reason.hasWindowFocus() || reason.getWindowToken() == null)
                 return;
-            reason.requestFocus();
             WindowInsetsControllerCompat controller = ViewCompat.getWindowInsetsController(reason);
             if (controller != null)
                 controller.show(WindowInsetsCompat.Type.ime());

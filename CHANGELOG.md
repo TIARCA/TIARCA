@@ -1,5 +1,9 @@
 # TIARCA — Changelog
 
+## v0.7.11
+
+- Corretto definitivamente il campo **Messaggio personalizzato…** nei dialog Kick, Kickban e TBAN: il testo è ora editabile e la tastiera si apre quando il dialog riacquista il focus.
+
 ## v0.7.10
 
 - Ripristinate le ottimizzazioni R8 e la rimozione delle risorse inutilizzate nella build release, riducendo sensibilmente le dimensioni dell'APK.
