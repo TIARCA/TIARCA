@@ -422,8 +422,6 @@
     <string name="pref_summary_chat_multi_scroll_mode">Always enable the old batch message selection mode</string>
 
     <string name="pref_header_misc">Miscellaneous</string>
-    <string name="pref_title_drawer_always_show_server">Show Server in drawer</string>
-    <string name="pref_summary_drawer_always_show_server">Always show the Server tab in the drawer</string>
     <string name="pref_title_chat_show_dcc_send">Enable direct sending via DCC</string>
     <string name="pref_summary_chat_show_dcc_send">Add Send via DCC to the Send menu in private chats</string>
 

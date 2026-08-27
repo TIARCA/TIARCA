@@ -54,13 +54,10 @@ public class DrawerMenuListAdapter extends RecyclerView.Adapter<RecyclerView.Vie
     private int mDefaultForegroundColor;
     private int mSelectedForegroundColor;
     private int mHeaderPaddingTop = 0;
-    private boolean mAlwaysShowServer;
 
-    public DrawerMenuListAdapter(Context context, LockableDrawerLayout drawerLayout,
-                                 boolean alwaysShowServer) {
+    public DrawerMenuListAdapter(Context context, LockableDrawerLayout drawerLayout) {
         mContext = context;
         mDrawerLayout = drawerLayout;
-        mAlwaysShowServer = alwaysShowServer;
         notifyServerListChanged();
 
         StyledAttributesHelper ta = StyledAttributesHelper.obtainStyledAttributes(context,
@@ -72,14 +69,6 @@ public class DrawerMenuListAdapter extends RecyclerView.Adapter<RecyclerView.Vie
         mSelectedForegroundColor = ta.getColor(R.attr.colorAccent, 0);
         mDefaultForegroundColor = ta.getColor(android.R.attr.textColorPrimary, 0);
         ta.recycle();
-    }
-
-    public void setAlwaysShowServer(boolean value) {
-        if (mAlwaysShowServer == value)
-            return;
-        mAlwaysShowServer = value;
-        updateItemIndexToServerMap();
-        notifyDataSetChanged();
     }
 
     public void addMenuItem(DrawerMenuItem item) {
@@ -121,19 +110,14 @@ public class DrawerMenuListAdapter extends RecyclerView.Adapter<RecyclerView.Vie
                 break;
             }
             if (info.isExpandedInDrawer()) {
-                if (shouldShowServerItem(info))
-                    currentIndex++;
+                currentIndex++;
                 if (info.getChannels() != null)
                     currentIndex += info.getChannels().size();
             }
             currentIndex += 2;
         }
-        return serverIndex + 1 + (shouldShowServerItem(mSelectedItemServer) ? 1 : 0) +
+        return serverIndex + 2 +
                 mSelectedItemServer.getChannels().indexOf(mSelectedItemChannel);
-    }
-
-    private boolean shouldShowServerItem(ServerConnectionInfo info) {
-        return info.getChannels() == null || info.getChannels().size() == 0 || mAlwaysShowServer;
     }
 
     public void setSelectedChannel(ServerConnectionInfo server, String channel) {
@@ -148,8 +132,7 @@ public class DrawerMenuListAdapter extends RecyclerView.Adapter<RecyclerView.Vie
             if (info == mSelectedItemServer)
                 oldServerIndex = currentIndex;
             if (info.isExpandedInDrawer()) {
-                if (shouldShowServerItem(info))
-                    currentIndex++;
+                currentIndex++;
                 if (info.getChannels() != null)
                     currentIndex += info.getChannels().size();
             }
@@ -158,14 +141,12 @@ public class DrawerMenuListAdapter extends RecyclerView.Adapter<RecyclerView.Vie
         int oldChannelIndex = -1;
         if (mSelectedItemServer != null) {
             oldChannelIndex = mSelectedItemServer.getChannels().indexOf(mSelectedItemChannel);
-            if (shouldShowServerItem(mSelectedItemServer))
-                ++oldChannelIndex;
+            ++oldChannelIndex;
         }
         int newChannelIndex = -1;
         if (server != null) {
             newChannelIndex = server.getChannels().indexOf(channel);
-            if (shouldShowServerItem(server))
-                ++newChannelIndex;
+            ++newChannelIndex;
         }
         mSelectedItemServer = server;
         mSelectedItemChannel = channel;
@@ -193,8 +174,7 @@ public class DrawerMenuListAdapter extends RecyclerView.Adapter<RecyclerView.Vie
         for (ServerConnectionInfo info : mServers) {
             mItemIndexToServerMap.put(currentIndex, info);
             if (info.isExpandedInDrawer()) {
-                if (shouldShowServerItem(info))
-                    currentIndex++;
+                currentIndex++;
                 if (info.getChannels() != null)
                     currentIndex += info.getChannels().size();
             }
@@ -220,8 +200,7 @@ public class DrawerMenuListAdapter extends RecyclerView.Adapter<RecyclerView.Vie
         int channelIndex = connection.getChannels().indexOf(channel);
         if (channelIndex == -1)
             return;
-        if (shouldShowServerItem(connection))
-            channelIndex++;
+        channelIndex++;
         for (Map.Entry<Integer, ServerConnectionInfo> p : mItemIndexToServerMap.entrySet()) {
             if (p.getValue() == connection) {
                 notifyItemChanged(getServerListStart() + p.getKey() + 1 + channelIndex);
@@ -318,8 +297,7 @@ public class DrawerMenuListAdapter extends RecyclerView.Adapter<RecyclerView.Vie
             return TYPE_SERVER_HEADER;
         int cnt = 0;
         if (entry.getValue().isExpandedInDrawer()) {
-            if (shouldShowServerItem(entry.getValue()))
-                cnt++;
+            cnt++;
             if (entry.getValue().getChannels() != null)
                 cnt += entry.getValue().getChannels().size();
         }
@@ -387,9 +365,7 @@ public class DrawerMenuListAdapter extends RecyclerView.Adapter<RecyclerView.Vie
             for (Map.Entry<Integer, ServerConnectionInfo> entry :
                     mItemIndexToServerMap.entrySet()) {
                 if (entry.getValue() == mServerInfo && mServerInfo.getChannels() != null) {
-                    int channelCount = mServerInfo.getChannels().size();
-                    if (shouldShowServerItem(mServerInfo))
-                        ++channelCount;
+                    int channelCount = mServerInfo.getChannels().size() + 1;
                     if (mServerInfo.isExpandedInDrawer())
                         notifyItemRangeInserted(getServerListStart() + entry.getKey() + 1,
                                 channelCount);
@@ -426,8 +402,7 @@ public class DrawerMenuListAdapter extends RecyclerView.Adapter<RecyclerView.Vie
 
         public void bind(ServerConnectionInfo info, int channelIndex) {
             mConnection = info;
-            if (shouldShowServerItem(info))
-                --channelIndex;
+            --channelIndex;
             List<String> channels = info.getChannels();
             if (channelIndex >= 0 && channelIndex < channels.size()) {
                 mChannel = channels.get(channelIndex);

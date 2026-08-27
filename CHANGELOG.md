@@ -12,10 +12,18 @@
 ### Utenti monitorati
 
 - Aggiunta la schermata **Utenti monitorati** per network, basata su IRC MONITOR rilevato tramite `ISUPPORT MONITOR=<limite>` e sui numerici 730–734.
-- Mostrati gli stati Online, Away e Offline; sono indicati anche l'assenza del supporto MONITOR e le entry oltre il limite del server.
+- L'accesso principale nel drawer apre una panoramica dei server configurati e delle rispettive liste; sono mostrati gli stati Online, Away e Offline, l'assenza del supporto MONITOR e le entry oltre il limite del server.
 - La sync iniziale e dopo reconnect non genera false notifiche; le notifiche opzionali di accesso/disconnessione aprono il PVT del nickname corrente.
-- I cambi nickname osservati aggiornano MONITOR dal vecchio al nuovo nick, rispettano il case mapping IRC e proteggono dal riuso del vecchio nickname da parte di un altro utente.
+- Più nickname possono essere raggruppati manualmente sotto un singolo utente monitorato; i cambi nickname osservati aggiungono e conservano automaticamente un alias nel gruppo, rispettano il case mapping IRC e proteggono dal riuso del vecchio nickname da parte di un altro utente.
 - Configurazione e preferenze sono persistenti e incluse nel backup/ripristino; nessun polling è utilizzato. Lo stato away esistente viene riutilizzato quando disponibile.
+- Aggiungere o rimuovere utenti e alias durante una connessione aggiorna MONITOR senza riavviare la connessione IRC.
+
+### Menu rapido nickname e Interfaccia
+
+- Aggiunto un menu rapido con long press sui nickname, disponibile anche nella lista utenti e nel drawer destro, con accesso alle azioni già disponibili: PVT, menzione, WHOIS, monitoraggio, Ignore e moderazione quando consentita.
+- Corretto il conflitto tra long press sui nickname e selezione del testo: la selezione/copia normale e i link restano utilizzabili.
+- Semplificate le impostazioni Interfaccia: il completamento usa sempre pulsante, suggerimenti `@` e canali; la navigazione della cronologia usa sempre swipe orizzontali; la selezione moderna dei messaggi è sempre attiva e mantiene Copy, Share e Delete.
+- La scheda **Server** è sempre visibile nel drawer.
 
 ## v0.7.3
 

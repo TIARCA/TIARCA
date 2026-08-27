@@ -414,8 +414,6 @@
     <string name="pref_summary_chat_multi_scroll_mode">Ota aina vanha eräsanoman valintatila käyttöön</string>
 
     <string name="pref_header_misc">Muuta</string>
-    <string name="pref_title_drawer_always_show_server">Näytä palvelin laatikossa</string>
-    <string name="pref_summary_drawer_always_show_server">Näytä aina Palvelin-välilehti laatikossa</string>
     <string name="pref_title_chat_show_dcc_send">Ota käyttöön suora lähetys DCC:n kautta</string>
     <string name="pref_summary_chat_show_dcc_send">Lisää Lähetä DCC:n kautta lähetysvalikkoon yksityisissä keskusteluissa</string>
 

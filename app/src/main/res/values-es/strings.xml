@@ -414,8 +414,6 @@
     <string name="pref_summary_chat_multi_scroll_mode">Habilite siempre el modo de selección de mensajes por lotes antiguos</string>
 
     <string name="pref_header_misc">Varios</string>
-    <string name="pref_title_drawer_always_show_server">Mostrar servidor en cajón</string>
-    <string name="pref_summary_drawer_always_show_server">Mostrar siempre la pestaña Servidor en el cajón</string>
     <string name="pref_title_chat_show_dcc_send">Habilitar envío directo a través de DCC</string>
     <string name="pref_summary_chat_show_dcc_send">Agregar Enviar vía DCC al menú Enviar en chats privados</string>
 

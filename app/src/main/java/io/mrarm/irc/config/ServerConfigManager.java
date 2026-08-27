@@ -167,7 +167,6 @@ public class ServerConfigManager {
     }
 
     public void saveServer(ServerConfigData data) throws IOException {
-        Log.i("TIARCA-MONITOR-DEBUG", "save-server notify-listeners server=" + data.uuid);
         saveServer(data, true);
     }
 
@@ -176,7 +175,6 @@ public class ServerConfigManager {
      * This deliberately avoids broadcasting a connection update to listeners.
      */
     public void saveServerConfiguration(ServerConfigData data) throws IOException {
-        Log.i("TIARCA-MONITOR-DEBUG", "save-configuration no-listeners server=" + data.uuid);
         saveServer(data, false);
     }
 

@@ -430,8 +430,6 @@
     <string name="pref_summary_chat_multi_scroll_mode">Activați întotdeauna vechiul mod de selectare a mesajelor lot</string>
 
     <string name="pref_header_misc">Diverse</string>
-    <string name="pref_title_drawer_always_show_server">Afișați serverul în sertar</string>
-    <string name="pref_summary_drawer_always_show_server">Afișați întotdeauna fila Server în sertar</string>
     <string name="pref_title_chat_show_dcc_send">Activați trimiterea directă prin DCC</string>
     <string name="pref_summary_chat_show_dcc_send">Adăugați Trimitere prin DCC în meniul Trimitere în chat-urile private</string>
 

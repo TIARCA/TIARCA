@@ -16,7 +16,6 @@ import io.mrarm.irc.config.ServerConfigData;
 
 /** Standard IRC MONITOR state grouped into persistent client-side nickname aliases. */
 public final class MonitoredUsersManager implements CommandHandler {
-    private static final String DEBUG_TAG = "TIARCA-MONITOR-DEBUG";
     public static final int RPL_MONONLINE = 730, RPL_MONOFFLINE = 731, RPL_MONLIST = 732,
             RPL_ENDOFMONLIST = 733, ERR_MONLISTFULL = 734;
 
@@ -176,8 +175,6 @@ public final class MonitoredUsersManager implements CommandHandler {
         user.aliases = new ArrayList<>();
         user.aliases.add(newAlias(normalizedNick, ServerConfigData.MonitoredAlias.ORIGIN_MANUAL));
         config.monitoredUsers.add(user);
-        debug("add group=" + user.nick + " sync=" + syncState +
-                " supported=" + (data != null && isSupported(data)));
         persistConfiguration();
         notifyUserChanged(user);
         if (data != null && syncState == SyncState.READY && isSupported(data))
@@ -201,7 +198,6 @@ public final class MonitoredUsersManager implements CommandHandler {
         user.aliases.add(alias);
         persistConfiguration();
         notifyUserChanged(user);
-        debug("manual-alias-add group=" + user.nick + " alias=" + alias.nick);
         if (data != null && syncState == SyncState.READY && isSupported(data))
             synchronizeAddedAliases(data, user, Collections.singletonList(alias));
         return alias;
@@ -223,7 +219,6 @@ public final class MonitoredUsersManager implements CommandHandler {
         refreshAggregateOnline(user);
         persistConfiguration();
         notifyUserChanged(user);
-        debug("manual-alias-remove group=" + user.nick + " alias=" + alias.nick);
         if (wasSynchronized && data != null && isSupported(data)) send(data, "-", alias.nick);
         if (data != null && syncState == SyncState.READY && isSupported(data)) fillAvailableSlots(data);
         return true;
@@ -290,7 +285,6 @@ public final class MonitoredUsersManager implements CommandHandler {
             if (synchronizedAliases.remove(alias)) synchronizedCopy.add(alias);
         aliasesOverLimit.removeAll(match.user.aliases);
         config.monitoredUsers.remove(match.user);
-        debug("remove group=" + match.user.nick + " sync=" + syncState);
         persistConfiguration();
         notifyUserChanged(match.user);
         if (data != null && isSupported(data))
@@ -309,8 +303,6 @@ public final class MonitoredUsersManager implements CommandHandler {
         if (match == null) throw new IllegalArgumentException("nick");
         match.user.notifyOnline = online;
         match.user.notifyOffline = offline;
-        debug("notification-preferences group=" + match.user.nick + " online=" + online +
-                " offline=" + offline + " sync=" + syncState);
         persistConfiguration();
         notifyUserChanged(match.user);
     }
@@ -375,7 +367,6 @@ public final class MonitoredUsersManager implements CommandHandler {
                                  List<String> params, java.util.Map<String, String> tags)
             throws InvalidMessageException {
         int numeric = CommandHandler.toNumeric(command);
-        debug("numeric=" + numeric + " sync=" + syncState + " params=" + params.size());
         if (numeric == ERR_MONLISTFULL) {
             serverLimitReached = true;
             lastError = "The server MONITOR limit has been reached.";
@@ -406,7 +397,6 @@ public final class MonitoredUsersManager implements CommandHandler {
             } else if (syncState == SyncState.READY && groupWasOnline != groupIsOnline) {
                 PresenceUpdate update = groupIsOnline ? PresenceUpdate.BECAME_ONLINE :
                         PresenceUpdate.BECAME_OFFLINE;
-                debug("aggregate-presence group=" + match.user.nick + " update=" + update);
                 notifyPresence(match.user, update);
             }
         }
@@ -423,8 +413,6 @@ public final class MonitoredUsersManager implements CommandHandler {
         if (conflict != null && conflict.user != oldMatch.user) {
             refreshAggregateOnline(oldMatch.user);
             lastError = "Observed nickname already belongs to another monitored group.";
-            debug("observed-alias-conflict oldGroup=" + oldMatch.user.nick + " newGroup=" +
-                    conflict.user.nick + " alias=" + normalizedNewNick);
             notifyUserChanged(oldMatch.user);
             if (syncState == SyncState.READY && groupWasOnline && !oldMatch.user.online)
                 notifyPresence(oldMatch.user, PresenceUpdate.BECAME_OFFLINE);
@@ -439,8 +427,6 @@ public final class MonitoredUsersManager implements CommandHandler {
                     ServerConfigData.MonitoredAlias.ORIGIN_OBSERVED_NICK_CHANGE);
             ensureAliases(oldMatch.user);
             oldMatch.user.aliases.add(newAlias);
-            debug("observed-alias-add group=" + oldMatch.user.nick + " old=" + oldNick +
-                    " new=" + normalizedNewNick);
         }
         newAlias.online = groupWasOnline;
         oldMatch.user.currentNick = normalizedNewNick;
@@ -554,29 +540,20 @@ public final class MonitoredUsersManager implements CommandHandler {
     private void persistConfiguration() {
         if (persister == null) return;
         try {
-            debug("persist-start server=" + config.uuid);
             persister.persist();
-            debug("persist-complete server=" + config.uuid);
         } catch (IOException e) {
             lastError = "Could not save monitored users.";
-            debug("persist-failed server=" + config.uuid + " exception=" +
-                    e.getClass().getSimpleName() + " message=" + e.getMessage());
         }
     }
 
     private void send(ServerConnectionData data, String... params) {
         if (data == null || data.getApi() == null) return;
         try {
-            debug("queue MONITOR " + joinParams(params) + " sync=" + syncState);
             data.getApi().sendCommand("MONITOR", false, params, null, e -> {
                 lastError = "Could not synchronize MONITOR.";
-                debug("send-failed MONITOR " + joinParams(params) + " exception=" +
-                        e.getClass().getSimpleName() + " message=" + e.getMessage());
             });
         } catch (RuntimeException e) {
             lastError = "Could not synchronize MONITOR.";
-            debug("queue-failed MONITOR " + joinParams(params) + " exception=" +
-                    e.getClass().getSimpleName() + " message=" + e.getMessage());
         }
     }
 
@@ -606,18 +583,6 @@ public final class MonitoredUsersManager implements CommandHandler {
         return result.toString();
     }
 
-    private static String joinParams(String[] params) {
-        StringBuilder result = new StringBuilder();
-        if (params != null) for (String param : params) {
-            if (result.length() > 0) result.append(' ');
-            result.append(param);
-        }
-        return result.toString();
-    }
-
-    private static void debug(String message) {
-        System.out.println(DEBUG_TAG + " thread=" + Thread.currentThread().getName() + " " + message);
-    }
 
     private static IRCCaseMapping getCaseMapping(ServerConnectionData data) {
         return data == null ? IRCCaseMapping.RFC1459 : data.getSupportList().getCaseMapping();

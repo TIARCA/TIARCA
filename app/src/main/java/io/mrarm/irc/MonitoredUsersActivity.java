@@ -1,7 +1,6 @@
 package io.mrarm.irc;
 
 import android.os.Bundle;
-import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
@@ -37,9 +36,6 @@ public class MonitoredUsersActivity extends ThemedActivity implements MonitoredU
         monitoredUsers = connection != null ? connection.getMonitoredUsersManager() :
                 new MonitoredUsersManager(config, () ->
                         ServerConfigManager.getInstance(this).saveServerConfiguration(config));
-        Log.i("TIARCA-MONITOR-DEBUG", "activity-created server=" + serverUuid +
-                " connectionInstance=" + (connection == null ? "offline" :
-                System.identityHashCode(connection)));
         setTitle(getString(R.string.title_activity_monitored_users_network, config.name));
         LinearLayoutManager layout = new LinearLayoutManager(this);
         RecyclerView list = findViewById(R.id.items);
@@ -60,8 +56,6 @@ public class MonitoredUsersActivity extends ThemedActivity implements MonitoredU
     }
 
     @Override protected void onDestroy() {
-        Log.i("TIARCA-MONITOR-DEBUG", "activity-destroyed changingConfigurations=" +
-                isChangingConfigurations() + " finishing=" + isFinishing());
         if (monitoredUsers != null) monitoredUsers.removeListener(this);
         super.onDestroy();
     }
