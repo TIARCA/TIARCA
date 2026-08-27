@@ -22,9 +22,10 @@ import io.mrarm.irc.util.StyledAttributesHelper;
 final class MonitoredUsersAdapter extends RecyclerView.Adapter<MonitoredUsersAdapter.Holder> {
     private final ServerConnectionInfo connection;
     private final MonitoredUsersManager manager;
-    MonitoredUsersAdapter(Context context, ServerConnectionInfo connection) {
+    MonitoredUsersAdapter(Context context, ServerConnectionInfo connection,
+                          MonitoredUsersManager manager) {
         this.connection = connection;
-        this.manager = connection.getMonitoredUsersManager();
+        this.manager = manager;
     }
 
     @Override public Holder onCreateViewHolder(ViewGroup parent, int viewType) {
@@ -79,13 +80,13 @@ final class MonitoredUsersAdapter extends RecyclerView.Adapter<MonitoredUsersAda
             status = itemView.findViewById(R.id.status);
             notifications = itemView.findViewById(R.id.notifications);
             itemView.setOnClickListener(v -> {
-                if (user != null)
+                if (user != null && connection != null)
                     ((MonitoredUsersActivity) v.getContext()).openPrivateConversation(user.currentNick == null ? user.nick : user.currentNick);
             });
             itemView.setOnLongClickListener(v -> {
-                if (user != null)
+                if (user != null && connection != null)
                     MonitoredUserDialog.show(v.getContext(), connection, user, MonitoredUsersAdapter.this::notifyDataSetChanged);
-                return true;
+                return connection != null;
             });
         }
 

@@ -13,6 +13,7 @@ import android.view.View;
 import java.util.List;
 
 import io.mrarm.irc.MainActivity;
+import io.mrarm.irc.MonitoredServersActivity;
 import io.mrarm.irc.NotificationManager;
 import io.mrarm.irc.R;
 import io.mrarm.irc.ServerConnectionInfo;
@@ -59,6 +60,13 @@ public class DrawerHelper implements ServerConnectionManager.ConnectionsListener
             mDrawerLayout.closeDrawers();
         });
         mAdapter.addTopMenuItem(mSearchItem);
+        DrawerMenuItem monitoredUsersItem = new DrawerMenuItem(r.getString(R.string.title_activity_monitored_users),
+                R.drawable.ic_user);
+        monitoredUsersItem.setOnClickListener(view -> {
+            activity.startActivity(new Intent(activity, MonitoredServersActivity.class));
+            mDrawerLayout.closeDrawers();
+        });
+        mAdapter.addMenuItem(monitoredUsersItem);
         mManageServersItem = new DrawerMenuItem(r.getString(R.string.action_servers), R.drawable.ic_edit);
         mAdapter.addMenuItem(mManageServersItem);
         mSettingsItem = new DrawerMenuItem(r.getString(R.string.action_settings), R.drawable.ic_settings);

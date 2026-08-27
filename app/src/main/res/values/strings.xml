@@ -735,6 +735,10 @@
     <string name="title_activity_ignore_list">Ignore list</string>
     <string name="title_activity_monitored_users">Monitored users</string>
     <string name="title_activity_monitored_users_network">Monitored users on %s</string>
+    <plurals name="monitored_users_count">
+        <item quantity="one">%d monitored user</item>
+        <item quantity="other">%d monitored users</item>
+    </plurals>
     <string name="action_monitor_user">Monitor user</string>
     <string name="action_remove_monitored_user">Remove from monitored users</string>
     <string name="monitor_user_title">Monitor %s</string>

@@ -736,6 +736,12 @@
     <!-- Ignore list -->
 
     <string name="title_activity_ignore_list">Ignora l\'elenco</string>
+    <string name="title_activity_monitored_users">Utenti monitorati</string>
+    <string name="title_activity_monitored_users_network">Utenti monitorati su %s</string>
+    <plurals name="monitored_users_count">
+        <item quantity="one">%d utente monitorato</item>
+        <item quantity="other">%d utenti monitorati</item>
+    </plurals>
     <string name="title_activity_ignore_list_network">Ignora elenco per %s</string>
     <string name="title_activity_edit_ignore_entry">Modifica una voce da ignorare</string>
     <string name="title_activity_add_ignore_entry">Aggiungi una voce da ignorare</string>
