@@ -62,4 +62,25 @@ public class ChannelBanListDialogTest {
         assertFalse(ChannelBanListDialog.isCleanupCandidate(entry("*!*@*", 60), NOW));
         assertFalse(ChannelBanListDialog.isCleanupCandidate(entry("nickname!*@*", 60), NOW));
     }
+
+    @Test
+    public void searchMatchesMaskAndAuthorCaseInsensitively() {
+        BanListCommandHandler.Entry entry = new BanListCommandHandler.Entry(
+                "*!*@*.as62651.net", "hub-de.Simosnap.com", NOW);
+
+        assertTrue(ChannelBanListDialog.matchesSearch(entry, "62651.NET"));
+        assertTrue(ChannelBanListDialog.matchesSearch(entry, "HUB-DE.SIMOSNAP"));
+        assertFalse(ChannelBanListDialog.matchesSearch(entry, "unrelated"));
+    }
+
+    @Test
+    public void searchDoesNotMatchTheDateAndEmptySearchShowsAllRows() {
+        BanListCommandHandler.Entry entry = new BanListCommandHandler.Entry(
+                "*!*@example.net", "PrincipeDelB", NOW);
+
+        assertTrue(ChannelBanListDialog.matchesSearch(entry, ""));
+        assertTrue(ChannelBanListDialog.matchesSearch(entry, "  "));
+        assertTrue(ChannelBanListDialog.matchesSearch(entry, "principe"));
+        assertFalse(ChannelBanListDialog.matchesSearch(entry, Long.toString(NOW)));
+    }
 }

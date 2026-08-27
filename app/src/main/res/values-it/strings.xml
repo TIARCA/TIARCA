@@ -937,9 +937,12 @@
     <string name="ban_list_host">Host/mask</string>
     <string name="ban_list_setter">Autore</string>
     <string name="ban_list_date">Data</string>
+    <string name="ban_list_search_hint">Cerca…</string>
+    <string name="ban_list_search_clear">Cancella ricerca nella lista ban</string>
     <string name="ban_list_select_all">Seleziona tutto</string>
     <string name="ban_list_remove_selected">Rimuovi selezionato</string>
     <string name="ban_list_empty">La lista ban è vuota.</string>
+    <string name="ban_list_no_results">Nessun ban corrisponde alla ricerca.</string>
     <string name="ban_list_unknown">Sconosciuto</string>
     <string name="ban_list_select_one">Seleziona almeno un ban.</string>
     <string name="ban_list_confirm_title">Rimuovere i ban selezionati?</string>

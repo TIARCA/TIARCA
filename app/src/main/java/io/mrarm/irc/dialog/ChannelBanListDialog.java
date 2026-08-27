@@ -2,9 +2,12 @@ package io.mrarm.irc.dialog;
 
 import android.app.Activity;
 import android.graphics.Typeface;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.Gravity;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -37,6 +40,8 @@ public final class ChannelBanListDialog {
     private final String channel;
     private final List<Row> rows = new ArrayList<>();
     private LinearLayout list;
+    private EditText search;
+    private String searchQuery = "";
     private int sortColumn;
     private boolean ascending = true;
 
@@ -72,6 +77,30 @@ public final class ChannelBanListDialog {
         LinearLayout root = new LinearLayout(activity);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(pad, pad, pad, 0);
+        LinearLayout searchRow = new LinearLayout(activity);
+        searchRow.setOrientation(LinearLayout.HORIZONTAL);
+        search = new EditText(activity);
+        search.setHint(R.string.ban_list_search_hint);
+        search.setSingleLine(true);
+        search.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence text, int start, int count,
+                                                    int after) { }
+
+            @Override public void onTextChanged(CharSequence text, int start, int before,
+                                                int count) {
+                searchQuery = text.toString();
+                renderRows();
+            }
+
+            @Override public void afterTextChanged(Editable text) { }
+        });
+        Button clearSearch = new Button(activity);
+        clearSearch.setText("×");
+        clearSearch.setContentDescription(activity.getString(R.string.ban_list_search_clear));
+        clearSearch.setOnClickListener(v -> search.setText(""));
+        searchRow.addView(search, weighted(1));
+        searchRow.addView(clearSearch);
+        root.addView(searchRow);
         LinearLayout headers = new LinearLayout(activity);
         headers.setOrientation(LinearLayout.HORIZONTAL);
         Button host = header(R.string.ban_list_host, 0);
@@ -91,9 +120,10 @@ public final class ChannelBanListDialog {
         Button selectAll = new Button(activity);
         selectAll.setText(R.string.ban_list_select_all);
         selectAll.setOnClickListener(v -> {
-            boolean all = true;
-            for (Row row : rows) all &= row.selected;
-            for (Row row : rows) row.selected = !all;
+            List<Row> visibleRows = getVisibleRows();
+            boolean all = !visibleRows.isEmpty();
+            for (Row row : visibleRows) all &= row.selected;
+            for (Row row : visibleRows) row.selected = !all;
             renderRows();
         });
         actions.addView(selectAll, weighted(1));
@@ -142,15 +172,16 @@ public final class ChannelBanListDialog {
 
     private void renderRows() {
         list.removeAllViews();
-        if (rows.isEmpty()) {
+        List<Row> visibleRows = getVisibleRows();
+        if (visibleRows.isEmpty()) {
             TextView empty = new TextView(activity);
-            empty.setText(R.string.ban_list_empty);
+            empty.setText(rows.isEmpty() ? R.string.ban_list_empty : R.string.ban_list_no_results);
             empty.setGravity(Gravity.CENTER);
             list.addView(empty);
             return;
         }
         DateFormat format = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT);
-        for (Row row : rows) {
+        for (Row row : visibleRows) {
             LinearLayout line = new LinearLayout(activity);
             line.setOrientation(LinearLayout.HORIZONTAL);
             CheckBox mask = new CheckBox(activity);
@@ -195,6 +226,8 @@ public final class ChannelBanListDialog {
             if (row.selected)
                 candidates.add(row);
         }
+        if (!searchQuery.isEmpty())
+            search.setText("");
         renderRows();
         if (candidates.isEmpty()) {
             Toast.makeText(activity, R.string.ban_list_cleanup_none,
@@ -250,6 +283,28 @@ public final class ChannelBanListDialog {
         if (hasSpecificPart(ident))
             return false;
         return hasSpecificPart(host);
+    }
+
+    static boolean matchesSearch(BanListCommandHandler.Entry entry, String query) {
+        if (entry == null)
+            return false;
+        String normalizedQuery = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+        return normalizedQuery.isEmpty()
+                || containsIgnoreCase(entry.mask, normalizedQuery)
+                || containsIgnoreCase(entry.setter, normalizedQuery);
+    }
+
+    private List<Row> getVisibleRows() {
+        List<Row> visibleRows = new ArrayList<>();
+        for (Row row : rows) {
+            if (matchesSearch(row.entry, searchQuery))
+                visibleRows.add(row);
+        }
+        return visibleRows;
+    }
+
+    private static boolean containsIgnoreCase(String value, String lowerCaseQuery) {
+        return value != null && value.toLowerCase(Locale.ROOT).contains(lowerCaseQuery);
     }
 
     private static boolean hasSpecificPart(String value) {
