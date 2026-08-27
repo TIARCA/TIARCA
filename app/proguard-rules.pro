@@ -38,6 +38,13 @@
 # gson
 -keepattributes Signature
 -keepattributes *Annotation*
+
+# Gson 2.8.x does not bundle the R8 full-mode rules required by anonymous TypeToken
+# subclasses. Their generic superclass signature is read at runtime by TypeToken.
+-if class com.google.gson.reflect.TypeToken
+-keep,allowobfuscation class com.google.gson.reflect.TypeToken
+-keep,allowobfuscation class * extends com.google.gson.reflect.TypeToken
+
 -keep class * extends com.google.gson.TypeAdapter
 -keep class * implements com.google.gson.TypeAdapterFactory
 -keep class * implements com.google.gson.JsonSerializer

@@ -1,5 +1,9 @@
 # TIARCA — Changelog
 
+## v0.7.13
+
+- Corretto un crash durante la connessione causato dalla minificazione dei tipi Gson usati per le menzioni.
+
 ## v0.7.12
 
 - Corretto un crash all'avvio durante la migrazione delle liste di utenti monitorati esistenti.
