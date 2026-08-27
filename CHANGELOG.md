@@ -1,5 +1,9 @@
 # TIARCA — Changelog
 
+## v0.7.7
+
+- Corretta l'apertura della tastiera quando si seleziona **Messaggio personalizzato…** nei dialog Kick, Kickban e TBAN.
+
 ## v0.7.6
 
 - Aggiunta la ricerca nella Lista ban di canale: filtra in tempo reale Host/mask e Autore senza alterare ordinamento, selezioni o pulizia automatica dei ban.

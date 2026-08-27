@@ -9,6 +9,8 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -634,18 +636,13 @@ public class UserBottomSheetDialog {
             public void onItemSelected(android.widget.AdapterView<?> parent, View view,
                                        int position, long id) {
                 if (position == customReasonPosition) {
+                    boolean inserted = false;
                     if (reason.getParent() == null) {
                         reason.setText("");
                         container.addView(reason);
+                        inserted = true;
                     }
-                    reason.requestFocus();
-                    reason.post(() -> {
-                        InputMethodManager inputMethodManager = (InputMethodManager) mContext
-                                .getSystemService(Context.INPUT_METHOD_SERVICE);
-                        if (inputMethodManager != null)
-                            inputMethodManager.showSoftInput(reason,
-                                    InputMethodManager.SHOW_IMPLICIT);
-                    });
+                    focusAndShowReasonKeyboard(reason, inserted);
                 } else {
                     reason.setText(options.get(position));
                     if (reason.getParent() != null) {
@@ -665,6 +662,38 @@ public class UserBottomSheetDialog {
         });
         container.addView(spinner);
         return container;
+    }
+
+    /** Requests the IME only after a dynamically inserted custom-reason field has been laid out. */
+    private void focusAndShowReasonKeyboard(EditText reason, boolean waitForLayout) {
+        reason.requestFocus();
+        if (!waitForLayout) {
+            requestReasonKeyboard(reason);
+            return;
+        }
+        reason.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+            @Override
+            public void onLayoutChange(View view, int left, int top, int right, int bottom,
+                                       int oldLeft, int oldTop, int oldRight, int oldBottom) {
+                reason.removeOnLayoutChangeListener(this);
+                requestReasonKeyboard(reason);
+            }
+        });
+    }
+
+    private void requestReasonKeyboard(EditText reason) {
+        reason.post(() -> {
+            if (reason.getWindowToken() == null)
+                return;
+            reason.requestFocus();
+            WindowInsetsControllerCompat controller = ViewCompat.getWindowInsetsController(reason);
+            if (controller != null)
+                controller.show(WindowInsetsCompat.Type.ime());
+            InputMethodManager inputMethodManager = (InputMethodManager) mContext
+                    .getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (inputMethodManager != null)
+                inputMethodManager.showSoftInput(reason, InputMethodManager.SHOW_IMPLICIT);
+        });
     }
 
     private void showMaskCommandDialog(int actionId, String commandPrefix, String defaultMask) {
