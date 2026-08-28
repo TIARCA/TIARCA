@@ -43,11 +43,7 @@ public class UserSearchDialog extends SearchDialog {
     }
 
     private void openOnlineConversation(String query) {
-        List<String> channels = new ArrayList<>();
-        channels.add(query);
-        mConnection.getApiInstance().joinChannels(channels, (Void v) -> {
-            openConversation(query);
-        }, null);
+        mConnection.registerPrivateConversation(query, () -> openConversation(query));
     }
 
     private void openConversation(String query) {

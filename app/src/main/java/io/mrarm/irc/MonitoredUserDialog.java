@@ -29,6 +29,12 @@ public final class MonitoredUserDialog {
 
     public static void show(Context context, ServerConnectionInfo connection,
                             ServerConfigData.MonitoredUser existing, Runnable onChanged) {
+        show(context, connection, existing, null, onChanged);
+    }
+
+    public static void show(Context context, ServerConnectionInfo connection,
+                            ServerConfigData.MonitoredUser existing, String initialNickname,
+                            Runnable onChanged) {
         ServerConnectionApi api = connection.getApiInstance() instanceof ServerConnectionApi
                 ? (ServerConnectionApi) connection.getApiInstance() : null;
         if (api == null) {
@@ -58,9 +64,12 @@ public final class MonitoredUserDialog {
         primary.setHint(R.string.monitor_user_nickname);
         primary.setSingleLine(true);
         primary.setInputType(InputType.TYPE_CLASS_TEXT);
+        String initialValue = resolveInitialNickname(existing, initialNickname);
         if (existing != null) {
-            primary.setText(existing.nick);
+            primary.setText(initialValue);
             primary.setEnabled(false);
+        } else if (!initialValue.isEmpty()) {
+            primary.setText(initialValue);
         }
         content.addView(primary);
 
@@ -121,7 +130,7 @@ public final class MonitoredUserDialog {
         addAlias.setOnClickListener(v -> showAddAliasDialog(context, data, manager, existing,
                 primary, aliases, render[0]));
 
-        String titleNick = existing == null ? "" : existing.nick;
+        String titleNick = initialValue;
         ScrollView scroll = new ScrollView(context);
         scroll.addView(content);
         AlertDialog.Builder builder = new AlertDialog.Builder(context)
@@ -175,6 +184,13 @@ public final class MonitoredUserDialog {
             }
         });
         dialog.show();
+    }
+
+    static String resolveInitialNickname(ServerConfigData.MonitoredUser existing,
+                                         String contextualNickname) {
+        if (existing != null && existing.nick != null)
+            return existing.nick;
+        return contextualNickname == null ? "" : contextualNickname.trim();
     }
 
     private static void showAddAliasDialog(Context context, ServerConnectionData data,

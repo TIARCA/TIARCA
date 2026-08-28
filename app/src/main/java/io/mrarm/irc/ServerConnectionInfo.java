@@ -593,6 +593,27 @@ public class ServerConnectionInfo {
         }
     }
 
+    /**
+     * Registers a private conversation in chatlib before its UI is opened. This is the same
+     * channel-list path used by the normal "message user" action and is intentionally queued on
+     * the connection executor by {@link ChatApi#joinChannels}.
+     */
+    public void registerPrivateConversation(String nickname, Runnable onRegistered) {
+        if (nickname == null || mApi == null)
+            return;
+        String target = nickname.trim();
+        if (target.isEmpty())
+            return;
+        if (mApi instanceof ServerConnectionApi && ((ServerConnectionApi) mApi)
+                .getServerConnectionData().getSupportList().getSupportedChannelTypes()
+                .contains(target.charAt(0)))
+            return;
+        mApi.joinChannels(Collections.singletonList(target), ignored -> {
+            if (onRegistered != null)
+                onRegistered.run();
+        }, null);
+    }
+
     /** Adds a locally stored query to the visible tabs without requiring the nick to be online. */
     public void addStoredConversation(String channel) {
         if (channel == null || channel.isEmpty() || hasChannel(channel))

@@ -693,8 +693,8 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
                     .getSupportedChannelTypes().contains(nick.charAt(0)))
                 return;
         }
-        connection.addStoredConversation(nick);
-        openServer(connection, nick);
+        connection.registerPrivateConversation(nick,
+                () -> runOnUiThread(() -> openServer(connection, nick)));
     }
 
     private void handleSimosnapFileResult(ActivityResult result) {

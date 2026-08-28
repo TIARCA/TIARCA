@@ -65,6 +65,9 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
     public void setData(ServerConnectionInfo connection, String channel, String topic, String topicSetBy,
                         Date topicSetOn, List<NickWithPrefix> members) {
         boolean contextChanged = connection != mConnection || !TextUtils.equals(channel, mChannel);
+        int oldMemberCount = getMemberCount();
+        int oldVisibleCount = mVisibleMembers.size();
+        int oldMemberStart = getMemberStart();
         mConnection = connection;
         mChannel = channel;
         mTopic = topic;
@@ -78,8 +81,13 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
             onDrawerClosed();
         rebuildVisibleMembers();
         SimosnapAvatarManager.requestChannelAccounts(connection, channel,
-                this::notifyDataSetChanged);
-        notifyDataSetChanged();
+                this::notifyVisibleMemberRowsChanged);
+        if (requiresFullRefresh(contextChanged, oldMemberCount, getMemberCount())) {
+            notifyDataSetChanged();
+        } else {
+            notifyItemChanged(1);
+            replaceVisibleMemberRows(oldMemberStart, oldVisibleCount);
+        }
     }
 
     public List<NickWithPrefix> getMembers() {
@@ -156,6 +164,12 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
         return caseMapping != null && caseMapping.contains(nick, query == null ? "" : query);
     }
 
+    static boolean requiresFullRefresh(boolean contextChanged, int oldMemberCount,
+                                       int newMemberCount) {
+        return contextChanged || isMemberSearchVisible(oldMemberCount) !=
+                isMemberSearchVisible(newMemberCount);
+    }
+
     private int getMemberCount() {
         return mMembers == null ? 0 : mMembers.size();
     }
@@ -172,9 +186,23 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
         String normalized = query == null ? "" : query.trim();
         if (TextUtils.equals(mSearchQuery, normalized))
             return;
+        int oldVisibleCount = mVisibleMembers.size();
+        int memberStart = getMemberStart();
         mSearchQuery = normalized;
         rebuildVisibleMembers();
-        notifyDataSetChanged();
+        replaceVisibleMemberRows(memberStart, oldVisibleCount);
+    }
+
+    private void replaceVisibleMemberRows(int memberStart, int oldVisibleCount) {
+        if (oldVisibleCount > 0)
+            notifyItemRangeRemoved(memberStart, oldVisibleCount);
+        if (!mVisibleMembers.isEmpty())
+            notifyItemRangeInserted(getMemberStart(), mVisibleMembers.size());
+    }
+
+    private void notifyVisibleMemberRowsChanged() {
+        if (!mVisibleMembers.isEmpty())
+            notifyItemRangeChanged(getMemberStart(), mVisibleMembers.size());
     }
 
     private void rebuildVisibleMembers() {

@@ -1,5 +1,11 @@
 # TIARCA — Changelog
 
+## v0.7.14
+
+- Corretto il posizionamento dei messaggi nei PVT aperti dalla lista **Utenti monitorati**.
+- La ricerca utenti nel drawer mantiene ora testo, focus e tastiera durante gli aggiornamenti del canale.
+- L'azione **Monitora utente** dal menu rapido precompila correttamente il nickname selezionato.
+
 ## v0.7.13
 
 - Corretto un crash durante la connessione causato dalla minificazione dei tipi Gson usati per le menzioni.

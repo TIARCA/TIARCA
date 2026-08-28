@@ -55,6 +55,7 @@ public final class NicknameContextMenu {
                     R.drawable.ic_notifications, item -> {
                         MonitoredUserDialog.show(context, connection,
                                 alreadyMonitored ? monitored.getMonitoredUser(api.getServerConnectionData(), targetNick) : null,
+                                targetNick,
                                 () -> { });
                         return true;
                     });

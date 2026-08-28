@@ -76,8 +76,9 @@ public class MonitoredUsersActivity extends ThemedActivity implements MonitoredU
     void openPrivateConversation(String nick) {
         if (nick == null || nick.trim().isEmpty()) return;
         if (connection != null) {
-            connection.addStoredConversation(nick);
-            startActivity(MainActivity.getLaunchIntent(this, connection, nick));
+            String target = nick.trim();
+            connection.registerPrivateConversation(target, () -> runOnUiThread(() ->
+                    startActivity(MainActivity.getLaunchIntent(this, connection, target))));
         }
     }
 

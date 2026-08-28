@@ -32,4 +32,13 @@ public class ChannelInfoAdapterTest {
         assertFalse(ChannelInfoAdapter.matchesMemberSearch("[User]", "{user}",
                 IRCCaseMapping.ASCII));
     }
+
+    @Test
+    public void memberUpdatesKeepSearchRowWhenThresholdDoesNotChange() {
+        assertFalse(ChannelInfoAdapter.requiresFullRefresh(false, 30, 31));
+        assertFalse(ChannelInfoAdapter.requiresFullRefresh(false, 100, 99));
+        assertTrue(ChannelInfoAdapter.requiresFullRefresh(false, 29, 30));
+        assertTrue(ChannelInfoAdapter.requiresFullRefresh(false, 30, 29));
+        assertTrue(ChannelInfoAdapter.requiresFullRefresh(true, 100, 100));
+    }
 }
