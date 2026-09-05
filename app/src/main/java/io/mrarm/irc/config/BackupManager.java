@@ -102,10 +102,15 @@ public class BackupManager {
             params.setFileNameInZip(BACKUP_COMMAND_ALIASES_PATH);
             zipFile.addStream(new ByteArrayInputStream(writer.toString().getBytes()), params);
 
-            NotificationCountStorage.getInstance(context).close();
-            params.setFileNameInZip(NOTIFICATION_COUNT_DB_PATH);
-            zipFile.addFile(NotificationCountStorage.getFile(context), params);
-            NotificationCountStorage.getInstance(context).open();
+            NotificationCountStorage countStorage = NotificationCountStorage.getInstance(context);
+            countStorage.open();
+            countStorage.close();
+            File countDbFile = NotificationCountStorage.getFile(context);
+            if (countDbFile.exists()) {
+                params.setFileNameInZip(NOTIFICATION_COUNT_DB_PATH);
+                zipFile.addFile(countDbFile, params);
+            }
+            countStorage.open();
 
             ThemeManager themeManager = ThemeManager.getInstance(context);
             for (ThemeInfo themeInfo : themeManager.getCustomThemes()) {
