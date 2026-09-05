@@ -647,10 +647,10 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
             intent.putExtra(IgnoreListActivity.ARG_SERVER_UUID, info.getUUID().toString());
             startActivity(intent);
         } else if (id == R.id.action_monitored_users) {
-            ServerConnectionInfo info = ((ChatFragment) getCurrentFragment()).getConnectionInfo();
-            Intent intent = new Intent(this, MonitoredUsersActivity.class);
-            intent.putExtra(MonitoredUsersActivity.ARG_SERVER_UUID, info.getUUID().toString());
-            startActivity(intent);
+            Fragment current = getCurrentFragment();
+            ServerConnectionInfo info = (current instanceof ChatFragment) ?
+                    ((ChatFragment) current).getConnectionInfo() : null;
+            MonitoredUsersActivity.open(this, info);
         } else if (id == R.id.action_disconnect) {
             ((ChatFragment) getCurrentFragment()).getConnectionInfo().disconnect();
         } else if (id == R.id.action_disconnect_and_close || id == R.id.action_close) {

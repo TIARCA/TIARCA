@@ -9,6 +9,9 @@ import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.content.Context;
+import android.content.Intent;
+
 import java.util.UUID;
 
 import io.mrarm.chatlib.irc.ServerConnectionApi;
@@ -23,15 +26,72 @@ public class MonitoredUsersActivity extends ThemedActivity implements MonitoredU
     private MonitoredUsersAdapter adapter;
     private TextView unsupportedNotice;
 
+    public static Intent createLaunchIntent(Context context, ServerConnectionInfo connection) {
+        if (connection != null && connection.getUUID() != null) {
+            return createLaunchIntentForServer(context, connection.getUUID());
+        }
+        return createLaunchIntentGlobal(context);
+    }
+
+    public static Intent createLaunchIntentForServer(Context context, UUID serverUuid) {
+        if (serverUuid != null) {
+            Intent intent = context != null ? new Intent(context, MonitoredUsersActivity.class) : new Intent();
+            if (context == null) {
+                intent.setClassName("io.mrarm.irc", MonitoredUsersActivity.class.getName());
+            }
+            intent.putExtra(ARG_SERVER_UUID, serverUuid.toString());
+            return intent;
+        }
+        return createLaunchIntentGlobal(context);
+    }
+
+    public static Intent createLaunchIntentGlobal(Context context) {
+        Intent intent = context != null ? new Intent(context, MonitoredServersActivity.class) : new Intent();
+        if (context == null) {
+            intent.setClassName("io.mrarm.irc", MonitoredServersActivity.class.getName());
+        }
+        return intent;
+    }
+
+    public static void open(Context context, ServerConnectionInfo connection) {
+        context.startActivity(createLaunchIntent(context, connection));
+    }
+
+    public static void openForServer(Context context, UUID serverUuid) {
+        context.startActivity(createLaunchIntentForServer(context, serverUuid));
+    }
+
+    public static void openGlobal(Context context) {
+        context.startActivity(createLaunchIntentGlobal(context));
+    }
+
+    private void fallbackToGlobalList() {
+        Intent intent = new Intent(this, MonitoredServersActivity.class);
+        startActivity(intent);
+        finish();
+    }
+
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_monitored_users);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         String rawUuid = getIntent().getStringExtra(ARG_SERVER_UUID);
-        if (rawUuid == null) { finish(); return; }
-        UUID serverUuid = UUID.fromString(rawUuid);
+        if (rawUuid == null) {
+            fallbackToGlobalList();
+            return;
+        }
+        UUID serverUuid;
+        try {
+            serverUuid = UUID.fromString(rawUuid);
+        } catch (Exception e) {
+            fallbackToGlobalList();
+            return;
+        }
         ServerConfigData config = ServerConfigManager.getInstance(this).findServer(serverUuid);
-        if (config == null) { finish(); return; }
+        if (config == null) {
+            fallbackToGlobalList();
+            return;
+        }
         connection = ServerConnectionManager.getInstance(this).getConnection(serverUuid);
         monitoredUsers = connection != null ? connection.getMonitoredUsersManager() :
                 new MonitoredUsersManager(config, () ->

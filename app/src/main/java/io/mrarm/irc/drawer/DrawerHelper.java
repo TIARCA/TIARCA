@@ -11,9 +11,13 @@ import android.view.View;
 
 import java.util.List;
 
+import androidx.fragment.app.Fragment;
+
 import io.mrarm.irc.MainActivity;
 import io.mrarm.irc.MonitoredServersActivity;
+import io.mrarm.irc.MonitoredUsersActivity;
 import io.mrarm.irc.NotificationManager;
+import io.mrarm.irc.chat.ChatFragment;
 import io.mrarm.irc.R;
 import io.mrarm.irc.ServerConnectionInfo;
 import io.mrarm.irc.ServerConnectionManager;
@@ -57,7 +61,14 @@ public class DrawerHelper implements ServerConnectionManager.ConnectionsListener
         DrawerMenuItem monitoredUsersItem = new DrawerMenuItem(r.getString(R.string.title_activity_monitored_users),
                 R.drawable.ic_user);
         monitoredUsersItem.setOnClickListener(view -> {
-            activity.startActivity(new Intent(activity, MonitoredServersActivity.class));
+            ServerConnectionInfo currentConnection = null;
+            if (activity instanceof MainActivity) {
+                Fragment current = ((MainActivity) activity).getCurrentFragment();
+                if (current instanceof ChatFragment) {
+                    currentConnection = ((ChatFragment) current).getConnectionInfo();
+                }
+            }
+            MonitoredUsersActivity.open(activity, currentConnection);
             mDrawerLayout.closeDrawers();
         });
         mAdapter.addMenuItem(monitoredUsersItem);
