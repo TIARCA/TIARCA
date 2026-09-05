@@ -84,7 +84,7 @@ public class ServerConfigManager {
             simosnap.name = "Simosnap";
             simosnap.uuid = UUID.nameUUIDFromBytes(
                     "bundled-server:simosnap".getBytes(Charset.forName("UTF-8")));
-            simosnap.address = "irc.simosnap.com";
+            simosnap.address = "irc.simosnap.org";
             simosnap.port = 6697;
             simosnap.ssl = true;
             simosnap.charset = "UTF-8";
