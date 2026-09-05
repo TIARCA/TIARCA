@@ -32,10 +32,10 @@
     <string name="message_mode_set">ha impostato %s</string>
     <string name="message_mode_unset">ha rimosso %s</string>
     <string name="message_mode_gave">ha dato %s</string>
-    <string name="message_mode_removed">rimosso %s</string>
+    <string name="message_mode_removed">ha tolto %s</string>
 
-    <string name="message_mode_gave_to">Da %s a %s</string>
-    <string name="message_mode_removed_from">%s da %s</string>
+    <string name="message_mode_gave_to">%s a %s</string>
+    <string name="message_mode_removed_from">%s a %s</string>
 
     <plurals name="message_mode_channel">
         <item quantity="one">modalità del canale \'%s\'</item>
@@ -43,11 +43,11 @@
     </plurals>
     <string name="message_mode_channel_value">modalità canale \'%s\' su %s</string>
     <string name="message_mode_channel_ban">un ban su %s</string>
-    <string name="message_mode_nick_owner">stato del proprietario del canale</string>
-    <string name="message_mode_nick_admin">stato di amministratore del canale</string>
-    <string name="message_mode_nick_op">stato di operatore del canale</string>
-    <string name="message_mode_nick_half_op">stato di half-op del canale</string>
-    <string name="message_mode_nick_voice">voice</string>
+    <string name="message_mode_nick_owner">lo stato di proprietario del canale</string>
+    <string name="message_mode_nick_admin">lo stato di amministratore del canale</string>
+    <string name="message_mode_nick_op">lo stato di operatore del canale</string>
+    <string name="message_mode_nick_half_op">lo stato di half-op del canale</string>
+    <string name="message_mode_nick_voice">il voice</string>
 
     <string name="message_ctcp_ping">Ricevuto un ping CTCP</string>
     <string name="message_ctcp_version">Ricevuta una richiesta CTCP VERSION</string>
