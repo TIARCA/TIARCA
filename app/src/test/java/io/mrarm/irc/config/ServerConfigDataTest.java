@@ -14,6 +14,15 @@ public class ServerConfigDataTest {
         assertEquals(Arrays.asList("irc.example.net"), data.getConnectionAddresses());
     }
 
+    @Test public void migratesLegacySimosnapHostname() {
+        ServerConfigData data = new ServerConfigData();
+        data.address = "irc.simosnap.com";
+        data.addresses = Arrays.asList("irc.simosnap.com", "fallback.simosnap.com");
+        data.migrateLegacyProperties();
+        assertEquals("irc.simosnap.org", data.address);
+        assertEquals(Arrays.asList("irc.simosnap.org", "fallback.simosnap.com"), data.getConnectionAddresses());
+    }
+
     @Test public void keepsOrderedUniqueFallbacks() {
         ServerConfigData data = new ServerConfigData();
         data.setConnectionAddresses(Arrays.asList("one.example", "two.example", "one.example"));

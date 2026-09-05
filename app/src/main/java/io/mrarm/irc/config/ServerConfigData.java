@@ -67,6 +67,16 @@ public class ServerConfigData {
             authPass = null;
             authMode = null;
         }
+        if (address != null && "irc.simosnap.com".equalsIgnoreCase(address.trim())) {
+            address = "irc.simosnap.org";
+        }
+        if (addresses != null) {
+            for (int i = 0; i < addresses.size(); i++) {
+                if (addresses.get(i) != null && "irc.simosnap.com".equalsIgnoreCase(addresses.get(i).trim())) {
+                    addresses.set(i, "irc.simosnap.org");
+                }
+            }
+        }
         if (addresses == null)
             addresses = new ArrayList<>();
         if (address != null && !address.trim().isEmpty() && !addresses.contains(address))
