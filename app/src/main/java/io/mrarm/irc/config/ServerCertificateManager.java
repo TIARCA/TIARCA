@@ -44,6 +44,8 @@ public class ServerCertificateManager {
     private static final Map<String, WeakReference<ServerCertificateManager>> mInstances = new HashMap<>();
 
     public static ServerCertificateManager get(File file) {
+        if (file == null)
+            return new ServerCertificateManager(null);
         synchronized (mInstances) {
             WeakReference<ServerCertificateManager> instance = mInstances.get(file.getAbsolutePath());
             if (instance != null) {
