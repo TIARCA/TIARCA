@@ -68,3 +68,8 @@
 }
 
 -keep @com.google.gson.annotations.JsonAdapter class * { *; }
+
+# Preserve IRC command handlers, capabilities, and message filters lookup by class
+-keep class * implements io.mrarm.chatlib.irc.CommandHandler { *; }
+-keep class * extends io.mrarm.chatlib.irc.cap.Capability { *; }
+-keep class * implements io.mrarm.chatlib.irc.MessageFilter { *; }
