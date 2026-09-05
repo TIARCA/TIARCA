@@ -16,6 +16,7 @@ import android.widget.TextView;
 import java.lang.ref.WeakReference;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -48,10 +49,12 @@ public class UserOverrideTrustManager implements X509TrustManager, HostnameVerif
     public UserOverrideTrustManager(Context context, UUID serverUUID) {
         mContext = context;
         mServerUUID = serverUUID;
-        mManager = ServerCertificateManager.get(context, serverUUID);
+        mManager = context != null ? ServerCertificateManager.get(context, serverUUID) : ServerCertificateManager.get((File) null);
     }
 
     private String getServerName() {
+        if (mContext == null)
+            return null;
         ServerConfigData server = ServerConfigManager.getInstance(mContext).findServer(mServerUUID);
         if (server != null)
             return server.name;
@@ -85,25 +88,33 @@ public class UserOverrideTrustManager implements X509TrustManager, HostnameVerif
     @Override
     public void checkServerTrusted(X509Certificate[] chain, String authType)
             throws CertificateException {
+        if (chain == null || chain.length == 0)
+            throw new CertificateException("Certificate chain is empty");
         try {
-            sDefaultTrustManager.checkServerTrusted(chain, authType);
-        } catch (Exception e) {
+            if (sDefaultTrustManager != null)
+                sDefaultTrustManager.checkServerTrusted(chain, authType);
+            else
+                throw new CertificateException("Default trust manager is null");
+        } catch (Throwable e) {
             try {
-                mManager.checkServerTrusted(chain, authType);
-            } catch (Exception e2) {
+                if (mManager != null)
+                    mManager.checkServerTrusted(chain, authType);
+                else
+                    throw new CertificateException("Server certificate manager is null");
+            } catch (Throwable e2) {
                 synchronized (UserOverrideTrustManager.this) {
                     if (mTempTrustedCertificates != null && mTempTrustedCertificates.contains(chain[0])) {
                         Log.i(TAG, "A temporarily trusted certificate is being used - trusting the server");
                         return;
                     }
                 }
-                Log.i(TAG, "Unrecognized certificate");
+                Log.i(TAG, "Unrecognized certificate: " + e2.getMessage());
                 try {
                     X509Certificate cert = chain[0];
                     if (!askUser(cert, R.string.certificate_bad_cert).get())
                         throw new UserRejectedCertificateException();
                 } catch (InterruptedException | ExecutionException e3) {
-                    throw new CertificateException("Asking user about the certificate failed");
+                    throw new CertificateException("Asking user about the certificate failed", e3);
                 }
             }
         }

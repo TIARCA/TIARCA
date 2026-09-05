@@ -226,23 +226,23 @@ public class NetworkCatalogActivity extends ThemedActivity {
         }
     }
 
-    private static class Catalog {
+    public static class Catalog {
         List<Network> networks;
     }
 
-    private static class Network {
+    public static class Network {
         String name;
         List<Endpoint> endpoints;
         Population populationSnapshot;
     }
 
-    private static class Endpoint {
+    public static class Endpoint {
         String host;
         int port;
         boolean tls;
     }
 
-    private static class Population {
+    public static class Population {
         Long users;
         Long channels;
     }
