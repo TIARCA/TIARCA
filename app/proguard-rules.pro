@@ -63,6 +63,9 @@
 -keep,allowoptimization class io.mrarm.irc.config.ServerConfigData { *; }
 -keep,allowoptimization class io.mrarm.irc.config.ServerConfigData$* { *; }
 
+# Network catalog models read reflectively by Gson
+-keep class io.mrarm.irc.NetworkCatalogActivity$* { *; }
+
 -keepclasseswithmembers,allowobfuscation,includedescriptorclasses class * {
     @com.google.gson.annotations.JsonAdapter <fields>;
 }
