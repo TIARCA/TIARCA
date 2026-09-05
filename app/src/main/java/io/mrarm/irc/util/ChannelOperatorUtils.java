@@ -47,6 +47,29 @@ public final class ChannelOperatorUtils {
         return findMember(connection, channel, nick) != null;
     }
 
+    public static boolean hasVoice(ServerConnectionInfo connection, String channel,
+                                   String nick) {
+        NickWithPrefix member = findMember(connection, channel, nick);
+        return hasVoice(connection, member);
+    }
+
+    public static boolean hasVoice(ServerConnectionInfo connection, NickWithPrefix member) {
+        if (member == null || member.getNickPrefixes() == null)
+            return false;
+        char voicePrefix = '+';
+        if (connection != null && connection.getApiInstance() instanceof IRCConnection) {
+            IRCConnection irc = (IRCConnection) connection.getApiInstance();
+            ModeList supportedModes = irc.getServerConnectionData().getSupportList()
+                    .getSupportedNickPrefixModes();
+            ModeList supportedPrefixes = irc.getServerConnectionData().getSupportList()
+                    .getSupportedNickPrefixes();
+            int voiceIndex = supportedModes != null ? supportedModes.find('v') : -1;
+            if (supportedPrefixes != null && voiceIndex >= 0 && voiceIndex < supportedPrefixes.length())
+                voicePrefix = supportedPrefixes.get(voiceIndex);
+        }
+        return member.getNickPrefixes().contains(voicePrefix);
+    }
+
     public static NickWithPrefix findMember(ServerConnectionInfo connection, String channel,
                                             String nick) {
         if (connection == null || channel == null || nick == null ||

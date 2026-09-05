@@ -175,8 +175,8 @@
     <string name="operator_mute">Mute su host</string>
     <string name="operator_audi">Audi su ident</string>
     <string name="operator_unban_host">Rimuovi ban esatto sull’host</string>
-    <string name="operator_voice">Assegna voice</string>
-    <string name="operator_devoice">Rimuovi voice</string>
+    <string name="operator_voice">Dai voice</string>
+    <string name="operator_devoice">Togli voice</string>
     <string name="operator_mask">Mask del ban</string>
     <string name="operator_invalid_mask">Inserisci una maschera valida senza spazi.</string>
     <string name="operator_ident_unavailable">L’ident dell’utente non è disponibile.</string>
