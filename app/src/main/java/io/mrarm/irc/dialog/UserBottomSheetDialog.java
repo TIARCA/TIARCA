@@ -51,6 +51,7 @@ import io.mrarm.irc.util.AdvancedDividerItemDecoration;
 import io.mrarm.irc.irc.WhowasCommandHandler;
 import io.mrarm.irc.config.SharingSettings;
 import io.mrarm.irc.config.OperatorReasonSettings;
+import io.mrarm.irc.util.ChannelOperatorUtils;
 import io.mrarm.irc.util.SimosnapAvatarLoader;
 import io.mrarm.irc.util.SimosnapAvatarManager;
 
@@ -429,8 +430,7 @@ public class UserBottomSheetDialog {
                     return true;
                 });
         NickWithPrefix targetMember = findMember(mSourceChannel, mNick);
-        boolean targetHasVoice = targetMember != null && targetMember.getNickPrefixes() != null &&
-                targetMember.getNickPrefixes().contains('v');
+        boolean targetHasVoice = ChannelOperatorUtils.hasVoice(mConnection, targetMember);
         int voiceAction = targetHasVoice ? R.string.operator_devoice : R.string.operator_voice;
         menu.addItem(mContext.getString(voiceAction), R.drawable.ic_add_circle_outline,
                 mTargetPresent, item -> {
