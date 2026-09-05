@@ -1822,7 +1822,7 @@
       "login": "SASL",
       "endpoints": [
         {
-          "host": "irc.simosnap.com",
+          "host": "irc.simosnap.org",
           "port": 6697,
           "tls": true
         }
