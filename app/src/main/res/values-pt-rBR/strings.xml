@@ -877,7 +877,7 @@
     <string name="ban_list_unknown">Desconhecido</string>
     <string name="ban_list_select_one">Selecione pelo menos um banimento.</string>
     <string name="ban_list_confirm_title">Remover banimentos selecionados?</string>
-    <string name="ban_list_cleanup">Limpeza 48–72h</string>
+    <string name="ban_list_cleanup">Limpeza</string>
     <string name="ban_list_cleanup_none">Nenhum identificador elegível ou banimento de host foi encontrado entre 48 e 72 horas.</string>
     <string name="ban_list_cleanup_confirm_title">Limpar banimentos temporários?</string>
     <plurals name="ban_list_cleanup_confirm_message">
