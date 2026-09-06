@@ -193,6 +193,7 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
         mChannelInfoAdapter = new ChannelInfoAdapter();
         RecyclerView membersRecyclerView = findViewById(R.id.members_list);
         membersRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        membersRecyclerView.setItemAnimator(null);
         membersRecyclerView.setAdapter(mChannelInfoAdapter);
         mDrawerLayout.addDrawerListener(new DrawerLayout.SimpleDrawerListener() {
             @Override

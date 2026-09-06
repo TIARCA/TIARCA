@@ -912,6 +912,8 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
             case NOTICE:
             case ME:
             case JOIN:
+                if (nick != null && isNickInMemberList(nick))
+                    break;
                 changed = data.observeNick(nick);
                 break;
             case PART:
@@ -929,6 +931,16 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
         }
         if (changed && mIsResumed)
             updateParentCurrentChannel();
+    }
+
+    private boolean isNickInMemberList(String nick) {
+        if (mMembers == null || nick == null)
+            return false;
+        for (NickWithPrefix member : mMembers) {
+            if (member != null && member.getNick() != null && member.getNick().equalsIgnoreCase(nick))
+                return true;
+        }
+        return false;
     }
 
     private void requestMemberRefreshIfNeeded() {
