@@ -127,7 +127,7 @@ jobs:
           echo "Generated APK: $OUTPUT"
 
       - name: Upload APK as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: TIARCA-release
           path: ${{ steps.apk.outputs.apk }}
