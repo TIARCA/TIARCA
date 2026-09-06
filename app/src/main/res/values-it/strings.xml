@@ -773,6 +773,7 @@
     <string name="monitor_status_away_since">Away dal %1$s alle %2$s</string>
     <string name="monitor_status_away_as_since">Away come %1$s dal %2$s alle %3$s</string>
     <string name="monitor_status_offline_last_seen">Offline · visto l\'ultima volta il %1$s alle %2$s</string>
+    <string name="monitor_status_offline_last_seen_unknown">Offline · ultima volta online non disponibile</string>
     <string name="monitor_status_unknown">Stato non ancora disponibile</string>
     <string name="monitor_status_some_aliases_over_limit">alcuni alias superano il limite del server</string>
     <string name="monitor_status_partial_unavailable">Presenza parzialmente non disponibile: limite del server raggiunto</string>

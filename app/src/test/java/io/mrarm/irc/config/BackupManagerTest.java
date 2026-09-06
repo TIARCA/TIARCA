@@ -26,6 +26,7 @@ import io.mrarm.irc.irc.MonitoredUsersManager;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(RobolectricTestRunner.class)
@@ -59,6 +60,14 @@ public class BackupManagerTest {
         managerA.addMonitoredUser("Pippo", true, false);
         ServerConfigData.MonitoredUser userA2 = managerA.addMonitoredUser("Pluto", true, true);
         managerA.addAlias(null, userA2, "PlutoAway");
+        ServerConfigData.MonitoredUser userA3 = managerA.addMonitoredUser("Paperino", false, false);
+        userA3.lastKnownState = ServerConfigData.MonitoredUser.STATE_OFFLINE;
+        userA3.lastSeen = 1700000000000L;
+        userA3.lastStateTimestamp = 1700000000000L;
+        ServerConfigData.MonitoredUser userA4 = managerA.addMonitoredUser("Gastone", false, false);
+        userA4.lastKnownState = ServerConfigData.MonitoredUser.STATE_OFFLINE;
+        userA4.lastSeen = null;
+        userA4.lastStateTimestamp = 0;
         configManager.saveServer(serverA);
 
         // Network B
@@ -93,7 +102,7 @@ public class BackupManagerTest {
         assertNotNull(restoredA);
         assertEquals("SimosNap", restoredA.name);
         MonitoredUsersManager restoredManagerA = new MonitoredUsersManager(restoredA);
-        assertEquals(2, restoredManagerA.getMonitoredUsers().size());
+        assertEquals(4, restoredManagerA.getMonitoredUsers().size());
 
         ServerConfigData.MonitoredUser restoredA1 = restoredManagerA.getMonitoredUser(null, "Pippo");
         assertNotNull(restoredA1);
@@ -108,6 +117,18 @@ public class BackupManagerTest {
         assertEquals(2, aliasesA2.size());
         assertEquals("Pluto", aliasesA2.get(0).nick);
         assertEquals("PlutoAway", aliasesA2.get(1).nick);
+
+        ServerConfigData.MonitoredUser restoredA3 = restoredManagerA.getMonitoredUser(null, "Paperino");
+        assertNotNull(restoredA3);
+        assertEquals(ServerConfigData.MonitoredUser.STATE_OFFLINE, restoredA3.lastKnownState);
+        assertEquals(Long.valueOf(1700000000000L), restoredA3.lastSeen);
+        assertNull(restoredA3.onlineSince);
+
+        ServerConfigData.MonitoredUser restoredA4 = restoredManagerA.getMonitoredUser(null, "Gastone");
+        assertNotNull(restoredA4);
+        assertEquals(ServerConfigData.MonitoredUser.STATE_OFFLINE, restoredA4.lastKnownState);
+        assertNull(restoredA4.lastSeen);
+        assertNull(restoredA4.onlineSince);
 
         ServerConfigData restoredB = configManager.findServer(serverB.uuid);
         assertNotNull(restoredB);

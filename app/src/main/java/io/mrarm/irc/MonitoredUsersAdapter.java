@@ -69,8 +69,10 @@ final class MonitoredUsersAdapter extends RecyclerView.Adapter<MonitoredUsersAda
 
             UserInfo known = getKnownUser(activeNick);
             boolean isAway = known != null && known.isAway();
-            String dateStr = user.lastStateTimestamp > 0 ? formatDate(context, user.lastStateTimestamp) : null;
-            String timeStr = user.lastStateTimestamp > 0 ? formatTime(context, user.lastStateTimestamp) : null;
+            Long onlineTimestamp = user.onlineSince != null ? user.onlineSince :
+                    (user.lastStateTimestamp > 0 ? user.lastStateTimestamp : null);
+            String dateStr = onlineTimestamp != null && onlineTimestamp > 0 ? formatDate(context, onlineTimestamp) : null;
+            String timeStr = onlineTimestamp != null && onlineTimestamp > 0 ? formatTime(context, onlineTimestamp) : null;
 
             String statusText;
             if (isAway) {
@@ -101,13 +103,15 @@ final class MonitoredUsersAdapter extends RecyclerView.Adapter<MonitoredUsersAda
         }
 
         if (ServerConfigData.MonitoredUser.STATE_OFFLINE.equals(state)) {
-            if (user.lastStateTimestamp > 0) {
-                String dateStr = formatDate(context, user.lastStateTimestamp);
-                String timeStr = formatTime(context, user.lastStateTimestamp);
+            Long lastSeenTimestamp = user.lastSeen != null ? user.lastSeen :
+                    (user.lastStateTimestamp > 0 ? user.lastStateTimestamp : null);
+            if (lastSeenTimestamp != null && lastSeenTimestamp > 0) {
+                String dateStr = formatDate(context, lastSeenTimestamp);
+                String timeStr = formatTime(context, lastSeenTimestamp);
                 return new Status(context.getString(R.string.monitor_status_offline_last_seen, dateStr, timeStr) + suffix,
                         R.color.serverListDisconnected);
             }
-            return new Status(context.getString(R.string.monitor_status_offline) + suffix,
+            return new Status(context.getString(R.string.monitor_status_offline_last_seen_unknown) + suffix,
                     R.color.serverListDisconnected);
         }
 
