@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="about_revolution_github">Revolution IRC auf GitHub</string>
+    <string name="member_search_hint">Benutzer suchen</string>
+    <string name="member_search_clear">Benutzersuche löschen</string>
+    <string name="action_open_private">Privaten Chat öffnen</string>
+    <string name="action_mention_user">Erwähnen</string>
+    <string name="action_edit_monitor_user">Überwachung bearbeiten</string>
+    <string name="operator_kickban_ident">Kickban nach Ident</string>
+    <string name="operator_devoice">Voice entziehen</string>
+    <string name="operator_ident_unavailable">Der Ident des Benutzers ist nicht verfügbar.</string>
+    <string name="pref_title_custom_username">Benutzerdefinierten Benutzernamen verwenden</string>
+
+    <string name="title_activity_monitored_users">Überwachte Benutzer</string>
+    <string name="title_activity_monitored_users_network">Überwachte Benutzer auf %s</string>
+    <plurals name="monitored_users_count">
+        <item quantity="one">%d überwachter Benutzer</item>
+        <item quantity="other">%d überwachte Benutzer</item>
+    </plurals>
+    <string name="action_monitor_user">Benutzer überwachen</string>
+    <string name="action_remove_monitored_user">Aus überwachten Benutzern entfernen</string>
+    <string name="monitor_user_title">%s überwachen</string>
+    <string name="monitor_user_nickname">Nickname</string>
+    <string name="monitor_user_presence">Anwesenheit überwachen</string>
+    <string name="monitor_user_notify_online">Benachrichtigen, wenn der Benutzer online kommt</string>
+    <string name="monitor_user_notify_offline">Benachrichtigen, wenn der Benutzer offline geht</string>
+    <string name="monitor_status_online">Online</string>
+    <string name="monitor_status_offline">Offline</string>
+    <string name="monitor_status_away">Abwesend</string>
+    <string name="monitor_status_unavailable">Anwesenheit nicht verfügbar</string>
+    <string name="monitor_status_over_limit">Nicht überwacht: Serverlimit erreicht</string>
+    <string name="monitor_server_unsupported">Dieser Server unterstützt MONITOR nicht.</string>
+    <string name="monitor_notification_online">%s ist online gekommen</string>
+    <string name="monitor_notification_offline">%s ist offline gegangen</string>
+    <string name="monitor_notification_channel">Überwachte Benutzer</string>
+    <string name="monitor_notifications_enabled">Benachrichtigungen aktiviert</string>
+    <string name="monitor_primary_nickname">Primärer Nickname</string>
+    <string name="monitor_aliases">Überwachte Aliase</string>
+    <string name="action_add_monitor_alias">Alias hinzufügen</string>
+    <string name="action_add_alias_confirm">Hinzufügen</string>
+    <string name="action_remove_alias">Entfernen</string>
+    <string name="monitor_alias_observed">aus einer Nickname-Änderung gelernt</string>
+    <string name="monitor_alias_duplicate">Dieser Nickname ist bereits in der Gruppe.</string>
+    <string name="monitor_alias_conflict">Dieser Nickname wird bereits in der Gruppe %s überwacht.</string>
+    <string name="monitor_status_online_as">Online als %s</string>
+    <string name="monitor_status_online_since">Online seit %1$s um %2$s</string>
+    <string name="monitor_status_online_as_since">Online als %1$s seit %2$s um %3$s</string>
+    <string name="monitor_status_away_as">Abwesend als %s</string>
+    <string name="monitor_status_away_since">Abwesend seit %1$s um %2$s</string>
+    <string name="monitor_status_away_as_since">Abwesend als %1$s seit %2$s um %3$s</string>
+    <string name="monitor_status_offline_last_seen">Offline · zuletzt gesehen am %1$s um %2$s</string>
+    <string name="monitor_status_offline_last_seen_unknown">Offline · letzter Online-Zeitpunkt nicht verfügbar</string>
+    <string name="monitor_status_unknown">Status noch nicht verfügbar</string>
+    <string name="monitor_status_some_aliases_over_limit">einige Aliase überschreiten das Serverlimit</string>
+    <string name="monitor_status_partial_unavailable">Anwesenheit teilweise nicht verfügbar: Serverlimit erreicht</string>
+    <plurals name="monitor_status_aliases_online">
+        <item quantity="one">%d Alias online</item>
+        <item quantity="other">%d Aliase online</item>
+    </plurals>
+
+    <string name="action_ignore_user">Benutzer ignorieren</string>
+    <string name="ignore_user_title">%s ignorieren</string>
+    <string name="ignore_identify_by">Identifizieren anhand von</string>
+    <string name="ignore_nickname">Nickname</string>
+    <string name="ignore_nickname_value">Nickname: %s</string>
+    <string name="ignore_ident">Ident</string>
+    <string name="ignore_ident_value">Ident: %s</string>
+    <string name="ignore_host">Host</string>
+    <string name="ignore_host_value">Host: %s</string>
+    <string name="ignore_messages">Ignorieren</string>
+    <string name="ignore_duration">Dauer</string>
+    <string name="ignore_always">Immer</string>
+    <string name="ignore_custom_duration">Benutzerdefinierte Dauer</string>
+    <string name="ignore_hours">Stunden</string>
+    <string name="ignore_invalid_duration">Geben Sie eine positive Anzahl von Stunden ein</string>
+    <string name="ignore_select_identity">Wählen Sie mindestens ein Identitätsfeld aus</string>
+    <string name="action_ignore">Ignorieren</string>
+    <string name="action_remove_ignore">Ignorieren aufheben</string>
+
+    <string name="ban_list_search_hint">Suchen…</string>
+    <string name="ban_list_search_clear">Suche in der Bannliste löschen</string>
+    <string name="ban_list_no_results">Keine Banns entsprechen der Suche.</string>
+    <string name="ban_list_tab_bans">Banns</string>
+    <string name="ban_list_tab_exceptions">Ausnahmen</string>
+    <string name="ban_list_exceptions_not_supported">Ausnahmen (+e) werden von diesem Server nicht unterstützt.</string>
+    <string name="camera_permission_required">Zum Aufnehmen eines Fotos ist die Kameraberechtigung erforderlich.</string>
+</resources>
