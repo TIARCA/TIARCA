@@ -21,6 +21,8 @@ import io.mrarm.irc.config.ServerConfigData;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class MonitoredUsersManagerTest {
@@ -494,6 +496,8 @@ public class MonitoredUsersManagerTest {
         ServerConfigData.MonitoredUser user = manager.addMonitoredUser(data, "Marco", false, false);
 
         assertEquals(ServerConfigData.MonitoredUser.STATE_UNKNOWN, user.lastKnownState);
+        assertNull(user.onlineSince);
+        assertNull(user.lastSeen);
         assertEquals(0, user.lastStateTimestamp);
 
         int initialSaves = saves.get();
@@ -502,13 +506,17 @@ public class MonitoredUsersManagerTest {
 
         assertEquals(ServerConfigData.MonitoredUser.STATE_ONLINE, user.lastKnownState);
         assertEquals("Marco", user.lastKnownNick);
-        long initialOnlineTime = user.lastStateTimestamp;
+        assertNotNull(user.onlineSince);
+        assertNull(user.lastSeen);
+        long initialOnlineTime = user.onlineSince;
         assertTrue(initialOnlineTime > 0);
+        assertEquals(initialOnlineTime, user.lastStateTimestamp);
         assertTrue(saves.get() > initialSaves);
 
         int saveCountBeforeDuplicate = saves.get();
         Thread.sleep(10);
         manager.handle(data, null, "730", Arrays.asList("me", "Marco!id@host"), Collections.emptyMap());
+        assertEquals(initialOnlineTime, (long) user.onlineSince);
         assertEquals(initialOnlineTime, user.lastStateTimestamp);
         assertEquals(saveCountBeforeDuplicate, saves.get());
 
@@ -516,27 +524,200 @@ public class MonitoredUsersManagerTest {
         manager.onNickChanged(data, "Marco", "Resilienza");
         assertEquals(ServerConfigData.MonitoredUser.STATE_ONLINE, user.lastKnownState);
         assertEquals("Resilienza", user.lastKnownNick);
+        assertEquals(initialOnlineTime, (long) user.onlineSince);
         assertEquals(initialOnlineTime, user.lastStateTimestamp);
 
         // Disconnect does not reset last known state or timestamp
         manager.onDisconnected();
         assertEquals(ServerConfigData.MonitoredUser.STATE_ONLINE, user.lastKnownState);
         assertEquals("Resilienza", user.lastKnownNick);
+        assertEquals(initialOnlineTime, (long) user.onlineSince);
         assertEquals(initialOnlineTime, user.lastStateTimestamp);
 
-        // Offline transition
+        // Observed online -> offline transition in continuous session
         manager.synchronize(data);
+        manager.handle(data, null, "730", Arrays.asList("me", "Resilienza!id@host"), Collections.emptyMap());
         Thread.sleep(10);
         manager.handle(data, null, "731", Arrays.asList("me", "Resilienza!id@host"), Collections.emptyMap());
         assertEquals(ServerConfigData.MonitoredUser.STATE_OFFLINE, user.lastKnownState);
         assertEquals("Resilienza", user.lastKnownNick);
-        long offlineTime = user.lastStateTimestamp;
+        assertNotNull(user.lastSeen);
+        long offlineTime = user.lastSeen;
         assertTrue(offlineTime > initialOnlineTime);
+        assertEquals(offlineTime, user.lastStateTimestamp);
 
         // Repeated offline event does not refresh timestamp
         Thread.sleep(10);
         manager.handle(data, null, "731", Arrays.asList("me", "Resilienza!id@host"), Collections.emptyMap());
+        assertEquals(offlineTime, (long) user.lastSeen);
         assertEquals(offlineTime, user.lastStateTimestamp);
+    }
+
+    @Test public void testA_addMonitoredUserAlreadyOffline() throws Exception {
+        ServerConnectionData data = supportedData("MONITOR=5");
+        ServerConfigData config = new ServerConfigData();
+        MonitoredUsersManager manager = new MonitoredUsersManager(config);
+        ServerConfigData.MonitoredUser user = manager.addMonitoredUser(data, "MBAREEE", false, false);
+        assertEquals(ServerConfigData.MonitoredUser.STATE_UNKNOWN, user.lastKnownState);
+        assertNull(user.lastSeen);
+        assertEquals(0, user.lastStateTimestamp);
+
+        manager.synchronize(data);
+        manager.handle(data, null, "731", Arrays.asList("me", "MBAREEE!id@host"), Collections.emptyMap());
+
+        assertEquals(ServerConfigData.MonitoredUser.STATE_OFFLINE, user.lastKnownState);
+        assertNull(user.lastSeen);
+        assertNull(user.onlineSince);
+        assertEquals(0, user.lastStateTimestamp);
+    }
+
+    @Test public void testB_addMultipleMonitoredUsersAlreadyOffline() throws Exception {
+        ServerConnectionData data = supportedData("MONITOR=10");
+        ServerConfigData config = new ServerConfigData();
+        MonitoredUsersManager manager = new MonitoredUsersManager(config);
+        List<ServerConfigData.MonitoredUser> users = new ArrayList<>();
+        for (int i = 1; i <= 5; i++) {
+            users.add(manager.addMonitoredUser(data, "User" + i, false, false));
+        }
+        manager.synchronize(data);
+        manager.handle(data, null, "731", Arrays.asList("me", "User1!id@host,User2!id@host,User3!id@host,User4!id@host,User5!id@host"), Collections.emptyMap());
+
+        for (ServerConfigData.MonitoredUser user : users) {
+            assertEquals(ServerConfigData.MonitoredUser.STATE_OFFLINE, user.lastKnownState);
+            assertNull(user.lastSeen);
+            assertNull(user.onlineSince);
+            assertEquals(0, user.lastStateTimestamp);
+        }
+    }
+
+    @Test public void testC_observedOnlineTransitionToOfflineSetsLastSeen() throws Exception {
+        ServerConnectionData data = supportedData("MONITOR=5");
+        ServerConfigData config = new ServerConfigData();
+        MonitoredUsersManager manager = new MonitoredUsersManager(config);
+        ServerConfigData.MonitoredUser user = manager.addMonitoredUser(data, "Alice", false, false);
+
+        manager.synchronize(data);
+        manager.handle(data, null, "730", Arrays.asList("me", "Alice!id@host"), Collections.emptyMap());
+        assertEquals(ServerConfigData.MonitoredUser.STATE_ONLINE, user.lastKnownState);
+        assertNotNull(user.onlineSince);
+        long onlineTime = user.onlineSince;
+        assertNull(user.lastSeen);
+
+        Thread.sleep(10);
+        manager.handle(data, null, "731", Arrays.asList("me", "Alice!id@host"), Collections.emptyMap());
+        assertEquals(ServerConfigData.MonitoredUser.STATE_OFFLINE, user.lastKnownState);
+        assertNotNull(user.lastSeen);
+        assertTrue(user.lastSeen > onlineTime);
+        assertNull(user.onlineSince);
+        assertEquals((long) user.lastSeen, user.lastStateTimestamp);
+    }
+
+    @Test public void testD_offlineWithValidLastSeenPreservedAcrossRestartAndServerConfirm() throws Exception {
+        ServerConfigData config = new ServerConfigData();
+        ServerConfigData.MonitoredUser user = new ServerConfigData.MonitoredUser();
+        user.nick = "Bob";
+        user.currentNick = "Bob";
+        user.lastKnownState = ServerConfigData.MonitoredUser.STATE_OFFLINE;
+        user.lastKnownNick = "Bob";
+        user.lastSeen = 1700000000000L;
+        user.lastStateTimestamp = 1700000000000L;
+        config.monitoredUsers = new ArrayList<>(Collections.singletonList(user));
+
+        MonitoredUsersManager manager = new MonitoredUsersManager(config);
+        ServerConnectionData data = supportedData("MONITOR=5");
+        manager.synchronize(data);
+        manager.handle(data, null, "731", Arrays.asList("me", "Bob!id@host"), Collections.emptyMap());
+
+        ServerConfigData.MonitoredUser loaded = manager.getMonitoredUsers().get(0);
+        assertEquals(ServerConfigData.MonitoredUser.STATE_OFFLINE, loaded.lastKnownState);
+        assertEquals(Long.valueOf(1700000000000L), loaded.lastSeen);
+        assertEquals(1700000000000L, loaded.lastStateTimestamp);
+    }
+
+    @Test public void testE_offlineWithoutLastSeenPreservedAcrossRestartAndServerConfirm() throws Exception {
+        ServerConfigData config = new ServerConfigData();
+        ServerConfigData.MonitoredUser user = new ServerConfigData.MonitoredUser();
+        user.nick = "Charlie";
+        user.currentNick = "Charlie";
+        user.lastKnownState = ServerConfigData.MonitoredUser.STATE_OFFLINE;
+        user.lastKnownNick = "Charlie";
+        user.lastSeen = null;
+        user.lastStateTimestamp = 0;
+        config.monitoredUsers = new ArrayList<>(Collections.singletonList(user));
+
+        MonitoredUsersManager manager = new MonitoredUsersManager(config);
+        ServerConnectionData data = supportedData("MONITOR=5");
+        manager.synchronize(data);
+        manager.handle(data, null, "731", Arrays.asList("me", "Charlie!id@host"), Collections.emptyMap());
+
+        ServerConfigData.MonitoredUser loaded = manager.getMonitoredUsers().get(0);
+        assertEquals(ServerConfigData.MonitoredUser.STATE_OFFLINE, loaded.lastKnownState);
+        assertNull(loaded.lastSeen);
+        assertEquals(0, loaded.lastStateTimestamp);
+    }
+
+    @Test public void testH_persistedOnlineThenReconnectOfflineDoesNotAssignReconnectTimeAsLastSeen() throws Exception {
+        ServerConfigData config = new ServerConfigData();
+        ServerConfigData.MonitoredUser user = new ServerConfigData.MonitoredUser();
+        user.nick = "Dave";
+        user.currentNick = "Dave";
+        user.lastKnownState = ServerConfigData.MonitoredUser.STATE_ONLINE;
+        user.lastKnownNick = "Dave";
+        user.onlineSince = 1699999000000L;
+        user.lastSeen = null;
+        user.lastStateTimestamp = 1699999000000L;
+        config.monitoredUsers = new ArrayList<>(Collections.singletonList(user));
+
+        MonitoredUsersManager manager = new MonitoredUsersManager(config);
+        ServerConnectionData data = supportedData("MONITOR=5");
+
+        // Reconnect happens: synchronize is called
+        manager.synchronize(data);
+        // Server initial status reports Dave is offline
+        manager.handle(data, null, "731", Arrays.asList("me", "Dave!id@host"), Collections.emptyMap());
+
+        ServerConfigData.MonitoredUser loaded = manager.getMonitoredUsers().get(0);
+        assertEquals(ServerConfigData.MonitoredUser.STATE_OFFLINE, loaded.lastKnownState);
+        assertNull(loaded.lastSeen);
+        assertNull(loaded.onlineSince);
+        assertEquals(0, loaded.lastStateTimestamp);
+    }
+
+    @Test public void testI_onlineObservedInSessionThenOfflineSetsCorrectLastSeen() throws Exception {
+        ServerConnectionData data = supportedData("MONITOR=5");
+        ServerConfigData config = new ServerConfigData();
+        MonitoredUsersManager manager = new MonitoredUsersManager(config);
+        ServerConfigData.MonitoredUser user = manager.addMonitoredUser(data, "Eve", false, false);
+
+        manager.synchronize(data);
+        manager.handle(data, null, "730", Arrays.asList("me", "Eve!id@host"), Collections.emptyMap());
+        assertEquals(ServerConfigData.MonitoredUser.STATE_ONLINE, user.lastKnownState);
+
+        Thread.sleep(10);
+        long beforeOffline = System.currentTimeMillis();
+        manager.handle(data, null, "731", Arrays.asList("me", "Eve!id@host"), Collections.emptyMap());
+        assertEquals(ServerConfigData.MonitoredUser.STATE_OFFLINE, user.lastKnownState);
+        assertNotNull(user.lastSeen);
+        assertTrue(user.lastSeen >= beforeOffline);
+        assertEquals((long) user.lastSeen, user.lastStateTimestamp);
+    }
+
+    @Test public void testJ_localDisconnectDoesNotInventLastSeen() throws Exception {
+        ServerConnectionData data = supportedData("MONITOR=5");
+        ServerConfigData config = new ServerConfigData();
+        MonitoredUsersManager manager = new MonitoredUsersManager(config);
+        ServerConfigData.MonitoredUser user = manager.addMonitoredUser(data, "Frank", false, false);
+
+        manager.synchronize(data);
+        manager.handle(data, null, "730", Arrays.asList("me", "Frank!id@host"), Collections.emptyMap());
+        long onlineTime = user.onlineSince;
+        assertNull(user.lastSeen);
+
+        manager.onDisconnected();
+        assertEquals(ServerConfigData.MonitoredUser.STATE_ONLINE, user.lastKnownState);
+        assertEquals(Long.valueOf(onlineTime), user.onlineSince);
+        assertNull(user.lastSeen);
+        assertEquals(onlineTime, user.lastStateTimestamp);
     }
 
     @Test public void deserializesLegacyAndNewLastKnownStateConfig() {
@@ -546,21 +727,37 @@ public class MonitoredUsersManagerTest {
         ServerConfigData.MonitoredUser oldUser = oldManager.getMonitoredUsers().get(0);
         assertEquals(ServerConfigData.MonitoredUser.STATE_UNKNOWN, oldUser.lastKnownState);
         assertEquals("OldUser", oldUser.lastKnownNick);
+        assertNull(oldUser.onlineSince);
+        assertNull(oldUser.lastSeen);
         assertEquals(0, oldUser.lastStateTimestamp);
 
-        String newJson = "{\"monitoredUsers\":[{\"nick\":\"Marco\",\"currentNick\":\"Resilienza\"," +
+        // Legacy format from commit 47b32b3 with lastStateTimestamp
+        String legacyJson = "{\"monitoredUsers\":[{\"nick\":\"Marco\",\"currentNick\":\"Resilienza\"," +
                 "\"lastKnownState\":\"online\",\"lastKnownNick\":\"Resilienza\",\"lastStateTimestamp\":1700000000000}]}";
+        ServerConfigData legacyConfig = new Gson().fromJson(legacyJson, ServerConfigData.class);
+        MonitoredUsersManager legacyManager = new MonitoredUsersManager(legacyConfig);
+        ServerConfigData.MonitoredUser legacyUser = legacyManager.getMonitoredUsers().get(0);
+        assertEquals(ServerConfigData.MonitoredUser.STATE_ONLINE, legacyUser.lastKnownState);
+        assertEquals("Resilienza", legacyUser.lastKnownNick);
+        assertEquals(Long.valueOf(1700000000000L), legacyUser.onlineSince);
+        assertEquals(1700000000000L, legacyUser.lastStateTimestamp);
+
+        // New format with explicit onlineSince and lastSeen
+        String newJson = "{\"monitoredUsers\":[{\"nick\":\"Alice\",\"currentNick\":\"Alice\"," +
+                "\"lastKnownState\":\"offline\",\"lastKnownNick\":\"Alice\",\"lastSeen\":1700000005000}]}";
         ServerConfigData newConfig = new Gson().fromJson(newJson, ServerConfigData.class);
         MonitoredUsersManager newManager = new MonitoredUsersManager(newConfig);
         ServerConfigData.MonitoredUser newUser = newManager.getMonitoredUsers().get(0);
-        assertEquals(ServerConfigData.MonitoredUser.STATE_ONLINE, newUser.lastKnownState);
-        assertEquals("Resilienza", newUser.lastKnownNick);
-        assertEquals(1700000000000L, newUser.lastStateTimestamp);
+        assertEquals(ServerConfigData.MonitoredUser.STATE_OFFLINE, newUser.lastKnownState);
+        assertEquals("Alice", newUser.lastKnownNick);
+        assertEquals(Long.valueOf(1700000005000L), newUser.lastSeen);
+        assertNull(newUser.onlineSince);
+        assertEquals(1700000005000L, newUser.lastStateTimestamp);
 
         String reserialized = new Gson().toJson(newConfig);
-        assertTrue(reserialized.contains("\"lastKnownState\":\"online\""));
-        assertTrue(reserialized.contains("\"lastKnownNick\":\"Resilienza\""));
-        assertTrue(reserialized.contains("1700000000000"));
+        assertTrue(reserialized.contains("\"lastKnownState\":\"offline\""));
+        assertTrue(reserialized.contains("\"lastKnownNick\":\"Alice\""));
+        assertTrue(reserialized.contains("\"lastSeen\":1700000005000"));
     }
 
     private static ServerConnectionData supportedData(String... tokens) throws Exception {

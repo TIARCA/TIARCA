@@ -197,6 +197,8 @@ public class ServerConfigData {
 
         public String lastKnownState;
         public String lastKnownNick;
+        public Long onlineSince;
+        public Long lastSeen;
         public long lastStateTimestamp;
     }
 
