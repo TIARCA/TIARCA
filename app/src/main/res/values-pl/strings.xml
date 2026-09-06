@@ -917,7 +917,7 @@
     <string name="ban_list_unknown">Nieznany</string>
     <string name="ban_list_select_one">Wybierz co najmniej jeden zakaz.</string>
     <string name="ban_list_confirm_title">Usunąć wybrane zakazy?</string>
-    <string name="ban_list_cleanup">Sprzątanie 48–72 godz</string>
+    <string name="ban_list_cleanup">Sprzątanie</string>
     <string name="ban_list_cleanup_none">Nie znaleziono kwalifikujących się blokad identyfikatora ani hosta w okresie od 48 do 72 godzin.</string>
     <string name="ban_list_cleanup_confirm_title">Usunąć tymczasowe zakazy?</string>
     <plurals name="ban_list_cleanup_confirm_message">

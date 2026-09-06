@@ -877,7 +877,7 @@
     <string name="ban_list_unknown">Desconocido</string>
     <string name="ban_list_select_one">Seleccione al menos una prohibición.</string>
     <string name="ban_list_confirm_title">¿Eliminar prohibiciones seleccionadas?</string>
-    <string name="ban_list_cleanup">Limpieza 48–72h</string>
+    <string name="ban_list_cleanup">Limpieza</string>
     <string name="ban_list_cleanup_none">No se encontraron prohibiciones de host o de identificación elegibles con una antigüedad de entre 48 y 72 horas.</string>
     <string name="ban_list_cleanup_confirm_title">¿Limpiar prohibiciones temporales?</string>
     <plurals name="ban_list_cleanup_confirm_message">

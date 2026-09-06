@@ -3,13 +3,15 @@ package io.mrarm.irc.dialog;
 import org.junit.Test;
 
 import io.mrarm.irc.irc.BanListCommandHandler;
+import io.mrarm.irc.irc.ExceptionListCommandHandler;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class ChannelBanListDialogTest {
 
-    private static final long NOW = 1_000_000L;
+    private static final long NOW = 10_000_000L;
+    private static final long SEVEN_DAYS_SECONDS = 7L * 24L * 60L * 60L; // 604800s
 
     private BanListCommandHandler.Entry entry(String mask, long ageHours) {
         return entryAtAge(mask, ageHours * 60L * 60L);
@@ -38,7 +40,8 @@ public class ChannelBanListDialogTest {
     }
 
     @Test
-    public void excludesIdentMasks() {
+    public void excludesIdentMasksInLegacyWindow() {
+        // Under 7 days (e.g. 60 hours), ident-only masks are NOT cleanup candidates
         assertFalse(ChannelBanListDialog.isCleanupCandidate(entry("*!ident@*", 60), NOW));
         assertFalse(ChannelBanListDialog.isCleanupCandidate(entry("*!ident@example.host", 60), NOW));
         assertFalse(ChannelBanListDialog.isCleanupCandidate(entry("nickname!ident@example.host", 60), NOW));
@@ -64,12 +67,69 @@ public class ChannelBanListDialogTest {
     }
 
     @Test
+    public void identOnlyMasks7DaysRuleThreshold() {
+        // 6 days 23 hours 59 minutes (604,740s) -> DO NOT remove
+        assertFalse(ChannelBanListDialog.isCleanupCandidate(
+                entryAtAge("*!mario@*", SEVEN_DAYS_SECONDS - 60L), NOW));
+
+        // Exactly 7 days (604,800s) -> REMOVE
+        assertTrue(ChannelBanListDialog.isCleanupCandidate(
+                entryAtAge("*!mario@*", SEVEN_DAYS_SECONDS), NOW));
+
+        // 8 days -> REMOVE
+        assertTrue(ChannelBanListDialog.isCleanupCandidate(
+                entryAtAge("*!mario@*", SEVEN_DAYS_SECONDS + 86400L), NOW));
+
+        // Examples that MUST be recognized
+        assertTrue(ChannelBanListDialog.isCleanupCandidate(
+                entryAtAge("*!utente123@*", SEVEN_DAYS_SECONDS), NOW));
+        assertTrue(ChannelBanListDialog.isCleanupCandidate(
+                entryAtAge("*!~pippo@*", SEVEN_DAYS_SECONDS), NOW));
+    }
+
+    @Test
+    public void identOnlyMasks7DaysRuleExcludesNonMatchingMasks() {
+        // Examples that MUST NOT be included automatically by the new ident-only rule
+        assertFalse(ChannelBanListDialog.isCleanupCandidate(
+                entryAtAge("Nick!*@*", SEVEN_DAYS_SECONDS), NOW));
+        assertFalse(ChannelBanListDialog.isCleanupCandidate(
+                entryAtAge("*!*@host.example.com", SEVEN_DAYS_SECONDS), NOW));
+        assertFalse(ChannelBanListDialog.isCleanupCandidate(
+                entryAtAge("*!ident@host.example.com", SEVEN_DAYS_SECONDS), NOW));
+        assertFalse(ChannelBanListDialog.isCleanupCandidate(
+                entryAtAge("Nick!ident@*", SEVEN_DAYS_SECONDS), NOW));
+        assertFalse(ChannelBanListDialog.isCleanupCandidate(
+                entryAtAge("*!*@*", SEVEN_DAYS_SECONDS), NOW));
+        assertFalse(ChannelBanListDialog.isCleanupCandidate(
+                entryAtAge("192.168.*", SEVEN_DAYS_SECONDS), NOW));
+        assertFalse(ChannelBanListDialog.isCleanupCandidate(
+                entryAtAge("u:*!ident@*", SEVEN_DAYS_SECONDS), NOW));
+    }
+
+    @Test
+    public void identOnlyMasks7DaysRuleRequiresValidTimestamp() {
+        BanListCommandHandler.Entry entryNoTimestamp =
+                new BanListCommandHandler.Entry("*!mario@*", "operator", 0);
+        assertFalse(ChannelBanListDialog.isCleanupCandidate(entryNoTimestamp, NOW));
+    }
+
+    @Test
     public void searchMatchesMaskAndAuthorCaseInsensitively() {
         BanListCommandHandler.Entry entry = new BanListCommandHandler.Entry(
                 "*!*@*.as62651.net", "hub-de.Simosnap.com", NOW);
 
         assertTrue(ChannelBanListDialog.matchesSearch(entry, "62651.NET"));
         assertTrue(ChannelBanListDialog.matchesSearch(entry, "HUB-DE.SIMOSNAP"));
+        assertFalse(ChannelBanListDialog.matchesSearch(entry, "unrelated"));
+    }
+
+    @Test
+    public void searchExceptionEntryMatchesMaskAndAuthor() {
+        ExceptionListCommandHandler.Entry entry = new ExceptionListCommandHandler.Entry(
+                "MBAREEE!*@*", "mimancaunvenerdi", NOW);
+
+        assertTrue(ChannelBanListDialog.matchesSearch(entry, "mbareee"));
+        assertTrue(ChannelBanListDialog.matchesSearch(entry, "MIMANCAUNVENERDI"));
         assertFalse(ChannelBanListDialog.matchesSearch(entry, "unrelated"));
     }
 
