@@ -177,7 +177,7 @@ public class ServerConfigManager {
         persistServerOrder();
         synchronized (mListeners) {
             for (ConnectionsListener listener : mListeners)
-                listener.onConnectionUpdated(null);
+                listener.onServerOrderChanged();
         }
         ServerConnectionManager.getInstance(mContext).reorderConnections();
     }
@@ -383,6 +383,9 @@ public class ServerConfigManager {
         void onConnectionRemoved(ServerConfigData data);
 
         void onConnectionUpdated(ServerConfigData data);
+
+        default void onServerOrderChanged() {
+        }
 
     }
 

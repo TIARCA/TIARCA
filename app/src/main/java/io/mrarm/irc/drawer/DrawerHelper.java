@@ -182,6 +182,11 @@ public class DrawerHelper implements ServerConnectionManager.ConnectionsListener
     }
 
     @Override
+    public void onConnectionOrderChanged() {
+        mActivity.runOnUiThread(mAdapter::notifyServerListChanged);
+    }
+
+    @Override
     public void onConnectionInfoChanged(ServerConnectionInfo connection) {
         mActivity.runOnUiThread(() -> {
             mAdapter.notifyServerInfoChanged(connection);

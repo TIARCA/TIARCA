@@ -196,6 +196,65 @@ public class ServerConfigManagerOrderTest {
         assertEquals(server1.uuid, orderedList.get(1).uuid);
     }
 
+    @Test
+    public void testNotificationsOnReorderAndAddConnection() throws Exception {
+        ServerConfigManager configManager = ServerConfigManager.getInstance(context);
+        ServerConnectionManager connectionManager = ServerConnectionManager.getInstance(context);
+
+        ServerConfigData serverA = createServer("Server A");
+        ServerConfigData serverB = createServer("Server B");
+        configManager.saveServer(serverA);
+        configManager.saveServer(serverB);
+
+        int[] configServerOrderChangedCount = {0};
+        int[] configNullEventCount = {0};
+        configManager.addListener(new ServerConfigManager.ConnectionsListener() {
+            @Override public void onConnectionAdded(ServerConfigData data) {
+                if (data == null) configNullEventCount[0]++;
+            }
+            @Override public void onConnectionRemoved(ServerConfigData data) {}
+            @Override public void onConnectionUpdated(ServerConfigData data) {
+                if (data == null) configNullEventCount[0]++;
+            }
+            @Override public void onServerOrderChanged() {
+                configServerOrderChangedCount[0]++;
+            }
+        });
+
+        int[] connAddedCount = {0};
+        int[] connAddedNullCount = {0};
+        int[] connOrderChangedCount = {0};
+        connectionManager.addListener(new ServerConnectionManager.ConnectionsListener() {
+            @Override public void onConnectionAdded(ServerConnectionInfo connection) {
+                connAddedCount[0]++;
+                if (connection == null) connAddedNullCount[0]++;
+            }
+            @Override public void onConnectionRemoved(ServerConnectionInfo connection) {}
+            @Override public void onConnectionOrderChanged() {
+                connOrderChangedCount[0]++;
+            }
+        });
+
+        // 1. Reordering triggers onServerOrderChanged and onConnectionOrderChanged without emitting null
+        configManager.saveServerOrder(Arrays.asList(serverB.uuid, serverA.uuid));
+        assertEquals(1, configServerOrderChangedCount[0]);
+        assertEquals(0, configNullEventCount[0]);
+        assertEquals(1, connOrderChangedCount[0]);
+        assertEquals(0, connAddedNullCount[0]);
+
+        // Reset counts
+        connAddedCount[0] = 0;
+        connAddedNullCount[0] = 0;
+        connOrderChangedCount[0] = 0;
+
+        // 2. Creating a connection fires onConnectionAdded exactly once with non-null connection
+        ServerConnectionInfo connA = connectionManager.createConnection(serverA);
+        assertEquals(1, connAddedCount[0]);
+        assertEquals(0, connAddedNullCount[0]);
+        assertEquals(0, connOrderChangedCount[0]);
+        assertNotNull(connA);
+    }
+
     private ServerConfigData createServer(String name) {
         ServerConfigData data = new ServerConfigData();
         data.name = name;
