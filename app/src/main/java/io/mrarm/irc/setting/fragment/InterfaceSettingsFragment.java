@@ -83,8 +83,8 @@ public class InterfaceSettingsFragment extends SettingsListFragment
         a.setRequestCodeCounter(((SettingsActivity) getActivity()).getRequestCodeCounter());
         a.add(new SettingsHeader(getString(R.string.pref_header_language)));
         a.add(new ListSetting(getString(R.string.pref_title_language),
-                getResources().getStringArray(R.array.pref_entries_language),
-                getResources().getStringArray(R.array.pref_entry_values_language),
+                getResources().getStringArray(R.array.pref_entries_language_all),
+                getResources().getStringArray(R.array.pref_entry_values_language_all),
                 AppLocaleManager.getLanguage(prefs))
                 .linkPreference(prefs, AppLocaleManager.PREF_APP_LANGUAGE)
                 .addListener((EntryRecyclerViewAdapter.Entry entry) ->
