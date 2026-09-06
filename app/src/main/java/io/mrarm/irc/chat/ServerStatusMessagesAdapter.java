@@ -154,10 +154,8 @@ public class ServerStatusMessagesAdapter extends RecyclerView.Adapter<RecyclerVi
         Context context = view.getContext();
         MenuBottomSheetDialog menu = new MenuBottomSheetDialog(context);
         menu.addItem(R.string.action_copy, R.drawable.ic_content_copy, item -> {
-            ClipboardManager clipboard = (ClipboardManager)
-                    context.getSystemService(Context.CLIPBOARD_SERVICE);
-            clipboard.setPrimaryClip(ClipData.newPlainText(message.getSender(),
-                    message.getMessage()));
+            io.mrarm.irc.util.ClipboardUtils.copyPlainText(context,
+                    message.getSender(), message.getMessage());
             return true;
         });
         menu.addItem(R.string.service_open_private_chat, R.drawable.ic_message, item -> {
