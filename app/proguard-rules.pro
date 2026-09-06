@@ -57,9 +57,21 @@
 -keep class io.mrarm.irc.util.theme.ThemeInfo { *; }
 -keep class io.mrarm.irc.util.theme.ThemeInfo$ColorsAdapter { *; }
 
+# CommandAlias models used for user command aliases configuration
+-keep class io.mrarm.irc.config.CommandAliasManager$CommandAlias { *; }
+-keep class io.mrarm.irc.config.CommandAliasManager$UserAliasesSettings { *; }
+
+# Notification rules models used by Gson
+-keep class io.mrarm.irc.config.NotificationRuleManager$UserRuleSettings { *; }
+-keep class io.mrarm.irc.config.NotificationRule { *; }
+-keep class io.mrarm.irc.config.NotificationRule$* { *; }
+-keep class io.mrarm.irc.config.NotificationSettings { *; }
+
+# Mention storage record model used by Gson
+-keep class io.mrarm.irc.config.MentionStorage$Record { *; }
+
 # Server configurations are read reflectively by Gson. Keeping this model also preserves the
-# generic List element signatures required to deserialize monitored users and aliases as their
-# concrete types instead of generic maps.
+# generic List element signatures required to deserialize monitored users as their concrete types.
 -keep,allowoptimization class io.mrarm.irc.config.ServerConfigData { *; }
 -keep,allowoptimization class io.mrarm.irc.config.ServerConfigData$* { *; }
 
