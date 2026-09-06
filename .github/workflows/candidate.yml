@@ -55,7 +55,7 @@ jobs:
           echo "apk=$OUTPUT" >> "$GITHUB_OUTPUT"
 
       - name: Upload candidate APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: TIARCA-candidate-${{ github.sha }}
           path: ${{ steps.apk.outputs.apk }}

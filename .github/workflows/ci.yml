@@ -30,7 +30,7 @@ jobs:
         run: ./gradlew assembleDebug
 
       - name: Upload debug APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: TIARCA-debug-${{ github.sha }}
           path: app/build/outputs/apk/debug/*.apk
