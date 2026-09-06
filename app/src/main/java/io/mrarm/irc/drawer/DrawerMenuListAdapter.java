@@ -22,6 +22,7 @@ import java.util.TreeMap;
 import io.mrarm.irc.ChannelNotificationManager;
 import io.mrarm.irc.R;
 import io.mrarm.irc.ServerConnectionInfo;
+import io.mrarm.irc.ServerReorderActivity;
 import io.mrarm.irc.ServerConnectionManager;
 import io.mrarm.irc.config.AppSettings;
 import io.mrarm.irc.config.SettingsHelper;
@@ -349,7 +350,12 @@ public class DrawerMenuListAdapter extends RecyclerView.Adapter<RecyclerView.Vie
             super(v);
             mServerName = v.findViewById(R.id.server_name);
             mExpandIcon = v.findViewById(R.id.server_expand_icon);
-            v.findViewById(R.id.server_entry).setOnClickListener(this);
+            View entry = v.findViewById(R.id.server_entry);
+            entry.setOnClickListener(this);
+            entry.setOnLongClickListener((View view) -> {
+                ServerReorderActivity.start(v.getContext());
+                return true;
+            });
         }
 
         public void bind(ServerConnectionInfo info) {

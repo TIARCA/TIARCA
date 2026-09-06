@@ -66,6 +66,10 @@ public class ServerListFragment extends Fragment {
                 startActivity(EditServerActivity.getLaunchIntent(getContext(), data, true));
                 return true;
             });
+            menu.addItem(R.string.action_reorder, R.drawable.ic_reorder, (MenuBottomSheetDialog.Item item) -> {
+                ServerReorderActivity.start(getContext());
+                return true;
+            });
             menu.addItem(R.string.action_disconnect_and_close, R.drawable.ic_close, (MenuBottomSheetDialog.Item item) -> {
                 info.disconnect();
                 ServerConnectionManager.getInstance(getContext()).removeConnection(info);
@@ -89,6 +93,10 @@ public class ServerListFragment extends Fragment {
             });
             menu.addItem(R.string.action_clone, R.drawable.ic_content_copy, (MenuBottomSheetDialog.Item item) -> {
                 startActivity(EditServerActivity.getLaunchIntent(getContext(), data, true));
+                return true;
+            });
+            menu.addItem(R.string.action_reorder, R.drawable.ic_reorder, (MenuBottomSheetDialog.Item item) -> {
+                ServerReorderActivity.start(getContext());
                 return true;
             });
             menu.addItem(R.string.action_delete, R.drawable.ic_delete, (MenuBottomSheetDialog.Item item) -> {

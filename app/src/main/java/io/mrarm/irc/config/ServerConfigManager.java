@@ -29,6 +29,7 @@ public class ServerConfigManager {
     private static final String SERVERS_PATH = "servers";
     private static final String SERVER_FILE_PREFIX = "server-";
     private static final String SERVER_FILE_SUFFIX = ".json";
+    private static final String SERVER_ORDER_FILENAME = "server_order.json";
     private static final String SERVER_CERTS_FILE_PREFIX = "server-certs-";
     private static final String SERVER_CERTS_FILE_SUFFIX = ".jks";
     private static final String SERVER_LOGS_PATH = "chat-logs";
@@ -120,6 +121,78 @@ public class ServerConfigManager {
                 e.printStackTrace();
             }
         }
+        List<UUID> savedOrder = loadSavedServerOrder();
+        if (savedOrder != null && !savedOrder.isEmpty()) {
+            applyServerOrder(savedOrder);
+        }
+    }
+
+    private List<UUID> loadSavedServerOrder() {
+        File file = new File(mServersPath, SERVER_ORDER_FILENAME);
+        if (!file.exists())
+            return null;
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            ServerOrderData orderData = SettingsHelper.getGson().fromJson(reader, ServerOrderData.class);
+            if (orderData != null && orderData.order != null) {
+                List<UUID> uuids = new ArrayList<>();
+                for (String idStr : orderData.order) {
+                    try {
+                        uuids.add(UUID.fromString(idStr));
+                    } catch (IllegalArgumentException ignored) {
+                    }
+                }
+                return uuids;
+            }
+        } catch (IOException e) {
+            Log.e(TAG, "Failed to load server order data", e);
+        }
+        return null;
+    }
+
+    private void applyServerOrder(List<UUID> order) {
+        List<ServerConfigData> ordered = new ArrayList<>();
+        for (UUID uuid : order) {
+            ServerConfigData data = mServersMap.get(uuid);
+            if (data != null && !ordered.contains(data)) {
+                ordered.add(data);
+            }
+        }
+        for (ServerConfigData data : mServers) {
+            if (!ordered.contains(data)) {
+                ordered.add(data);
+            }
+        }
+        mServers.clear();
+        mServers.addAll(ordered);
+    }
+
+    public void saveServerOrder(List<UUID> newOrder) throws IOException {
+        synchronized (this) {
+            applyServerOrder(newOrder);
+        }
+        persistServerOrder();
+        synchronized (mListeners) {
+            for (ConnectionsListener listener : mListeners)
+                listener.onConnectionUpdated(null);
+        }
+        ServerConnectionManager.getInstance(mContext).reorderConnections();
+    }
+
+    public void persistServerOrder() throws IOException {
+        List<String> orderStr = new ArrayList<>();
+        synchronized (this) {
+            for (ServerConfigData data : mServers) {
+                orderStr.add(data.uuid.toString());
+            }
+        }
+        synchronized (mIOLock) {
+            mServersPath.mkdirs();
+            ServerOrderData orderData = new ServerOrderData();
+            orderData.order = orderStr;
+            BufferedWriter writer = new BufferedWriter(new FileWriter(new File(mServersPath, SERVER_ORDER_FILENAME)));
+            SettingsHelper.getGson().toJson(orderData, writer);
+            writer.close();
+        }
     }
 
     private void migrateServerLogs(File from, File to) {
@@ -183,10 +256,20 @@ public class ServerConfigManager {
         synchronized (this) {
             if (mServersMap.containsKey(data.uuid)) {
                 existed = true;
-                mServers.remove(mServersMap.get(data.uuid));
+                int index = mServers.indexOf(mServersMap.get(data.uuid));
+                if (index != -1) {
+                    mServers.set(index, data);
+                } else {
+                    mServers.add(data);
+                }
+            } else {
+                mServers.add(data);
             }
-            mServers.add(data);
             mServersMap.put(data.uuid, data);
+        }
+        File orderFile = new File(mServersPath, SERVER_ORDER_FILENAME);
+        if (orderFile.exists()) {
+            persistServerOrder();
         }
         synchronized (mIOLock) {
             mServersPath.mkdirs();
@@ -212,6 +295,13 @@ public class ServerConfigManager {
         synchronized (this) {
             mServers.remove(data);
             mServersMap.remove(data.uuid);
+        }
+        File orderFile = new File(mServersPath, SERVER_ORDER_FILENAME);
+        if (orderFile.exists()) {
+            try {
+                persistServerOrder();
+            } catch (IOException ignored) {
+            }
         }
         synchronized (mIOLock) {
             File file = new File(mServersPath, SERVER_FILE_PREFIX + data.uuid.toString() + SERVER_FILE_SUFFIX);
@@ -282,6 +372,10 @@ public class ServerConfigManager {
 
         void onConnectionUpdated(ServerConfigData data);
 
+    }
+
+    public static class ServerOrderData {
+        public List<String> order;
     }
 
 }
