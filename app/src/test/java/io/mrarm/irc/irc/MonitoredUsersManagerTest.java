@@ -486,6 +486,83 @@ public class MonitoredUsersManagerTest {
         assertTrue(manager.getLastError().contains("does not support"));
     }
 
+    @Test public void tracksLastKnownStateAndTimestampWithoutRepeatedRefresh() throws Exception {
+        ServerConnectionData data = supportedData("MONITOR=5");
+        ServerConfigData config = new ServerConfigData();
+        AtomicInteger saves = new AtomicInteger();
+        MonitoredUsersManager manager = new MonitoredUsersManager(config, saves::incrementAndGet);
+        ServerConfigData.MonitoredUser user = manager.addMonitoredUser(data, "Marco", false, false);
+
+        assertEquals(ServerConfigData.MonitoredUser.STATE_UNKNOWN, user.lastKnownState);
+        assertEquals(0, user.lastStateTimestamp);
+
+        int initialSaves = saves.get();
+        manager.synchronize(data);
+        manager.handle(data, null, "730", Arrays.asList("me", "Marco!id@host"), Collections.emptyMap());
+
+        assertEquals(ServerConfigData.MonitoredUser.STATE_ONLINE, user.lastKnownState);
+        assertEquals("Marco", user.lastKnownNick);
+        long initialOnlineTime = user.lastStateTimestamp;
+        assertTrue(initialOnlineTime > 0);
+        assertTrue(saves.get() > initialSaves);
+
+        int saveCountBeforeDuplicate = saves.get();
+        Thread.sleep(10);
+        manager.handle(data, null, "730", Arrays.asList("me", "Marco!id@host"), Collections.emptyMap());
+        assertEquals(initialOnlineTime, user.lastStateTimestamp);
+        assertEquals(saveCountBeforeDuplicate, saves.get());
+
+        // Nick change Marco -> Resilienza
+        manager.onNickChanged(data, "Marco", "Resilienza");
+        assertEquals(ServerConfigData.MonitoredUser.STATE_ONLINE, user.lastKnownState);
+        assertEquals("Resilienza", user.lastKnownNick);
+        assertEquals(initialOnlineTime, user.lastStateTimestamp);
+
+        // Disconnect does not reset last known state or timestamp
+        manager.onDisconnected();
+        assertEquals(ServerConfigData.MonitoredUser.STATE_ONLINE, user.lastKnownState);
+        assertEquals("Resilienza", user.lastKnownNick);
+        assertEquals(initialOnlineTime, user.lastStateTimestamp);
+
+        // Offline transition
+        manager.synchronize(data);
+        Thread.sleep(10);
+        manager.handle(data, null, "731", Arrays.asList("me", "Resilienza!id@host"), Collections.emptyMap());
+        assertEquals(ServerConfigData.MonitoredUser.STATE_OFFLINE, user.lastKnownState);
+        assertEquals("Resilienza", user.lastKnownNick);
+        long offlineTime = user.lastStateTimestamp;
+        assertTrue(offlineTime > initialOnlineTime);
+
+        // Repeated offline event does not refresh timestamp
+        Thread.sleep(10);
+        manager.handle(data, null, "731", Arrays.asList("me", "Resilienza!id@host"), Collections.emptyMap());
+        assertEquals(offlineTime, user.lastStateTimestamp);
+    }
+
+    @Test public void deserializesLegacyAndNewLastKnownStateConfig() {
+        String oldJson = "{\"monitoredUsers\":[{\"nick\":\"OldUser\",\"currentNick\":\"OldUser\"}]}";
+        ServerConfigData oldConfig = new Gson().fromJson(oldJson, ServerConfigData.class);
+        MonitoredUsersManager oldManager = new MonitoredUsersManager(oldConfig);
+        ServerConfigData.MonitoredUser oldUser = oldManager.getMonitoredUsers().get(0);
+        assertEquals(ServerConfigData.MonitoredUser.STATE_UNKNOWN, oldUser.lastKnownState);
+        assertEquals("OldUser", oldUser.lastKnownNick);
+        assertEquals(0, oldUser.lastStateTimestamp);
+
+        String newJson = "{\"monitoredUsers\":[{\"nick\":\"Marco\",\"currentNick\":\"Resilienza\"," +
+                "\"lastKnownState\":\"online\",\"lastKnownNick\":\"Resilienza\",\"lastStateTimestamp\":1700000000000}]}";
+        ServerConfigData newConfig = new Gson().fromJson(newJson, ServerConfigData.class);
+        MonitoredUsersManager newManager = new MonitoredUsersManager(newConfig);
+        ServerConfigData.MonitoredUser newUser = newManager.getMonitoredUsers().get(0);
+        assertEquals(ServerConfigData.MonitoredUser.STATE_ONLINE, newUser.lastKnownState);
+        assertEquals("Resilienza", newUser.lastKnownNick);
+        assertEquals(1700000000000L, newUser.lastStateTimestamp);
+
+        String reserialized = new Gson().toJson(newConfig);
+        assertTrue(reserialized.contains("\"lastKnownState\":\"online\""));
+        assertTrue(reserialized.contains("\"lastKnownNick\":\"Resilienza\""));
+        assertTrue(reserialized.contains("1700000000000"));
+    }
+
     private static ServerConnectionData supportedData(String... tokens) throws Exception {
         ServerConnectionData data = new ServerConnectionData();
         applySupport(data, tokens);

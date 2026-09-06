@@ -180,6 +180,10 @@ public class ServerConfigData {
 
     /** Persisted per-network MONITOR configuration; presence itself is connection runtime state. */
     public static class MonitoredUser {
+        public static final String STATE_UNKNOWN = "unknown";
+        public static final String STATE_ONLINE = "online";
+        public static final String STATE_OFFLINE = "offline";
+
         /** Stable display nickname. Kept for compatibility with pre-alias configurations. */
         public String nick;
         /** Last nickname reached by an observed NICK chain. Kept for backup compatibility. */
@@ -190,6 +194,10 @@ public class ServerConfigData {
         public transient boolean online;
         public boolean notifyOnline;
         public boolean notifyOffline;
+
+        public String lastKnownState;
+        public String lastKnownNick;
+        public long lastStateTimestamp;
     }
 
     public static class MonitoredAlias {
