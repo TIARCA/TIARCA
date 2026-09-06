@@ -23,17 +23,14 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 import io.mrarm.chatlib.dto.ModeList;
-import io.mrarm.chatlib.irc.CommandHandler;
 import io.mrarm.chatlib.irc.CommandHandlerList;
 import io.mrarm.chatlib.irc.IRCConnection;
-import io.mrarm.chatlib.irc.MessagePrefix;
-import io.mrarm.chatlib.irc.ServerConnectionData;
 import io.mrarm.irc.R;
 import io.mrarm.irc.ServerConnectionInfo;
 import io.mrarm.irc.irc.BanListCommandHandler;
+import io.mrarm.irc.irc.ChannelModeSnapshotHandler;
 import io.mrarm.irc.irc.ExceptionListCommandHandler;
 
 /** Unified, sortable, multi-select channel Ban and Exception list dialog. */
@@ -65,7 +62,6 @@ public final class ChannelBanListDialog {
 
     private int sortColumn;
     private boolean ascending = true;
-    private CommandHandler liveModeHandler;
 
     public ChannelBanListDialog(Activity activity, ServerConnectionInfo connection,
                                 String channel) {
@@ -233,68 +229,68 @@ public final class ChannelBanListDialog {
                 .setOnClickListener(v -> confirmRemoval(dialog)));
         cleanupButton.setOnClickListener(v -> prepareCleanup(dialog));
 
-        liveModeHandler = new CommandHandler() {
-            @Override public Object[] getHandledCommands() { return new Object[] { "MODE" }; }
-            @Override public void handle(ServerConnectionData conn, MessagePrefix sender,
-                                        String cmd, List<String> params,
-                                        Map<String, String> tags) {
-                if (params.size() < 2) return;
-                String targetChannel = params.get(0);
-                if (!targetChannel.equalsIgnoreCase(channel)) return;
-                String setterNick = sender != null ? sender.getNick() : "";
-                long now = System.currentTimeMillis() / 1000L;
-                String modeStr = params.get(1);
-                boolean adding = true;
-                int paramIdx = 2;
-                boolean changed = false;
-                for (int i = 0; i < modeStr.length(); i++) {
-                    char c = modeStr.charAt(i);
-                    if (c == '+') { adding = true; continue; }
-                    if (c == '-') { adding = false; continue; }
-                    if (c == 'b') {
-                        if (paramIdx < params.size()) {
-                            String mask = params.get(paramIdx++);
-                            if (adding) {
-                                if (addEntryIfNotPresent(banRows, mask, setterNick, now))
-                                    changed = true;
-                            } else {
-                                if (removeEntryByMask(banRows, mask))
-                                    changed = true;
+        ChannelModeSnapshotHandler snapshotHandler =
+                handlers.getHandler(ChannelModeSnapshotHandler.class);
+        ChannelModeSnapshotHandler.ModeListener modeListener =
+                (conn, sender, params) -> {
+                    if (params.size() < 2) return;
+                    String targetChannel = params.get(0);
+                    if (!targetChannel.equalsIgnoreCase(channel)) return;
+                    String setterNick = sender != null ? sender.getNick() : "";
+                    long now = System.currentTimeMillis() / 1000L;
+                    String modeStr = params.get(1);
+                    boolean adding = true;
+                    int paramIdx = 2;
+                    boolean changed = false;
+                    for (int i = 0; i < modeStr.length(); i++) {
+                        char c = modeStr.charAt(i);
+                        if (c == '+') { adding = true; continue; }
+                        if (c == '-') { adding = false; continue; }
+                        if (c == 'b') {
+                            if (paramIdx < params.size()) {
+                                String mask = params.get(paramIdx++);
+                                if (adding) {
+                                    if (addEntryIfNotPresent(banRows, mask, setterNick, now))
+                                        changed = true;
+                                } else {
+                                    if (removeEntryByMask(banRows, mask))
+                                        changed = true;
+                                }
                             }
-                        }
-                    } else if (c == 'e') {
-                        if (paramIdx < params.size()) {
-                            String mask = params.get(paramIdx++);
-                            if (adding) {
-                                if (addEntryIfNotPresent(exceptionRows, mask, setterNick, now))
-                                    changed = true;
-                            } else {
-                                if (removeEntryByMask(exceptionRows, mask))
-                                    changed = true;
+                        } else if (c == 'e') {
+                            if (paramIdx < params.size()) {
+                                String mask = params.get(paramIdx++);
+                                if (adding) {
+                                    if (addEntryIfNotPresent(exceptionRows, mask, setterNick, now))
+                                        changed = true;
+                                } else {
+                                    if (removeEntryByMask(exceptionRows, mask))
+                                        changed = true;
+                                }
                             }
-                        }
-                    } else {
-                        ModeList listModes = conn.getSupportList().getSupportedListChannelModes();
-                        ModeList nickPrefixModes = conn.getSupportList().getSupportedNickPrefixModes();
-                        ModeList valueExactUnset = conn.getSupportList().getSupportedValueExactUnsetChannelModes();
-                        ModeList valueModes = conn.getSupportList().getSupportedValueChannelModes();
-                        if (listModes.contains(c) || nickPrefixModes.contains(c) || valueExactUnset.contains(c)
-                                || (adding && valueModes.contains(c))) {
-                            paramIdx++;
+                        } else {
+                            ModeList listModes = conn.getSupportList().getSupportedListChannelModes();
+                            ModeList nickPrefixModes = conn.getSupportList().getSupportedNickPrefixModes();
+                            ModeList valueExactUnset = conn.getSupportList().getSupportedValueExactUnsetChannelModes();
+                            ModeList valueModes = conn.getSupportList().getSupportedValueChannelModes();
+                            if (listModes.contains(c) || nickPrefixModes.contains(c) || valueExactUnset.contains(c)
+                                    || (adding && valueModes.contains(c))) {
+                                paramIdx++;
+                            }
                         }
                     }
-                }
-                if (changed) {
-                    activity.runOnUiThread(() -> {
-                        sortRows(activeTab == TAB_BANS ? banRows : exceptionRows);
-                        renderRows();
-                    });
-                }
-            }
-        };
-        handlers.registerHandler(liveModeHandler);
+                    if (changed) {
+                        activity.runOnUiThread(() -> {
+                            sortRows(activeTab == TAB_BANS ? banRows : exceptionRows);
+                            renderRows();
+                        });
+                    }
+                };
 
-        dialog.setOnDismissListener(d -> handlers.unregisterHandler(liveModeHandler));
+        if (snapshotHandler != null) {
+            snapshotHandler.addModeListener(modeListener);
+            dialog.setOnDismissListener(d -> snapshotHandler.removeModeListener(modeListener));
+        }
 
         updateTabStyles();
         dialog.show();
