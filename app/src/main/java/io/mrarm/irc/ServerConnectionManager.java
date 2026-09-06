@@ -365,12 +365,14 @@ public class ServerConnectionManager {
     void notifyConnectionInfoChanged(ServerConnectionInfo connection) {
         if (!hasConnection(connection.getUUID()))
             return;
+        List<ServerConnectionInfo.InfoChangeListener> listeners;
         synchronized (mInfoListeners) {
-            for (ServerConnectionInfo.InfoChangeListener listener : mInfoListeners)
-                listener.onConnectionInfoChanged(connection);
-            if (!mDestroying)
-                IRCService.start(mContext);
+            listeners = new ArrayList<>(mInfoListeners);
         }
+        for (ServerConnectionInfo.InfoChangeListener listener : listeners)
+            listener.onConnectionInfoChanged(connection);
+        if (!mDestroying)
+            IRCService.start(mContext);
     }
 
     void notifyChannelListChanged(ServerConnectionInfo connection, List<String> newChannels) {
