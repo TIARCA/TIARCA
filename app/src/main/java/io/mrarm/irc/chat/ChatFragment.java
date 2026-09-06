@@ -113,6 +113,9 @@ public class ChatFragment extends Fragment implements
                 if (channel != null)
                     DirectShareManager.publishConversation(requireContext(), mConnectionInfo,
                             channel);
+                ChatMessagesFragment fragment = getCurrentMessagesFragment();
+                if (fragment != null)
+                    fragment.updateParentCurrentChannel();
             }
         };
         mViewPager.registerOnPageChangeCallback(mPageChangeCallback);

@@ -194,10 +194,14 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
     }
 
     private void replaceVisibleMemberRows(int memberStart, int oldVisibleCount) {
-        if (oldVisibleCount > 0)
-            notifyItemRangeRemoved(memberStart, oldVisibleCount);
-        if (!mVisibleMembers.isEmpty())
-            notifyItemRangeInserted(getMemberStart(), mVisibleMembers.size());
+        int newVisibleCount = mVisibleMembers.size();
+        int commonCount = Math.min(oldVisibleCount, newVisibleCount);
+        if (commonCount > 0)
+            notifyItemRangeChanged(memberStart, commonCount);
+        if (newVisibleCount > oldVisibleCount)
+            notifyItemRangeInserted(memberStart + oldVisibleCount, newVisibleCount - oldVisibleCount);
+        else if (oldVisibleCount > newVisibleCount)
+            notifyItemRangeRemoved(memberStart + newVisibleCount, oldVisibleCount - newVisibleCount);
     }
 
     private void notifyVisibleMemberRowsChanged() {

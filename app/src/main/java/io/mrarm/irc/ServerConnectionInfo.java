@@ -750,11 +750,13 @@ public class ServerConnectionInfo {
     }
 
     private void notifyInfoChanged() {
+        List<InfoChangeListener> listeners;
         synchronized (mInfoListeners) {
-            for (InfoChangeListener listener : mInfoListeners)
-                listener.onConnectionInfoChanged(this);
-            mManager.notifyConnectionInfoChanged(this);
+            listeners = new ArrayList<>(mInfoListeners);
         }
+        for (InfoChangeListener listener : listeners)
+            listener.onConnectionInfoChanged(this);
+        mManager.notifyConnectionInfoChanged(this);
     }
 
     private Runnable mReconnectRunnable = () -> {
