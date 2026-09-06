@@ -26,23 +26,23 @@
     <string name="message_motd">Wiadomość dnia</string>
     <string name="message_whois">%22$s\'</string>
 
-    <string name="message_mode">%23$s %24$s</string>
-    <string name="message_mode_set">zestaw %25$s</string>
-    <string name="message_mode_unset">rozbrojony %26$s</string>
-    <string name="message_mode_gave">dał %27$s</string>
-    <string name="message_mode_removed">usunięto %28$s</string>
+    <string name="message_mode">%1$s %2$s</string>
+    <string name="message_mode_set">zestaw %1$s</string>
+    <string name="message_mode_unset">rozbrojony %1$s</string>
+    <string name="message_mode_gave">dał %1$s</string>
+    <string name="message_mode_removed">usunięto %1$s</string>
 
-    <string name="message_mode_gave_to">%29$s do %30$s</string>
-    <string name="message_mode_removed_from">%31$s od %32$s</string>
+    <string name="message_mode_gave_to">%1$s do %2$s</string>
+    <string name="message_mode_removed_from">%1$s od %2$s</string>
 
     <plurals name="message_mode_channel">
-        <item quantity="one">tryb kanałowy \'%33$s\'</item>
-        <item quantity="few">tryby kanałów \'%34$s\'</item>
-        <item quantity="many">tryby kanałów \'%35$s\'</item>
-        <item quantity="other">tryby kanałów \'%36$s\'</item>
+        <item quantity="one">tryb kanałowy \'%1$s\'</item>
+        <item quantity="few">tryby kanałów \'%1$s\'</item>
+        <item quantity="many">tryby kanałów \'%1$s\'</item>
+        <item quantity="other">tryby kanałów \'%1$s\'</item>
     </plurals>
-    <string name="message_mode_channel_value">tryb kanału \'%37$s\' do %38$s</string>
-    <string name="message_mode_channel_ban">ban na %39$s</string>
+    <string name="message_mode_channel_value">tryb kanału \'%1$s\' do %2$s</string>
+    <string name="message_mode_channel_ban">ban na %1$s</string>
     <string name="message_mode_nick_owner">Stan administratora kanału</string>
     <string name="message_mode_nick_admin">Stan operatora kanału</string>
     <string name="message_mode_nick_op">Stan półoperatora kanału</string>

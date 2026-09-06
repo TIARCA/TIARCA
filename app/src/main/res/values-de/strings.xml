@@ -26,21 +26,21 @@
     <string name="message_motd">Botschaft des Tages</string>
     <string name="message_whois">%22$s\'s Benutzerinformationen</string>
 
-    <string name="message_mode">%23$s %24$s</string>
-    <string name="message_mode_set">-Set %25$s</string>
-    <string name="message_mode_unset">unscharf %26$s</string>
-    <string name="message_mode_gave">ergab %27$s</string>
-    <string name="message_mode_removed">hat %28$s entfernt</string>
+    <string name="message_mode">%1$s %2$s</string>
+    <string name="message_mode_set">-Set %1$s</string>
+    <string name="message_mode_unset">unscharf %1$s</string>
+    <string name="message_mode_gave">ergab %1$s</string>
+    <string name="message_mode_removed">hat %1$s entfernt</string>
 
-    <string name="message_mode_gave_to">%29$s bis %30$s</string>
-    <string name="message_mode_removed_from">%31$s von %32$s</string>
+    <string name="message_mode_gave_to">%1$s bis %2$s</string>
+    <string name="message_mode_removed_from">%1$s von %2$s</string>
 
     <plurals name="message_mode_channel">
-        <item quantity="one">Kanalmodus \'%33$s\'</item>
-        <item quantity="other">Kanalmodi \'%34$s\'</item>
+        <item quantity="one">Kanalmodus \'%1$s\'</item>
+        <item quantity="other">Kanalmodi \'%1$s\'</item>
     </plurals>
-    <string name="message_mode_channel_value">Kanalmodus \'%35$s\' bis %36$s</string>
-    <string name="message_mode_channel_ban">ein Verbot von %37$s</string>
+    <string name="message_mode_channel_value">Kanalmodus \'%1$s\' bis %2$s</string>
+    <string name="message_mode_channel_ban">ein Verbot von %1$s</string>
     <string name="message_mode_nick_owner">Kanalbesitzerstatus</string>
     <string name="message_mode_nick_admin">Kanaladministratorstatus</string>
     <string name="message_mode_nick_op">Kanalbetreiberstatus</string>

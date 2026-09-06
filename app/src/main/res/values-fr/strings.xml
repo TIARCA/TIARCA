@@ -26,21 +26,21 @@
     <string name="message_motd">Message du jour</string>
     <string name="message_whois">%22$s\'s</string>
 
-    <string name="message_mode">%23$s %24$s</string>
-    <string name="message_mode_set">ensemble %25$s</string>
-    <string name="message_mode_unset">désarmé %26$s</string>
-    <string name="message_mode_gave">a donné %27$s</string>
-    <string name="message_mode_removed">supprimé %28$s</string>
+    <string name="message_mode">%1$s %2$s</string>
+    <string name="message_mode_set">ensemble %1$s</string>
+    <string name="message_mode_unset">désarmé %1$s</string>
+    <string name="message_mode_gave">a donné %1$s</string>
+    <string name="message_mode_removed">supprimé %1$s</string>
 
-    <string name="message_mode_gave_to">%29$s à %30$s</string>
-    <string name="message_mode_removed_from">%31$s de %32$s</string>
+    <string name="message_mode_gave_to">%1$s à %2$s</string>
+    <string name="message_mode_removed_from">%1$s de %2$s</string>
 
     <plurals name="message_mode_channel">
-        <item quantity="one">\'%33$s\'</item>
-        <item quantity="other">modes de canal \'%34$s\'</item>
+        <item quantity="one">\'%1$s\'</item>
+        <item quantity="other">modes de canal \'%1$s\'</item>
     </plurals>
-    <string name="message_mode_channel_value">\'%35$s\' à %36$s</string>
-    <string name="message_mode_channel_ban">une interdiction sur %37$s</string>
+    <string name="message_mode_channel_value">\'%1$s\' à %2$s</string>
+    <string name="message_mode_channel_ban">une interdiction sur %1$s</string>
     <string name="message_mode_nick_owner">Statut d\'administrateur de chaîne</string>
     <string name="message_mode_nick_admin">Statut d\'opérateur de canal</string>
     <string name="message_mode_nick_op">État du demi-opérateur du canal</string>

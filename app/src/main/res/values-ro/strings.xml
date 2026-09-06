@@ -26,22 +26,22 @@
     <string name="message_motd">Mesajul zilei</string>
     <string name="message_whois">%22$s\' informații despre utilizator</string>
 
-    <string name="message_mode">%23$s %24$s</string>
-    <string name="message_mode_set">set %25$s</string>
-    <string name="message_mode_unset">dezactivați %26$s</string>
-    <string name="message_mode_gave">a dat %27$s</string>
-    <string name="message_mode_removed">a eliminat %28$s</string>
+    <string name="message_mode">%1$s %2$s</string>
+    <string name="message_mode_set">set %1$s</string>
+    <string name="message_mode_unset">dezactivați %1$s</string>
+    <string name="message_mode_gave">a dat %1$s</string>
+    <string name="message_mode_removed">a eliminat %1$s</string>
 
-    <string name="message_mode_gave_to">%29$s până la %30$s</string>
-    <string name="message_mode_removed_from">%31$s de la %32$s</string>
+    <string name="message_mode_gave_to">%1$s până la %2$s</string>
+    <string name="message_mode_removed_from">%1$s de la %2$s</string>
 
     <plurals name="message_mode_channel">
-        <item quantity="one">modul canal \'%33$s\'</item>
-        <item quantity="few">modurile de canal \'%34$s\'</item>
-        <item quantity="other">modurile de canal \'%35$s\'</item>
+        <item quantity="one">modul canal \'%1$s\'</item>
+        <item quantity="few">modurile de canal \'%1$s\'</item>
+        <item quantity="other">modurile de canal \'%1$s\'</item>
     </plurals>
-    <string name="message_mode_channel_value">modul canal \'%36$s\' la %37$s</string>
-    <string name="message_mode_channel_ban">o interdicție pentru %38$s</string>
+    <string name="message_mode_channel_value">modul canal \'%1$s\' la %2$s</string>
+    <string name="message_mode_channel_ban">o interdicție pentru %1$s</string>
     <string name="message_mode_nick_owner">starea proprietarului canalului</string>
     <string name="message_mode_nick_admin">Stare operator de canal</string>
     <string name="message_mode_nick_op">Stare de semi-operator al canalului</string>

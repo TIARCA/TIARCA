@@ -26,21 +26,21 @@
     <string name="message_motd">Päivän viesti</string>
     <string name="message_whois">%22$s\'s käyttäjätiedot</string>
 
-    <string name="message_mode">%23$s %24$s</string>
-    <string name="message_mode_set">sarja %25$s</string>
-    <string name="message_mode_unset">irrotettu %26$s</string>
-    <string name="message_mode_gave">antoi %27$s:n</string>
-    <string name="message_mode_removed">poistettu %28$s</string>
+    <string name="message_mode">%1$s %2$s</string>
+    <string name="message_mode_set">sarja %1$s</string>
+    <string name="message_mode_unset">irrotettu %1$s</string>
+    <string name="message_mode_gave">antoi %1$s:n</string>
+    <string name="message_mode_removed">poistettu %1$s</string>
 
-    <string name="message_mode_gave_to">%29$s - %30$s</string>
-    <string name="message_mode_removed_from">%31$s alkaen %32$s</string>
+    <string name="message_mode_gave_to">%1$s - %2$s</string>
+    <string name="message_mode_removed_from">%1$s alkaen %2$s</string>
 
     <plurals name="message_mode_channel">
-        <item quantity="one">kanavatila \'%33$s\'</item>
-        <item quantity="other">kanavatilat \'%34$s\'</item>
+        <item quantity="one">kanavatila \'%1$s\'</item>
+        <item quantity="other">kanavatilat \'%1$s\'</item>
     </plurals>
-    <string name="message_mode_channel_value">kanavatila \'%35$s\' - %36$s</string>
-    <string name="message_mode_channel_ban">%37$s:n kielto</string>
+    <string name="message_mode_channel_value">kanavatila \'%1$s\' - %2$s</string>
+    <string name="message_mode_channel_ban">%1$s:n kielto</string>
     <string name="message_mode_nick_owner">-kanavan omistajan tila</string>
     <string name="message_mode_nick_admin">-kanavan järjestelmänvalvojan tila</string>
     <string name="message_mode_nick_op">-kanavan operaattorin tila</string>
