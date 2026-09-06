@@ -2,6 +2,7 @@ package io.mrarm.irc.chat;
 
 import android.app.Dialog;
 import android.graphics.Color;
+import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 import android.text.Editable;
 import android.text.SpannableString;
@@ -56,37 +57,76 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
     private Date mTopicSetOn;
     private List<NickWithPrefix> mMembers;
     private List<NickWithPrefix> mVisibleMembers = new ArrayList<>();
+    private List<AdapterItem> mAdapterItems = new ArrayList<>();
     private String mSearchQuery = "";
     private EditText mSearchInput;
 
     public ChannelInfoAdapter() {
+        mAdapterItems = buildAdapterItems();
+    }
+
+    public static boolean areMemberListEquals(List<NickWithPrefix> list1, List<NickWithPrefix> list2) {
+        if (list1 == list2)
+            return true;
+        if (list1 == null || list2 == null)
+            return false;
+        if (list1.size() != list2.size())
+            return false;
+        for (int i = 0; i < list1.size(); i++) {
+            NickWithPrefix n1 = list1.get(i);
+            NickWithPrefix n2 = list2.get(i);
+            if (n1 == n2)
+                continue;
+            if (n1 == null || n2 == null)
+                return false;
+            if (!java.util.Objects.equals(n1.getNick(), n2.getNick()))
+                return false;
+            String p1 = (n1.getNickPrefixes() != null && n1.getNickPrefixes().toString() != null) ? n1.getNickPrefixes().toString() : "";
+            String p2 = (n2.getNickPrefixes() != null && n2.getNickPrefixes().toString() != null) ? n2.getNickPrefixes().toString() : "";
+            if (!java.util.Objects.equals(p1, p2))
+                return false;
+        }
+        return true;
     }
 
     public void setData(ServerConnectionInfo connection, String channel, String topic, String topicSetBy,
                         Date topicSetOn, List<NickWithPrefix> members) {
         boolean contextChanged = connection != mConnection || !TextUtils.equals(channel, mChannel);
         int oldMemberCount = getMemberCount();
-        int oldVisibleCount = mVisibleMembers.size();
-        int oldMemberStart = getMemberStart();
+        int newMemberCount = members == null ? 0 : members.size();
+
+        if (!contextChanged && TextUtils.equals(topic, mTopic) && TextUtils.equals(topicSetBy, mTopicSetBy)
+                && java.util.Objects.equals(topicSetOn, mTopicSetOn) && areMemberListEquals(mMembers, members)) {
+            return;
+        }
+
         mConnection = connection;
         mChannel = channel;
         mTopic = topic;
         mTopicSetBy = topicSetBy;
         mTopicSetOn = topicSetOn;
         mMembers = members;
-        boolean showMemberSearch = isMemberSearchVisible(getMemberCount());
+
+        boolean showMemberSearch = isMemberSearchVisible(newMemberCount);
         if (contextChanged || !showMemberSearch)
             mSearchQuery = "";
         if (!showMemberSearch)
             onDrawerClosed();
+
         rebuildVisibleMembers();
         SimosnapAvatarManager.requestChannelAccounts(connection, channel,
                 this::notifyVisibleMemberRowsChanged);
-        if (requiresFullRefresh(contextChanged, oldMemberCount, getMemberCount())) {
+
+        List<AdapterItem> newItems = buildAdapterItems();
+
+        if (requiresFullRefresh(contextChanged, oldMemberCount, newMemberCount)) {
+            mAdapterItems = newItems;
             notifyDataSetChanged();
         } else {
-            notifyItemChanged(1);
-            replaceVisibleMemberRows(oldMemberStart, oldVisibleCount);
+            List<AdapterItem> oldItems = mAdapterItems;
+            mAdapterItems = newItems;
+            DiffUtil.DiffResult diffResult = DiffUtil.calculateDiff(new AdapterItemDiffCallback(oldItems, newItems));
+            diffResult.dispatchUpdatesTo(this);
         }
     }
 
@@ -127,31 +167,36 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
 
     @Override
     public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
+        if (position < 0 || position >= mAdapterItems.size())
+            return;
+        AdapterItem item = mAdapterItems.get(position);
         int type = holder.getItemViewType();
         if (type == TYPE_HEADER)
-            ((TextHolder) holder).bind(position == 0 ? R.string.channel_topic
+            ((TextHolder) holder).bind(item.type == AdapterItem.TYPE_HEADER_TOPIC ? R.string.channel_topic
                     : R.string.channel_members);
         else if (type == TYPE_TOPIC)
             ((TopicHolder) holder).bind(mTopic, mTopicSetBy, mTopicSetOn);
         else if (type == TYPE_SEARCH)
             ((SearchHolder) holder).bind(mSearchQuery);
         else if (type == TYPE_MEMBER)
-            ((MemberHolder) holder).bind(mConnection, mChannel,
-                    mVisibleMembers.get(position - getMemberStart()));
+            ((MemberHolder) holder).bind(mConnection, mChannel, item.nickWithPrefix);
     }
 
     @Override
     public int getItemCount() {
-        return getMemberStart() + mVisibleMembers.size();
+        return mAdapterItems.size();
     }
 
     @Override
     public int getItemViewType(int position) {
-        if (position == 0 || position == getMemberHeaderPosition())
+        if (position < 0 || position >= mAdapterItems.size())
+            return TYPE_MEMBER;
+        AdapterItem item = mAdapterItems.get(position);
+        if (item.type == AdapterItem.TYPE_HEADER_TOPIC || item.type == AdapterItem.TYPE_HEADER_MEMBERS)
             return TYPE_HEADER;
-        if (position == 1)
+        if (item.type == AdapterItem.TYPE_TOPIC)
             return TYPE_TOPIC;
-        if (isMemberSearchVisible(getMemberCount()) && position == 2)
+        if (item.type == AdapterItem.TYPE_SEARCH)
             return TYPE_SEARCH;
         return TYPE_MEMBER;
     }
@@ -179,6 +224,10 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
     }
 
     private int getMemberStart() {
+        for (int i = 0; i < mAdapterItems.size(); i++) {
+            if (mAdapterItems.get(i).type == AdapterItem.TYPE_MEMBER)
+                return i;
+        }
         return getMemberHeaderPosition() + 1;
     }
 
@@ -186,27 +235,138 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
         String normalized = query == null ? "" : query.trim();
         if (TextUtils.equals(mSearchQuery, normalized))
             return;
-        int oldVisibleCount = mVisibleMembers.size();
-        int memberStart = getMemberStart();
         mSearchQuery = normalized;
         rebuildVisibleMembers();
-        replaceVisibleMemberRows(memberStart, oldVisibleCount);
-    }
-
-    private void replaceVisibleMemberRows(int memberStart, int oldVisibleCount) {
-        int newVisibleCount = mVisibleMembers.size();
-        int commonCount = Math.min(oldVisibleCount, newVisibleCount);
-        if (commonCount > 0)
-            notifyItemRangeChanged(memberStart, commonCount);
-        if (newVisibleCount > oldVisibleCount)
-            notifyItemRangeInserted(memberStart + oldVisibleCount, newVisibleCount - oldVisibleCount);
-        else if (oldVisibleCount > newVisibleCount)
-            notifyItemRangeRemoved(memberStart + newVisibleCount, oldVisibleCount - newVisibleCount);
+        List<AdapterItem> oldItems = mAdapterItems;
+        List<AdapterItem> newItems = buildAdapterItems();
+        mAdapterItems = newItems;
+        DiffUtil.DiffResult diffResult = DiffUtil.calculateDiff(new AdapterItemDiffCallback(oldItems, newItems));
+        diffResult.dispatchUpdatesTo(this);
     }
 
     private void notifyVisibleMemberRowsChanged() {
         if (!mVisibleMembers.isEmpty())
             notifyItemRangeChanged(getMemberStart(), mVisibleMembers.size());
+    }
+
+    private List<AdapterItem> buildAdapterItems() {
+        List<AdapterItem> items = new ArrayList<>();
+        items.add(AdapterItem.headerTopic());
+        items.add(AdapterItem.topic(mTopic, mTopicSetBy, mTopicSetOn));
+        if (isMemberSearchVisible(getMemberCount()))
+            items.add(AdapterItem.search(mSearchQuery));
+        items.add(AdapterItem.headerMembers());
+        if (mVisibleMembers != null) {
+            for (NickWithPrefix member : mVisibleMembers) {
+                if (member != null)
+                    items.add(AdapterItem.member(member));
+            }
+        }
+        return items;
+    }
+
+    public static class AdapterItem {
+        public static final int TYPE_HEADER_TOPIC = 0;
+        public static final int TYPE_TOPIC = 1;
+        public static final int TYPE_SEARCH = 2;
+        public static final int TYPE_HEADER_MEMBERS = 3;
+        public static final int TYPE_MEMBER = 4;
+
+        public final int type;
+        public final String text;
+        public final String topicSetBy;
+        public final Date topicSetOn;
+        public final NickWithPrefix nickWithPrefix;
+
+        public AdapterItem(int type, String text, String topicSetBy, Date topicSetOn, NickWithPrefix nickWithPrefix) {
+            this.type = type;
+            this.text = text;
+            this.topicSetBy = topicSetBy;
+            this.topicSetOn = topicSetOn;
+            this.nickWithPrefix = nickWithPrefix;
+        }
+
+        public static AdapterItem headerTopic() {
+            return new AdapterItem(TYPE_HEADER_TOPIC, null, null, null, null);
+        }
+
+        public static AdapterItem topic(String topic, String setBy, Date setOn) {
+            return new AdapterItem(TYPE_TOPIC, topic, setBy, setOn, null);
+        }
+
+        public static AdapterItem search(String query) {
+            return new AdapterItem(TYPE_SEARCH, query, null, null, null);
+        }
+
+        public static AdapterItem headerMembers() {
+            return new AdapterItem(TYPE_HEADER_MEMBERS, null, null, null, null);
+        }
+
+        public static AdapterItem member(NickWithPrefix nick) {
+            return new AdapterItem(TYPE_MEMBER, nick != null ? nick.getNick() : null, null, null, nick);
+        }
+    }
+
+    private static class AdapterItemDiffCallback extends DiffUtil.Callback {
+        private final List<AdapterItem> oldList;
+        private final List<AdapterItem> newList;
+
+        AdapterItemDiffCallback(List<AdapterItem> oldList, List<AdapterItem> newList) {
+            this.oldList = oldList;
+            this.newList = newList;
+        }
+
+        @Override
+        public int getOldListSize() {
+            return oldList.size();
+        }
+
+        @Override
+        public int getNewListSize() {
+            return newList.size();
+        }
+
+        @Override
+        public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
+            AdapterItem oldItem = oldList.get(oldItemPosition);
+            AdapterItem newItem = newList.get(newItemPosition);
+            if (oldItem.type != newItem.type)
+                return false;
+            if (oldItem.type == AdapterItem.TYPE_MEMBER) {
+                return oldItem.text != null && oldItem.text.equalsIgnoreCase(newItem.text);
+            }
+            return true;
+        }
+
+        @Override
+        public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
+            AdapterItem oldItem = oldList.get(oldItemPosition);
+            AdapterItem newItem = newList.get(newItemPosition);
+            if (oldItem.type != newItem.type)
+                return false;
+            if (oldItem.type == AdapterItem.TYPE_TOPIC) {
+                return java.util.Objects.equals(oldItem.text, newItem.text)
+                        && java.util.Objects.equals(oldItem.topicSetBy, newItem.topicSetBy)
+                        && java.util.Objects.equals(oldItem.topicSetOn, newItem.topicSetOn);
+            }
+            if (oldItem.type == AdapterItem.TYPE_SEARCH) {
+                return java.util.Objects.equals(oldItem.text, newItem.text);
+            }
+            if (oldItem.type == AdapterItem.TYPE_MEMBER) {
+                if (!java.util.Objects.equals(oldItem.text, newItem.text))
+                    return false;
+                NickWithPrefix n1 = oldItem.nickWithPrefix;
+                NickWithPrefix n2 = newItem.nickWithPrefix;
+                if (n1 == n2)
+                    return true;
+                if (n1 == null || n2 == null)
+                    return false;
+                String p1 = (n1.getNickPrefixes() != null && n1.getNickPrefixes().toString() != null) ? n1.getNickPrefixes().toString() : "";
+                String p2 = (n2.getNickPrefixes() != null && n2.getNickPrefixes().toString() != null) ? n2.getNickPrefixes().toString() : "";
+                return java.util.Objects.equals(p1, p2);
+            }
+            return true;
+        }
     }
 
     private void rebuildVisibleMembers() {

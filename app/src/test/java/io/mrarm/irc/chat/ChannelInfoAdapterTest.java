@@ -2,6 +2,11 @@ package io.mrarm.irc.chat;
 
 import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.Collections;
+
+import io.mrarm.chatlib.dto.NickPrefixList;
+import io.mrarm.chatlib.dto.NickWithPrefix;
 import io.mrarm.chatlib.irc.IRCCaseMapping;
 
 import static org.junit.Assert.assertFalse;
@@ -40,5 +45,30 @@ public class ChannelInfoAdapterTest {
         assertTrue(ChannelInfoAdapter.requiresFullRefresh(false, 29, 30));
         assertTrue(ChannelInfoAdapter.requiresFullRefresh(false, 30, 29));
         assertTrue(ChannelInfoAdapter.requiresFullRefresh(true, 100, 100));
+    }
+
+    @Test
+    public void areMemberListEqualsIdentifiesEqualAndDifferentLists() {
+        NickWithPrefix alice = new NickWithPrefix("Alice", null);
+        NickWithPrefix bobOp = new NickWithPrefix("Bob", new NickPrefixList("@"));
+        NickWithPrefix bobVoice = new NickWithPrefix("Bob", new NickPrefixList("+"));
+
+        assertTrue(ChannelInfoAdapter.areMemberListEquals(
+                Arrays.asList(alice, bobOp),
+                Arrays.asList(new NickWithPrefix("Alice", null), new NickWithPrefix("Bob", new NickPrefixList("@")))
+        ));
+
+        assertFalse(ChannelInfoAdapter.areMemberListEquals(
+                Arrays.asList(alice, bobOp),
+                Arrays.asList(alice, bobVoice)
+        ));
+
+        assertFalse(ChannelInfoAdapter.areMemberListEquals(
+                Arrays.asList(alice),
+                Arrays.asList(alice, bobOp)
+        ));
+
+        assertTrue(ChannelInfoAdapter.areMemberListEquals(null, null));
+        assertFalse(ChannelInfoAdapter.areMemberListEquals(Collections.singletonList(alice), null));
     }
 }
