@@ -43,6 +43,10 @@ public class ServerConfigManager {
         return mInstance;
     }
 
+    public static synchronized void destroyInstance() {
+        mInstance = null;
+    }
+
     private final File mServersPath;
     private final File mServerLogsPath;
     private final File mFallbackServerLogsPath;
@@ -298,9 +302,13 @@ public class ServerConfigManager {
         }
         File orderFile = new File(mServersPath, SERVER_ORDER_FILENAME);
         if (orderFile.exists()) {
-            try {
-                persistServerOrder();
-            } catch (IOException ignored) {
+            if (mServers.isEmpty()) {
+                orderFile.delete();
+            } else {
+                try {
+                    persistServerOrder();
+                } catch (IOException ignored) {
+                }
             }
         }
         synchronized (mIOLock) {
@@ -333,6 +341,10 @@ public class ServerConfigManager {
         synchronized (this) {
             while (mServers.size() > 0)
                 deleteServer(mServers.get(mServers.size() - 1), deleteLogs);
+        }
+        File orderFile = new File(mServersPath, SERVER_ORDER_FILENAME);
+        if (orderFile.exists()) {
+            orderFile.delete();
         }
     }
 

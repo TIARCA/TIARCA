@@ -4,6 +4,7 @@ import android.content.Context;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,12 +33,20 @@ public class ServerConfigManagerOrderTest {
     @Before
     public void setUp() {
         context = ApplicationProvider.getApplicationContext();
+        ServerConnectionManager.destroyInstance();
+        ServerConfigManager.destroyInstance();
         ServerConnectionManager.getInstance(context).disconnectAndRemoveAllConnections(true);
         ServerConfigManager.getInstance(context).deleteAllServers(true);
         File orderFile = new File(new File(context.getFilesDir(), "servers"), "server_order.json");
         if (orderFile.exists()) {
             orderFile.delete();
         }
+    }
+
+    @After
+    public void tearDown() {
+        ServerConnectionManager.destroyInstance();
+        ServerConfigManager.destroyInstance();
     }
 
     @Test
@@ -70,12 +79,13 @@ public class ServerConfigManagerOrderTest {
         assertEquals("Server B", reorderedServers.get(2).name);
 
         // 2. Restart app -> C, A, B remains
-        ServerConfigManager reloadedManager = new ServerConfigManager(context);
+        ServerConfigManager.destroyInstance(); // Reset singleton instance if any
+        ServerConfigManager reloadedManager = ServerConfigManager.getInstance(context);
         List<ServerConfigData> reloadedServers = reloadedManager.getServers();
         assertEquals(3, reloadedServers.size());
-        assertEquals(serverC.uuid, reloadedServers.get(0).uuid);
-        assertEquals(serverA.uuid, reloadedServers.get(1).uuid);
-        assertEquals(serverB.uuid, reloadedServers.get(2).uuid);
+        assertEquals("Expected C at 0, got " + reloadedServers.get(0).name, serverC.uuid, reloadedServers.get(0).uuid);
+        assertEquals("Expected A at 1, got " + reloadedServers.get(1).name, serverA.uuid, reloadedServers.get(1).uuid);
+        assertEquals("Expected B at 2, got " + reloadedServers.get(2).name, serverB.uuid, reloadedServers.get(2).uuid);
     }
 
     @Test
