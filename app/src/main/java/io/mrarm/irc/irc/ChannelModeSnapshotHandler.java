@@ -1,5 +1,6 @@
 package io.mrarm.irc.irc;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -13,10 +14,14 @@ import io.mrarm.chatlib.irc.InvalidMessageException;
 import io.mrarm.chatlib.irc.MessagePrefix;
 import io.mrarm.chatlib.irc.ServerConnectionData;
 
-/** Captures RPL_CHANNELMODEIS while preserving chatlib's normal mode handling. */
+/** Captures RPL_CHANNELMODEIS and broadcasts live MODE commands while preserving chatlib's normal mode handling. */
 public class ChannelModeSnapshotHandler implements CommandHandler {
 
     public interface Callback { void onModes(Snapshot snapshot); }
+
+    public interface ModeListener {
+        void onModeCommand(ServerConnectionData connection, MessagePrefix sender, List<String> params);
+    }
 
     public static class Snapshot {
         public final Set<Character> active = new HashSet<>();
@@ -25,9 +30,25 @@ public class ChannelModeSnapshotHandler implements CommandHandler {
 
     private final CommandHandler delegate;
     private final Map<String, Callback> callbacks = new HashMap<>();
+    private final List<ModeListener> modeListeners = new ArrayList<>();
 
     public ChannelModeSnapshotHandler(CommandHandler delegate) {
         this.delegate = delegate;
+    }
+
+    public void addModeListener(ModeListener listener) {
+        if (listener == null) return;
+        synchronized (modeListeners) {
+            if (!modeListeners.contains(listener))
+                modeListeners.add(listener);
+        }
+    }
+
+    public void removeModeListener(ModeListener listener) {
+        if (listener == null) return;
+        synchronized (modeListeners) {
+            modeListeners.remove(listener);
+        }
     }
 
     public synchronized void request(String channel, Callback callback) {
@@ -50,10 +71,8 @@ public class ChannelModeSnapshotHandler implements CommandHandler {
                        List<String> params, Map<String, String> tags)
             throws InvalidMessageException {
         int numeric = CommandHandler.toNumeric(command);
-        // Capture the reply before forwarding it. Some IRCds advertise channel modes
-        // unknown to this old chatlib version; its delegate can reject those modes,
-        // but the operator dialog should still receive the raw 324 snapshot.
         if (numeric != 324) {
+            notifyModeListeners(connection, sender, params);
             if (delegate != null)
                 delegate.handle(connection, sender, command, params, tags);
             return;
@@ -93,6 +112,21 @@ public class ChannelModeSnapshotHandler implements CommandHandler {
         } catch (RuntimeException ignored) {
             // The snapshot above remains usable even when the legacy mode parser does not
             // understand a server-specific channel mode.
+        }
+    }
+
+    private void notifyModeListeners(ServerConnectionData connection, MessagePrefix sender,
+                                     List<String> params) {
+        List<ModeListener> listenersCopy;
+        synchronized (modeListeners) {
+            if (modeListeners.isEmpty()) return;
+            listenersCopy = new ArrayList<>(modeListeners);
+        }
+        for (ModeListener listener : listenersCopy) {
+            try {
+                listener.onModeCommand(connection, sender, params);
+            } catch (Exception ignored) {
+            }
         }
     }
 }
