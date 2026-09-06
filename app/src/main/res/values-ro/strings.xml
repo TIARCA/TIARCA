@@ -11,37 +11,37 @@
 
     <string name="tab_server">Stare de semi-operator al canalului</string>
     <string name="message_hint">Trimiteți un mesaj</string>
-    <string name="message_join">%s s-a alăturat</string>
-    <string name="message_kick">%s a lovit %s (%s)</string>
-    <string name="message_part">%s a plecat (%s)</string>
-    <string name="message_part_no_message">%s a plecat</string>
-    <string name="message_quit">%s s-a deconectat (%s)</string>
-    <string name="message_nick_change">%s este acum cunoscut ca %s</string>
-    <string name="message_topic">Subiect: %s</string>
-    <string name="message_topic_whotime">Subiectul a fost stabilit de %s pe %s</string>
-    <string name="message_topic_by">Subiect: %s, setat de %s</string>
+    <string name="message_join">%2$s s-a alăturat</string>
+    <string name="message_kick">%3$s a lovit %4$s (%5$s)</string>
+    <string name="message_part">%6$s a plecat (%7$s)</string>
+    <string name="message_part_no_message">%8$s a plecat</string>
+    <string name="message_quit">%9$s s-a deconectat (%10$s)</string>
+    <string name="message_nick_change">%11$s este acum cunoscut ca %12$s</string>
+    <string name="message_topic">Subiect: %13$s</string>
+    <string name="message_topic_whotime">Subiectul a fost stabilit de %14$s pe %15$s</string>
+    <string name="message_topic_by">Subiect: %16$s, setat de %17$s</string>
     <string name="message_topic_none">Subiectul nu a fost setat</string>
 
-    <string name="message_host_info">Numele serverului este %s, rulând %s. Moduri de utilizator acceptate: %s, moduri de canal acceptate: %s</string>
+    <string name="message_host_info">Numele serverului este %18$s, rulând %19$s. Moduri de utilizator acceptate: %20$s, moduri de canal acceptate: %21$s</string>
     <string name="message_motd">Mesajul zilei</string>
-    <string name="message_whois">%s\' informații despre utilizator</string>
+    <string name="message_whois">%22$s\' informații despre utilizator</string>
 
-    <string name="message_mode">%s %s</string>
-    <string name="message_mode_set">set %s</string>
-    <string name="message_mode_unset">dezactivați %s</string>
-    <string name="message_mode_gave">a dat %s</string>
-    <string name="message_mode_removed">a eliminat %s</string>
+    <string name="message_mode">%23$s %24$s</string>
+    <string name="message_mode_set">set %25$s</string>
+    <string name="message_mode_unset">dezactivați %26$s</string>
+    <string name="message_mode_gave">a dat %27$s</string>
+    <string name="message_mode_removed">a eliminat %28$s</string>
 
-    <string name="message_mode_gave_to">%s până la %s</string>
-    <string name="message_mode_removed_from">%s de la %s</string>
+    <string name="message_mode_gave_to">%29$s până la %30$s</string>
+    <string name="message_mode_removed_from">%31$s de la %32$s</string>
 
     <plurals name="message_mode_channel">
-        <item quantity="one">modul canal \'%s\'</item>
-        <item quantity="few">modurile de canal \'%s\'</item>
-        <item quantity="other">modurile de canal \'%s\'</item>
+        <item quantity="one">modul canal \'%33$s\'</item>
+        <item quantity="few">modurile de canal \'%34$s\'</item>
+        <item quantity="other">modurile de canal \'%35$s\'</item>
     </plurals>
-    <string name="message_mode_channel_value">modul canal \'%s\' la %s</string>
-    <string name="message_mode_channel_ban">o interdicție pentru %s</string>
+    <string name="message_mode_channel_value">modul canal \'%36$s\' la %37$s</string>
+    <string name="message_mode_channel_ban">o interdicție pentru %38$s</string>
     <string name="message_mode_nick_owner">starea proprietarului canalului</string>
     <string name="message_mode_nick_admin">Stare operator de canal</string>
     <string name="message_mode_nick_op">Stare de semi-operator al canalului</string>
@@ -57,7 +57,7 @@
     <string name="command_send_raw">Trimiteți ca brut</string>
 
     <string name="channel_topic">Subiect</string>
-    <string name="channel_topic_info">setat de %s pe %s</string>
+    <string name="channel_topic_info">setat de %39$s pe %40$s</string>
     <string name="channel_topic_none">Nu a fost stabilit niciun subiect</string>
     <string name="channel_members">Font</string>
 
@@ -68,13 +68,13 @@
 
     <plurals name="unread_message_counter">
         <item quantity="one">1 mesaj necitit</item>
-        <item quantity="few">%d mesaje necitite</item>
-        <item quantity="other">%d mesaje necitite</item>
+        <item quantity="few">%41$d mesaje necitite</item>
+        <item quantity="other">%42$d mesaje necitite</item>
     </plurals>
     <plurals name="mention_counter">
         <item quantity="one">1 mențiune</item>
-        <item quantity="few">%d mențiuni</item>
-        <item quantity="other">%d mențiuni</item>
+        <item quantity="few">%43$d mențiuni</item>
+        <item quantity="other">%44$d mențiuni</item>
     </plurals>
     <string name="unread_counter_with_mentions">%1$s · %2$s</string>
     <string name="unread_99_plus">99+ mesaje necitite</string>
@@ -92,8 +92,8 @@
 
     <plurals name="message_delete_confirm">
         <item quantity="one">Sunteți sigur că doriți să ștergeți mesajul selectat?</item>
-        <item quantity="few">Sunteți sigur că doriți să ștergeți mesajele %d selectate?</item>
-        <item quantity="other">Sunteți sigur că doriți să ștergeți mesajele %d selectate?</item>
+        <item quantity="few">Sunteți sigur că doriți să ștergeți mesajele %45$d selectate?</item>
+        <item quantity="other">Sunteți sigur că doriți să ștergeți mesajele %46$d selectate?</item>
     </plurals>
     <string name="message_delete_confirm_note">Mesajele vor fi șterse numai de pe acest dispozitiv.</string>
 
@@ -164,7 +164,7 @@
 
     <!-- Channel operator actions -->
     <string name="operator_actions">Acțiunile operatorului</string>
-    <string name="operator_actions_for">Acțiunile operatorului în %s</string>
+    <string name="operator_actions_for">Acțiunile operatorului în %47$s</string>
     <string name="operator_kick">Lovitură</string>
     <string name="operator_kickban">Kickban gazdă</string>
     <string name="operator_tban">Gazdă de interzicere temporară</string>
@@ -190,20 +190,20 @@
     <string name="file_upload_confirm">Încărcați %1$s (%2$s) și trimiteți linkul temporar către %3$s?</string>
     <string name="file_upload_progress">Se încarcă fișierul temporar...</string>
     <string name="file_upload_sent">Fișier încărcat și linkul trimis</string>
-    <string name="file_upload_failed">Încărcarea nu a reușit: %s</string>
-    <string name="file_upload_send_failed">Fișierul a fost încărcat, dar linkul nu a putut fi trimis: %s</string>
+    <string name="file_upload_failed">Încărcarea nu a reușit: %48$s</string>
+    <string name="file_upload_send_failed">Fișierul a fost încărcat, dar linkul nu a putut fi trimis: %49$s</string>
     <string name="search_messages_title">Căutați conversație</string>
     <string name="search_messages_hint">Textul mesajului sau porecla</string>
     <string name="search_messages_loading">Se încarcă mesajele salvate...</string>
     <string name="search_messages_failed">Nu s-au putut încărca mesajele salvate.</string>
-    <string name="search_messages_ready">Căutați în cele mai recente mesaje salvate %d.</string>
+    <string name="search_messages_ready">Căutați în cele mai recente mesaje salvate %50$d.</string>
     <string name="search_messages_no_results">Nicio potrivire.</string>
     <string name="search_messages_count">Potriviți %1$d cu %2$d</string>
     <string name="search_previous">Anterior</string>
     <string name="search_next">Următorul</string>
 
     <string name="action_delete_confirm_title">Ești sigur?</string>
-    <string name="action_delete_confirm_body">Sigur doriți să ștergeți %s? Acest lucru nu poate fi anulat.</string>
+    <string name="action_delete_confirm_body">Sigur doriți să ștergeți %51$s? Acest lucru nu poate fi anulat.</string>
 
     <!-- Format -->
 
@@ -220,24 +220,24 @@
     <string name="service_open_private_chat">Deschideți conversația privată</string>
     <string name="service_message_send_failed">Comanda nu a putut fi trimisă către serviciul IRC</string>
     <plurals name="service_status_connected">
-        <item quantity="one">Conectat la rețeaua %d</item>
-        <item quantity="few">Conectat la rețelele %d</item>
-        <item quantity="other">Conectat la rețelele %d</item>
+        <item quantity="one">Conectat la rețeaua %52$d</item>
+        <item quantity="few">Conectat la rețelele %53$d</item>
+        <item quantity="other">Conectat la rețelele %54$d</item>
     </plurals>
     <plurals name="service_status_connecting">
-        <item quantity="one">se conectează la rețeaua %d</item>
-        <item quantity="few">se conectează la rețelele %d</item>
-        <item quantity="other">se conectează la rețelele %d</item>
+        <item quantity="one">se conectează la rețeaua %55$d</item>
+        <item quantity="few">se conectează la rețelele %56$d</item>
+        <item quantity="other">se conectează la rețelele %57$d</item>
     </plurals>
     <plurals name="service_status_disconnected">
-        <item quantity="one">a fost deconectat de la rețeaua %d</item>
-        <item quantity="few">deconectat de la rețelele %d</item>
-        <item quantity="other">deconectat de la rețelele %d</item>
+        <item quantity="one">a fost deconectat de la rețeaua %58$d</item>
+        <item quantity="few">deconectat de la rețelele %59$d</item>
+        <item quantity="other">deconectat de la rețelele %60$d</item>
     </plurals>
     <plurals name="notify_multiple_messages">
-        <item quantity="one">%d mesaj necitit</item>
-        <item quantity="few">%d mesaje necitite</item>
-        <item quantity="other">%d mesaje necitite</item>
+        <item quantity="one">%61$d mesaj necitit</item>
+        <item quantity="few">%62$d mesaje necitite</item>
+        <item quantity="other">%63$d mesaje necitite</item>
     </plurals>
 
     <string name="notification_action_required">Este necesară acțiunea utilizatorului</string>
@@ -255,9 +255,9 @@
     <string name="connection_error_command_title">Eroare la procesarea comenzilor post-conectare</string>
     <string name="connection_error_command_notification_desc">A apărut o eroare internă la încercarea de a procesa comenzile post-conectare.</string>
     <plurals name="connection_error_command_dialog_content">
-        <item quantity="one">A apărut o eroare la procesarea următoarei comenzi pentru rețea \"%s\":\n\n%s</item>
-        <item quantity="few">A apărut o eroare la procesarea următoarelor comenzi pentru rețea \"%s\":\n\n%s</item>
-        <item quantity="other">A apărut o eroare la procesarea următoarelor comenzi pentru rețea \"%s\":\n\n%s</item>
+        <item quantity="one">A apărut o eroare la procesarea următoarei comenzi pentru rețea \"%64$s\":\n\n%65$s</item>
+        <item quantity="few">A apărut o eroare la procesarea următoarelor comenzi pentru rețea \"%66$s\":\n\n%67$s</item>
+        <item quantity="other">A apărut o eroare la procesarea următoarelor comenzi pentru rețea \"%68$s\":\n\n%69$s</item>
     </plurals>
 
     <!-- Server list -->
@@ -265,9 +265,9 @@
     <string name="server_list_header_active">Activ</string>
     <string name="server_list_header_inactive">Inactiv</string>
     <plurals name="server_list_connected">
-        <item quantity="one">Conectat, canal %d</item>
-        <item quantity="few">Conectat, canale %d</item>
-        <item quantity="other">Conectat, canale %d</item>
+        <item quantity="one">Conectat, canal %70$d</item>
+        <item quantity="few">Conectat, canale %71$d</item>
+        <item quantity="other">Conectat, canale %72$d</item>
     </plurals>
     <string name="server_list_connecting">Se conectează...</string>
     <string name="server_list_disconnected">Deconectat</string>
@@ -285,9 +285,9 @@
     <string name="server_port">Port</string>
     <string name="server_ssl">Utilizați SSL/TLS</string>
     <plurals name="server_manage_custom_certs_text">
-        <item quantity="one">%d certificat personalizat salvat</item>
-        <item quantity="few">%d certificate personalizate salvate</item>
-        <item quantity="other">%d certificate personalizate salvate</item>
+        <item quantity="one">%73$d certificat personalizat salvat</item>
+        <item quantity="few">%74$d certificate personalizate salvate</item>
+        <item quantity="other">%75$d certificate personalizate salvate</item>
     </plurals>
     <string name="server_manage_custom_certs">Gestionați certificatele personalizate</string>
     <string name="server_password_unchanged">Neschimbat</string>
@@ -300,7 +300,7 @@
     <string name="server_user">Utilizator</string>
     <string name="server_realname">Nume real</string>
     <string name="server_sasl_ext_none">Nici un certificat setat</string>
-    <string name="server_sasl_ext_fp">Amprenta certificată: %s</string>
+    <string name="server_sasl_ext_fp">Amprenta certificată: %76$s</string>
     <string name="server_sasl_ext_import">Import PEM</string>
     <string name="server_sasl_ext_create">Creați un nou</string>
     <string name="error_cert_already_present">Fișierul specificat are mai mult de o singură intrare de certificat.</string>
@@ -322,7 +322,7 @@
 
     <!-- Certificate error dialog -->
 
-    <string name="certificate_error">Nu s-a putut verifica certificatul %s\'</string>
+    <string name="certificate_error">Nu s-a putut verifica certificatul %77$s\'</string>
     <string name="certificate_error_ignore">Acceptați și continuați</string>
     <string name="certificate_bad_cert">Următorul certificat nu este recunoscut de sistem:</string>
     <string name="certificate_bad_hostname">Numele de gazdă furnizat în certificat (%1$s) de către gazdă nu se potrivește cu numele de gazdă la care ne conectăm (%2$s).</string>
@@ -335,9 +335,9 @@
     <string name="action_sort_member_count">Sortați după numărul de membri</string>
 
     <plurals name="channel_list_title_with_member_count">
-        <item quantity="one">%s (membru %d)</item>
-        <item quantity="few">%s (membrii %d)</item>
-        <item quantity="other">%s (membrii %d)</item>
+        <item quantity="one">%78$s (membru %79$d)</item>
+        <item quantity="few">%80$s (membrii %81$d)</item>
+        <item quantity="other">%82$s (membrii %83$d)</item>
     </plurals>
 
     <!-- Settings -->
@@ -346,7 +346,7 @@
 
     <string name="value_default">Implicit</string>
     <string name="value_custom">Personalizat</string>
-    <string name="value_custom_specific">Personalizat (%s)</string>
+    <string name="value_custom_specific">Personalizat (%84$s)</string>
     <string name="value_none">Nici unul</string>
     <string name="value_any">Oricare</string>
     <string name="value_always">Întotdeauna</string>
@@ -354,7 +354,7 @@
     <string name="value_preset">Presetat</string>
     <string name="value_not_set">Nesetat</string>
     <string name="value_total">Total</string>
-    <string name="value_copy">%s (copie)</string>
+    <string name="value_copy">%85$s (copie)</string>
     <string name="entry_name">Nume</string>
     <string name="entry_text">Text</string>
     <string name="entry_username">Nume de utilizator</string>
@@ -370,24 +370,24 @@
     <!-- Time -->
 
     <plurals name="time_seconds">
-        <item quantity="one">%d secundă</item>
-        <item quantity="few">%d secunde</item>
-        <item quantity="other">%d secunde</item>
+        <item quantity="one">%86$d secundă</item>
+        <item quantity="few">%87$d secunde</item>
+        <item quantity="other">%88$d secunde</item>
     </plurals>
     <plurals name="time_minutes">
-        <item quantity="one">%d minut</item>
-        <item quantity="few">%d minute</item>
-        <item quantity="other">%d minute</item>
+        <item quantity="one">%89$d minut</item>
+        <item quantity="few">%90$d minute</item>
+        <item quantity="other">%91$d minute</item>
     </plurals>
     <plurals name="time_hours">
-        <item quantity="one">%d oră</item>
-        <item quantity="few">%d ore</item>
-        <item quantity="other">%d ore</item>
+        <item quantity="one">%92$d oră</item>
+        <item quantity="few">%93$d ore</item>
+        <item quantity="other">%94$d ore</item>
     </plurals>
     <plurals name="time_days">
-        <item quantity="one">%d zi</item>
-        <item quantity="few">%d zile</item>
-        <item quantity="other">%d zile</item>
+        <item quantity="one">%95$d zi</item>
+        <item quantity="few">%96$d zile</item>
+        <item quantity="other">%97$d zile</item>
     </plurals>
 
     <!-- User settings -->
@@ -597,15 +597,15 @@
     <string name="notification_rule_summary_any_server">Orice server</string>
     <string name="notification_rule_summary_any_channel">orice canal</string>
     <plurals name="notification_rule_summary_multi_channels">
-        <item quantity="one">%d canale</item>
-        <item quantity="few">%d canale</item>
-        <item quantity="other">%d canale</item>
+        <item quantity="one">%98$d canale</item>
+        <item quantity="few">%99$d canale</item>
+        <item quantity="other">%100$d canale</item>
     </plurals>
     <string name="notification_rule_summary_any_nick">orice pseudonimă</string>
     <plurals name="notification_rule_summary_multi_nicks">
-        <item quantity="one">%d nick-uri</item>
-        <item quantity="few">%d nick-uri</item>
-        <item quantity="other">%d nick-uri</item>
+        <item quantity="one">%101$d nick-uri</item>
+        <item quantity="few">%102$d nick-uri</item>
+        <item quantity="other">%103$d nick-uri</item>
     </plurals>
 
     <string name="notification_header_options">Opțiuni</string>
@@ -645,9 +645,9 @@
     <string name="reconnect_header_tries">Încearcă</string>
 
     <plurals name="reconnect_desc_tries">
-        <item quantity="one">\" (încercați %d)\"</item>
-        <item quantity="few">\" (Încercă %d)\"</item>
-        <item quantity="other">\" (Încercă %d)\"</item>
+        <item quantity="one">\" (încercați %104$d)\"</item>
+        <item quantity="few">\" (Încercă %105$d)\"</item>
+        <item quantity="other">\" (Încercă %106$d)\"</item>
     </plurals>
 
     <string-array name="duration_types">
@@ -743,17 +743,17 @@
     <!-- Ignore list -->
 
     <string name="title_activity_ignore_list">Ignorați lista</string>
-    <string name="title_activity_ignore_list_network">Ignorați lista pentru %s</string>
+    <string name="title_activity_ignore_list_network">Ignorați lista pentru %107$s</string>
     <string name="title_activity_edit_ignore_entry">Editați o intrare ignorată</string>
     <string name="title_activity_add_ignore_entry">Adăugați o intrare ignorată</string>
 
     <!-- User info -->
 
-    <string name="user_title_away">%s (deplasare)</string>
+    <string name="user_title_away">%108$s (deplasare)</string>
     <string name="user_nick">Nick</string>
     <string name="user_hostname">Nume gazdă</string>
     <string name="user_server">Stare de semi-operator al canalului</string>
-    <string name="user_server_format">%s (%s)</string>
+    <string name="user_server_format">%109$s (%110$s)</string>
     <string name="user_channels">Canale</string>
     <string name="user_idle">Timp inactiv</string>
     <string name="user_server_op">Starea operatorului serverului</string>
@@ -763,7 +763,7 @@
     <string name="user_account">Sistemul</string>
     <string name="user_away">Mesaj de plecare</string>
 
-    <string name="user_info_copied">%s a fost copiat în clipboard.</string>
+    <string name="user_info_copied">%111$s a fost copiat în clipboard.</string>
 
     <!-- Color picker -->
 
@@ -807,22 +807,22 @@
     <string name="notification_channel_dcc">@string/title_activity_dcc</string>
     <string name="dcc_summary_notification_title">DCC transferuri în curs</string>
     <plurals name="dcc_summary_notification_text">
-        <item quantity="one">%d transfer în curs</item>
-        <item quantity="few">%d transferuri în curs</item>
-        <item quantity="other">%d transferuri în curs</item>
+        <item quantity="one">%112$d transfer în curs</item>
+        <item quantity="few">%113$d transferuri în curs</item>
+        <item quantity="other">%114$d transferuri în curs</item>
     </plurals>
-    <string name="dcc_active_upload_transfer_status">Se încarcă în %s</string>
-    <string name="dcc_active_download_transfer_status">Descărcare de pe %s</string>
+    <string name="dcc_active_upload_transfer_status">Se încarcă în %115$s</string>
+    <string name="dcc_active_download_transfer_status">Descărcare de pe %116$s</string>
     <string name="dcc_active_waiting_for_connection">Se așteaptă conexiunea...</string>
     <string name="dcc_active_waiting_for_approval">Se așteaptă aprobarea utilizatorului...</string>
-    <string name="dcc_approve_notification_body">%s (de pe server: %s) v-a trimis un fișier</string>
+    <string name="dcc_approve_notification_body">%117$s (de pe server: %118$s) v-a trimis un fișier</string>
     <string name="dcc_history_upload">%2$s încărcat în %3$s (%1$s)</string>
     <string name="dcc_history_download">%2$s descărcat de la %3$s (%1$s)</string>
     <string name="dcc_history_download_failed">Nu s-a putut descărca %2$s de pe %1$s</string>
 
-    <string name="dcc_approve_download_title">DCC fișier: %s</string>
-    <string name="dcc_approve_download_title_with_size">DCC fișier: %s (%s)</string>
-    <string name="dcc_approve_download_body">%s (de pe server: %s) v-a trimis un fișier.\n\nAvertisment: această descărcare va fi transmisă printr-o conexiune necriptată &amp; nesigură. Acceptarea acestei descărcări va permite celeilalte părți să vadă adresa dvs. IP. Ar trebui să-l acceptați numai dacă aveți încredere în acest utilizator.</string>
+    <string name="dcc_approve_download_title">DCC fișier: %119$s</string>
+    <string name="dcc_approve_download_title_with_size">DCC fișier: %120$s (%121$s)</string>
+    <string name="dcc_approve_download_body">%122$s (de pe server: %123$s) v-a trimis un fișier.\n\nAvertisment: această descărcare va fi transmisă printr-o conexiune necriptată &amp; nesigură. Acceptarea acestei descărcări va permite celeilalte părți să vadă adresa dvs. IP. Ar trebui să-l acceptați numai dacă aveți încredere în acest utilizator.</string>
     <string name="dcc_approve_download_enable_anyway">Activați oricum</string>
 
     <string name="dcc_enable_send_warning_title">Avertisment de securitate</string>
@@ -844,13 +844,13 @@
 
     <string name="channel_modes_menu">Moduri de canal</string>
     <string name="action_list_channels">Listează canale</string>
-    <string name="channel_modes_title">Moduri pentru %s</string>
+    <string name="channel_modes_title">Moduri pentru %124$s</string>
     <string name="channel_modes_loading">Se încarcă modurile de canal activ...</string>
     <string name="channel_modes_failed">Nu s-au putut încărca modurile canalului.</string>
     <string name="channel_modes_timeout">Serverul nu a returnat modurile de canal active.</string>
     <string name="channel_modes_none">Acest server nu a făcut publicitate niciunui mod de semnalizare editabil.</string>
     <string name="channel_modes_no_changes">Nu au fost selectate modificări de mod.</string>
-    <string name="channel_modes_profile">Definiții: %s</string>
+    <string name="channel_modes_profile">Definiții: %125$s</string>
     <string name="channel_modes_profile_inspircd3">InspIRCd 3</string>
     <string name="channel_modes_profile_inspircd4">InspIRCd 4</string>
     <string name="channel_modes_profile_generic">IRC tipuri standard/anunțate pe server</string>
@@ -858,7 +858,7 @@
     <string name="channel_mode_limit">Limită utilizator (+l)</string>
     <string name="channel_mode_key_hint">Cheie</string>
     <string name="channel_mode_limit_hint">Numărul maxim de utilizatori</string>
-    <string name="channel_mode_value_required">Introduceți o valoare pentru modul +%s.</string>
+    <string name="channel_mode_value_required">Introduceți o valoare pentru modul +%126$s.</string>
     <string name="channel_mode_desc_i">Canal numai pe invitație</string>
     <string name="channel_mode_desc_m">Numai utilizatorii vocali sau privilegiați pot vorbi</string>
     <string name="channel_mode_desc_n">Blocați mesajele din afara canalului</string>
@@ -885,7 +885,7 @@
     <string name="channel_mode_managed">gestionat de server sau servicii</string>
 
     <string name="ban_list_menu">Lista interzise</string>
-    <string name="ban_list_title">Lista interzisă pentru %s</string>
+    <string name="ban_list_title">Lista interzisă pentru %127$s</string>
     <string name="ban_list_loading">Se încarcă lista de interdicții...</string>
     <string name="ban_list_failed">Nu s-a putut încărca lista de interzicere.</string>
     <string name="ban_list_host">Gazdă / mască</string>
@@ -901,9 +901,9 @@
     <string name="ban_list_cleanup_none">Nu au fost găsite interdicții de identificare sau gazdă eligibile între 48 și 72 de ore.</string>
     <string name="ban_list_cleanup_confirm_title">Curățați interdicțiile temporare?</string>
     <plurals name="ban_list_cleanup_confirm_message">
-        <item quantity="one">%d interdicția eligibilă este selectată. j: și R: intrările, datele necunoscute și alte tipuri de măști sunt excluse.</item>
-        <item quantity="few">%d interdicțiile eligibile sunt selectate. j: și R: intrările, datele necunoscute și alte tipuri de măști sunt excluse.</item>
-        <item quantity="other">%d interdicțiile eligibile sunt selectate. j: și R: intrările, datele necunoscute și alte tipuri de măști sunt excluse.</item>
+        <item quantity="one">%128$d interdicția eligibilă este selectată. j: și R: intrările, datele necunoscute și alte tipuri de măști sunt excluse.</item>
+        <item quantity="few">%129$d interdicțiile eligibile sunt selectate. j: și R: intrările, datele necunoscute și alte tipuri de măști sunt excluse.</item>
+        <item quantity="other">%130$d interdicțiile eligibile sunt selectate. j: și R: intrările, datele necunoscute și alte tipuri de măști sunt excluse.</item>
     </plurals>
     <string name="ban_list_cleanup_review">Verificați selecția</string>
     <string name="ban_list_cleanup_remove">Eliminați acum</string>
@@ -966,7 +966,7 @@
     <string name="voice_permission_required">Este necesară permisiunea pentru microfon pentru a înregistra un mesaj vocal.</string>
     <string name="voice_record_failed">Înregistrarea vocală nu a putut fi începută.</string>
     <string name="voice_record_title">Înregistrați mesajul vocal</string>
-    <string name="voice_record_in_progress">Înregistrare... %s</string>
+    <string name="voice_record_in_progress">Înregistrare... %131$s</string>
     <string name="voice_record_stop">Oprire</string>
     <string name="voice_record_play">Redă</string>
     <string name="voice_record_pause">Pauză</string>
