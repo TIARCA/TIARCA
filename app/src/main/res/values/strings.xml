@@ -764,7 +764,13 @@
     <string name="monitor_alias_duplicate">This nickname is already in the group.</string>
     <string name="monitor_alias_conflict">This nickname is already monitored in the group %s.</string>
     <string name="monitor_status_online_as">Online as %s</string>
+    <string name="monitor_status_online_since">Online since %1$s at %2$s</string>
+    <string name="monitor_status_online_as_since">Online as %1$s since %2$s at %3$s</string>
     <string name="monitor_status_away_as">Away as %s</string>
+    <string name="monitor_status_away_since">Away since %1$s at %2$s</string>
+    <string name="monitor_status_away_as_since">Away as %1$s since %2$s at %3$s</string>
+    <string name="monitor_status_offline_last_seen">Offline · last seen on %1$s at %2$s</string>
+    <string name="monitor_status_unknown">Status not yet available</string>
     <string name="monitor_status_some_aliases_over_limit">some aliases exceed the server limit</string>
     <string name="monitor_status_partial_unavailable">Presence partially unavailable: server limit reached</string>
     <plurals name="monitor_status_aliases_online">

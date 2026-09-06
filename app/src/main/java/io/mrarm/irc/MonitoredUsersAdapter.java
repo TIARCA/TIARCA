@@ -39,48 +39,90 @@ final class MonitoredUsersAdapter extends RecyclerView.Adapter<MonitoredUsersAda
     @Override public int getItemCount() { return manager.getMonitoredUsers().size(); }
 
     private Status getStatus(Context context, ServerConfigData.MonitoredUser user) {
-        ServerConnectionApi api = connection.getApiInstance() instanceof ServerConnectionApi
+        ServerConnectionApi api = connection != null && connection.getApiInstance() instanceof ServerConnectionApi
                 ? (ServerConnectionApi) connection.getApiInstance() : null;
-        if (api == null || !manager.isSupported(api.getServerConnectionData()))
-            return new Status(context.getString(R.string.monitor_status_unavailable), R.color.appThemeTextColorSecondary);
-        if (manager.getSyncState() != MonitoredUsersManager.SyncState.READY)
-            return new Status(context.getString(R.string.monitor_status_unavailable), R.color.appThemeTextColorSecondary);
-        if (manager.getAliasesOverLimit(user).size() == manager.getAliases(user).size())
+        boolean isSupported = api != null && manager.isSupported(api.getServerConnectionData());
+        boolean isReady = manager.getSyncState() == MonitoredUsersManager.SyncState.READY;
+
+        List<ServerConfigData.MonitoredAlias> overLimit = (isSupported && isReady) ?
+                manager.getAliasesOverLimit(user) : java.util.Collections.emptyList();
+        List<ServerConfigData.MonitoredAlias> online = (isSupported && isReady) ?
+                manager.getOnlineAliases(user) : java.util.Collections.emptyList();
+
+        if (isSupported && isReady && overLimit.size() == manager.getAliases(user).size())
             return new Status(context.getString(R.string.monitor_status_over_limit), R.color.serverListInactive);
-        List<ServerConfigData.MonitoredAlias> overLimit = manager.getAliasesOverLimit(user);
-        List<ServerConfigData.MonitoredAlias> online = manager.getOnlineAliases(user);
-        if (online.isEmpty() && !overLimit.isEmpty())
+
+        if (isSupported && isReady && online.isEmpty() && !overLimit.isEmpty())
             return new Status(context.getString(R.string.monitor_status_partial_unavailable),
                     R.color.serverListInactive);
-        if (online.isEmpty())
-            return new Status(context.getString(R.string.monitor_status_offline), R.color.serverListDisconnected);
+
         String suffix = overLimit.isEmpty() ? "" :
                 " · " + context.getString(R.string.monitor_status_some_aliases_over_limit);
-        if (online.size() > 1) {
-            boolean allKnownAway = true;
-            for (ServerConfigData.MonitoredAlias alias : online) {
-                UserInfo known = getKnownUser(alias.nick);
-                if (known == null || !known.isAway()) { allKnownAway = false; break; }
+
+        String state = user.lastKnownState;
+        if (state == null)
+            state = ServerConfigData.MonitoredUser.STATE_UNKNOWN;
+
+        if (ServerConfigData.MonitoredUser.STATE_ONLINE.equals(state) || !online.isEmpty()) {
+            String activeNick = !online.isEmpty() ? online.get(0).nick :
+                    (user.lastKnownNick != null ? user.lastKnownNick : user.nick);
+
+            UserInfo known = getKnownUser(activeNick);
+            boolean isAway = known != null && known.isAway();
+            String dateStr = user.lastStateTimestamp > 0 ? formatDate(context, user.lastStateTimestamp) : null;
+            String timeStr = user.lastStateTimestamp > 0 ? formatTime(context, user.lastStateTimestamp) : null;
+
+            String statusText;
+            if (isAway) {
+                if (dateStr != null && timeStr != null) {
+                    statusText = activeNick.equals(user.nick) ?
+                            context.getString(R.string.monitor_status_away_since, dateStr, timeStr) :
+                            context.getString(R.string.monitor_status_away_as_since, activeNick, dateStr, timeStr);
+                } else {
+                    statusText = activeNick.equals(user.nick) ?
+                            context.getString(R.string.monitor_status_away) :
+                            context.getString(R.string.monitor_status_away_as, activeNick);
+                }
+                if (known.getAwayMessage() != null && !known.getAwayMessage().isEmpty())
+                    statusText += " · " + known.getAwayMessage();
+                return new Status(statusText + suffix, R.color.userAwayColorPrimary);
             }
-            String count = context.getResources().getQuantityString(
-                    R.plurals.monitor_status_aliases_online, online.size(), online.size());
-            return new Status((allKnownAway ? context.getString(R.string.monitor_status_away) +
-                    " · " : "") + count + suffix, allKnownAway ? R.color.userAwayColorPrimary :
-                    R.color.serverListConnected);
+
+            if (dateStr != null && timeStr != null) {
+                statusText = activeNick.equals(user.nick) ?
+                        context.getString(R.string.monitor_status_online_since, dateStr, timeStr) :
+                        context.getString(R.string.monitor_status_online_as_since, activeNick, dateStr, timeStr);
+            } else {
+                statusText = activeNick.equals(user.nick) ?
+                        context.getString(R.string.monitor_status_online) :
+                        context.getString(R.string.monitor_status_online_as, activeNick);
+            }
+            return new Status(statusText + suffix, R.color.serverListConnected);
         }
-        ServerConfigData.MonitoredAlias active = online.get(0);
-        UserInfo known = getKnownUser(active.nick);
-        if (known != null && known.isAway()) {
-            String status = active.nick.equals(user.nick) ?
-                    context.getString(R.string.monitor_status_away) :
-                    context.getString(R.string.monitor_status_away_as, active.nick);
-            if (known.getAwayMessage() != null && !known.getAwayMessage().isEmpty())
-                status += " · " + known.getAwayMessage();
-            return new Status(status + suffix, R.color.userAwayColorPrimary);
+
+        if (ServerConfigData.MonitoredUser.STATE_OFFLINE.equals(state)) {
+            if (user.lastStateTimestamp > 0) {
+                String dateStr = formatDate(context, user.lastStateTimestamp);
+                String timeStr = formatTime(context, user.lastStateTimestamp);
+                return new Status(context.getString(R.string.monitor_status_offline_last_seen, dateStr, timeStr) + suffix,
+                        R.color.serverListDisconnected);
+            }
+            return new Status(context.getString(R.string.monitor_status_offline) + suffix,
+                    R.color.serverListDisconnected);
         }
-        String status = active.nick.equals(user.nick) ? context.getString(R.string.monitor_status_online) :
-                context.getString(R.string.monitor_status_online_as, active.nick);
-        return new Status(status + suffix, R.color.serverListConnected);
+
+        return new Status(context.getString(R.string.monitor_status_unknown) + suffix,
+                R.color.appThemeTextColorSecondary);
+    }
+
+    private static String formatDate(Context context, long timestamp) {
+        java.text.DateFormat fmt = android.text.format.DateFormat.getDateFormat(context);
+        return fmt.format(new java.util.Date(timestamp));
+    }
+
+    private static String formatTime(Context context, long timestamp) {
+        java.text.DateFormat fmt = android.text.format.DateFormat.getTimeFormat(context);
+        return fmt.format(new java.util.Date(timestamp));
     }
 
     private UserInfo getKnownUser(String nick) {

@@ -174,6 +174,9 @@ public final class MonitoredUsersManager implements CommandHandler {
         ServerConfigData.MonitoredUser user = new ServerConfigData.MonitoredUser();
         user.nick = normalizedNick;
         user.currentNick = normalizedNick;
+        user.lastKnownState = ServerConfigData.MonitoredUser.STATE_UNKNOWN;
+        user.lastKnownNick = normalizedNick;
+        user.lastStateTimestamp = 0;
         user.notifyOnline = notifyOnline;
         user.notifyOffline = notifyOffline;
         user.aliases = new ArrayList<>();
@@ -386,6 +389,7 @@ public final class MonitoredUsersManager implements CommandHandler {
         if (raw == null) return;
         boolean online = numeric == RPL_MONONLINE;
         IRCCaseMapping mapping = getCaseMapping(data);
+        long now = System.currentTimeMillis();
         for (String item : raw.split(",")) {
             int bang = item.indexOf('!');
             String nick = bang < 0 ? item : item.substring(0, bang);
@@ -395,6 +399,28 @@ public final class MonitoredUsersManager implements CommandHandler {
             match.alias.online = online;
             refreshAggregateOnline(match.user);
             boolean groupIsOnline = match.user.online;
+            boolean stateChanged = false;
+            if (online) {
+                if (!ServerConfigData.MonitoredUser.STATE_ONLINE.equals(match.user.lastKnownState)) {
+                    match.user.lastKnownState = ServerConfigData.MonitoredUser.STATE_ONLINE;
+                    match.user.lastKnownNick = match.alias.nick;
+                    match.user.lastStateTimestamp = now;
+                    stateChanged = true;
+                } else if (match.alias.nick != null && !match.alias.nick.equals(match.user.lastKnownNick)) {
+                    match.user.lastKnownNick = match.alias.nick;
+                    stateChanged = true;
+                }
+            } else if (!groupIsOnline) {
+                if (!ServerConfigData.MonitoredUser.STATE_OFFLINE.equals(match.user.lastKnownState)) {
+                    match.user.lastKnownState = ServerConfigData.MonitoredUser.STATE_OFFLINE;
+                    match.user.lastStateTimestamp = now;
+                    if (match.user.lastKnownNick == null)
+                        match.user.lastKnownNick = match.user.nick;
+                    stateChanged = true;
+                }
+            }
+            if (stateChanged)
+                persistConfiguration();
             notifyUserChanged(match.user);
             if (syncState == SyncState.SYNCING) {
                 notifyPresence(match.user, PresenceUpdate.INITIAL_STATE);
@@ -434,6 +460,9 @@ public final class MonitoredUsersManager implements CommandHandler {
         }
         newAlias.online = groupWasOnline;
         oldMatch.user.currentNick = normalizedNewNick;
+        if (groupWasOnline || ServerConfigData.MonitoredUser.STATE_ONLINE.equals(oldMatch.user.lastKnownState)) {
+            oldMatch.user.lastKnownNick = normalizedNewNick;
+        }
         refreshAggregateOnline(oldMatch.user);
         persistConfiguration();
         notifyUserChanged(oldMatch.user);
@@ -548,6 +577,9 @@ public final class MonitoredUsersManager implements CommandHandler {
         ServerConfigData.MonitoredUser user = new ServerConfigData.MonitoredUser();
         user.nick = firstString(values, "nick", "nickname", "displayNick");
         user.currentNick = firstString(values, "currentNick", "currentNickname");
+        user.lastKnownState = firstString(values, "lastKnownState");
+        user.lastKnownNick = firstString(values, "lastKnownNick");
+        user.lastStateTimestamp = longValue(values.get("lastStateTimestamp"));
         user.notifyOnline = booleanValue(values.get("notifyOnline"));
         user.notifyOffline = booleanValue(values.get("notifyOffline"));
         user.aliases = toAliases(values.get("aliases"));
@@ -602,6 +634,14 @@ public final class MonitoredUsersManager implements CommandHandler {
         }
         if (user.currentNick == null && user.nick != null) {
             user.currentNick = user.nick;
+            changed = true;
+        }
+        if (user.lastKnownState == null || user.lastKnownState.trim().isEmpty()) {
+            user.lastKnownState = ServerConfigData.MonitoredUser.STATE_UNKNOWN;
+            changed = true;
+        }
+        if (user.lastKnownNick == null || user.lastKnownNick.trim().isEmpty()) {
+            user.lastKnownNick = user.nick;
             changed = true;
         }
         return changed;
@@ -664,6 +704,17 @@ public final class MonitoredUsersManager implements CommandHandler {
     private static boolean booleanValue(Object value) {
         if (value instanceof Boolean) return (Boolean) value;
         return value instanceof CharSequence && Boolean.parseBoolean(value.toString());
+    }
+
+    private static long longValue(Object value) {
+        if (value instanceof Number) return ((Number) value).longValue();
+        if (value instanceof CharSequence) {
+            try {
+                return Long.parseLong(value.toString().trim());
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return 0L;
     }
 
     private AliasMatch findAlias(String nick, IRCCaseMapping mapping) {
