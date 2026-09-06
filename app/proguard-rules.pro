@@ -70,10 +70,11 @@
 # Mention storage record model used by Gson
 -keep class io.mrarm.irc.config.MentionStorage$Record { *; }
 
-# Server configurations are read reflectively by Gson. Keeping this model also preserves the
+# Server configurations and order models are read reflectively by Gson. Keeping this model also preserves the
 # generic List element signatures required to deserialize monitored users as their concrete types.
 -keep,allowoptimization class io.mrarm.irc.config.ServerConfigData { *; }
 -keep,allowoptimization class io.mrarm.irc.config.ServerConfigData$* { *; }
+-keep class io.mrarm.irc.config.ServerConfigManager$ServerOrderData { *; }
 
 # Network catalog models read reflectively by Gson
 -keep class io.mrarm.irc.NetworkCatalogActivity$* { *; }

@@ -85,6 +85,9 @@
             android:label="@string/edit_server"
             android:windowSoftInputMode="adjustResize|stateHidden" />
         <activity
+            android:name=".ServerReorderActivity"
+            android:label="@string/action_reorder" />
+        <activity
             android:name=".NetworkCatalogActivity"
             android:label="@string/network_catalog_title" />
         <activity

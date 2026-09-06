@@ -109,6 +109,14 @@ public class ServerListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
     }
 
     @Override
+    public void onConnectionOrderChanged() {
+        mContext.runOnUiThread(() -> {
+            updateConnections();
+            notifyDataSetChanged();
+        });
+    }
+
+    @Override
     public void onConnectionInfoChanged(ServerConnectionInfo connection) {
         mContext.runOnUiThread(() -> {
             notifyItemChanged(getActiveHeaderIndex() + 1 + ServerConnectionManager.getInstance(mContext).getConnections().indexOf(connection));
@@ -151,6 +159,14 @@ public class ServerListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
                 notifyItemRangeRemoved(oldHeaderIndex - 1, 3);
             else
                 notifyItemRemoved(getInactiveHeaderIndex() + 1 + oldEntryIndex);
+        });
+    }
+
+    @Override
+    public void onServerOrderChanged() {
+        mContext.runOnUiThread(() -> {
+            updateConnections();
+            notifyDataSetChanged();
         });
     }
 

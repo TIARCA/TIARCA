@@ -127,15 +127,44 @@ public class ServerConnectionManager {
         }
     }
 
+    private void sortConnectionsInternal() {
+        List<ServerConfigData> serverConfigs = ServerConfigManager.getInstance(mContext).getServers();
+        mConnections.sort((conn1, conn2) -> {
+            int idx1 = -1;
+            int idx2 = -1;
+            for (int i = 0; i < serverConfigs.size(); i++) {
+                if (serverConfigs.get(i).uuid.equals(conn1.getUUID()))
+                    idx1 = i;
+                if (serverConfigs.get(i).uuid.equals(conn2.getUUID()))
+                    idx2 = i;
+            }
+            if (idx1 == -1) idx1 = Integer.MAX_VALUE;
+            if (idx2 == -1) idx2 = Integer.MAX_VALUE;
+            return Integer.compare(idx1, idx2);
+        });
+    }
+
+    public void reorderConnections() {
+        synchronized (this) {
+            sortConnectionsInternal();
+        }
+        saveAutoconnectListAsync();
+        synchronized (mListeners) {
+            for (ConnectionsListener listener : mListeners)
+                listener.onConnectionOrderChanged();
+        }
+    }
+
     public void addConnection(ServerConnectionInfo connection, boolean saveAutoconnect) {
         synchronized (this) {
             if (mConnectionsMap.containsKey(connection.getUUID()))
                 throw new RuntimeException("A connection with this UUID already exists");
             mConnectionsMap.put(connection.getUUID(), connection);
             mConnections.add(connection);
-            if (saveAutoconnect)
-                saveAutoconnectListAsync();
+            sortConnectionsInternal();
         }
+        if (saveAutoconnect)
+            saveAutoconnectListAsync();
         synchronized (mListeners) {
             for (ConnectionsListener listener : mListeners)
                 listener.onConnectionAdded(connection);
@@ -418,6 +447,9 @@ public class ServerConnectionManager {
         void onConnectionAdded(ServerConnectionInfo connection);
 
         void onConnectionRemoved(ServerConnectionInfo connection);
+
+        default void onConnectionOrderChanged() {
+        }
 
     }
 
