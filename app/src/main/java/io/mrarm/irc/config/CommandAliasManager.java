@@ -10,12 +10,17 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
+import java.lang.reflect.Type;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
 
 import io.mrarm.chatlib.irc.ServerConnectionData;
 import io.mrarm.irc.util.CommandAliasSyntaxParser;
@@ -26,6 +31,7 @@ public class CommandAliasManager {
     public static Pattern mMatchVariablesRegex = Pattern.compile("(?<!\\\\)\\$\\{(.*?)\\}");
 
     public static final String ALIASES_PATH = "command_aliases.json";
+    public static final Type USER_ALIASES_LIST_TYPE = new TypeToken<List<CommandAlias>>() {}.getType();
 
     public static final String VAR_CTCP_DELIM = "ctcp_delim";
     public static final String VAR_CTCP_DELIM_VALUE = "\001";
@@ -74,15 +80,31 @@ public class CommandAliasManager {
     }
 
     public CommandAliasManager(Context context) {
-        mContext = context.getApplicationContext();
+        mContext = context != null ? context.getApplicationContext() : null;
         mUserAliases = new ArrayList<>();
-        loadUserSettings();
+        if (mContext != null)
+            loadUserSettings();
     }
 
     public void loadUserSettings(Reader reader) {
-        UserAliasesSettings settings = SettingsHelper.getGson().fromJson(reader,
-                UserAliasesSettings.class);
-        mUserAliases = settings.userAliases;
+        try {
+            JsonElement element = SettingsHelper.getGson().fromJson(reader, JsonElement.class);
+            List<?> loaded = null;
+            if (element != null) {
+                if (element.isJsonObject()) {
+                    JsonObject obj = element.getAsJsonObject();
+                    if (obj.has("userAliases")) {
+                        loaded = SettingsHelper.getGson().fromJson(obj.get("userAliases"), USER_ALIASES_LIST_TYPE);
+                    }
+                } else if (element.isJsonArray()) {
+                    loaded = SettingsHelper.getGson().fromJson(element, USER_ALIASES_LIST_TYPE);
+                }
+            }
+            mUserAliases = sanitizeUserAliases(loaded);
+        } catch (Exception e) {
+            if (mUserAliases == null)
+                mUserAliases = new ArrayList<>();
+        }
     }
 
     public void loadUserSettings() {
@@ -90,7 +112,31 @@ public class CommandAliasManager {
             loadUserSettings(new BufferedReader(new FileReader(
                     new File(mContext.getFilesDir(), ALIASES_PATH))));
         } catch (Exception ignored) {
+            if (mUserAliases == null)
+                mUserAliases = new ArrayList<>();
         }
+    }
+
+    public List<CommandAlias> sanitizeUserAliases(List<?> input) {
+        List<CommandAlias> result = new ArrayList<>();
+        if (input == null)
+            return result;
+        for (Object item : input) {
+            if (item == null)
+                continue;
+            if (item instanceof CommandAlias) {
+                result.add((CommandAlias) item);
+            } else {
+                try {
+                    JsonElement elem = SettingsHelper.getGson().toJsonTree(item);
+                    CommandAlias alias = SettingsHelper.getGson().fromJson(elem, CommandAlias.class);
+                    if (alias != null && alias.name != null)
+                        result.add(alias);
+                } catch (Exception ignored) {
+                }
+            }
+        }
+        return result;
     }
 
     public void saveUserSettings(Writer writer) {
@@ -111,13 +157,15 @@ public class CommandAliasManager {
         return false;
     }
 
-    private static class UserAliasesSettings {
+    public static class UserAliasesSettings {
 
-        List<CommandAlias> userAliases;
+        public List<CommandAlias> userAliases;
 
     }
 
     public List<CommandAlias> getUserAliases() {
+        if (mUserAliases == null)
+            mUserAliases = new ArrayList<>();
         return mUserAliases;
     }
 

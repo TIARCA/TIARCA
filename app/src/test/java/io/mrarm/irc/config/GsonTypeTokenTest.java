@@ -24,6 +24,11 @@ public class GsonTypeTokenTest {
                 "io.mrarm.irc.setting.ReconnectIntervalSetting$Rule");
     }
 
+    @Test public void commandAliasManagerRetainsUserAliasesListType() {
+        assertListElement(CommandAliasManager.USER_ALIASES_LIST_TYPE,
+                "io.mrarm.irc.config.CommandAliasManager$CommandAlias");
+    }
+
     private static Type staticType(Class<?> owner, String fieldName) throws Exception {
         Field field = owner.getDeclaredField(fieldName);
         field.setAccessible(true);
