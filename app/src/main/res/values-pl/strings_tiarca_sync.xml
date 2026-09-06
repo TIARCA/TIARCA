@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="about_revolution_github">Revolution IRC w GitHub</string>
+    <string name="member_search_hint">Szukaj użytkowników</string>
+    <string name="member_search_clear">Wyczyść wyszukiwanie użytkowników</string>
+    <string name="action_open_private">Otwórz prywatny czat</string>
+    <string name="action_mention_user">Wspomnij</string>
+    <string name="action_edit_monitor_user">Edytuj monitorowanie</string>
+    <string name="operator_kickban_ident">Kickban po ident</string>
+    <string name="operator_devoice">Odbierz voice</string>
+    <string name="operator_ident_unavailable">Ident użytkownika jest niedostępny.</string>
+    <string name="pref_title_custom_username">Użyj własnej nazwy użytkownika</string>
+
+    <string name="title_activity_monitored_users">Monitorowani użytkownicy</string>
+    <string name="title_activity_monitored_users_network">Monitorowani użytkownicy w %1$s</string>
+    <plurals name="monitored_users_count">
+        <item quantity="one">%2$d monitorowany użytkownik</item>
+        <item quantity="few">%3$d monitorowanych użytkowników</item>
+        <item quantity="many">%4$d monitorowanych użytkowników</item>
+        <item quantity="other">%5$d monitorowanego użytkownika</item>
+    </plurals>
+    <string name="action_monitor_user">Monitoruj użytkownika</string>
+    <string name="action_remove_monitored_user">Usuń z monitorowanych użytkowników</string>
+    <string name="monitor_user_title">Monitoruj %6$s</string>
+    <string name="monitor_user_nickname">Nick</string>
+    <string name="monitor_user_presence">Monitoruj obecność</string>
+    <string name="monitor_user_notify_online">Powiadom, gdy użytkownik pojawi się online</string>
+    <string name="monitor_user_notify_offline">Powiadom, gdy użytkownik przejdzie offline</string>
+    <string name="monitor_status_online">Online</string>
+    <string name="monitor_status_offline">Offline</string>
+    <string name="monitor_status_away">Nieobecny</string>
+    <string name="monitor_status_unavailable">Obecność niedostępna</string>
+    <string name="monitor_status_over_limit">Nie jest monitorowany: osiągnięto limit serwera</string>
+    <string name="monitor_server_unsupported">Ten serwer nie obsługuje MONITOR.</string>
+    <string name="monitor_notification_online">%7$s pojawił się online</string>
+    <string name="monitor_notification_offline">%8$s przeszedł offline</string>
+    <string name="monitor_notification_channel">Monitorowani użytkownicy</string>
+    <string name="monitor_notifications_enabled">Powiadomienia włączone</string>
+    <string name="monitor_primary_nickname">Główny nick</string>
+    <string name="monitor_aliases">Monitorowane aliasy</string>
+    <string name="action_add_monitor_alias">Dodaj alias</string>
+    <string name="action_add_alias_confirm">Dodaj</string>
+    <string name="action_remove_alias">Usuń</string>
+    <string name="monitor_alias_observed">wykryto przy zmianie nicka</string>
+    <string name="monitor_alias_duplicate">Ten nick jest już w grupie.</string>
+    <string name="monitor_alias_conflict">Ten nick jest już monitorowany w grupie %9$s.</string>
+    <string name="monitor_status_online_as">Online jako %10$s</string>
+    <string name="monitor_status_online_since">Online od %1$s, %2$s</string>
+    <string name="monitor_status_online_as_since">Online jako %1$s od %2$s, %3$s</string>
+    <string name="monitor_status_away_as">Nieobecny jako %11$s</string>
+    <string name="monitor_status_away_since">Nieobecny od %1$s, %2$s</string>
+    <string name="monitor_status_away_as_since">Nieobecny jako %1$s od %2$s, %3$s</string>
+    <string name="monitor_status_offline_last_seen">Offline · ostatnio widziany %1$s o %2$s</string>
+    <string name="monitor_status_offline_last_seen_unknown">Offline · ostatnia obecność online niedostępna</string>
+    <string name="monitor_status_unknown">Stan jeszcze niedostępny</string>
+    <string name="monitor_status_some_aliases_over_limit">niektóre aliasy przekraczają limit serwera</string>
+    <string name="monitor_status_partial_unavailable">Obecność częściowo niedostępna: osiągnięto limit serwera</string>
+    <plurals name="monitor_status_aliases_online">
+        <item quantity="one">%12$d alias online</item>
+        <item quantity="few">%13$d aliasy online</item>
+        <item quantity="many">%14$d aliasów online</item>
+        <item quantity="other">%15$d aliasu online</item>
+    </plurals>
+
+    <string name="action_ignore_user">Ignoruj użytkownika</string>
+    <string name="ignore_user_title">Ignoruj %16$s</string>
+    <string name="ignore_identify_by">Identyfikuj według</string>
+    <string name="ignore_nickname">Nick</string>
+    <string name="ignore_nickname_value">Nick: %17$s</string>
+    <string name="ignore_ident">Ident</string>
+    <string name="ignore_ident_value">Ident: %18$s</string>
+    <string name="ignore_host">Host</string>
+    <string name="ignore_host_value">Host: %19$s</string>
+    <string name="ignore_messages">Ignoruj</string>
+    <string name="ignore_duration">Czas trwania</string>
+    <string name="ignore_always">Zawsze</string>
+    <string name="ignore_custom_duration">Własny czas trwania</string>
+    <string name="ignore_hours">Godziny</string>
+    <string name="ignore_invalid_duration">Wpisz dodatnią liczbę godzin</string>
+    <string name="ignore_select_identity">Wybierz co najmniej jedno pole tożsamości</string>
+    <string name="action_ignore">Ignoruj</string>
+    <string name="action_remove_ignore">Przestań ignorować</string>
+
+    <string name="ban_list_search_hint">Szukaj…</string>
+    <string name="ban_list_search_clear">Wyczyść wyszukiwanie na liście banów</string>
+    <string name="ban_list_no_results">Brak banów pasujących do wyszukiwania.</string>
+    <string name="ban_list_tab_bans">Bany</string>
+    <string name="ban_list_tab_exceptions">Wyjątki</string>
+    <string name="ban_list_exceptions_not_supported">Ten serwer nie obsługuje wyjątków (+e).</string>
+    <string name="camera_permission_required">Do zrobienia zdjęcia wymagane jest uprawnienie do aparatu.</string>
+</resources>

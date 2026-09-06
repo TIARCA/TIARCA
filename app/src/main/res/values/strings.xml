@@ -13,34 +13,34 @@
     <string name="tab_server">Server</string>
     <string name="message_hint">Send a message</string>
     <string name="message_join">%s has joined</string>
-    <string name="message_kick">%s has kicked %s (%s)</string>
-    <string name="message_part">%s has left (%s)</string>
+    <string name="message_kick">%1$s has kicked %2$s (%3$s)</string>
+    <string name="message_part">%1$s has left (%2$s)</string>
     <string name="message_part_no_message">%s has left</string>
-    <string name="message_quit">%s has disconnected (%s)</string>
-    <string name="message_nick_change">%s is now known as %s</string>
+    <string name="message_quit">%1$s has disconnected (%2$s)</string>
+    <string name="message_nick_change">%1$s is now known as %2$s</string>
     <string name="message_topic">Topic: %s</string>
-    <string name="message_topic_whotime">Topic was set by %s on %s</string>
-    <string name="message_topic_by">Topic: %s, set by %s</string>
+    <string name="message_topic_whotime">Topic was set by %1$s on %2$s</string>
+    <string name="message_topic_by">Topic: %1$s, set by %2$s</string>
     <string name="message_topic_none">Topic was not set</string>
 
-    <string name="message_host_info">Server name is %s, running %s. Supported user modes: %s, supported channel modes: %s</string>
+    <string name="message_host_info">Server name is %1$s, running %2$s. Supported user modes: %3$s, supported channel modes: %4$s</string>
     <string name="message_motd">Message of the Day</string>
     <string name="message_whois">%s\'s user information</string>
 
-    <string name="message_mode">%s %s</string>
+    <string name="message_mode">%1$s %2$s</string>
     <string name="message_mode_set">set %s</string>
     <string name="message_mode_unset">unset %s</string>
     <string name="message_mode_gave">gave %s</string>
     <string name="message_mode_removed">removed %s</string>
 
-    <string name="message_mode_gave_to">%s to %s</string>
-    <string name="message_mode_removed_from">%s from %s</string>
+    <string name="message_mode_gave_to">%1$s to %2$s</string>
+    <string name="message_mode_removed_from">%1$s from %2$s</string>
 
     <plurals name="message_mode_channel">
         <item quantity="one">channel mode \'%s\'</item>
         <item quantity="other">channel modes \'%s\'</item>
     </plurals>
-    <string name="message_mode_channel_value">channel mode \'%s\' to %s</string>
+    <string name="message_mode_channel_value">channel mode \'%1$s\' to %2$s</string>
     <string name="message_mode_channel_ban">a ban on %s</string>
     <string name="message_mode_nick_owner">channel owner status</string>
     <string name="message_mode_nick_admin">channel admin status</string>
@@ -57,7 +57,7 @@
     <string name="command_send_raw">Send as raw</string>
 
     <string name="channel_topic">Topic</string>
-    <string name="channel_topic_info">set by %s on %s</string>
+    <string name="channel_topic_info">set by %1$s on %2$s</string>
     <string name="channel_topic_none">No topic was set</string>
     <string name="channel_members">Members</string>
     <string name="member_search_hint">Search users</string>
@@ -256,8 +256,8 @@
     <string name="connection_error_command_title">Error processing post-connect commands</string>
     <string name="connection_error_command_notification_desc">An internal error has occurred while trying to process post-connect commands.</string>
     <plurals name="connection_error_command_dialog_content">
-        <item quantity="one">An error has occurred processing the following command for the network \"%s\":\n\n%s</item>
-        <item quantity="other">An error has occurred processing the following commands for the network \"%s\":\n\n%s</item>
+        <item quantity="one">An error has occurred processing the following command for the network \"%1$s\":\n\n%2$s</item>
+        <item quantity="other">An error has occurred processing the following commands for the network \"%1$s\":\n\n%2$s</item>
     </plurals>
 
     <!-- Server list -->
@@ -333,8 +333,8 @@
     <string name="action_sort_member_count">Sort by member count</string>
 
     <plurals name="channel_list_title_with_member_count">
-        <item quantity="one">%s (%d member)</item>
-        <item quantity="other">%s (%d members)</item>
+        <item quantity="one">%1$s (%2$d member)</item>
+        <item quantity="other">%1$s (%2$d members)</item>
     </plurals>
 
     <!-- Settings -->
@@ -806,7 +806,7 @@
     <string name="user_nick">Nick</string>
     <string name="user_hostname">Hostname</string>
     <string name="user_server">Server</string>
-    <string name="user_server_format">%s (%s)</string>
+    <string name="user_server_format">%1$s (%2$s)</string>
     <string name="user_channels">Channels</string>
     <string name="user_idle">Idle time</string>
     <string name="user_server_op">Server operator status</string>
@@ -867,14 +867,14 @@
     <string name="dcc_active_download_transfer_status">Downloading from %s</string>
     <string name="dcc_active_waiting_for_connection">Waiting for connection…</string>
     <string name="dcc_active_waiting_for_approval">Waiting for user approval…</string>
-    <string name="dcc_approve_notification_body">%s (from server: %s) has sent you a file</string>
+    <string name="dcc_approve_notification_body">%1$s (from server: %2$s) has sent you a file</string>
     <string name="dcc_history_upload">Uploaded %2$s to %3$s (%1$s)</string>
     <string name="dcc_history_download">Downloaded %2$s from %3$s (%1$s)</string>
     <string name="dcc_history_download_failed">Failed to downloaded %2$s from %1$s</string>
 
     <string name="dcc_approve_download_title">DCC file: %s</string>
-    <string name="dcc_approve_download_title_with_size">DCC file: %s (%s)</string>
-    <string name="dcc_approve_download_body">%s (from server: %s) has sent you a file.\n\nWarning: This download will be transmitted over an insecure &amp; unencrypted connection. Accepting this download will allow the other party to see your IP address. You should accept it only if you trust this user.</string>
+    <string name="dcc_approve_download_title_with_size">DCC file: %1$s (%2$s)</string>
+    <string name="dcc_approve_download_body">%1$s (from server: %2$s) has sent you a file.\n\nWarning: This download will be transmitted over an insecure &amp; unencrypted connection. Accepting this download will allow the other party to see your IP address. You should accept it only if you trust this user.</string>
     <string name="dcc_approve_download_enable_anyway">Enable anyway</string>
 
     <string name="dcc_enable_send_warning_title">Security warning</string>

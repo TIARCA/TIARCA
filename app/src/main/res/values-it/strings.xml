@@ -14,34 +14,34 @@
     <string name="tab_server">Server</string>
     <string name="message_hint">Invia un messaggio</string>
     <string name="message_join">%s è entrato nel canale</string>
-    <string name="message_kick">%s ha espulso %s (%s)</string>
-    <string name="message_part">%s ha lasciato il canale (%s)</string>
+    <string name="message_kick">%1$s ha espulso %2$s (%3$s)</string>
+    <string name="message_part">%1$s ha lasciato il canale (%2$s)</string>
     <string name="message_part_no_message">%s ha lasciato il canale</string>
-    <string name="message_quit">%s si è disconnesso (%s)</string>
-    <string name="message_nick_change">%s è ora noto come %s</string>
+    <string name="message_quit">%1$s si è disconnesso (%2$s)</string>
+    <string name="message_nick_change">%1$s è ora noto come %2$s</string>
     <string name="message_topic">Topic: %s</string>
-    <string name="message_topic_whotime">Topic impostato da %s il %s</string>
-    <string name="message_topic_by">Topic: %s, impostato da %s</string>
+    <string name="message_topic_whotime">Topic impostato da %1$s il %2$s</string>
+    <string name="message_topic_by">Topic: %1$s, impostato da %2$s</string>
     <string name="message_topic_none">Nessun topic impostato</string>
 
-    <string name="message_host_info">Il nome del server è %s, in esecuzione %s. Modalità utente supportate: %s, modalità canale supportate: %s</string>
+    <string name="message_host_info">Il nome del server è %1$s, in esecuzione %2$s. Modalità utente supportate: %3$s, modalità canale supportate: %4$s</string>
     <string name="message_motd">Messaggio del giorno</string>
     <string name="message_whois">Informazioni utente di %s</string>
 
-    <string name="message_mode">%s %s</string>
+    <string name="message_mode">%1$s %2$s</string>
     <string name="message_mode_set">ha impostato %s</string>
     <string name="message_mode_unset">ha rimosso %s</string>
     <string name="message_mode_gave">ha dato %s</string>
     <string name="message_mode_removed">ha tolto %s</string>
 
-    <string name="message_mode_gave_to">%s a %s</string>
-    <string name="message_mode_removed_from">%s a %s</string>
+    <string name="message_mode_gave_to">%1$s a %2$s</string>
+    <string name="message_mode_removed_from">%1$s a %2$s</string>
 
     <plurals name="message_mode_channel">
         <item quantity="one">modalità del canale \'%s\'</item>
         <item quantity="other">modalità del canale \'%s\'</item>
     </plurals>
-    <string name="message_mode_channel_value">modalità canale \'%s\' su %s</string>
+    <string name="message_mode_channel_value">modalità canale \'%1$s\' su %2$s</string>
     <string name="message_mode_channel_ban">un ban su %s</string>
     <string name="message_mode_nick_owner">lo stato di proprietario del canale</string>
     <string name="message_mode_nick_admin">lo stato di amministratore del canale</string>
@@ -58,7 +58,7 @@
     <string name="command_send_raw">Invia come comando raw</string>
 
     <string name="channel_topic">Topic</string>
-    <string name="channel_topic_info">impostato da %s su %s</string>
+    <string name="channel_topic_info">impostato da %1$s su %2$s</string>
     <string name="channel_topic_none">Nessun argomento è stato impostato</string>
     <string name="channel_members">Membri</string>
     <string name="member_search_hint">Cerca utenti</string>
@@ -257,8 +257,8 @@
     <string name="connection_error_command_title">Errore durante l\'elaborazione dei comandi post-connessione</string>
     <string name="connection_error_command_notification_desc">Si è verificato un errore interno durante il tentativo di elaborare i comandi post-connessione.</string>
     <plurals name="connection_error_command_dialog_content">
-        <item quantity="one">Si è verificato un errore durante l\'elaborazione del seguente comando per la rete \"%s\":\n\n%s</item>
-        <item quantity="other">Si è verificato un errore durante l\'elaborazione dei seguenti comandi per la rete \"%s\":\n\n%s</item>
+        <item quantity="one">Si è verificato un errore durante l\'elaborazione del seguente comando per la rete \"%1$s\":\n\n%2$s</item>
+        <item quantity="other">Si è verificato un errore durante l\'elaborazione dei seguenti comandi per la rete \"%1$s\":\n\n%2$s</item>
     </plurals>
 
     <!-- Server list -->
@@ -334,8 +334,8 @@
     <string name="action_sort_member_count">Ordina per numero di membri</string>
 
     <plurals name="channel_list_title_with_member_count">
-        <item quantity="one">%s (membro %d)</item>
-        <item quantity="other">%s (membri %d)</item>
+        <item quantity="one">%1$s (membro %2$d)</item>
+        <item quantity="other">%1$s (membri %2$d)</item>
     </plurals>
 
     <!-- Settings -->
@@ -809,7 +809,7 @@
     <string name="user_nick">Nick</string>
     <string name="user_hostname">Nome host</string>
     <string name="user_server">Server</string>
-    <string name="user_server_format">%s (%s)</string>
+    <string name="user_server_format">%1$s (%2$s)</string>
     <string name="user_channels">Canali</string>
     <string name="user_idle">Tempo inattivo</string>
     <string name="user_server_op">Stato di operatore del server</string>
@@ -870,14 +870,14 @@
     <string name="dcc_active_download_transfer_status">Download da %s</string>
     <string name="dcc_active_waiting_for_connection">In attesa della connessione...</string>
     <string name="dcc_active_waiting_for_approval">In attesa dell\'approvazione dell\'utente...</string>
-    <string name="dcc_approve_notification_body">%s (dal server: %s) ti ha inviato un file</string>
+    <string name="dcc_approve_notification_body">%1$s (dal server: %2$s) ti ha inviato un file</string>
     <string name="dcc_history_upload">Caricato da %2$s a %3$s (%1$s)</string>
     <string name="dcc_history_download">%2$s scaricato da %3$s (%1$s)</string>
     <string name="dcc_history_download_failed">Impossibile scaricare %2$s da %1$s</string>
 
     <string name="dcc_approve_download_title">File DCC: %s</string>
-    <string name="dcc_approve_download_title_with_size">File DCC: %s (%s)</string>
-    <string name="dcc_approve_download_body">%s (dal server: %s) ti ha inviato un file.\n\nAvvertenza: questo download verrà trasmesso tramite una connessione non sicura e non crittografata. Accettando questo download consentirai all\'altra parte di vedere il tuo indirizzo IP. Dovresti accettarlo solo se ti fidi di questo utente.</string>
+    <string name="dcc_approve_download_title_with_size">File DCC: %1$s (%2$s)</string>
+    <string name="dcc_approve_download_body">%1$s (dal server: %2$s) ti ha inviato un file.\n\nAvvertenza: questo download verrà trasmesso tramite una connessione non sicura e non crittografata. Accettando questo download consentirai all\'altra parte di vedere il tuo indirizzo IP. Dovresti accettarlo solo se ti fidi di questo utente.</string>
     <string name="dcc_approve_download_enable_anyway">Abilita comunque</string>
 
     <string name="dcc_enable_send_warning_title">Avviso di sicurezza</string>
