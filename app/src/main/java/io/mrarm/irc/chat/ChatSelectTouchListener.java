@@ -520,10 +520,8 @@ public class ChatSelectTouchListener implements RecyclerView.OnItemTouchListener
         public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
             switch (item.getItemId()) {
                 case R.id.action_copy:
-                    ClipboardManager clipboard = (ClipboardManager) mRecyclerView.getContext()
-                            .getSystemService(Context.CLIPBOARD_SERVICE);
-                    clipboard.setPrimaryClip(
-                            ClipData.newPlainText("IRC Messages", getSelectedText()));
+                    io.mrarm.irc.util.ClipboardUtils.copyPlainText(mRecyclerView.getContext(),
+                            "IRC Messages", getSelectedText());
                     clearSelection();
                     mode.finish();
                     return true;

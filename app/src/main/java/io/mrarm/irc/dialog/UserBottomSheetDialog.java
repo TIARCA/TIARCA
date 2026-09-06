@@ -964,10 +964,7 @@ public class UserBottomSheetDialog {
     }
 
     private static void copyValueToClipboard(Context context, CharSequence key, CharSequence value) {
-        ClipboardManager clipboard = (ClipboardManager) context
-                .getSystemService(Context.CLIPBOARD_SERVICE);
-        ClipData clip = ClipData.newPlainText(key, value);
-        clipboard.setPrimaryClip(clip);
+        io.mrarm.irc.util.ClipboardUtils.copyPlainText(context, key, value);
         Toast.makeText(context, context.getString(R.string.user_info_copied, key),
                 Toast.LENGTH_SHORT).show();
     }
