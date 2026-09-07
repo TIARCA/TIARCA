@@ -9,7 +9,7 @@
     <string name="navigation_drawer_open">Abra a gaveta de navegação</string>
     <string name="navigation_drawer_close">Fechar gaveta de navegação</string>
 
-    <string name="tab_server">Servidor</string>
+    <string name="tab_server">Voz</string>
     <string name="message_hint">Envie uma mensagem</string>
     <string name="message_join">%1$s juntou-se</string>
     <string name="message_kick">%1$s chutou %2$s (%3$s)</string>
@@ -24,13 +24,13 @@
 
     <string name="message_host_info">O nome do servidor é %1$s, executando %2$s. Modos de usuário suportados: %3$s, modos de canal suportados: %4$s</string>
     <string name="message_motd">Mensagem do dia</string>
-    <string name="message_whois">Informações do usuário %1$s</string>
+    <string name="message_whois">%1$s\'s</string>
 
     <string name="message_mode">%1$s %2$s</string>
-    <string name="message_mode_set">definiu %1$s</string>
-    <string name="message_mode_unset">removeu %1$s</string>
+    <string name="message_mode_set">%1$s</string>
+    <string name="message_mode_unset">não definido %1$s</string>
     <string name="message_mode_gave">deu %1$s</string>
-    <string name="message_mode_removed">retirou %1$s</string>
+    <string name="message_mode_removed">removido %1$s</string>
 
     <string name="message_mode_gave_to">%1$s para %2$s</string>
     <string name="message_mode_removed_from">%1$s de %2$s</string>
@@ -39,26 +39,26 @@
         <item quantity="one">\'%1$s\'</item>
         <item quantity="other">modos de canal \'%1$s\'</item>
     </plurals>
-    <string name="message_mode_channel_value">modo de canal \'%1$s\' para %2$s</string>
-    <string name="message_mode_channel_ban">um ban em %1$s</string>
-    <string name="message_mode_nick_owner">status de proprietário do canal</string>
-    <string name="message_mode_nick_admin">status de administrador do canal</string>
-    <string name="message_mode_nick_op">status de operador do canal</string>
-    <string name="message_mode_nick_half_op">status de half-op do canal</string>
-    <string name="message_mode_nick_voice">voice</string>
+    <string name="message_mode_channel_value">\'%1$s\' a %2$s</string>
+    <string name="message_mode_channel_ban">uma proibição de %1$s</string>
+    <string name="message_mode_nick_owner">Status de administrador do canal</string>
+    <string name="message_mode_nick_admin">Status do operador do canal</string>
+    <string name="message_mode_nick_op">Status de meio operador do canal</string>
+    <string name="message_mode_nick_half_op">Voz</string>
+    <string name="message_mode_nick_voice">Tópico</string>
 
     <string name="message_ctcp_ping">recebeu um ping CTCP</string>
-    <string name="message_ctcp_version">Solicitação CTCP VERSION recebida</string>
+    <string name="message_ctcp_version">recebeu uma versão CTCP</string>
 
     <string name="command_error_not_found">Nenhum comando desse tipo foi localizado.</string>
     <string name="command_error_internal">Ocorreu um erro interno ao tentar processar o comando.</string>
 
-    <string name="command_send_raw">Enviar como comando raw</string>
+    <string name="command_send_raw">Enviar como bruto</string>
 
-    <string name="channel_topic">Tópico</string>
+    <string name="channel_topic">Membros</string>
     <string name="channel_topic_info">definido por %1$s em %2$s</string>
     <string name="channel_topic_none">Nenhum tópico foi definido</string>
-    <string name="channel_members">Membros</string>
+    <string name="channel_members">Menções</string>
 
 
     <string name="message_share_title">Compartilhe as mensagens de bate-papo</string>
@@ -71,21 +71,21 @@
     </plurals>
     <plurals name="mention_counter" tools:ignore="ImpliedQuantity">
         <item quantity="one">1 menção</item>
-        <item quantity="other">%1$d menções</item>
+        <item quantity="other">%1$d menciona</item>
     </plurals>
     <string name="unread_counter_with_mentions">%1$s · %2$s</string>
     <string name="unread_99_plus">Mais de 99 mensagens não lidas</string>
-    <string name="action_mentions">Menções</string>
+    <string name="action_mentions">Configurações</string>
     <string name="action_mark_read">Marcar como lido</string>
     <string name="action_mark_mentions_read">Marcar todas as menções como lidas</string>
     <string name="mention_previous">Menção anterior</string>
     <string name="mention_next">Próxima menção</string>
-    <string name="mention_position">Menção %1$d de %2$d</string>
+    <string name="mention_position">Mencione %1$d de %2$d</string>
     <string name="mention_none">Nenhuma menção encontrada nesta conversa</string>
     <string name="mention_unavailable">Esta menção não está mais disponível no histórico de bate-papo</string>
     <string name="unread_backlog_title">Mensagens não lidas</string>
     <string name="unread_go_first">Ir para a primeira mensagem não lida</string>
-    <string name="unread_go_latest">Ir para a mensagem mais recente e marcar como lida</string>
+    <string name="unread_go_latest">Vá para o mais recente e marque como lido</string>
 
     <plurals name="message_delete_confirm" tools:ignore="ImpliedQuantity">
         <item quantity="one">Tem certeza de que deseja excluir a mensagem selecionada?</item>
@@ -101,11 +101,11 @@
     <string name="action_edit">Editar</string>
     <string name="action_cancel">Cancelar</string>
     <string name="action_expand">Expandir</string>
-    <string name="action_settings">Configurações</string>
+    <string name="action_settings">Conexão não criptografada</string>
     <string name="action_connect">Conectar</string>
     <string name="action_disconnect">Desconectar</string>
     <string name="action_reconnect">Reconectar</string>
-    <string name="action_open">Abrir</string>
+    <string name="action_open">Aberto</string>
     <string name="action_back">Voltar</string>
     <string name="action_close">Fechar</string>
     <string name="accessibility_send_message">Enviar mensagem</string>
@@ -115,15 +115,15 @@
     <string name="network_catalog_title">Adicionar um servidor</string>
     <string name="network_catalog_manual">Adicionar manualmente</string>
     <string name="network_catalog_manual_summary">Insira um endereço personalizado e configurações de conexão</string>
-    <string name="network_catalog_search_hint">Pesquisar redes</string>
-    <string name="network_catalog_sort_users">Mais usuários</string>
+    <string name="network_catalog_search_hint">Redes de pesquisa</string>
+    <string name="network_catalog_sort_users">Maioria dos usuários</string>
     <string name="network_catalog_sort_name">Nome A – Z</string>
-    <string name="network_catalog_approximately">aproximadamente %1$s usuários · %2$s canais</string>
-    <string name="network_catalog_unavailable">número de usuários indisponível</string>
+    <string name="network_catalog_approximately">aproximadamente usuários %1$s · Canais %2$s</string>
+    <string name="network_catalog_unavailable">indisponível</string>
     <string name="network_catalog_confirm_title">Adicionar %1$s?</string>
     <string name="network_catalog_confirm_body">: %1$s\nPorta: %2$d\nSegurança: %3$s\n\nOs detalhes podem ser alterados antes de salvar.</string>
     <string name="network_catalog_tls">TLS ativado</string>
-    <string name="network_catalog_plaintext">conexão não criptografada</string>
+    <string name="network_catalog_plaintext">Classificação</string>
     <string name="network_catalog_continue">Continuar</string>
     <string name="network_catalog_offline_notice">Catálogo offline · população atualizada com o aplicativo</string>
     <string name="server_show_advanced">Configurações avançadas</string>
@@ -132,51 +132,51 @@
     <string name="action_add_rule">Adicionar regra</string>
     <string name="action_reorder">Reordenar</string>
     <string name="action_undo">Desfazer</string>
-    <string name="action_copy">Copiar</string>
-    <string name="action_clone">Clonar</string>
+    <string name="action_copy">Clone</string>
+    <string name="action_clone">Acabamento</string>
     <string name="action_continue">Continuar</string>
-    <string name="action_finish">Concluir</string>
-    <string name="action_search">Pesquisar</string>
+    <string name="action_finish">Pesquisa</string>
+    <string name="action_search">Pesquisa</string>
     <string name="action_search_ellipsis">Procurar…</string>
-    <string name="action_sort">Ordenar</string>
+    <string name="action_sort">Idioma</string>
     <string name="action_sort_none">Não classificar</string>
     <string name="action_sort_name">Classificar por nome</string>
     <string name="action_join_channel">Entrar no canal</string>
-    <string name="action_message_user">Enviar mensagem ao usuário</string>
+    <string name="action_message_user">Usuário da mensagem</string>
     <string name="action_part_channel">Sair do canal</string>
     <string name="action_close_direct">Fechar conversa</string>
     <string name="action_clear_all">Limpar tudo</string>
-    <string name="action_reset">Redefinir</string>
-    <string name="action_exit">Sair</string>
-    <string name="action_reply">Responder</string>
+    <string name="action_reset">Saída</string>
+    <string name="action_exit">Resposta</string>
+    <string name="action_reply">Compartilhar</string>
     <string name="action_share">Compartilhar</string>
     <string name="action_dcc_send">Enviar via DCC</string>
     <string name="action_accept">Aceitar</string>
     <string name="action_reject">Rejeitar</string>
     <string name="action_ask_again">Pergunte novamente</string>
     <string name="action_rename">Renomear</string>
-    <string name="action_export">Exportar</string>
-    <string name="action_import_theme">Importar tema</string>
+    <string name="action_export">Tema de importação</string>
+    <string name="action_import_theme">Máscara de proibição</string>
 
     <!-- Channel operator actions -->
     <string name="operator_actions">Ações do operador</string>
     <string name="operator_actions_for">Ações do operador em %1$s</string>
-    <string name="operator_kick">Kick</string>
-    <string name="operator_kickban">Kickban no host</string>
-    <string name="operator_tban">TBAN no host</string>
-    <string name="operator_mute">Mute no host</string>
-    <string name="operator_audi">Audi no ident</string>
-    <string name="operator_unban_host">Remover ban exato do host</string>
-    <string name="operator_voice">Dar voice</string>
-    <string name="operator_mask">Máscara de ban</string>
+    <string name="operator_kick">Anfitrião</string>
+    <string name="operator_kickban">Kickban</string>
+    <string name="operator_tban">Host de banimento temporário</string>
+    <string name="operator_mute">Silenciar host</string>
+    <string name="operator_audi">Audi ident</string>
+    <string name="operator_unban_host">Remover banimento exato do host</string>
+    <string name="operator_voice">Dê voz</string>
+    <string name="operator_mask">Sublinhado</string>
     <string name="operator_invalid_mask">Insira uma máscara válida sem espaços.</string>
     <string name="operator_historical_data">Dados históricos WHOWAS</string>
     <string name="operator_historical_data_desc">Host e ident pertencem à conexão mais recente do usuário.</string>
-    <string name="operator_choose_channel">Escolha o canal em que você é operador</string>
-    <string name="operator_not_authorised">As ações de operador exigem status half-op ou superior neste canal.</string>
-    <string name="operator_reason_optional">Motivo (opcional)</string>
-    <string name="operator_custom_reason">Mensagem personalizada…</string>
-    <string name="operator_duration">Duração (por exemplo, 3h)</string>
+    <string name="operator_choose_channel">Escolha o canal da operadora</string>
+    <string name="operator_not_authorised">As ações do operador exigem status de meio-operação ou superior neste canal.</string>
+    <string name="operator_reason_optional">(opcional)</string>
+    <string name="operator_custom_reason">Motivo personalizado</string>
+    <string name="operator_duration">(por exemplo 3h)</string>
     <string name="operator_invalid_duration">Insira uma duração como 30m, 3h ou 1d.</string>
     <string name="operator_confirm_title">Confirmar ação do operador</string>
     <string name="operator_confirm_action">Aplicar %1$s a %2$s em %3$s?</string>
@@ -188,13 +188,13 @@
     <string name="file_upload_sent">Arquivo carregado e link enviado</string>
     <string name="file_upload_failed">Falha no upload: %1$s</string>
     <string name="file_upload_send_failed">O arquivo foi carregado, mas o link não pôde ser enviado: %1$s</string>
-    <string name="search_messages_title">Pesquisar conversa</string>
+    <string name="search_messages_title">Conversa de pesquisa</string>
     <string name="search_messages_hint">Texto ou apelido da mensagem</string>
     <string name="search_messages_loading">Carregando mensagens salvas…</string>
     <string name="search_messages_failed">Não foi possível carregar mensagens salvas.</string>
-    <string name="search_messages_ready">Pesquisar nas %1$d mensagens salvas mais recentes.</string>
+    <string name="search_messages_ready">Pesquise nas mensagens salvas mais recentes do %1$d.</string>
     <string name="search_messages_no_results">Sem correspondências.</string>
-    <string name="search_messages_count">Correspondência %1$d de %2$d</string>
+    <string name="search_messages_count">Corresponde %1$d de %2$d</string>
     <string name="search_previous">Anterior</string>
     <string name="search_next">Próximo</string>
 
@@ -204,15 +204,15 @@
     <!-- Format -->
 
     <string name="format_bold">Negrito</string>
-    <string name="format_italic">Itálico</string>
-    <string name="format_underline">Sublinhado</string>
+    <string name="format_italic">itálico</string>
+    <string name="format_underline">Notificações de aviso</string>
     <string name="format_text_color">Cor do texto</string>
     <string name="format_fill_color">Cor de fundo</string>
     <string name="format_clear">Limpar formatação</string>
 
     <!-- Service -->
 
-    <string name="service_title">Conectado ao IRC</string>
+    <string name="service_title">conectado a IRC</string>
     <string name="service_open_private_chat">Abrir conversa privada</string>
     <string name="service_message_send_failed">O comando não pôde ser enviado para o serviço IRC</string>
     <plurals name="service_status_connected">

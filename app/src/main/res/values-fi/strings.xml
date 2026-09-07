@@ -9,7 +9,7 @@
     <string name="navigation_drawer_open">Avaa navigointilaatikko</string>
     <string name="navigation_drawer_close">Sulje navigointilaatikko</string>
 
-    <string name="tab_server">Palvelin</string>
+    <string name="tab_server">palvelin</string>
     <string name="message_hint">Lähetä viesti</string>
     <string name="message_join">%1$s on liittynyt</string>
     <string name="message_kick">%1$s on potkinut %2$s (%3$s)</string>
@@ -24,41 +24,41 @@
 
     <string name="message_host_info">Palvelimen nimi on %1$s, jossa on %2$s. Tuetut käyttäjätilat: %3$s, tuetut kanavatilat: %4$s</string>
     <string name="message_motd">Päivän viesti</string>
-    <string name="message_whois">%1$s:n käyttäjätiedot</string>
+    <string name="message_whois">%1$s\'s käyttäjätiedot</string>
 
     <string name="message_mode">%1$s %2$s</string>
-    <string name="message_mode_set">asetti %1$s</string>
-    <string name="message_mode_unset">poisti %1$s</string>
-    <string name="message_mode_gave">antoi %1$s</string>
-    <string name="message_mode_removed">poisti %1$s</string>
+    <string name="message_mode_set">sarja %1$s</string>
+    <string name="message_mode_unset">irrotettu %1$s</string>
+    <string name="message_mode_gave">antoi %1$s:n</string>
+    <string name="message_mode_removed">poistettu %1$s</string>
 
-    <string name="message_mode_gave_to">%1$s käyttäjälle %2$s</string>
-    <string name="message_mode_removed_from">%1$s käyttäjältä %2$s</string>
+    <string name="message_mode_gave_to">%1$s - %2$s</string>
+    <string name="message_mode_removed_from">%1$s alkaen %2$s</string>
 
     <plurals name="message_mode_channel">
         <item quantity="one">kanavatila \'%1$s\'</item>
         <item quantity="other">kanavatilat \'%1$s\'</item>
     </plurals>
-    <string name="message_mode_channel_value">kanavatilan \'%1$s\' arvoon %2$s</string>
-    <string name="message_mode_channel_ban">ban käyttäjälle %1$s</string>
-    <string name="message_mode_nick_owner">kanavan omistajan tila</string>
-    <string name="message_mode_nick_admin">kanavan ylläpitäjän tila</string>
-    <string name="message_mode_nick_op">kanavaoperaattorin tila</string>
-    <string name="message_mode_nick_half_op">kanavan half-op-tila</string>
-    <string name="message_mode_nick_voice">voice</string>
+    <string name="message_mode_channel_value">kanavatila \'%1$s\' - %2$s</string>
+    <string name="message_mode_channel_ban">%1$s:n kielto</string>
+    <string name="message_mode_nick_owner">-kanavan omistajan tila</string>
+    <string name="message_mode_nick_admin">-kanavan järjestelmänvalvojan tila</string>
+    <string name="message_mode_nick_op">-kanavan operaattorin tila</string>
+    <string name="message_mode_nick_half_op">-kanavan puolioperaattorin tila</string>
+    <string name="message_mode_nick_voice">ääni</string>
 
     <string name="message_ctcp_ping">Vastaanotettu CTCP-ping</string>
-    <string name="message_ctcp_version">CTCP VERSION -pyyntö vastaanotettu</string>
+    <string name="message_ctcp_version">Vastaanotettu CTCP-versio</string>
 
     <string name="command_error_not_found">Tällaista komentoa ei löytynyt.</string>
     <string name="command_error_internal">Sisäinen virhe tapahtui yritettäessä käsitellä komentoa.</string>
 
-    <string name="command_send_raw">Lähetä raw-komentona</string>
+    <string name="command_send_raw">Lähetä raakana</string>
 
     <string name="channel_topic">Aihe</string>
     <string name="channel_topic_info">asetti %1$s mallilla %2$s</string>
     <string name="channel_topic_none">Aihetta ei ole asetettu</string>
-    <string name="channel_members">Jäsenet</string>
+    <string name="channel_members">jäsenet</string>
 
 
     <string name="message_share_title">Jaa chat-viestit</string>
@@ -67,20 +67,20 @@
 
     <plurals name="unread_message_counter">
         <item quantity="one">1 lukematon viesti</item>
-        <item quantity="other">%1$d lukematonta viestiä</item>
+        <item quantity="other">%1$d lukemattomat viestit</item>
     </plurals>
     <plurals name="mention_counter">
         <item quantity="one">1 maininta</item>
-        <item quantity="other">%1$d mainintaa</item>
+        <item quantity="other">%1$d mainitsee</item>
     </plurals>
     <string name="unread_counter_with_mentions">%1$s · %2$s</string>
     <string name="unread_99_plus">99+ lukemattomia viestejä</string>
-    <string name="action_mentions">Maininnat</string>
+    <string name="action_mentions">mainitsee</string>
     <string name="action_mark_read">Merkitse luetuksi</string>
     <string name="action_mark_mentions_read">Merkitse kaikki maininnat luetuiksi</string>
     <string name="mention_previous">Edellinen maininta</string>
     <string name="mention_next">Seuraava maininta</string>
-    <string name="mention_position">Maininta %1$d / %2$d</string>
+    <string name="mention_position">Mainitse %1$d %2$d:stä</string>
     <string name="mention_none">Tästä keskustelusta ei löytynyt mainintoja</string>
     <string name="mention_unavailable">Tämä maininta ei ole enää saatavilla chat-historiassa</string>
     <string name="unread_backlog_title">Lukemattomat viestit</string>
@@ -98,15 +98,15 @@
     <string name="action_ok">OK</string>
     <string name="action_done">Valmis</string>
     <string name="action_delete">Poista</string>
-    <string name="action_edit">Muokkaa</string>
+    <string name="action_edit">Edit</string>
     <string name="action_cancel">Peruuta</string>
     <string name="action_expand">Laajenna</string>
     <string name="action_settings">Asetukset</string>
-    <string name="action_connect">Yhdistä</string>
+    <string name="action_connect">Liitäntä</string>
     <string name="action_disconnect">Irrota</string>
     <string name="action_reconnect">Liitä uudelleen</string>
-    <string name="action_open">Avaa</string>
-    <string name="action_back">Takaisin</string>
+    <string name="action_open">Avoinna</string>
+    <string name="action_back">Takaosa</string>
     <string name="action_close">Sulje</string>
     <string name="accessibility_send_message">Lähetä viesti</string>
     <string name="accessibility_complete_nickname">Täydennä nimimerkki</string>
@@ -115,11 +115,11 @@
     <string name="network_catalog_title">Lisää palvelin</string>
     <string name="network_catalog_manual">Lisää manuaalisesti</string>
     <string name="network_catalog_manual_summary">Anna mukautettu osoite ja yhteysasetukset</string>
-    <string name="network_catalog_search_hint">Hae verkkoja</string>
-    <string name="network_catalog_sort_users">Eniten käyttäjiä</string>
+    <string name="network_catalog_search_hint">Hakuverkot</string>
+    <string name="network_catalog_sort_users">Useimmat käyttäjät</string>
     <string name="network_catalog_sort_name">Nimi A–Z</string>
-    <string name="network_catalog_approximately">noin %1$s käyttäjää · %2$s kanavaa</string>
-    <string name="network_catalog_unavailable">käyttäjämäärä ei saatavilla</string>
+    <string name="network_catalog_approximately">noin %1$s käyttäjät · %2$s kanavat</string>
+    <string name="network_catalog_unavailable">väestö ei saatavilla</string>
     <string name="network_catalog_confirm_title">Lisää %1$s?</string>
     <string name="network_catalog_confirm_body">Palvelin: %1$s\nPort: %2$d\nTurvallisuus: %3$s\n\nTietoja voidaan muuttaa ennen tallentamista.</string>
     <string name="network_catalog_tls">TLS käytössä</string>
@@ -130,56 +130,56 @@
     <string name="server_hide_advanced">Piilota lisäasetukset</string>
     <string name="action_add_below">Lisää alle</string>
     <string name="action_add_rule">Lisää sääntö</string>
-    <string name="action_reorder">Järjestä uudelleen</string>
+    <string name="action_reorder">Tilaa uudelleen</string>
     <string name="action_undo">Kumoa</string>
-    <string name="action_copy">Kopioi</string>
-    <string name="action_clone">Kloonaa</string>
+    <string name="action_copy">kopio</string>
+    <string name="action_clone">Klooni</string>
     <string name="action_continue">Jatka</string>
-    <string name="action_finish">Valmis</string>
-    <string name="action_search">Hae</string>
+    <string name="action_finish">Viimeistely</string>
+    <string name="action_search">Haku</string>
     <string name="action_search_ellipsis">Haku…</string>
     <string name="action_sort">Lajittele</string>
     <string name="action_sort_none">Älä lajittele</string>
     <string name="action_sort_name">Lajittele nimen mukaan</string>
     <string name="action_join_channel">Liity kanavaan</string>
-    <string name="action_message_user">Lähetä viesti käyttäjälle</string>
+    <string name="action_message_user">Viestikäyttäjä</string>
     <string name="action_part_channel">Poistu kanavasta</string>
     <string name="action_close_direct">Sulje keskustelu</string>
     <string name="action_clear_all">Tyhjennä kaikki</string>
-    <string name="action_reset">Palauta</string>
-    <string name="action_exit">Poistu</string>
+    <string name="action_reset">Reset</string>
+    <string name="action_exit">Uloskäynti</string>
     <string name="action_reply">Vastaa</string>
-    <string name="action_share">Jaa</string>
+    <string name="action_share">Share</string>
     <string name="action_dcc_send">Lähetä DCC:n kautta</string>
     <string name="action_accept">Hyväksy</string>
-    <string name="action_reject">Hylkää</string>
+    <string name="action_reject">Hylkääminen</string>
     <string name="action_ask_again">Kysy uudelleen</string>
     <string name="action_rename">Nimeä uudelleen</string>
-    <string name="action_export">Vie</string>
+    <string name="action_export">vienti</string>
     <string name="action_import_theme">Tuo teema</string>
 
     <!-- Channel operator actions -->
-    <string name="operator_actions">Operaattorin toiminnot</string>
-    <string name="operator_actions_for">Operaattorin toiminnot kanavalla %1$s</string>
-    <string name="operator_kick">Kick</string>
-    <string name="operator_kickban">Kickban hostille</string>
-    <string name="operator_tban">TBAN hostille</string>
-    <string name="operator_mute">Mute hostille</string>
-    <string name="operator_audi">Audi identille</string>
-    <string name="operator_unban_host">Poista hostin tarkka ban</string>
-    <string name="operator_voice">Anna voice</string>
-    <string name="operator_mask">Ban-mask</string>
+    <string name="operator_actions">Käyttäjän toimet</string>
+    <string name="operator_actions_for">Käyttäjän toimet %1$s:ssä</string>
+    <string name="operator_kick">-potku</string>
+    <string name="operator_kickban">Kickban isäntä</string>
+    <string name="operator_tban">Väliaikainen kieltoisäntä</string>
+    <string name="operator_mute">Mykistä isäntä</string>
+    <string name="operator_audi">Audi ident</string>
+    <string name="operator_unban_host">Poista tarkka isäntäkielto</string>
+    <string name="operator_voice">Anna ääni</string>
+    <string name="operator_mask">Ban maski</string>
     <string name="operator_invalid_mask">Anna kelvollinen maski ilman välilyöntejä.</string>
     <string name="operator_historical_data">Historialliset WHOWAS-tiedot</string>
-    <string name="operator_historical_data_desc">Host ja ident kuuluvat käyttäjän viimeisimpään yhteyteen.</string>
-    <string name="operator_choose_channel">Valitse kanava, jolla olet operaattori</string>
-    <string name="operator_not_authorised">Operaattoritoiminnot edellyttävät half-op-tilaa tai korkeampaa tällä kanavalla.</string>
+    <string name="operator_historical_data_desc">Isäntä ja tunnus kuuluvat käyttäjän viimeisimpään yhteyteen.</string>
+    <string name="operator_choose_channel">Valitse operaattorikanava</string>
+    <string name="operator_not_authorised">Käyttäjän toiminnot edellyttävät puolikäyttöistä tai korkeampaa tilaa tällä kanavalla.</string>
     <string name="operator_reason_optional">Syy (valinnainen)</string>
-    <string name="operator_custom_reason">Mukautettu viesti…</string>
+    <string name="operator_custom_reason">Mukautettu syy</string>
     <string name="operator_duration">Kesto (esimerkiksi 3h)</string>
     <string name="operator_invalid_duration">Syötä kesto, kuten 30m, 3h tai 1d.</string>
-    <string name="operator_confirm_title">Vahvista operaattoritoiminto</string>
-    <string name="operator_confirm_action">Käytetäänkö toimintoa %1$s käyttäjään %2$s kanavalla %3$s?</string>
+    <string name="operator_confirm_title">Vahvista käyttäjän toiminta</string>
+    <string name="operator_confirm_action">Lisätäänkö %1$s malliin %2$s mallissa %3$s?</string>
     <string name="operator_command_sent">Komento lähetetty</string>
     <string name="file_upload_action">Lähetä tiedosto</string>
     <string name="file_upload_title">Lähetä SimosNapilla</string>
@@ -194,7 +194,7 @@
     <string name="search_messages_failed">Ei voitu ladata tallennettuja viestejä.</string>
     <string name="search_messages_ready">Hae viimeisimmistä %1$d tallennetuista viesteistä.</string>
     <string name="search_messages_no_results">Ei osumia.</string>
-    <string name="search_messages_count">Osumia %1$d / %2$d</string>
+    <string name="search_messages_count">Vastaa %1$d ja %2$d</string>
     <string name="search_previous">Edellinen</string>
     <string name="search_next">Seuraava</string>
 

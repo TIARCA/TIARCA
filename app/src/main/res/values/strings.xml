@@ -5,7 +5,7 @@
     <string name="about_body">TIARCA — TIARCA Is Another Relay Chat App\nVersion %1$s\n\nOriginal project\nTIARCA is a fork of Revolution IRC, originally developed by MrARM/MCMrARM and distributed under the GNU GPLv3.\n\nTIARCA continues its independent development with modifications, fixes and new features.\n\nLicensed under the GNU General Public License v3. The corresponding source code and notices must be made available with public distributions.\n\nIncludes open-source Android libraries; their respective licences remain in force.\n\nMedia sharing may use the external Simosnap service. Uploaded files are governed by that service’s availability and retention policies.\n\nThis product uses the TMDB API but is not endorsed or certified by TMDB.</string>
     <string name="about_revolution_github">Revolution IRC on GitHub</string>
 
-    <!-- Chat -->
+
 
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
@@ -96,7 +96,7 @@
     </plurals>
     <string name="message_delete_confirm_note">The messages will only be deleted on this device.</string>
 
-    <!-- Actions -->
+
 
     <string name="action_ok">OK</string>
     <string name="action_done">Done</string>
@@ -164,7 +164,7 @@
     <string name="action_export">Export</string>
     <string name="action_import_theme">Import theme</string>
 
-    <!-- Channel operator actions -->
+
     <string name="operator_actions">Operator actions</string>
     <string name="operator_actions_for">Operator actions in %1$s</string>
     <string name="operator_kick">Kick</string>
@@ -210,7 +210,7 @@
     <string name="action_delete_confirm_title">Are you sure?</string>
     <string name="action_delete_confirm_body">Are you sure you want to delete %1$s? This cannot be undone.</string>
 
-    <!-- Format -->
+
 
     <string name="format_bold">Bold</string>
     <string name="format_italic">Italic</string>
@@ -219,7 +219,7 @@
     <string name="format_fill_color">Background color</string>
     <string name="format_clear">Clear formatting</string>
 
-    <!-- Service -->
+
 
     <string name="service_title">Connected to IRC</string>
     <string name="service_open_private_chat">Open private conversation</string>
@@ -249,7 +249,7 @@
     <string name="notification_channel_idle">Status Notification</string>
     <string name="notification_channel_warning">Warning Notifications</string>
 
-    <!-- Connection errors -->
+
 
     <string name="connection_error_no_nick">No nick set</string>
 
@@ -260,7 +260,7 @@
         <item quantity="other">An error has occurred processing the following commands for the network \"%1$s\":\n\n%2$s</item>
     </plurals>
 
-    <!-- Server list -->
+
 
     <string name="server_list_header_active">Active</string>
     <string name="server_list_header_inactive">Inactive</string>
@@ -271,7 +271,7 @@
     <string name="server_list_connecting">Connecting…</string>
     <string name="server_list_disconnected">Disconnected</string>
 
-    <!-- Add server -->
+
 
     <string name="add_server">Add a new server</string>
     <string name="edit_server">Edit a server</string>
@@ -312,13 +312,13 @@
     </string-array>
     <string name="server_password">Server password</string>
 
-    <!-- Certificate manager -->
+
 
     <string name="title_activity_certificate_manager">Certificate list</string>
 
     <string name="certificate_manager_empty">There are no custom certificates saved.</string>
 
-    <!-- Certificate error dialog -->
+
 
     <string name="certificate_error">Failed to verify %1$s\'s certificate</string>
     <string name="certificate_error_ignore">Accept and continue</string>
@@ -327,7 +327,7 @@
     <string name="certificate_error_footer">You shouldn\'t accept this certificate if you aren\'t sure what this means.</string>
     <string name="certificate_error_remember">Remember exception</string>
 
-    <!-- Channel list -->
+
 
     <string name="title_activity_channel_list">Channel list</string>
     <string name="action_sort_member_count">Sort by member count</string>
@@ -337,7 +337,7 @@
         <item quantity="other">%1$s (%2$d members)</item>
     </plurals>
 
-    <!-- Settings -->
+
 
     <string name="title_activity_settings">Settings</string>
 
@@ -364,7 +364,7 @@
     <string name="error_generic">An error has occurred.</string>
     <string name="error_file_open">Failed to open the file.</string>
 
-    <!-- Time -->
+
 
     <plurals name="time_seconds">
         <item quantity="one">%1$d second</item>
@@ -383,7 +383,7 @@
         <item quantity="other">%1$d days</item>
     </plurals>
 
-    <!-- User settings -->
+
 
     <string name="pref_header_user">User information</string>
 
@@ -397,7 +397,7 @@
     <string name="pref_value_default_quit_message">Quit</string>
     <string name="pref_value_default_part_message">Leaving</string>
 
-    <!-- Interface settings -->
+
 
     <string name="pref_header_interface">Interface</string>
     <string name="pref_header_language">Language</string>
@@ -460,7 +460,7 @@
         <item>Vertical (previous as down to up)</item>
     </string-array>
 
-    <!-- Message format -->
+
 
     <string name="title_activity_message_format_settings">Message format</string>
 
@@ -500,7 +500,7 @@
         <item>12-hour time</item>
     </string-array>
 
-    <!-- Theme settings -->
+
 
     <string name="pref_header_theme">Theme</string>
 
@@ -557,7 +557,7 @@
 
     <string name="theme_default_dark">Default (dark)</string>
 
-    <!-- Notification settings -->
+
 
     <string name="pref_header_notifications">Notifications</string>
 
@@ -591,11 +591,11 @@
     <string name="notification_rule_summary_any_server">Any server</string>
     <string name="notification_rule_summary_any_channel">any channel</string>
     <plurals name="notification_rule_summary_multi_channels">
-        <item quantity="other">%1$d channels</item>
+        <item quantity="one">%1$d channel</item><item quantity="other">%1$d channels</item>
     </plurals>
     <string name="notification_rule_summary_any_nick">any nick</string>
     <plurals name="notification_rule_summary_multi_nicks">
-        <item quantity="other">%1$d nicks</item>
+        <item quantity="one">%1$d nick</item><item quantity="other">%1$d nicks</item>
     </plurals>
 
     <string name="notification_header_options">Options</string>
@@ -619,7 +619,7 @@
         <item>Highest</item>
     </string-array>
 
-    <!-- Reconnect settings -->
+
 
     <string name="pref_header_reconnect">Reconnection</string>
     <string name="pref_title_start_on_boot">Start on boot</string>
@@ -645,7 +645,7 @@
         <item>hours</item>
     </string-array>
 
-    <!-- Ping settings (currently under reconnect settings) -->
+
 
     <string name="pref_title_ping_enabled">Periodically send a heartbeat</string>
     <string name="pref_description_ping_enabled">Periodically send a heartbeat (ping) to the server in order to make sure the connection is still alive. This may increase battery drain.</string>
@@ -653,7 +653,7 @@
     <string name="pref_description_ping_wifi">Only send a heartbeat when using a WiFi connection</string>
     <string name="pref_title_ping_interval">Heartbeat interval</string>
 
-    <!-- Command aliases settings -->
+
 
     <string name="pref_header_command_aliases">Command aliases</string>
     <string name="title_activity_edit_command_alias">Edit a command alias</string>
@@ -672,7 +672,7 @@
         <item>Raw</item>
     </string-array>
 
-    <!-- Storage settings -->
+
 
     <string name="pref_header_storage">Storage</string>
 
@@ -699,7 +699,7 @@
     <string name="pref_storage_remove_server_limit">Reset custom server limit</string>
     <string name="pref_storage_limit_server_title">Server chat storage limit</string>
 
-    <!-- Backup settings -->
+
 
     <string name="pref_header_backup">Backup</string>
 
@@ -725,11 +725,11 @@
     <string name="backup_restore_invalid_password">Invalid password</string>
     <string name="backup_restore_password_not_empty">The password must not be empty</string>
 
-    <!-- Setup -->
+
 
     <string name="please_wait_generic">Please wait…</string>
 
-    <!-- Ignore list -->
+
 
     <string name="title_activity_ignore_list">Ignore list</string>
     <string name="title_activity_monitored_users">Monitored users</string>
@@ -800,7 +800,7 @@
     <string name="action_ignore">Ignore</string>
     <string name="action_remove_ignore">Remove ignore</string>
 
-    <!-- User info -->
+
 
     <string name="user_title_away">%1$s (away)</string>
     <string name="user_nick">Nick</string>
@@ -818,7 +818,7 @@
 
     <string name="user_info_copied">Copied %1$s to clipboard.</string>
 
-    <!-- Color picker -->
+
 
     <string name="color_picker_title">Pick a color</string>
     <string name="color_picker_palette">Pick a color from palette</string>
@@ -848,13 +848,13 @@
         <item>Light Gray</item>
     </string-array>
 
-    <!-- IRC link handler -->
+
 
     <string name="title_activity_irc_link">Join channel</string>
     <string name="irc_link_pick_header">Select a connection to join %2$s on %1$s</string>
     <string name="irc_link_show_all">Show other connections</string>
 
-    <!-- DCC -->
+
 
     <string name="title_activity_dcc">DCC transfers</string>
     <string name="notification_channel_dcc">@string/title_activity_dcc</string>
@@ -890,7 +890,7 @@
 
     <string name="dcc_error_no_activity">No application found to open the specified file</string>
 
-    <!-- Channel moderation, media sharing and local search -->
+
     <string name="action_apply">Apply</string>
     <string name="action_whois">WHOIS</string>
 
@@ -967,7 +967,7 @@
 
     <string name="youtube_search_empty">Write a search after !yt.</string>
     <string name="youtube_search_failed">No YouTube result could be retrieved. Try again later.</string>
-    <!-- Configurable quick commands -->
+
     <string name="pref_header_quick_commands">Quick commands</string>
     <string name="pref_header_operator_actions">Operator actions</string>
     <string name="pref_operator_reasons_header">Preset Kickban and TBAN reasons</string>

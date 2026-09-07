@@ -9,7 +9,7 @@
     <string name="navigation_drawer_open">Deschideți sertarul de navigare</string>
     <string name="navigation_drawer_close">Închideți sertarul de navigare</string>
 
-    <string name="tab_server">Server</string>
+    <string name="tab_server">Stare de semi-operator al canalului</string>
     <string name="message_hint">Trimiteți un mesaj</string>
     <string name="message_join">%1$s s-a alăturat</string>
     <string name="message_kick">%1$s a lovit %2$s (%3$s)</string>
@@ -24,15 +24,15 @@
 
     <string name="message_host_info">Numele serverului este %1$s, rulând %2$s. Moduri de utilizator acceptate: %3$s, moduri de canal acceptate: %4$s</string>
     <string name="message_motd">Mesajul zilei</string>
-    <string name="message_whois">Informații despre utilizatorul %1$s</string>
+    <string name="message_whois">%1$s\' informații despre utilizator</string>
 
     <string name="message_mode">%1$s %2$s</string>
-    <string name="message_mode_set">a setat %1$s</string>
-    <string name="message_mode_unset">a eliminat %1$s</string>
-    <string name="message_mode_gave">a acordat %1$s</string>
-    <string name="message_mode_removed">a retras %1$s</string>
+    <string name="message_mode_set">set %1$s</string>
+    <string name="message_mode_unset">dezactivați %1$s</string>
+    <string name="message_mode_gave">a dat %1$s</string>
+    <string name="message_mode_removed">a eliminat %1$s</string>
 
-    <string name="message_mode_gave_to">%1$s lui %2$s</string>
+    <string name="message_mode_gave_to">%1$s până la %2$s</string>
     <string name="message_mode_removed_from">%1$s de la %2$s</string>
 
     <plurals name="message_mode_channel">
@@ -40,26 +40,26 @@
         <item quantity="few">modurile de canal \'%1$s\'</item>
         <item quantity="other">modurile de canal \'%1$s\'</item>
     </plurals>
-    <string name="message_mode_channel_value">modul canalului \'%1$s\' la %2$s</string>
-    <string name="message_mode_channel_ban">un ban pentru %1$s</string>
-    <string name="message_mode_nick_owner">statut de proprietar al canalului</string>
-    <string name="message_mode_nick_admin">statut de administrator al canalului</string>
-    <string name="message_mode_nick_op">statut de operator al canalului</string>
-    <string name="message_mode_nick_half_op">statut half-op al canalului</string>
-    <string name="message_mode_nick_voice">voice</string>
+    <string name="message_mode_channel_value">modul canal \'%1$s\' la %2$s</string>
+    <string name="message_mode_channel_ban">o interdicție pentru %1$s</string>
+    <string name="message_mode_nick_owner">starea proprietarului canalului</string>
+    <string name="message_mode_nick_admin">Stare operator de canal</string>
+    <string name="message_mode_nick_op">Stare de semi-operator al canalului</string>
+    <string name="message_mode_nick_half_op">Membrii</string>
+    <string name="message_mode_nick_voice">voce</string>
 
     <string name="message_ctcp_ping">A primit un ping CTCP</string>
-    <string name="message_ctcp_version">Solicitare CTCP VERSION primită</string>
+    <string name="message_ctcp_version">A primit o versiune CTCP</string>
 
     <string name="command_error_not_found">Nu a fost găsită o astfel de comandă.</string>
     <string name="command_error_internal">A apărut o eroare internă la încercarea de a procesa comanda.</string>
 
-    <string name="command_send_raw">Trimite ca comandă raw</string>
+    <string name="command_send_raw">Trimiteți ca brut</string>
 
     <string name="channel_topic">Subiect</string>
     <string name="channel_topic_info">setat de %1$s pe %2$s</string>
     <string name="channel_topic_none">Nu a fost stabilit niciun subiect</string>
-    <string name="channel_members">Membri</string>
+    <string name="channel_members">Font</string>
 
 
     <string name="message_share_title">Partajați mesajele de chat</string>
@@ -83,12 +83,12 @@
     <string name="action_mark_mentions_read">Marcați toate mențiunile ca fiind citite</string>
     <string name="mention_previous">Mențiune anterioară</string>
     <string name="mention_next">Următoarea mențiune</string>
-    <string name="mention_position">Mențiunea %1$d din %2$d</string>
+    <string name="mention_position">Menționați %1$d din %2$d</string>
     <string name="mention_none">Nu s-au găsit mențiuni în această conversație</string>
     <string name="mention_unavailable">Această mențiune nu mai este disponibilă în istoricul chat-ului</string>
     <string name="unread_backlog_title">Mesaje necitite</string>
     <string name="unread_go_first">Accesați primul mesaj necitit</string>
-    <string name="unread_go_latest">Mergi la ultimul mesaj și marchează ca citit</string>
+    <string name="unread_go_latest">Accesați cel mai recent și marcați ca citit</string>
 
     <plurals name="message_delete_confirm">
         <item quantity="one">Sunteți sigur că doriți să ștergeți mesajul selectat?</item>
@@ -109,8 +109,8 @@
     <string name="action_connect">Conectare</string>
     <string name="action_disconnect">Deconectare</string>
     <string name="action_reconnect">Reconectați</string>
-    <string name="action_open">Deschide</string>
-    <string name="action_back">Înapoi</string>
+    <string name="action_open">Deschis</string>
+    <string name="action_back">Spate</string>
     <string name="action_close">Închide</string>
     <string name="accessibility_send_message">Trimite mesajul</string>
     <string name="accessibility_complete_nickname">Completează pseudonimul</string>
@@ -119,11 +119,11 @@
     <string name="network_catalog_title">Adăugați un server</string>
     <string name="network_catalog_manual">Adăugați manual</string>
     <string name="network_catalog_manual_summary">Introduceți o adresă personalizată și setări de conexiune</string>
-    <string name="network_catalog_search_hint">Caută rețele</string>
-    <string name="network_catalog_sort_users">Cei mai mulți utilizatori</string>
+    <string name="network_catalog_search_hint">Rețele de căutare</string>
+    <string name="network_catalog_sort_users">Majoritatea utilizatorilor</string>
     <string name="network_catalog_sort_name">Nume A–Z</string>
-    <string name="network_catalog_approximately">aproximativ %1$s utilizatori · %2$s canale</string>
-    <string name="network_catalog_unavailable">numărul de utilizatori nu este disponibil</string>
+    <string name="network_catalog_approximately">aproximativ utilizatori %1$s · canale %2$s</string>
+    <string name="network_catalog_unavailable">nu este disponibilă</string>
     <string name="network_catalog_confirm_title">Adăugați %1$s?</string>
     <string name="network_catalog_confirm_body">Server: %1$s\nPort: %2$d\nSecuritate: %3$s\n\nDetaliile pot fi modificate înainte de salvare.</string>
     <string name="network_catalog_tls">TLS activat</string>
@@ -134,52 +134,52 @@
     <string name="server_hide_advanced">Ascundeți setările avansate</string>
     <string name="action_add_below">Adăugați mai jos</string>
     <string name="action_add_rule">Adăugați o regulă</string>
-    <string name="action_reorder">Reordonează</string>
+    <string name="action_reorder">Recomandă</string>
     <string name="action_undo">Anulare</string>
-    <string name="action_copy">Copiază</string>
-    <string name="action_clone">Clonează</string>
+    <string name="action_copy">Copiere</string>
+    <string name="action_clone">Clonă</string>
     <string name="action_continue">Continuați</string>
-    <string name="action_finish">Finalizează</string>
-    <string name="action_search">Caută</string>
+    <string name="action_finish">Finisare</string>
+    <string name="action_search">Căutare</string>
     <string name="action_search_ellipsis">Căutare...</string>
     <string name="action_sort">Sortare</string>
     <string name="action_sort_none">Nu sortați</string>
     <string name="action_sort_name">Sortați după nume</string>
     <string name="action_join_channel">Alăturați-vă canalului</string>
-    <string name="action_message_user">Trimite mesaj utilizatorului</string>
+    <string name="action_message_user">Mesaj utilizator</string>
     <string name="action_part_channel">Părăsiți canalul</string>
     <string name="action_close_direct">Închideți conversația</string>
     <string name="action_clear_all">Ștergeți tot</string>
     <string name="action_reset">Resetare</string>
-    <string name="action_exit">Ieși</string>
-    <string name="action_reply">Răspunde</string>
+    <string name="action_exit">Ieșire</string>
+    <string name="action_reply">Răspuns</string>
     <string name="action_share">Distribuie</string>
     <string name="action_dcc_send">Trimite prin DCC</string>
-    <string name="action_accept">Acceptă</string>
-    <string name="action_reject">Respinge</string>
+    <string name="action_accept">Accept</string>
+    <string name="action_reject">Respingere</string>
     <string name="action_ask_again">Întrebați din nou</string>
     <string name="action_rename">Redenumiți</string>
-    <string name="action_export">Exportă</string>
-    <string name="action_import_theme">Importă tema</string>
+    <string name="action_export">Export</string>
+    <string name="action_import_theme">Importați temă</string>
 
     <!-- Channel operator actions -->
     <string name="operator_actions">Acțiunile operatorului</string>
     <string name="operator_actions_for">Acțiunile operatorului în %1$s</string>
-    <string name="operator_kick">Kick</string>
-    <string name="operator_kickban">Kickban pe host</string>
-    <string name="operator_tban">TBAN pe host</string>
-    <string name="operator_mute">Mute pe host</string>
-    <string name="operator_audi">Audi pe ident</string>
-    <string name="operator_unban_host">Elimină banul exact al hostului</string>
-    <string name="operator_voice">Acordă voice</string>
-    <string name="operator_mask">Mască de ban</string>
+    <string name="operator_kick">Lovitură</string>
+    <string name="operator_kickban">Kickban gazdă</string>
+    <string name="operator_tban">Gazdă de interzicere temporară</string>
+    <string name="operator_mute">Dezactivați gazda</string>
+    <string name="operator_audi">Audi ident</string>
+    <string name="operator_unban_host">Eliminați interdicția exactă a gazdei</string>
+    <string name="operator_voice">Dă voce</string>
+    <string name="operator_mask">Ban masca</string>
     <string name="operator_invalid_mask">Introduceți o mască validă fără spații.</string>
     <string name="operator_historical_data">Date istorice WHOWAS</string>
-    <string name="operator_historical_data_desc">Hostul și identul aparțin celei mai recente conexiuni a utilizatorului.</string>
-    <string name="operator_choose_channel">Alege canalul în care ești operator</string>
-    <string name="operator_not_authorised">Acțiunile de operator necesită statut half-op sau mai mare pe acest canal.</string>
+    <string name="operator_historical_data_desc">Gazda și identitatea aparțin celei mai recente conexiuni a utilizatorului.</string>
+    <string name="operator_choose_channel">Alegeți canalul operatorului</string>
+    <string name="operator_not_authorised">Acțiunile operatorului necesită starea de jumătate operațională sau mai mare pe acest canal.</string>
     <string name="operator_reason_optional">Motiv (opțional)</string>
-    <string name="operator_custom_reason">Mesaj personalizat…</string>
+    <string name="operator_custom_reason">Motiv personalizat</string>
     <string name="operator_duration">Durată (de exemplu 3h)</string>
     <string name="operator_invalid_duration">Introduceți o durată, cum ar fi 30m, 3h sau 1d.</string>
     <string name="operator_confirm_title">Confirmați acțiunea operatorului</string>
@@ -196,9 +196,9 @@
     <string name="search_messages_hint">Textul mesajului sau porecla</string>
     <string name="search_messages_loading">Se încarcă mesajele salvate...</string>
     <string name="search_messages_failed">Nu s-au putut încărca mesajele salvate.</string>
-    <string name="search_messages_ready">Caută în ultimele %1$d mesaje salvate.</string>
+    <string name="search_messages_ready">Căutați în cele mai recente mesaje salvate %1$d.</string>
     <string name="search_messages_no_results">Nicio potrivire.</string>
-    <string name="search_messages_count">Potrivirea %1$d din %2$d</string>
+    <string name="search_messages_count">Potriviți %1$d cu %2$d</string>
     <string name="search_previous">Anterior</string>
     <string name="search_next">Următorul</string>
 
