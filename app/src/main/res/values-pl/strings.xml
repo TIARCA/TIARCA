@@ -70,14 +70,14 @@
     <plurals name="unread_message_counter">
         <item quantity="one">1 nieprzeczytana wiadomość</item>
         <item quantity="few">%1$d nieprzeczytane wiadomości</item>
-        <item quantity="many">%1$d nieprzeczytane wiadomości</item>
-        <item quantity="other">%1$d nieprzeczytane wiadomości</item>
+        <item quantity="many">%1$d nieprzeczytanych wiadomości</item>
+        <item quantity="other">%1$d nieprzeczytanej wiadomości</item>
     </plurals>
     <plurals name="mention_counter">
         <item quantity="one">1 wzmianka</item>
-        <item quantity="few">%1$d</item>
-        <item quantity="many">%1$d</item>
-        <item quantity="other">%1$d</item>
+        <item quantity="few">%1$d wzmianki</item>
+        <item quantity="many">%1$d wzmianek</item>
+        <item quantity="other">%1$d wzmianki</item>
     </plurals>
     <string name="unread_counter_with_mentions">%1$s · %2$s</string>
     <string name="unread_99_plus">Ponad 99 nieprzeczytanych wiadomości</string>
@@ -244,8 +244,8 @@
     <plurals name="notify_multiple_messages">
         <item quantity="one">%1$d nieprzeczytana wiadomość</item>
         <item quantity="few">%1$d nieprzeczytane wiadomości</item>
-        <item quantity="many">%1$d nieprzeczytane wiadomości</item>
-        <item quantity="other">%1$d nieprzeczytane wiadomości</item>
+        <item quantity="many">%1$d nieprzeczytanych wiadomości</item>
+        <item quantity="other">%1$d nieprzeczytanej wiadomości</item>
     </plurals>
 
     <string name="notification_action_required">Wymagane działanie użytkownika</string>
@@ -295,10 +295,10 @@
     <string name="server_port">Kodowanie</string>
     <string name="server_ssl">Użyj SSL/TLS</string>
     <plurals name="server_manage_custom_certs_text">
-        <item quantity="one">Zapisano niestandardowy certyfikat %1$d</item>
-        <item quantity="few">%1$d</item>
-        <item quantity="many">%1$d</item>
-        <item quantity="other">%1$d</item>
+        <item quantity="one">Zapisano %1$d niestandardowy certyfikat</item>
+        <item quantity="few">Zapisano %1$d niestandardowe certyfikaty</item>
+        <item quantity="many">Zapisano %1$d niestandardowych certyfikatów</item>
+        <item quantity="other">Zapisano %1$d niestandardowego certyfikatu</item>
     </plurals>
     <string name="server_manage_custom_certs">Zarządzaj niestandardowymi certyfikatami</string>
     <string name="server_password_unchanged">Bez zmian</string>
@@ -346,10 +346,10 @@
     <string name="action_sort_member_count">Sortuj według liczby członków</string>
 
     <plurals name="channel_list_title_with_member_count">
-        <item quantity="one">%1$s (element %2$d)</item>
-        <item quantity="few">%1$s (elementy %2$d)</item>
-        <item quantity="many">%1$s (elementy %2$d)</item>
-        <item quantity="other">%1$s (elementy %2$d)</item>
+        <item quantity="one">%1$s (%2$d członek)</item>
+        <item quantity="few">%1$s (%2$d członków)</item>
+        <item quantity="many">%1$s (%2$d członków)</item>
+        <item quantity="other">%1$s (%2$d członka)</item>
     </plurals>
 
     <!-- Settings -->
@@ -383,27 +383,27 @@
 
     <plurals name="time_seconds">
         <item quantity="one">%1$d sekunda</item>
-        <item quantity="few">%1$d sekund</item>
+        <item quantity="few">%1$d sekundy</item>
         <item quantity="many">%1$d sekund</item>
-        <item quantity="other">%1$d sekund</item>
+        <item quantity="other">%1$d sekundy</item>
     </plurals>
     <plurals name="time_minutes">
         <item quantity="one">%1$d minuta</item>
-        <item quantity="few">%1$d minut</item>
+        <item quantity="few">%1$d minuty</item>
         <item quantity="many">%1$d minut</item>
-        <item quantity="other">%1$d minut</item>
+        <item quantity="other">%1$d minuty</item>
     </plurals>
     <plurals name="time_hours">
-        <item quantity="one">%1$d godz</item>
-        <item quantity="few">%1$d godzin</item>
+        <item quantity="one">%1$d godzina</item>
+        <item quantity="few">%1$d godziny</item>
         <item quantity="many">%1$d godzin</item>
-        <item quantity="other">%1$d godzin</item>
+        <item quantity="other">%1$d godziny</item>
     </plurals>
     <plurals name="time_days">
         <item quantity="one">%1$d dzień</item>
         <item quantity="few">%1$d dni</item>
         <item quantity="many">%1$d dni</item>
-        <item quantity="other">%1$d dni</item>
+        <item quantity="other">%1$d dnia</item>
     </plurals>
 
     <!-- User settings -->
@@ -417,7 +417,7 @@
     <string name="pref_title_default_part_message">Wiadomość o opuszczeniu kanału</string>
 
     <string name="pref_value_default_quit_message">Quit</string>
-    <string name="pref_value_default_part_message">Leaving</string>
+    <string name="pref_value_default_part_message">Opuszczanie</string>
 
     <!-- Interface settings -->
 
@@ -486,7 +486,7 @@
 
     <string name="title_activity_message_format_settings">Format wiadomości</string>
 
-    <string name="message_format">Przedrostek</string>
+    <string name="message_format">Format</string>
 
     <string name="message_format_date">Format czasu</string>
     <string name="message_format_date_fixed_width">O stałej szerokości</string>
@@ -500,12 +500,12 @@
     <string name="message_format_date_invalid">Nieprawidłowy format daty/godziny</string>
 
     <string name="message_format_time">czas</string>
-    <string name="message_format_sender">Komunikat</string>
-    <string name="message_format_message">Przedrostek</string>
-    <string name="message_format_sender_prefix">Komunikat</string>
+    <string name="message_format_sender">nadawca</string>
+    <string name="message_format_message">wiadomość</string>
+    <string name="message_format_sender_prefix">prefiks</string>
     <string name="message_format_time_add">Czas</string>
     <string name="message_format_sender_add">Nadawca</string>
-    <string name="message_format_message_add">Motyw</string>
+    <string name="message_format_message_add">Wiadomość</string>
     <string name="message_format_wrap_anchor_add">Kotwa owinięta</string>
     <string name="message_format_sender_prefix_add">Prefiks nadawcy</string>
 
@@ -613,17 +613,17 @@
     <string name="notification_rule_summary_any_server">Dowolny serwer</string>
     <string name="notification_rule_summary_any_channel">dowolny kanał</string>
     <plurals name="notification_rule_summary_multi_channels">
-        <item quantity="one">%1$d kanały</item>
+        <item quantity="one">%1$d kanał</item>
         <item quantity="few">%1$d kanały</item>
-        <item quantity="many">%1$d kanały</item>
-        <item quantity="other">%1$d kanały</item>
+        <item quantity="many">%1$d kanałów</item>
+        <item quantity="other">%1$d kanału</item>
     </plurals>
     <string name="notification_rule_summary_any_nick">dowolny nick</string>
     <plurals name="notification_rule_summary_multi_nicks">
-        <item quantity="one">Nicki %1$d</item>
-        <item quantity="few">Nicki %1$d</item>
-        <item quantity="many">Nicki %1$d</item>
-        <item quantity="other">Nicki %1$d</item>
+        <item quantity="one">%1$d nick</item>
+        <item quantity="few">%1$d nicki</item>
+        <item quantity="many">%1$d nicków</item>
+        <item quantity="other">%1$d nicku</item>
     </plurals>
 
     <string name="notification_header_options">Typ</string>
@@ -663,10 +663,10 @@
     <string name="reconnect_header_tries">próbuje</string>
 
     <plurals name="reconnect_desc_tries">
-        <item quantity="one">\"(próba %1$d)\"</item>
-        <item quantity="few">\" (próby %1$d)\"</item>
-        <item quantity="many">\" (próby %1$d)\"</item>
-        <item quantity="other">\" (próby %1$d)\"</item>
+        <item quantity="one"> (%1$d próba)</item>
+        <item quantity="few"> (%1$d próby)</item>
+        <item quantity="many"> (%1$d prób)</item>
+        <item quantity="other"> (%1$d próby)</item>
     </plurals>
 
     <string-array name="duration_types">
@@ -697,9 +697,9 @@
     <string name="edit_command_alias_channel">Kanał</string>
 
     <string-array name="edit_command_alias_types">
-        <item>Motyw</item>
+        <item>Wiadomość</item>
         <item>Polecenie klienta</item>
-        <item>Surowe</item>
+        <item>Raw</item>
     </string-array>
 
     <!-- Storage settings -->
@@ -771,7 +771,7 @@
     <string name="user_title_away">%1$s (nieobecny)</string>
     <string name="user_nick">Nick</string>
     <string name="user_hostname">Nazwa hosta</string>
-    <string name="user_server">Głos</string>
+    <string name="user_server">Serwer</string>
     <string name="user_server_format">%1$s (%2$s)</string>
     <string name="user_channels">Kanały</string>
     <string name="user_idle">Czas bezczynności</string>
@@ -779,7 +779,7 @@
     <string name="user_server_op_desc">Ten użytkownik jest operatorem serwera IRC</string>
     <string name="user_secure">Stan bezpieczeństwa połączenia</string>
     <string name="user_secure_desc">Ten użytkownik korzysta z bezpiecznego połączenia</string>
-    <string name="user_account">System</string>
+    <string name="user_account">Konto</string>
     <string name="user_away">Komunikat o nieobecności</string>
 
     <string name="user_info_copied">Skopiowano %1$s do schowka.</string>
@@ -826,10 +826,10 @@
     <string name="notification_channel_dcc">@string/title_activity_dcc</string>
     <string name="dcc_summary_notification_title">DCC Trwa przesyłanie</string>
     <plurals name="dcc_summary_notification_text">
-        <item quantity="one">%1$d trwa przesyłanie</item>
-        <item quantity="few">%1$d Trwa przesyłanie</item>
-        <item quantity="many">%1$d Trwa przesyłanie</item>
-        <item quantity="other">%1$d Trwa przesyłanie</item>
+        <item quantity="one">%1$d aktywny transfer</item>
+        <item quantity="few">%1$d aktywne transfery</item>
+        <item quantity="many">%1$d aktywnych transferów</item>
+        <item quantity="other">%1$d aktywnego transferu</item>
     </plurals>
     <string name="dcc_active_upload_transfer_status">Przesyłanie do %1$s</string>
     <string name="dcc_active_download_transfer_status">Pobieranie z %1$s</string>
@@ -852,8 +852,8 @@
     <string name="dcc_system_downloads_permission_dialog_text">Odmówiono uprawnień do folderu Pobrane, dlatego użyty zostanie wewnętrzny katalog pobranych aplikacji. Jeśli nie jest to pożądane, kliknij opcję Zapytaj ponownie.</string>
 
     <string name="dcc_set_download_dir">Ustaw katalog pobierania</string>
-    <string name="dcc_download_dir_application">System</string>
-    <string name="dcc_download_dir_system">Klucz</string>
+    <string name="dcc_download_dir_application">Aplikacja</string>
+    <string name="dcc_download_dir_system">System</string>
     <string name="dcc_download_dir_custom">Niestandardowe</string>
 
     <string name="dcc_error_no_activity">Nie znaleziono aplikacji umożliwiającej otwarcie określonego pliku</string>
@@ -876,7 +876,7 @@
     <string name="channel_modes_profile_generic">IRC typy standardowe/reklamowane przez serwer</string>
     <string name="channel_mode_key">Klucz kanału (+k)</string>
     <string name="channel_mode_limit">Limit użytkowników (+l)</string>
-    <string name="channel_mode_key_hint">Nośnik</string>
+    <string name="channel_mode_key_hint">Klucz</string>
     <string name="channel_mode_limit_hint">Maksymalna liczba użytkowników</string>
     <string name="channel_mode_value_required">Wprowadź wartość dla trybu +%1$s.</string>
     <string name="channel_mode_desc_i">Kanał tylko dla zaproszonych</string>
@@ -904,20 +904,20 @@
     <string name="channel_mode_desc_unknown">Tryb przełączania zdefiniowany przez serwer (bez parametrów)</string>
     <string name="channel_mode_managed">zarządzany przez serwer lub usługi</string>
 
-    <string name="ban_list_menu">Lista zakazów</string>
-    <string name="ban_list_title">Lista zakazów dla %1$s</string>
-    <string name="ban_list_loading">Ładowanie listy zakazów…</string>
-    <string name="ban_list_failed">Nie można załadować listy zakazów.</string>
+    <string name="ban_list_menu">Ban | Wyjątki</string>
+    <string name="ban_list_title">Bany | Wyjątki dla %1$s</string>
+    <string name="ban_list_loading">Ładowanie listy banów i wyjątków…</string>
+    <string name="ban_list_failed">Nie można załadować listy banów i wyjątków.</string>
     <string name="ban_list_host">Host/maska</string>
     <string name="ban_list_setter">Autor</string>
     <string name="ban_list_date">Data</string>
     <string name="ban_list_select_all">Wybierz wszystko</string>
     <string name="ban_list_remove_selected">Usuń wybrane</string>
-    <string name="ban_list_empty">Lista zakazów jest pusta.</string>
+    <string name="ban_list_empty">Lista banów i wyjątków jest pusta.</string>
     <string name="ban_list_unknown">Nieznany</string>
-    <string name="ban_list_select_one">Wybierz co najmniej jeden zakaz.</string>
-    <string name="ban_list_confirm_title">Usunąć wybrane zakazy?</string>
-    <string name="ban_list_cleanup">Sprzątanie</string>
+    <string name="ban_list_select_one">Wybierz co najmniej jeden ban lub wyjątek.</string>
+    <string name="ban_list_confirm_title">Usunąć wybrane bany lub wyjątki?</string>
+    <string name="ban_list_cleanup">Czyszczenie</string>
     <string name="ban_list_cleanup_none">Nie znaleziono kwalifikujących się blokad identyfikatora ani hosta w okresie od 48 do 72 godzin.</string>
     <string name="ban_list_cleanup_confirm_title">Usunąć tymczasowe zakazy?</string>
     <plurals name="ban_list_cleanup_confirm_message">
@@ -934,11 +934,11 @@
     <!-- Configurable quick commands -->
     <string name="pref_header_quick_commands">Szybkie polecenia</string>
     <string name="pref_header_operator_actions">Działania operatora</string>
-    <string name="pref_operator_reasons_header">Wstępnie ustawione Kickban i TBAN przyczyny</string>
+    <string name="pref_operator_reasons_header">Domyślne powody Kickban i TBAN</string>
     <string name="pref_operator_reason_number">Powód %1$d</string>
     <string name="pref_operator_reason_empty">Nie ustawiono</string>
     <string name="pref_quick_commands_enabled">Włącz szybkie polecenia</string>
-    <string name="pref_quick_commands_enabled_desc">Proces włączony! polecenia lokalnie przed wysłaniem ich wyniku do bieżącego czatu</string>
+    <string name="pref_quick_commands_enabled_desc">Przetwarzaj włączone polecenia ! lokalnie przed wysłaniem wyniku do bieżącego czatu</string>
     <string name="pref_quick_commands_words">Polecenia i słowa aktywacyjne</string>
     <string name="pref_quick_commands_services">Usługi zewnętrzne</string>
     <string name="pref_quick_command_youtube">YouTube wyszukiwanie</string>
