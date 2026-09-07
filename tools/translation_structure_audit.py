@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Structural audit for TIARCA locale resources.
 from pathlib import Path
 import re
 import xml.etree.ElementTree as ET
