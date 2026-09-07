@@ -9,12 +9,12 @@
     <string name="navigation_drawer_open">Otwórz szufladę nawigacyjną</string>
     <string name="navigation_drawer_close">Zamknij szufladę nawigacji</string>
 
-    <string name="tab_server">Serwer</string>
+    <string name="tab_server">Głos</string>
     <string name="message_hint">Wyślij wiadomość</string>
-    <string name="message_join">%1$s dołączył do kanału</string>
+    <string name="message_join">%1$s</string>
     <string name="message_kick">%1$s kopnął %2$s (%3$s)</string>
-    <string name="message_part">%1$s opuścił kanał (%2$s)</string>
-    <string name="message_part_no_message">%1$s opuścił kanał</string>
+    <string name="message_part">%1$s opuścił (%2$s)</string>
+    <string name="message_part_no_message">%1$s opuścił</string>
     <string name="message_quit">%1$s został rozłączony (%2$s)</string>
     <string name="message_nick_change">%1$s jest teraz znany jako %2$s</string>
     <string name="message_topic">Temat: %1$s</string>
@@ -24,13 +24,13 @@
 
     <string name="message_host_info">Nazwa serwera to %1$s, na którym działa %2$s. Obsługiwane tryby użytkownika: %3$s, obsługiwane tryby kanałów: %4$s</string>
     <string name="message_motd">Wiadomość dnia</string>
-    <string name="message_whois">Informacje o użytkowniku %1$s</string>
+    <string name="message_whois">%1$s\'</string>
 
     <string name="message_mode">%1$s %2$s</string>
-    <string name="message_mode_set">ustawił %1$s</string>
-    <string name="message_mode_unset">usunął %1$s</string>
+    <string name="message_mode_set">zestaw %1$s</string>
+    <string name="message_mode_unset">rozbrojony %1$s</string>
     <string name="message_mode_gave">dał %1$s</string>
-    <string name="message_mode_removed">odebrał %1$s</string>
+    <string name="message_mode_removed">usunięto %1$s</string>
 
     <string name="message_mode_gave_to">%1$s do %2$s</string>
     <string name="message_mode_removed_from">%1$s od %2$s</string>
@@ -41,13 +41,13 @@
         <item quantity="many">tryby kanałów \'%1$s\'</item>
         <item quantity="other">tryby kanałów \'%1$s\'</item>
     </plurals>
-    <string name="message_mode_channel_value">tryb kanału \'%1$s\' na %2$s</string>
+    <string name="message_mode_channel_value">tryb kanału \'%1$s\' do %2$s</string>
     <string name="message_mode_channel_ban">ban na %1$s</string>
-    <string name="message_mode_nick_owner">status właściciela kanału</string>
-    <string name="message_mode_nick_admin">status administratora kanału</string>
-    <string name="message_mode_nick_op">status operatora kanału</string>
-    <string name="message_mode_nick_half_op">status half-op kanału</string>
-    <string name="message_mode_nick_voice">voice</string>
+    <string name="message_mode_nick_owner">Stan administratora kanału</string>
+    <string name="message_mode_nick_admin">Stan operatora kanału</string>
+    <string name="message_mode_nick_op">Stan półoperatora kanału</string>
+    <string name="message_mode_nick_half_op">Głos</string>
+    <string name="message_mode_nick_voice">Elementy</string>
 
     <string name="message_ctcp_ping">Odebrano ping CTCP</string>
     <string name="message_ctcp_version">Otrzymano wersję CTCP</string>
@@ -60,7 +60,7 @@
     <string name="channel_topic">Temat</string>
     <string name="channel_topic_info">ustawiony przez %1$s na %2$s</string>
     <string name="channel_topic_none">Nie założono żadnego tematu</string>
-    <string name="channel_members">Użytkownicy</string>
+    <string name="channel_members">Wzmianki o</string>
 
 
     <string name="message_share_title">Udostępniaj wiadomości na czacie</string>
@@ -68,25 +68,25 @@
     <string name="message_new_messages">Nowe wiadomości</string>
 
     <plurals name="unread_message_counter">
-        <item quantity="one">%1$d nieprzeczytana wiadomość</item>
+        <item quantity="one">1 nieprzeczytana wiadomość</item>
         <item quantity="few">%1$d nieprzeczytane wiadomości</item>
-        <item quantity="many">%1$d nieprzeczytanych wiadomości</item>
-        <item quantity="other">%1$d nieprzeczytanej wiadomości</item>
+        <item quantity="many">%1$d nieprzeczytane wiadomości</item>
+        <item quantity="other">%1$d nieprzeczytane wiadomości</item>
     </plurals>
     <plurals name="mention_counter">
-        <item quantity="one">%1$d wzmianka</item>
-        <item quantity="few">%1$d wzmianki</item>
-        <item quantity="many">%1$d wzmianek</item>
-        <item quantity="other">%1$d wzmianki</item>
+        <item quantity="one">1 wzmianka</item>
+        <item quantity="few">%1$d</item>
+        <item quantity="many">%1$d</item>
+        <item quantity="other">%1$d</item>
     </plurals>
     <string name="unread_counter_with_mentions">%1$s · %2$s</string>
     <string name="unread_99_plus">Ponad 99 nieprzeczytanych wiadomości</string>
-    <string name="action_mentions">Wzmianki</string>
+    <string name="action_mentions">Ustawienia</string>
     <string name="action_mark_read">Oznacz jako przeczytane</string>
     <string name="action_mark_mentions_read">Oznacz wszystkie wzmianki jako przeczytane</string>
     <string name="mention_previous">Poprzednia wzmianka</string>
     <string name="mention_next">Następna wzmianka</string>
-    <string name="mention_position">Wzmianka %1$d z %2$d</string>
+    <string name="mention_position">Wspomnij o %1$d z %2$d</string>
     <string name="mention_none">Nie znaleziono żadnych wzmianek w tej rozmowie</string>
     <string name="mention_unavailable">Ta wzmianka nie jest już dostępna w historii czatów</string>
     <string name="unread_backlog_title">Nieprzeczytane wiadomości</string>
@@ -108,13 +108,13 @@
     <string name="action_delete">Usuń</string>
     <string name="action_edit">Edytuj</string>
     <string name="action_cancel">Anuluj</string>
-    <string name="action_expand">Rozwiń</string>
-    <string name="action_settings">Ustawienia</string>
+    <string name="action_expand">Zwiększać</string>
+    <string name="action_settings">Wykończenie</string>
     <string name="action_connect">Połącz</string>
     <string name="action_disconnect">Rozłącz</string>
-    <string name="action_reconnect">Połącz ponownie</string>
-    <string name="action_open">Otwórz</string>
-    <string name="action_back">Wstecz</string>
+    <string name="action_reconnect">Podłącz ponownie</string>
+    <string name="action_open">Otwarte</string>
+    <string name="action_back">Tył</string>
     <string name="action_close">Zamknij</string>
     <string name="accessibility_send_message">Wyślij wiadomość</string>
     <string name="accessibility_complete_nickname">Uzupełnij pseudonim</string>
@@ -124,10 +124,10 @@
     <string name="network_catalog_manual">Dodaj ręcznie</string>
     <string name="network_catalog_manual_summary">Wprowadź niestandardowy adres i ustawienia połączenia</string>
     <string name="network_catalog_search_hint">Wyszukaj sieci</string>
-    <string name="network_catalog_sort_users">Najwięcej użytkowników</string>
+    <string name="network_catalog_sort_users">Większość użytkowników</string>
     <string name="network_catalog_sort_name">Nazwa A–Z</string>
-    <string name="network_catalog_approximately">około %1$s użytkowników · %2$s kanałów</string>
-    <string name="network_catalog_unavailable">liczba użytkowników niedostępna</string>
+    <string name="network_catalog_approximately">około użytkowników %1$s · Kanały %2$s</string>
+    <string name="network_catalog_unavailable">jest niedostępna</string>
     <string name="network_catalog_confirm_title">Dodać %1$s?</string>
     <string name="network_catalog_confirm_body">Serwer: %1$s\nPort: %2$d\nBezpieczeństwo: %3$s\n\nSzczegóły można zmienić przed zapisaniem.</string>
     <string name="network_catalog_tls">TLS włączone</string>
@@ -140,50 +140,50 @@
     <string name="action_add_rule">Dodaj regułę</string>
     <string name="action_reorder">Zmień kolejność</string>
     <string name="action_undo">Cofnij</string>
-    <string name="action_copy">Kopiuj</string>
-    <string name="action_clone">Klonuj</string>
+    <string name="action_copy">Kopia</string>
+    <string name="action_clone">Wykończenie</string>
     <string name="action_continue">Kontynuuj</string>
-    <string name="action_finish">Zakończ</string>
+    <string name="action_finish">Powiadomienia ostrzegawcze</string>
     <string name="action_search">Szukaj</string>
     <string name="action_search_ellipsis">Szukaj…</string>
-    <string name="action_sort">Sortuj</string>
+    <string name="action_sort">Sortowanie</string>
     <string name="action_sort_none">Nie sortuj</string>
     <string name="action_sort_name">Sortuj według nazwy</string>
     <string name="action_join_channel">Dołącz do kanału</string>
-    <string name="action_message_user">Napisz do użytkownika</string>
+    <string name="action_message_user">Wiadomość do użytkownika</string>
     <string name="action_part_channel">Opuść kanał</string>
     <string name="action_close_direct">Zamknij rozmowę</string>
     <string name="action_clear_all">Wyczyść wszystko</string>
     <string name="action_reset">Resetuj</string>
-    <string name="action_exit">Wyjdź</string>
-    <string name="action_reply">Odpowiedz</string>
-    <string name="action_share">Udostępnij</string>
+    <string name="action_exit">Wyjście</string>
+    <string name="action_reply">Odpowiedź</string>
+    <string name="action_share">Udział</string>
     <string name="action_dcc_send">Wyślij przez DCC</string>
     <string name="action_accept">Zaakceptuj</string>
     <string name="action_reject">Odrzuć</string>
     <string name="action_ask_again">Zapytaj ponownie</string>
     <string name="action_rename">Zmień nazwę</string>
-    <string name="action_export">Eksportuj</string>
-    <string name="action_import_theme">Importuj motyw</string>
+    <string name="action_export">Eksport</string>
+    <string name="action_import_theme">Motyw importu</string>
 
     <!-- Channel operator actions -->
-    <string name="operator_actions">Akcje operatora</string>
-    <string name="operator_actions_for">Akcje operatora w %1$s</string>
-    <string name="operator_kick">Kick</string>
-    <string name="operator_kickban">Kickban hosta</string>
-    <string name="operator_tban">TBAN hosta</string>
-    <string name="operator_mute">Mute hosta</string>
-    <string name="operator_audi">Audi identu</string>
-    <string name="operator_unban_host">Usuń dokładny ban hosta</string>
-    <string name="operator_voice">Nadaj voice</string>
-    <string name="operator_mask">Maska bana</string>
+    <string name="operator_actions">Działania operatora</string>
+    <string name="operator_actions_for">Działania operatora w %1$s</string>
+    <string name="operator_kick">Rzut</string>
+    <string name="operator_kickban">Kickban</string>
+    <string name="operator_tban">Tymczasowa blokada hosta</string>
+    <string name="operator_mute">Wycisz hosta</string>
+    <string name="operator_audi">Identyfikator Audi</string>
+    <string name="operator_unban_host">Usuń dokładną blokadę hosta</string>
+    <string name="operator_voice">Daj głos</string>
+    <string name="operator_mask">Maska zakazu</string>
     <string name="operator_invalid_mask">Wprowadź poprawną maskę bez spacji.</string>
     <string name="operator_historical_data">Dane historyczne WHOWAS</string>
-    <string name="operator_historical_data_desc">Host i ident pochodzą z ostatniego połączenia użytkownika.</string>
-    <string name="operator_choose_channel">Wybierz kanał, na którym jesteś operatorem</string>
-    <string name="operator_not_authorised">Akcje operatora wymagają na tym kanale statusu half-op lub wyższego.</string>
+    <string name="operator_historical_data_desc">Host i identyfikator należą do ostatniego połączenia użytkownika.</string>
+    <string name="operator_choose_channel">Wybierz kanał operatora</string>
+    <string name="operator_not_authorised">Akcje operatora wymagają w tym kanale stanu półoperacyjnego lub wyższego.</string>
     <string name="operator_reason_optional">Powód (opcjonalnie)</string>
-    <string name="operator_custom_reason">Wiadomość niestandardowa</string>
+    <string name="operator_custom_reason">Powód niestandardowy</string>
     <string name="operator_duration">Czas trwania (na przykład 3h)</string>
     <string name="operator_invalid_duration">Wprowadź czas trwania, np. 30 min, 3 godz. lub 1 dzień.</string>
     <string name="operator_confirm_title">Potwierdź działanie operatora</string>
@@ -244,8 +244,8 @@
     <plurals name="notify_multiple_messages">
         <item quantity="one">%1$d nieprzeczytana wiadomość</item>
         <item quantity="few">%1$d nieprzeczytane wiadomości</item>
-        <item quantity="many">%1$d nieprzeczytanych wiadomości</item>
-        <item quantity="other">%1$d nieprzeczytanej wiadomości</item>
+        <item quantity="many">%1$d nieprzeczytane wiadomości</item>
+        <item quantity="other">%1$d nieprzeczytane wiadomości</item>
     </plurals>
 
     <string name="notification_action_required">Wymagane działanie użytkownika</string>
@@ -253,8 +253,8 @@
     <string name="notification_channel_group_system">Różne powiadomienia</string>
     <string name="notification_channel_group_default">Domyślne reguły powiadomień</string>
     <string name="notification_channel_group_user">Zasady powiadamiania użytkowników</string>
-    <string name="notification_channel_idle">Powiadomienie o stanie</string>
-    <string name="notification_channel_warning">Powiadomienia ostrzegawcze</string>
+    <string name="notification_channel_idle">Powiadomienia ostrzegawcze</string>
+    <string name="notification_channel_warning">Port</string>
 
     <!-- Connection errors -->
 
@@ -280,7 +280,7 @@
         <item quantity="other">Połączono, kanały %1$d</item>
     </plurals>
     <string name="server_list_connecting">Podłączanie…</string>
-    <string name="server_list_disconnected">Rozłączony</string>
+    <string name="server_list_disconnected">Bezładny</string>
 
     <!-- Add server -->
 
@@ -292,13 +292,13 @@
     <string name="server_error_invalid_address">Nieprawidłowy adres</string>
     <string name="server_error_invalid_port">Nieprawidłowy port</string>
     <string name="server_address">Adres serwera</string>
-    <string name="server_port">Port</string>
+    <string name="server_port">Kodowanie</string>
     <string name="server_ssl">Użyj SSL/TLS</string>
     <plurals name="server_manage_custom_certs_text">
-        <item quantity="one">Zapisano %1$d niestandardowy certyfikat</item>
-        <item quantity="few">Zapisano %1$d niestandardowe certyfikaty</item>
-        <item quantity="many">Zapisano %1$d niestandardowych certyfikatów</item>
-        <item quantity="other">Zapisano %1$d niestandardowego certyfikatu</item>
+        <item quantity="one">Zapisano niestandardowy certyfikat %1$d</item>
+        <item quantity="few">%1$d</item>
+        <item quantity="many">%1$d</item>
+        <item quantity="other">%1$d</item>
     </plurals>
     <string name="server_manage_custom_certs">Zarządzaj niestandardowymi certyfikatami</string>
     <string name="server_password_unchanged">Bez zmian</string>
@@ -306,7 +306,7 @@
     <string name="server_channels">Automatyczne łączenie kanałów</string>
     <string name="server_rejoin_channels">Dołącz ponownie do otwartych kanałów</string>
     <string name="server_commands">Polecenia automatycznego uruchamiania</string>
-    <string name="server_encoding">Kodowanie</string>
+    <string name="server_encoding">Ustawienie wstępne</string>
     <string name="server_nicks">Pseudonimy</string>
     <string name="server_user">Użytkownik</string>
     <string name="server_realname">Prawdziwe imię i nazwisko</string>
@@ -333,11 +333,11 @@
 
     <!-- Certificate error dialog -->
 
-    <string name="certificate_error">Nie udało się zweryfikować certyfikatu %1$s</string>
+    <string name="certificate_error">Nie udało się zweryfikować certyfikatu %1$s\'s</string>
     <string name="certificate_error_ignore">Zaakceptuj i kontynuuj</string>
     <string name="certificate_bad_cert">System nie rozpoznaje następującego certyfikatu:</string>
     <string name="certificate_bad_hostname">Nazwa hosta podana w certyfikacie (%1$s) przez hosta nie jest zgodna z nazwą hosta, z którym się łączymy (%2$s).</string>
-    <string name="certificate_error_footer">Nie akceptuj tego certyfikatu, jeśli nie masz pewności, co to oznacza.</string>
+    <string name="certificate_error_footer">Powinieneś\' nie zaakceptować tego certyfikatu, jeśli\' nie jesteś pewien, co to oznacza.</string>
     <string name="certificate_error_remember">Zapamiętaj wyjątek</string>
 
     <!-- Channel list -->
@@ -346,15 +346,15 @@
     <string name="action_sort_member_count">Sortuj według liczby członków</string>
 
     <plurals name="channel_list_title_with_member_count">
-        <item quantity="one">%1$s (%2$d członek)</item>
-        <item quantity="few">%1$s (%2$d członków)</item>
-        <item quantity="many">%1$s (%2$d członków)</item>
-        <item quantity="other">%1$s (%2$d członka)</item>
+        <item quantity="one">%1$s (element %2$d)</item>
+        <item quantity="few">%1$s (elementy %2$d)</item>
+        <item quantity="many">%1$s (elementy %2$d)</item>
+        <item quantity="other">%1$s (elementy %2$d)</item>
     </plurals>
 
     <!-- Settings -->
 
-    <string name="title_activity_settings">Ustawienia</string>
+    <string name="title_activity_settings">Wykończenie</string>
 
     <string name="value_default">Domyślnie</string>
     <string name="value_custom">Niestandardowe</string>
@@ -363,11 +363,11 @@
     <string name="value_any">Dowolny</string>
     <string name="value_always">Zawsze</string>
     <string name="value_never">Nigdy</string>
-    <string name="value_preset">Ustawienie wstępne</string>
+    <string name="value_preset">Nazwa</string>
     <string name="value_not_set">Nie ustawiono</string>
     <string name="value_total">Razem</string>
     <string name="value_copy">%1$s (kopia)</string>
-    <string name="entry_name">Nazwa</string>
+    <string name="entry_name">Interfejs</string>
     <string name="entry_text">Tekst</string>
     <string name="entry_username">Nazwa użytkownika</string>
     <string name="entry_password">Hasło</string>
@@ -383,27 +383,27 @@
 
     <plurals name="time_seconds">
         <item quantity="one">%1$d sekunda</item>
-        <item quantity="few">%1$d sekundy</item>
+        <item quantity="few">%1$d sekund</item>
         <item quantity="many">%1$d sekund</item>
-        <item quantity="other">%1$d sekundy</item>
+        <item quantity="other">%1$d sekund</item>
     </plurals>
     <plurals name="time_minutes">
         <item quantity="one">%1$d minuta</item>
-        <item quantity="few">%1$d minuty</item>
+        <item quantity="few">%1$d minut</item>
         <item quantity="many">%1$d minut</item>
-        <item quantity="other">%1$d minuty</item>
+        <item quantity="other">%1$d minut</item>
     </plurals>
     <plurals name="time_hours">
-        <item quantity="one">%1$d godzina</item>
-        <item quantity="few">%1$d godziny</item>
+        <item quantity="one">%1$d godz</item>
+        <item quantity="few">%1$d godzin</item>
         <item quantity="many">%1$d godzin</item>
-        <item quantity="other">%1$d godziny</item>
+        <item quantity="other">%1$d godzin</item>
     </plurals>
     <plurals name="time_days">
         <item quantity="one">%1$d dzień</item>
         <item quantity="few">%1$d dni</item>
         <item quantity="many">%1$d dni</item>
-        <item quantity="other">%1$d dnia</item>
+        <item quantity="other">%1$d dni</item>
     </plurals>
 
     <!-- User settings -->
@@ -417,11 +417,11 @@
     <string name="pref_title_default_part_message">Wiadomość o opuszczeniu kanału</string>
 
     <string name="pref_value_default_quit_message">Quit</string>
-    <string name="pref_value_default_part_message">Opuszczanie</string>
+    <string name="pref_value_default_part_message">Leaving</string>
 
     <!-- Interface settings -->
 
-    <string name="pref_header_interface">Interfejs</string>
+    <string name="pref_header_interface">Format</string>
     <string name="pref_header_language">Język</string>
     <string name="pref_title_language">Język aplikacji</string>
     <string-array name="pref_entries_language">
@@ -486,7 +486,7 @@
 
     <string name="title_activity_message_format_settings">Format wiadomości</string>
 
-    <string name="message_format">Format</string>
+    <string name="message_format">Przedrostek</string>
 
     <string name="message_format_date">Format czasu</string>
     <string name="message_format_date_fixed_width">O stałej szerokości</string>
@@ -500,12 +500,12 @@
     <string name="message_format_date_invalid">Nieprawidłowy format daty/godziny</string>
 
     <string name="message_format_time">czas</string>
-    <string name="message_format_sender">nadawca</string>
-    <string name="message_format_message">wiadomość</string>
-    <string name="message_format_sender_prefix">prefiks</string>
+    <string name="message_format_sender">Komunikat</string>
+    <string name="message_format_message">Przedrostek</string>
+    <string name="message_format_sender_prefix">Komunikat</string>
     <string name="message_format_time_add">Czas</string>
     <string name="message_format_sender_add">Nadawca</string>
-    <string name="message_format_message_add">Wiadomość</string>
+    <string name="message_format_message_add">Motyw</string>
     <string name="message_format_wrap_anchor_add">Kotwa owinięta</string>
     <string name="message_format_sender_prefix_add">Prefiks nadawcy</string>
 
@@ -524,7 +524,7 @@
 
     <!-- Theme settings -->
 
-    <string name="pref_header_theme">Motyw</string>
+    <string name="pref_header_theme">Wiadomości</string>
 
     <string name="theme_create_new">Utwórz nowy motyw</string>
     <string name="theme_custom_default_name">@string/value_custom</string>
@@ -564,24 +564,24 @@
     <string name="theme_color_irc_pink">Różowy</string>
     <string name="theme_color_irc_gray">Szary</string>
     <string name="theme_color_irc_light_gray">Jasnoszary</string>
-    <string name="theme_category_chat_message">Wiadomości</string>
+    <string name="theme_category_chat_message">Operatorzy</string>
     <string name="theme_color_message_timestamp">Znacznik czasu wiadomości</string>
     <string name="theme_color_message_status_text">Tekst stanu komunikatu</string>
     <string name="theme_color_message_disconnected">Komunikat o rozłączeniu</string>
     <string name="theme_color_message_topic">Wiadomość tematyczna</string>
     <string name="theme_category_chat_member_list">Lista członków</string>
-    <string name="theme_color_member_owner">Właściciele</string>
-    <string name="theme_color_member_admin">Administratorzy</string>
-    <string name="theme_color_member_op">Operatorzy</string>
+    <string name="theme_color_member_owner">Administratorzy</string>
+    <string name="theme_color_member_admin">Operatorzy</string>
+    <string name="theme_color_member_op">Powiadomienia</string>
     <string name="theme_color_member_half_op">Półoperatorzy</string>
-    <string name="theme_color_member_voice">Użytkownicy z voice</string>
-    <string name="theme_color_member_normal">Zwykli użytkownicy</string>
+    <string name="theme_color_member_voice">Członkowie dźwięczni</string>
+    <string name="theme_color_member_normal">Zwykłe elementy</string>
 
     <string name="theme_default_dark">Domyślny (ciemny)</string>
 
     <!-- Notification settings -->
 
-    <string name="pref_header_notifications">Powiadomienia</string>
+    <string name="pref_header_notifications">Tryb</string>
 
     <string name="notification_custom_rules">Reguły niestandardowe</string>
     <string name="notification_tip_no_custom_rules">Brak reguł niestandardowych. Możesz dodać jeden za pomocą przycisku plusa w prawym dolnym rogu.</string>
@@ -598,8 +598,8 @@
 
     <string name="title_activity_edit_notification_settings">Ustawienia powiadomień</string>
 
-    <string name="notification_header_match">Dopasowanie</string>
-    <string name="notification_match_mode">Tryb</string>
+    <string name="notification_header_match">Mecz</string>
+    <string name="notification_match_mode">Opcje</string>
     <string name="notification_match_case">Wielkość liter ma znaczenie</string>
 
     <string-array name="notification_match_modes">
@@ -609,24 +609,24 @@
     </string-array>
 
     <string name="notification_header_applies_to">Dotyczy</string>
-    <string name="notification_rule_server">Serwer</string>
+    <string name="notification_rule_server">Głos</string>
     <string name="notification_rule_summary_any_server">Dowolny serwer</string>
     <string name="notification_rule_summary_any_channel">dowolny kanał</string>
     <plurals name="notification_rule_summary_multi_channels">
-        <item quantity="one">%1$d kanał</item>
+        <item quantity="one">%1$d kanały</item>
         <item quantity="few">%1$d kanały</item>
-        <item quantity="many">%1$d kanałów</item>
-        <item quantity="other">%1$d kanału</item>
+        <item quantity="many">%1$d kanały</item>
+        <item quantity="other">%1$d kanały</item>
     </plurals>
     <string name="notification_rule_summary_any_nick">dowolny nick</string>
     <plurals name="notification_rule_summary_multi_nicks">
-        <item quantity="one">%1$d nick</item>
-        <item quantity="few">%1$d nicki</item>
-        <item quantity="many">%1$d nicków</item>
-        <item quantity="other">%1$d nicku</item>
+        <item quantity="one">Nicki %1$d</item>
+        <item quantity="few">Nicki %1$d</item>
+        <item quantity="many">Nicki %1$d</item>
+        <item quantity="other">Nicki %1$d</item>
     </plurals>
 
-    <string name="notification_header_options">Opcje</string>
+    <string name="notification_header_options">Typ</string>
     <string name="notification_mention">Użyj formatowania wzmianek</string>
     <string name="notification_show">Pokaż powiadomienie</string>
     <string name="notification_sound">Dźwięk</string>
@@ -663,10 +663,10 @@
     <string name="reconnect_header_tries">próbuje</string>
 
     <plurals name="reconnect_desc_tries">
-        <item quantity="one"> (%1$d próba)</item>
-        <item quantity="few"> (%1$d próby)</item>
-        <item quantity="many"> (%1$d prób)</item>
-        <item quantity="other"> (%1$d próby)</item>
+        <item quantity="one">\"(próba %1$d)\"</item>
+        <item quantity="few">\" (próby %1$d)\"</item>
+        <item quantity="many">\" (próby %1$d)\"</item>
+        <item quantity="other">\" (próby %1$d)\"</item>
     </plurals>
 
     <string-array name="duration_types">
@@ -692,14 +692,14 @@
 
     <string name="edit_command_alias_error_name_collision">Alias ​​polecenia o tej nazwie i składni już istnieje.</string>
 
-    <string name="edit_command_alias_type">Typ</string>
+    <string name="edit_command_alias_type">Konfiguracja</string>
     <string name="edit_command_alias_syntax">Składnia</string>
     <string name="edit_command_alias_channel">Kanał</string>
 
     <string-array name="edit_command_alias_types">
-        <item>Wiadomość</item>
+        <item>Motyw</item>
         <item>Polecenie klienta</item>
-        <item>Raw</item>
+        <item>Surowe</item>
     </string-array>
 
     <!-- Storage settings -->
@@ -708,7 +708,7 @@
 
     <string name="pref_storage_chat_logs_title">Historia czatów</string>
     <string name="pref_storage_change_limits">Zmień limity</string>
-    <string name="pref_storage_configuration_title">Konfiguracja</string>
+    <string name="pref_storage_configuration_title">Ograniczenia</string>
 
     <string name="pref_storage_reset_configuration">Zresetuj konfigurację</string>
     <string name="pref_storage_reset_configuration_confirm">Czy na pewno chcesz zresetować konfigurację aplikacji\'? Wszystkie dane historii serwera i czatów zostaną utracone.</string>
@@ -718,7 +718,7 @@
 
     <string name="pref_storage_clear_server_chat_logs">Usuń historię czatów na serwerze</string>
 
-    <string name="pref_header_storage_limits">Limity</string>
+    <string name="pref_header_storage_limits">Kopia zapasowa</string>
     <string name="pref_storage_limit_global_title">Globalny limit przechowywania historii czatów</string>
     <string name="pref_storage_limit_def_server_title">Limit przechowywania historii czatów na serwerze</string>
     <string name="pref_storage_no_limit">Brak ograniczeń</string>
@@ -731,12 +731,12 @@
 
     <!-- Backup settings -->
 
-    <string name="pref_header_backup">Kopia zapasowa</string>
+    <string name="pref_header_backup">Konto</string>
 
     <string name="backup_create">Utwórz nową kopię zapasową</string>
     <string name="backup_restore">Przywróć kopię zapasową</string>
 
-    <string name="title_activity_backup">Kopia zapasowa</string>
+    <string name="title_activity_backup">Konto</string>
     <string name="title_activity_restore">Przywróć</string>
     <string name="title_activity_backup_password">Ustaw hasło</string>
     <string name="title_activity_backup_password_restore">Wprowadź hasło</string>
@@ -771,7 +771,7 @@
     <string name="user_title_away">%1$s (nieobecny)</string>
     <string name="user_nick">Nick</string>
     <string name="user_hostname">Nazwa hosta</string>
-    <string name="user_server">Serwer</string>
+    <string name="user_server">Głos</string>
     <string name="user_server_format">%1$s (%2$s)</string>
     <string name="user_channels">Kanały</string>
     <string name="user_idle">Czas bezczynności</string>
@@ -779,7 +779,7 @@
     <string name="user_server_op_desc">Ten użytkownik jest operatorem serwera IRC</string>
     <string name="user_secure">Stan bezpieczeństwa połączenia</string>
     <string name="user_secure_desc">Ten użytkownik korzysta z bezpiecznego połączenia</string>
-    <string name="user_account">Konto</string>
+    <string name="user_account">System</string>
     <string name="user_away">Komunikat o nieobecności</string>
 
     <string name="user_info_copied">Skopiowano %1$s do schowka.</string>
@@ -826,10 +826,10 @@
     <string name="notification_channel_dcc">@string/title_activity_dcc</string>
     <string name="dcc_summary_notification_title">DCC Trwa przesyłanie</string>
     <plurals name="dcc_summary_notification_text">
-        <item quantity="one">%1$d aktywny transfer</item>
-        <item quantity="few">%1$d aktywne transfery</item>
-        <item quantity="many">%1$d aktywnych transferów</item>
-        <item quantity="other">%1$d aktywnego transferu</item>
+        <item quantity="one">%1$d trwa przesyłanie</item>
+        <item quantity="few">%1$d Trwa przesyłanie</item>
+        <item quantity="many">%1$d Trwa przesyłanie</item>
+        <item quantity="other">%1$d Trwa przesyłanie</item>
     </plurals>
     <string name="dcc_active_upload_transfer_status">Przesyłanie do %1$s</string>
     <string name="dcc_active_download_transfer_status">Pobieranie z %1$s</string>
@@ -852,8 +852,8 @@
     <string name="dcc_system_downloads_permission_dialog_text">Odmówiono uprawnień do folderu Pobrane, dlatego użyty zostanie wewnętrzny katalog pobranych aplikacji. Jeśli nie jest to pożądane, kliknij opcję Zapytaj ponownie.</string>
 
     <string name="dcc_set_download_dir">Ustaw katalog pobierania</string>
-    <string name="dcc_download_dir_application">Aplikacja</string>
-    <string name="dcc_download_dir_system">System</string>
+    <string name="dcc_download_dir_application">System</string>
+    <string name="dcc_download_dir_system">Klucz</string>
     <string name="dcc_download_dir_custom">Niestandardowe</string>
 
     <string name="dcc_error_no_activity">Nie znaleziono aplikacji umożliwiającej otwarcie określonego pliku</string>
@@ -876,7 +876,7 @@
     <string name="channel_modes_profile_generic">IRC typy standardowe/reklamowane przez serwer</string>
     <string name="channel_mode_key">Klucz kanału (+k)</string>
     <string name="channel_mode_limit">Limit użytkowników (+l)</string>
-    <string name="channel_mode_key_hint">Klucz</string>
+    <string name="channel_mode_key_hint">Nośnik</string>
     <string name="channel_mode_limit_hint">Maksymalna liczba użytkowników</string>
     <string name="channel_mode_value_required">Wprowadź wartość dla trybu +%1$s.</string>
     <string name="channel_mode_desc_i">Kanał tylko dla zaproszonych</string>
@@ -904,20 +904,20 @@
     <string name="channel_mode_desc_unknown">Tryb przełączania zdefiniowany przez serwer (bez parametrów)</string>
     <string name="channel_mode_managed">zarządzany przez serwer lub usługi</string>
 
-    <string name="ban_list_menu">Ban | Wyjątki</string>
-    <string name="ban_list_title">Bany | Wyjątki dla %1$s</string>
-    <string name="ban_list_loading">Ładowanie listy banów i wyjątków…</string>
-    <string name="ban_list_failed">Nie można załadować listy banów i wyjątków.</string>
+    <string name="ban_list_menu">Lista zakazów</string>
+    <string name="ban_list_title">Lista zakazów dla %1$s</string>
+    <string name="ban_list_loading">Ładowanie listy zakazów…</string>
+    <string name="ban_list_failed">Nie można załadować listy zakazów.</string>
     <string name="ban_list_host">Host/maska</string>
     <string name="ban_list_setter">Autor</string>
     <string name="ban_list_date">Data</string>
     <string name="ban_list_select_all">Wybierz wszystko</string>
     <string name="ban_list_remove_selected">Usuń wybrane</string>
-    <string name="ban_list_empty">Lista banów i wyjątków jest pusta.</string>
+    <string name="ban_list_empty">Lista zakazów jest pusta.</string>
     <string name="ban_list_unknown">Nieznany</string>
-    <string name="ban_list_select_one">Wybierz co najmniej jeden ban lub wyjątek.</string>
-    <string name="ban_list_confirm_title">Usunąć wybrane bany lub wyjątki?</string>
-    <string name="ban_list_cleanup">Czyszczenie</string>
+    <string name="ban_list_select_one">Wybierz co najmniej jeden zakaz.</string>
+    <string name="ban_list_confirm_title">Usunąć wybrane zakazy?</string>
+    <string name="ban_list_cleanup">Sprzątanie</string>
     <string name="ban_list_cleanup_none">Nie znaleziono kwalifikujących się blokad identyfikatora ani hosta w okresie od 48 do 72 godzin.</string>
     <string name="ban_list_cleanup_confirm_title">Usunąć tymczasowe zakazy?</string>
     <plurals name="ban_list_cleanup_confirm_message">
@@ -934,11 +934,11 @@
     <!-- Configurable quick commands -->
     <string name="pref_header_quick_commands">Szybkie polecenia</string>
     <string name="pref_header_operator_actions">Działania operatora</string>
-    <string name="pref_operator_reasons_header">Domyślne powody Kickban i TBAN</string>
+    <string name="pref_operator_reasons_header">Wstępnie ustawione Kickban i TBAN przyczyny</string>
     <string name="pref_operator_reason_number">Powód %1$d</string>
     <string name="pref_operator_reason_empty">Nie ustawiono</string>
     <string name="pref_quick_commands_enabled">Włącz szybkie polecenia</string>
-    <string name="pref_quick_commands_enabled_desc">Przetwarzaj włączone polecenia ! lokalnie przed wysłaniem wyniku do bieżącego czatu</string>
+    <string name="pref_quick_commands_enabled_desc">Proces włączony! polecenia lokalnie przed wysłaniem ich wyniku do bieżącego czatu</string>
     <string name="pref_quick_commands_words">Polecenia i słowa aktywacyjne</string>
     <string name="pref_quick_commands_services">Usługi zewnętrzne</string>
     <string name="pref_quick_command_youtube">YouTube wyszukiwanie</string>
