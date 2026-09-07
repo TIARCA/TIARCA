@@ -47,6 +47,19 @@ STRING_FIXES = {
     "search_messages_count": "Coincidencia %1$d de %2$d",
     "format_italic": "Cursiva",
     "service_title": "Conectado a IRC",
+    "value_preset": "Preestablecido",
+    "entry_name": "Nombre",
+    "entry_username": "Nombre de usuario",
+    "pref_header_interface": "Interfaz",
+    "message_format_time": "hora",
+    "message_format_sender": "remitente",
+    "message_format_message": "mensaje",
+    "message_format_sender_prefix": "prefijo",
+    "message_format_time_add": "Hora",
+    "message_format_sender_add": "Remitente",
+    "message_format_message_add": "Mensaje",
+    "message_format_wrap_anchor_add": "Anclaje de ajuste",
+    "message_format_sender_prefix_add": "Prefijo del remitente",
 }
 
 PLURAL_FIXES = {
