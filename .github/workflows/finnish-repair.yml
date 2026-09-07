@@ -1,0 +1,36 @@
+name: Finnish translation repair
+
+on:
+  push:
+    branches:
+      - translations/sync-locales-14482738850864919158
+    paths:
+      - tools/finnish_repair.py
+      - .github/workflows/finnish-repair.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: translations/sync-locales-14482738850864919158
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Apply reviewed Finnish repairs
+        run: python tools/finnish_repair.py
+      - name: Commit repaired translations
+        run: |
+          if git diff --quiet -- app/src/main/res/values-fi/strings.xml; then
+            echo "No Finnish translation changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/src/main/res/values-fi/strings.xml
+          git commit -m "Repair reviewed Finnish translations"
+          git push
