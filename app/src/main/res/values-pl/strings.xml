@@ -253,8 +253,8 @@
     <string name="notification_channel_group_system">Różne powiadomienia</string>
     <string name="notification_channel_group_default">Domyślne reguły powiadomień</string>
     <string name="notification_channel_group_user">Zasady powiadamiania użytkowników</string>
-    <string name="notification_channel_idle">Powiadomienia ostrzegawcze</string>
-    <string name="notification_channel_warning">Port</string>
+    <string name="notification_channel_idle">Powiadomienie o stanie</string>
+    <string name="notification_channel_warning">Powiadomienia ostrzegawcze</string>
 
     <!-- Connection errors -->
 
@@ -280,7 +280,7 @@
         <item quantity="other">Połączono, kanały %1$d</item>
     </plurals>
     <string name="server_list_connecting">Podłączanie…</string>
-    <string name="server_list_disconnected">Bezładny</string>
+    <string name="server_list_disconnected">Rozłączony</string>
 
     <!-- Add server -->
 
@@ -292,7 +292,7 @@
     <string name="server_error_invalid_address">Nieprawidłowy adres</string>
     <string name="server_error_invalid_port">Nieprawidłowy port</string>
     <string name="server_address">Adres serwera</string>
-    <string name="server_port">Kodowanie</string>
+    <string name="server_port">Port</string>
     <string name="server_ssl">Użyj SSL/TLS</string>
     <plurals name="server_manage_custom_certs_text">
         <item quantity="one">Zapisano niestandardowy certyfikat %1$d</item>
@@ -306,7 +306,7 @@
     <string name="server_channels">Automatyczne łączenie kanałów</string>
     <string name="server_rejoin_channels">Dołącz ponownie do otwartych kanałów</string>
     <string name="server_commands">Polecenia automatycznego uruchamiania</string>
-    <string name="server_encoding">Ustawienie wstępne</string>
+    <string name="server_encoding">Kodowanie</string>
     <string name="server_nicks">Pseudonimy</string>
     <string name="server_user">Użytkownik</string>
     <string name="server_realname">Prawdziwe imię i nazwisko</string>
@@ -333,11 +333,11 @@
 
     <!-- Certificate error dialog -->
 
-    <string name="certificate_error">Nie udało się zweryfikować certyfikatu %1$s\'s</string>
+    <string name="certificate_error">Nie udało się zweryfikować certyfikatu %1$s</string>
     <string name="certificate_error_ignore">Zaakceptuj i kontynuuj</string>
     <string name="certificate_bad_cert">System nie rozpoznaje następującego certyfikatu:</string>
     <string name="certificate_bad_hostname">Nazwa hosta podana w certyfikacie (%1$s) przez hosta nie jest zgodna z nazwą hosta, z którym się łączymy (%2$s).</string>
-    <string name="certificate_error_footer">Powinieneś\' nie zaakceptować tego certyfikatu, jeśli\' nie jesteś pewien, co to oznacza.</string>
+    <string name="certificate_error_footer">Nie akceptuj tego certyfikatu, jeśli nie masz pewności, co to oznacza.</string>
     <string name="certificate_error_remember">Zapamiętaj wyjątek</string>
 
     <!-- Channel list -->
@@ -354,7 +354,7 @@
 
     <!-- Settings -->
 
-    <string name="title_activity_settings">Wykończenie</string>
+    <string name="title_activity_settings">Ustawienia</string>
 
     <string name="value_default">Domyślnie</string>
     <string name="value_custom">Niestandardowe</string>
@@ -363,11 +363,11 @@
     <string name="value_any">Dowolny</string>
     <string name="value_always">Zawsze</string>
     <string name="value_never">Nigdy</string>
-    <string name="value_preset">Nazwa</string>
+    <string name="value_preset">Ustawienie wstępne</string>
     <string name="value_not_set">Nie ustawiono</string>
     <string name="value_total">Razem</string>
     <string name="value_copy">%1$s (kopia)</string>
-    <string name="entry_name">Interfejs</string>
+    <string name="entry_name">Nazwa</string>
     <string name="entry_text">Tekst</string>
     <string name="entry_username">Nazwa użytkownika</string>
     <string name="entry_password">Hasło</string>
@@ -421,7 +421,7 @@
 
     <!-- Interface settings -->
 
-    <string name="pref_header_interface">Format</string>
+    <string name="pref_header_interface">Interfejs</string>
     <string name="pref_header_language">Język</string>
     <string name="pref_title_language">Język aplikacji</string>
     <string-array name="pref_entries_language">
