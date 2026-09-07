@@ -20,6 +20,14 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Audit translation resources
+        run: python tools/translation_structure_audit.py
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
