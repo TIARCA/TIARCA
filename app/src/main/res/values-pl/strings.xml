@@ -524,7 +524,7 @@
 
     <!-- Theme settings -->
 
-    <string name="pref_header_theme">Wiadomości</string>
+    <string name="pref_header_theme">Motyw</string>
 
     <string name="theme_create_new">Utwórz nowy motyw</string>
     <string name="theme_custom_default_name">@string/value_custom</string>
@@ -564,24 +564,24 @@
     <string name="theme_color_irc_pink">Różowy</string>
     <string name="theme_color_irc_gray">Szary</string>
     <string name="theme_color_irc_light_gray">Jasnoszary</string>
-    <string name="theme_category_chat_message">Operatorzy</string>
+    <string name="theme_category_chat_message">Wiadomości</string>
     <string name="theme_color_message_timestamp">Znacznik czasu wiadomości</string>
     <string name="theme_color_message_status_text">Tekst stanu komunikatu</string>
     <string name="theme_color_message_disconnected">Komunikat o rozłączeniu</string>
     <string name="theme_color_message_topic">Wiadomość tematyczna</string>
     <string name="theme_category_chat_member_list">Lista członków</string>
-    <string name="theme_color_member_owner">Administratorzy</string>
-    <string name="theme_color_member_admin">Operatorzy</string>
-    <string name="theme_color_member_op">Powiadomienia</string>
+    <string name="theme_color_member_owner">Właściciele</string>
+    <string name="theme_color_member_admin">Administratorzy</string>
+    <string name="theme_color_member_op">Operatorzy</string>
     <string name="theme_color_member_half_op">Półoperatorzy</string>
-    <string name="theme_color_member_voice">Członkowie dźwięczni</string>
-    <string name="theme_color_member_normal">Zwykłe elementy</string>
+    <string name="theme_color_member_voice">Użytkownicy z voice</string>
+    <string name="theme_color_member_normal">Zwykli użytkownicy</string>
 
     <string name="theme_default_dark">Domyślny (ciemny)</string>
 
     <!-- Notification settings -->
 
-    <string name="pref_header_notifications">Tryb</string>
+    <string name="pref_header_notifications">Powiadomienia</string>
 
     <string name="notification_custom_rules">Reguły niestandardowe</string>
     <string name="notification_tip_no_custom_rules">Brak reguł niestandardowych. Możesz dodać jeden za pomocą przycisku plusa w prawym dolnym rogu.</string>
@@ -598,8 +598,8 @@
 
     <string name="title_activity_edit_notification_settings">Ustawienia powiadomień</string>
 
-    <string name="notification_header_match">Mecz</string>
-    <string name="notification_match_mode">Opcje</string>
+    <string name="notification_header_match">Dopasowanie</string>
+    <string name="notification_match_mode">Tryb</string>
     <string name="notification_match_case">Wielkość liter ma znaczenie</string>
 
     <string-array name="notification_match_modes">
@@ -609,7 +609,7 @@
     </string-array>
 
     <string name="notification_header_applies_to">Dotyczy</string>
-    <string name="notification_rule_server">Głos</string>
+    <string name="notification_rule_server">Serwer</string>
     <string name="notification_rule_summary_any_server">Dowolny serwer</string>
     <string name="notification_rule_summary_any_channel">dowolny kanał</string>
     <plurals name="notification_rule_summary_multi_channels">
@@ -626,7 +626,7 @@
         <item quantity="other">Nicki %1$d</item>
     </plurals>
 
-    <string name="notification_header_options">Typ</string>
+    <string name="notification_header_options">Opcje</string>
     <string name="notification_mention">Użyj formatowania wzmianek</string>
     <string name="notification_show">Pokaż powiadomienie</string>
     <string name="notification_sound">Dźwięk</string>
@@ -692,7 +692,7 @@
 
     <string name="edit_command_alias_error_name_collision">Alias ​​polecenia o tej nazwie i składni już istnieje.</string>
 
-    <string name="edit_command_alias_type">Konfiguracja</string>
+    <string name="edit_command_alias_type">Typ</string>
     <string name="edit_command_alias_syntax">Składnia</string>
     <string name="edit_command_alias_channel">Kanał</string>
 
@@ -708,7 +708,7 @@
 
     <string name="pref_storage_chat_logs_title">Historia czatów</string>
     <string name="pref_storage_change_limits">Zmień limity</string>
-    <string name="pref_storage_configuration_title">Ograniczenia</string>
+    <string name="pref_storage_configuration_title">Konfiguracja</string>
 
     <string name="pref_storage_reset_configuration">Zresetuj konfigurację</string>
     <string name="pref_storage_reset_configuration_confirm">Czy na pewno chcesz zresetować konfigurację aplikacji\'? Wszystkie dane historii serwera i czatów zostaną utracone.</string>
@@ -718,7 +718,7 @@
 
     <string name="pref_storage_clear_server_chat_logs">Usuń historię czatów na serwerze</string>
 
-    <string name="pref_header_storage_limits">Kopia zapasowa</string>
+    <string name="pref_header_storage_limits">Limity</string>
     <string name="pref_storage_limit_global_title">Globalny limit przechowywania historii czatów</string>
     <string name="pref_storage_limit_def_server_title">Limit przechowywania historii czatów na serwerze</string>
     <string name="pref_storage_no_limit">Brak ograniczeń</string>
@@ -731,12 +731,12 @@
 
     <!-- Backup settings -->
 
-    <string name="pref_header_backup">Konto</string>
+    <string name="pref_header_backup">Kopia zapasowa</string>
 
     <string name="backup_create">Utwórz nową kopię zapasową</string>
     <string name="backup_restore">Przywróć kopię zapasową</string>
 
-    <string name="title_activity_backup">Konto</string>
+    <string name="title_activity_backup">Kopia zapasowa</string>
     <string name="title_activity_restore">Przywróć</string>
     <string name="title_activity_backup_password">Ustaw hasło</string>
     <string name="title_activity_backup_password_restore">Wprowadź hasło</string>
