@@ -13,36 +13,36 @@
 
     <string name="tab_server">Server</string>
     <string name="message_hint">Invia un messaggio</string>
-    <string name="message_join">%s è entrato nel canale</string>
+    <string name="message_join">%1$s è entrato nel canale</string>
     <string name="message_kick">%1$s ha espulso %2$s (%3$s)</string>
     <string name="message_part">%1$s ha lasciato il canale (%2$s)</string>
-    <string name="message_part_no_message">%s ha lasciato il canale</string>
+    <string name="message_part_no_message">%1$s ha lasciato il canale</string>
     <string name="message_quit">%1$s si è disconnesso (%2$s)</string>
     <string name="message_nick_change">%1$s è ora noto come %2$s</string>
-    <string name="message_topic">Topic: %s</string>
+    <string name="message_topic">Topic: %1$s</string>
     <string name="message_topic_whotime">Topic impostato da %1$s il %2$s</string>
     <string name="message_topic_by">Topic: %1$s, impostato da %2$s</string>
     <string name="message_topic_none">Nessun topic impostato</string>
 
     <string name="message_host_info">Il nome del server è %1$s, in esecuzione %2$s. Modalità utente supportate: %3$s, modalità canale supportate: %4$s</string>
     <string name="message_motd">Messaggio del giorno</string>
-    <string name="message_whois">Informazioni utente di %s</string>
+    <string name="message_whois">Informazioni utente di %1$s</string>
 
     <string name="message_mode">%1$s %2$s</string>
-    <string name="message_mode_set">ha impostato %s</string>
-    <string name="message_mode_unset">ha rimosso %s</string>
-    <string name="message_mode_gave">ha dato %s</string>
-    <string name="message_mode_removed">ha tolto %s</string>
+    <string name="message_mode_set">ha impostato %1$s</string>
+    <string name="message_mode_unset">ha rimosso %1$s</string>
+    <string name="message_mode_gave">ha dato %1$s</string>
+    <string name="message_mode_removed">ha tolto %1$s</string>
 
     <string name="message_mode_gave_to">%1$s a %2$s</string>
     <string name="message_mode_removed_from">%1$s a %2$s</string>
 
     <plurals name="message_mode_channel">
-        <item quantity="one">modalità del canale \'%s\'</item>
-        <item quantity="other">modalità del canale \'%s\'</item>
+        <item quantity="one">modalità del canale \'%1$s\'</item>
+        <item quantity="other">modalità del canale \'%1$s\'</item>
     </plurals>
     <string name="message_mode_channel_value">modalità canale \'%1$s\' su %2$s</string>
-    <string name="message_mode_channel_ban">un ban su %s</string>
+    <string name="message_mode_channel_ban">un ban su %1$s</string>
     <string name="message_mode_nick_owner">lo stato di proprietario del canale</string>
     <string name="message_mode_nick_admin">lo stato di amministratore del canale</string>
     <string name="message_mode_nick_op">lo stato di operatore del canale</string>
@@ -71,11 +71,11 @@
 
     <plurals name="unread_message_counter">
         <item quantity="one">1 messaggio non letto</item>
-        <item quantity="other">%d messaggi non letti</item>
+        <item quantity="other">%1$d messaggi non letti</item>
     </plurals>
     <plurals name="mention_counter">
         <item quantity="one">1 menzione</item>
-        <item quantity="other">%d menzioni</item>
+        <item quantity="other">%1$d menzioni</item>
     </plurals>
     <string name="unread_counter_with_mentions">%1$s · %2$s</string>
     <string name="unread_99_plus">99+ messaggi non letti</string>
@@ -93,7 +93,7 @@
 
     <plurals name="message_delete_confirm">
         <item quantity="one">Sei sicuro di voler eliminare il messaggio selezionato?</item>
-        <item quantity="other">Sei sicuro di voler eliminare i messaggi %d selezionati?</item>
+        <item quantity="other">Sei sicuro di voler eliminare i messaggi %1$d selezionati?</item>
     </plurals>
     <string name="message_delete_confirm_note">I messaggi verranno eliminati solo su questo dispositivo.</string>
 
@@ -167,7 +167,7 @@
 
     <!-- Channel operator actions -->
     <string name="operator_actions">Azioni operatore</string>
-    <string name="operator_actions_for">Azioni operatore in %s</string>
+    <string name="operator_actions_for">Azioni operatore in %1$s</string>
     <string name="operator_kick">Kick</string>
     <string name="operator_kickban">Kickban su host</string>
     <string name="operator_kickban_ident">Kickban ident</string>
@@ -196,20 +196,20 @@
     <string name="file_upload_confirm">Carica %1$s (%2$s) e invia il collegamento temporaneo a %3$s?</string>
     <string name="file_upload_progress">Caricamento file temporaneo…</string>
     <string name="file_upload_sent">File caricato e collegamento inviato</string>
-    <string name="file_upload_failed">Caricamento non riuscito: %s</string>
-    <string name="file_upload_send_failed">Il file è stato caricato, ma non è stato possibile inviare il collegamento: %s</string>
+    <string name="file_upload_failed">Caricamento non riuscito: %1$s</string>
+    <string name="file_upload_send_failed">Il file è stato caricato, ma non è stato possibile inviare il collegamento: %1$s</string>
     <string name="search_messages_title">Cerca nella conversazione</string>
     <string name="search_messages_hint">Testo del messaggio o nickname</string>
     <string name="search_messages_loading">Caricamento dei messaggi salvati…</string>
     <string name="search_messages_failed">Impossibile caricare i messaggi salvati.</string>
-    <string name="search_messages_ready">Cerca negli ultimi %d messaggi salvati.</string>
+    <string name="search_messages_ready">Cerca negli ultimi %1$d messaggi salvati.</string>
     <string name="search_messages_no_results">Nessuna corrispondenza.</string>
     <string name="search_messages_count">Risultato %1$d di %2$d</string>
     <string name="search_previous">Precedente</string>
     <string name="search_next">Successivo</string>
 
     <string name="action_delete_confirm_title">Sei sicuro?</string>
-    <string name="action_delete_confirm_body">Sei sicuro di voler eliminare %s? Questa operazione non può essere annullata.</string>
+    <string name="action_delete_confirm_body">Sei sicuro di voler eliminare %1$s? Questa operazione non può essere annullata.</string>
 
     <!-- Format -->
 
@@ -226,20 +226,20 @@
     <string name="service_open_private_chat">Apri conversazione privata</string>
     <string name="service_message_send_failed">Impossibile inviare il comando al servizio IRC</string>
     <plurals name="service_status_connected">
-        <item quantity="one">Connesso alla rete %d</item>
-        <item quantity="other">Connesso alle reti %d</item>
+        <item quantity="one">Connesso alla rete %1$d</item>
+        <item quantity="other">Connesso alle reti %1$d</item>
     </plurals>
     <plurals name="service_status_connecting">
-        <item quantity="one">connessione alla rete %d</item>
-        <item quantity="other">connessione alle reti %d</item>
+        <item quantity="one">connessione alla rete %1$d</item>
+        <item quantity="other">connessione alle reti %1$d</item>
     </plurals>
     <plurals name="service_status_disconnected">
-        <item quantity="one">disconnesso dalla rete %d</item>
-        <item quantity="other">disconnesso dalle reti %d</item>
+        <item quantity="one">disconnesso dalla rete %1$d</item>
+        <item quantity="other">disconnesso dalle reti %1$d</item>
     </plurals>
     <plurals name="notify_multiple_messages">
-        <item quantity="one">%d messaggio non letto</item>
-        <item quantity="other">%d messaggi non letti</item>
+        <item quantity="one">%1$d messaggio non letto</item>
+        <item quantity="other">%1$d messaggi non letti</item>
     </plurals>
 
     <string name="notification_action_required">È richiesta l\'azione dell\'utente</string>
@@ -266,8 +266,8 @@
     <string name="server_list_header_active">Attivo</string>
     <string name="server_list_header_inactive">Inattivo</string>
     <plurals name="server_list_connected">
-        <item quantity="one">Connesso, canale %d</item>
-        <item quantity="other">Connesso, canali %d</item>
+        <item quantity="one">Connesso, canale %1$d</item>
+        <item quantity="other">Connesso, canali %1$d</item>
     </plurals>
     <string name="server_list_connecting">Connessione…</string>
     <string name="server_list_disconnected">Disconnesso</string>
@@ -285,8 +285,8 @@
     <string name="server_port">Porta</string>
     <string name="server_ssl">Utilizzare SSL/TLS</string>
     <plurals name="server_manage_custom_certs_text">
-        <item quantity="one">Certificato personalizzato %d salvato</item>
-        <item quantity="other">%d certificati personalizzati salvati</item>
+        <item quantity="one">Certificato personalizzato %1$d salvato</item>
+        <item quantity="other">%1$d certificati personalizzati salvati</item>
     </plurals>
     <string name="server_manage_custom_certs">Gestisci certificati personalizzati</string>
     <string name="server_password_unchanged">Invariato</string>
@@ -299,7 +299,7 @@
     <string name="server_user">Utente</string>
     <string name="server_realname">Vero nome</string>
     <string name="server_sasl_ext_none">Nessun certificato impostato</string>
-    <string name="server_sasl_ext_fp">Impronta digitale del certificato: %s</string>
+    <string name="server_sasl_ext_fp">Impronta digitale del certificato: %1$s</string>
     <string name="server_sasl_ext_import">Importa PEM</string>
     <string name="server_sasl_ext_create">Crea nuovo</string>
     <string name="error_cert_already_present">Il file specificato ha più di una singola voce di certificato.</string>
@@ -321,7 +321,7 @@
 
     <!-- Certificate error dialog -->
 
-    <string name="certificate_error">Impossibile verificare il certificato di %s</string>
+    <string name="certificate_error">Impossibile verificare il certificato di %1$s</string>
     <string name="certificate_error_ignore">Accetta e continua</string>
     <string name="certificate_bad_cert">Il seguente certificato non è riconosciuto dal sistema:</string>
     <string name="certificate_bad_hostname">Il nome host fornito nel certificato (%1$s) dall\'host non corrisponde al nome host a cui ci stiamo connettendo (%2$s).</string>
@@ -344,7 +344,7 @@
 
     <string name="value_default">Predefinito</string>
     <string name="value_custom">Personalizzato</string>
-    <string name="value_custom_specific">Personalizzato (%s)</string>
+    <string name="value_custom_specific">Personalizzato (%1$s)</string>
     <string name="value_none">Nessuno</string>
     <string name="value_any">Qualunque</string>
     <string name="value_always">Sempre</string>
@@ -352,7 +352,7 @@
     <string name="value_preset">Preimpostato</string>
     <string name="value_not_set">Non impostato</string>
     <string name="value_total">Totale</string>
-    <string name="value_copy">%s (copia)</string>
+    <string name="value_copy">%1$s (copia)</string>
     <string name="entry_name">Nome</string>
     <string name="entry_text">Testo</string>
     <string name="entry_username">Nome utente</string>
@@ -368,20 +368,20 @@
     <!-- Time -->
 
     <plurals name="time_seconds">
-        <item quantity="one">%d secondo</item>
-        <item quantity="other">%d secondi</item>
+        <item quantity="one">%1$d secondo</item>
+        <item quantity="other">%1$d secondi</item>
     </plurals>
     <plurals name="time_minutes">
-        <item quantity="one">%d minuto</item>
-        <item quantity="other">%d minuti</item>
+        <item quantity="one">%1$d minuto</item>
+        <item quantity="other">%1$d minuti</item>
     </plurals>
     <plurals name="time_hours">
-        <item quantity="one">%d ora</item>
-        <item quantity="other">%d ore</item>
+        <item quantity="one">%1$d ora</item>
+        <item quantity="other">%1$d ore</item>
     </plurals>
     <plurals name="time_days">
-        <item quantity="one">%d giorno</item>
-        <item quantity="other">%d giorni</item>
+        <item quantity="one">%1$d giorno</item>
+        <item quantity="other">%1$d giorni</item>
     </plurals>
 
     <!-- User settings -->
@@ -592,13 +592,13 @@
     <string name="notification_rule_summary_any_server">Qualsiasi server</string>
     <string name="notification_rule_summary_any_channel">qualsiasi canale</string>
     <plurals name="notification_rule_summary_multi_channels">
-        <item quantity="one">Canali %d</item>
-        <item quantity="other">Canali %d</item>
+        <item quantity="one">Canali %1$d</item>
+        <item quantity="other">Canali %1$d</item>
     </plurals>
     <string name="notification_rule_summary_any_nick">qualsiasi nick</string>
     <plurals name="notification_rule_summary_multi_nicks">
-        <item quantity="one">%d nick</item>
-        <item quantity="other">%d nick</item>
+        <item quantity="one">%1$d nick</item>
+        <item quantity="other">%1$d nick</item>
     </plurals>
 
     <string name="notification_header_options">Opzioni</string>
@@ -638,8 +638,8 @@
     <string name="reconnect_header_tries">Ci prova</string>
 
     <plurals name="reconnect_desc_tries">
-        <item quantity="one">" (%d tentativo)"</item>
-        <item quantity="other">" (%d tentativi)"</item>
+        <item quantity="one">" (%1$d tentativo)"</item>
+        <item quantity="other">" (%1$d tentativi)"</item>
     </plurals>
 
     <string-array name="duration_types">
@@ -736,14 +736,14 @@
 
     <string name="title_activity_ignore_list">Ignora l\'elenco</string>
     <string name="title_activity_monitored_users">Utenti monitorati</string>
-    <string name="title_activity_monitored_users_network">Utenti monitorati su %s</string>
+    <string name="title_activity_monitored_users_network">Utenti monitorati su %1$s</string>
     <plurals name="monitored_users_count">
-        <item quantity="one">%d utente monitorato</item>
-        <item quantity="other">%d utenti monitorati</item>
+        <item quantity="one">%1$d utente monitorato</item>
+        <item quantity="other">%1$d utenti monitorati</item>
     </plurals>
     <string name="action_monitor_user">Monitora utente</string>
     <string name="action_remove_monitored_user">Rimuovi dai monitorati</string>
-    <string name="monitor_user_title">Monitora %s</string>
+    <string name="monitor_user_title">Monitora %1$s</string>
     <string name="monitor_user_nickname">Nickname</string>
     <string name="monitor_user_presence">Monitora presenza</string>
     <string name="monitor_user_notify_online">Notifica quando si collega</string>
@@ -754,8 +754,8 @@
     <string name="monitor_status_unavailable">Presenza non disponibile</string>
     <string name="monitor_status_over_limit">Non monitorato: limite del server raggiunto</string>
     <string name="monitor_server_unsupported">Questo server non supporta MONITOR.</string>
-    <string name="monitor_notification_online">%s si è collegato</string>
-    <string name="monitor_notification_offline">%s si è disconnesso</string>
+    <string name="monitor_notification_online">%1$s si è collegato</string>
+    <string name="monitor_notification_offline">%1$s si è disconnesso</string>
     <string name="monitor_notification_channel">Utenti monitorati</string>
     <string name="monitor_notifications_enabled">Notifiche abilitate</string>
     <string name="monitor_primary_nickname">Nickname principale</string>
@@ -765,11 +765,11 @@
     <string name="action_remove_alias">Rimuovi</string>
     <string name="monitor_alias_observed">appreso da cambio nick</string>
     <string name="monitor_alias_duplicate">Questo nickname è già presente nel gruppo.</string>
-    <string name="monitor_alias_conflict">Questo nickname è già monitorato nel gruppo %s.</string>
-    <string name="monitor_status_online_as">Online come %s</string>
+    <string name="monitor_alias_conflict">Questo nickname è già monitorato nel gruppo %1$s.</string>
+    <string name="monitor_status_online_as">Online come %1$s</string>
     <string name="monitor_status_online_since">Online dal %1$s alle %2$s</string>
     <string name="monitor_status_online_as_since">Online come %1$s dal %2$s alle %3$s</string>
-    <string name="monitor_status_away_as">Away come %s</string>
+    <string name="monitor_status_away_as">Away come %1$s</string>
     <string name="monitor_status_away_since">Away dal %1$s alle %2$s</string>
     <string name="monitor_status_away_as_since">Away come %1$s dal %2$s alle %3$s</string>
     <string name="monitor_status_offline_last_seen">Offline · visto l\'ultima volta il %1$s alle %2$s</string>
@@ -778,21 +778,21 @@
     <string name="monitor_status_some_aliases_over_limit">alcuni alias superano il limite del server</string>
     <string name="monitor_status_partial_unavailable">Presenza parzialmente non disponibile: limite del server raggiunto</string>
     <plurals name="monitor_status_aliases_online">
-        <item quantity="one">%d alias online</item>
-        <item quantity="other">%d alias online</item>
+        <item quantity="one">%1$d alias online</item>
+        <item quantity="other">%1$d alias online</item>
     </plurals>
-    <string name="title_activity_ignore_list_network">Ignora elenco per %s</string>
+    <string name="title_activity_ignore_list_network">Ignora elenco per %1$s</string>
     <string name="title_activity_edit_ignore_entry">Modifica una voce da ignorare</string>
     <string name="title_activity_add_ignore_entry">Aggiungi una voce da ignorare</string>
     <string name="action_ignore_user">Ignora utente</string>
-    <string name="ignore_user_title">Ignora %s</string>
+    <string name="ignore_user_title">Ignora %1$s</string>
     <string name="ignore_identify_by">Identifica tramite</string>
     <string name="ignore_nickname">Nickname</string>
-    <string name="ignore_nickname_value">Nickname: %s</string>
+    <string name="ignore_nickname_value">Nickname: %1$s</string>
     <string name="ignore_ident">Ident</string>
-    <string name="ignore_ident_value">Ident: %s</string>
+    <string name="ignore_ident_value">Ident: %1$s</string>
     <string name="ignore_host">Host</string>
-    <string name="ignore_host_value">Host: %s</string>
+    <string name="ignore_host_value">Host: %1$s</string>
     <string name="ignore_messages">Ignora</string>
     <string name="ignore_duration">Durata</string>
     <string name="ignore_always">Sempre</string>
@@ -805,7 +805,7 @@
 
     <!-- User info -->
 
-    <string name="user_title_away">%s (in trasferta)</string>
+    <string name="user_title_away">%1$s (in trasferta)</string>
     <string name="user_nick">Nick</string>
     <string name="user_hostname">Nome host</string>
     <string name="user_server">Server</string>
@@ -819,7 +819,7 @@
     <string name="user_account">Account</string>
     <string name="user_away">Messaggio di assenza</string>
 
-    <string name="user_info_copied">%s copiato negli appunti.</string>
+    <string name="user_info_copied">%1$s copiato negli appunti.</string>
 
     <!-- Color picker -->
 
@@ -863,11 +863,11 @@
     <string name="notification_channel_dcc">@string/title_activity_dcc</string>
     <string name="dcc_summary_notification_title">Trasferimenti DCC in corso</string>
     <plurals name="dcc_summary_notification_text">
-        <item quantity="one">Trasferimento %d in corso</item>
-        <item quantity="other">Trasferimenti %d in corso</item>
+        <item quantity="one">Trasferimento %1$d in corso</item>
+        <item quantity="other">Trasferimenti %1$d in corso</item>
     </plurals>
-    <string name="dcc_active_upload_transfer_status">Caricamento su %s</string>
-    <string name="dcc_active_download_transfer_status">Download da %s</string>
+    <string name="dcc_active_upload_transfer_status">Caricamento su %1$s</string>
+    <string name="dcc_active_download_transfer_status">Download da %1$s</string>
     <string name="dcc_active_waiting_for_connection">In attesa della connessione...</string>
     <string name="dcc_active_waiting_for_approval">In attesa dell\'approvazione dell\'utente...</string>
     <string name="dcc_approve_notification_body">%1$s (dal server: %2$s) ti ha inviato un file</string>
@@ -875,7 +875,7 @@
     <string name="dcc_history_download">%2$s scaricato da %3$s (%1$s)</string>
     <string name="dcc_history_download_failed">Impossibile scaricare %2$s da %1$s</string>
 
-    <string name="dcc_approve_download_title">File DCC: %s</string>
+    <string name="dcc_approve_download_title">File DCC: %1$s</string>
     <string name="dcc_approve_download_title_with_size">File DCC: %1$s (%2$s)</string>
     <string name="dcc_approve_download_body">%1$s (dal server: %2$s) ti ha inviato un file.\n\nAvvertenza: questo download verrà trasmesso tramite una connessione non sicura e non crittografata. Accettando questo download consentirai all\'altra parte di vedere il tuo indirizzo IP. Dovresti accettarlo solo se ti fidi di questo utente.</string>
     <string name="dcc_approve_download_enable_anyway">Abilita comunque</string>
@@ -899,13 +899,13 @@
 
     <string name="channel_modes_menu">Modalità del canale</string>
     <string name="action_list_channels">Elenca i canali</string>
-    <string name="channel_modes_title">Modalità di %s</string>
+    <string name="channel_modes_title">Modalità di %1$s</string>
     <string name="channel_modes_loading">Caricamento delle modalità attive…</string>
     <string name="channel_modes_failed">Impossibile caricare le modalità del canale.</string>
     <string name="channel_modes_timeout">Il server non ha restituito le modalità del canale attivo.</string>
     <string name="channel_modes_none">Questo server non pubblicizzava alcuna modalità di flag modificabile.</string>
     <string name="channel_modes_no_changes">Nessuna modifica modalità selezionata.</string>
-    <string name="channel_modes_profile">Definizioni: %s</string>
+    <string name="channel_modes_profile">Definizioni: %1$s</string>
     <string name="channel_modes_profile_inspircd3">InspIRCd 3</string>
     <string name="channel_modes_profile_inspircd4">InspIRCd 4</string>
     <string name="channel_modes_profile_generic">Modalità IRC standard/pubblicizzate dal server</string>
@@ -913,7 +913,7 @@
     <string name="channel_mode_limit">Limite utenti (+l)</string>
     <string name="channel_mode_key_hint">Chiave</string>
     <string name="channel_mode_limit_hint">Utenti massimi</string>
-    <string name="channel_mode_value_required">Immettere un valore per la modalità +%s.</string>
+    <string name="channel_mode_value_required">Immettere un valore per la modalità +%1$s.</string>
     <string name="channel_mode_desc_i">Canale solo su invito</string>
     <string name="channel_mode_desc_m">Possono parlare solo utenti con voice o privilegi superiori</string>
     <string name="channel_mode_desc_n">Blocca i messaggi provenienti dall\'esterno del canale</string>
@@ -940,7 +940,7 @@
     <string name="channel_mode_managed">gestito da server o servizi</string>
 
     <string name="ban_list_menu">Lista ban</string>
-    <string name="ban_list_title">Lista ban di %s</string>
+    <string name="ban_list_title">Lista ban di %1$s</string>
     <string name="ban_list_loading">Caricamento della lista ban…</string>
     <string name="ban_list_failed">Impossibile caricare la lista ban.</string>
     <string name="ban_list_host">Host/mask</string>
@@ -962,8 +962,8 @@
     <string name="ban_list_exceptions_not_supported">Il server non supporta la modalità eccezioni (+e).</string>
     <string name="ban_list_cleanup_confirm_title">Rimuovere i ban temporanei?</string>
     <plurals name="ban_list_cleanup_confirm_message">
-        <item quantity="one">È selezionato %d ban idoneo. Sono esclusi j:, R:, date sconosciute e altri tipi di mask.</item>
-        <item quantity="other">Sono selezionati %d ban idonei. Sono esclusi j:, R:, date sconosciute e altri tipi di mask.</item>
+        <item quantity="one">È selezionato %1$d ban idoneo. Sono esclusi j:, R:, date sconosciute e altri tipi di mask.</item>
+        <item quantity="other">Sono selezionati %1$d ban idonei. Sono esclusi j:, R:, date sconosciute e altri tipi di mask.</item>
     </plurals>
     <string name="ban_list_cleanup_review">Rivedi la selezione</string>
     <string name="ban_list_cleanup_remove">Rimuovi ora</string>
@@ -1027,7 +1027,7 @@
     <string name="voice_permission_required">Per registrare un messaggio vocale è necessaria l\'autorizzazione del microfono.</string>
     <string name="voice_record_failed">Impossibile avviare la registrazione vocale.</string>
     <string name="voice_record_title">Registra un messaggio vocale</string>
-    <string name="voice_record_in_progress">Registrazione… %s</string>
+    <string name="voice_record_in_progress">Registrazione… %1$s</string>
     <string name="voice_record_stop">Interrompi</string>
     <string name="voice_record_play">Riproduci</string>
     <string name="voice_record_pause">Pausa</string>

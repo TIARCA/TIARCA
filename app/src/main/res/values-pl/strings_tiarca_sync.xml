@@ -14,14 +14,14 @@
     <string name="title_activity_monitored_users">Monitorowani użytkownicy</string>
     <string name="title_activity_monitored_users_network">Monitorowani użytkownicy w %1$s</string>
     <plurals name="monitored_users_count">
-        <item quantity="one">%2$d monitorowany użytkownik</item>
-        <item quantity="few">%3$d monitorowanych użytkowników</item>
-        <item quantity="many">%4$d monitorowanych użytkowników</item>
-        <item quantity="other">%5$d monitorowanego użytkownika</item>
+        <item quantity="one">%1$d monitorowany użytkownik</item>
+        <item quantity="few">%1$d monitorowanych użytkowników</item>
+        <item quantity="many">%1$d monitorowanych użytkowników</item>
+        <item quantity="other">%1$d monitorowanego użytkownika</item>
     </plurals>
     <string name="action_monitor_user">Monitoruj użytkownika</string>
     <string name="action_remove_monitored_user">Usuń z monitorowanych użytkowników</string>
-    <string name="monitor_user_title">Monitoruj %6$s</string>
+    <string name="monitor_user_title">Monitoruj %1$s</string>
     <string name="monitor_user_nickname">Nick</string>
     <string name="monitor_user_presence">Monitoruj obecność</string>
     <string name="monitor_user_notify_online">Powiadom, gdy użytkownik pojawi się online</string>
@@ -32,8 +32,8 @@
     <string name="monitor_status_unavailable">Obecność niedostępna</string>
     <string name="monitor_status_over_limit">Nie jest monitorowany: osiągnięto limit serwera</string>
     <string name="monitor_server_unsupported">Ten serwer nie obsługuje MONITOR.</string>
-    <string name="monitor_notification_online">%7$s pojawił się online</string>
-    <string name="monitor_notification_offline">%8$s przeszedł offline</string>
+    <string name="monitor_notification_online">%1$s pojawił się online</string>
+    <string name="monitor_notification_offline">%1$s przeszedł offline</string>
     <string name="monitor_notification_channel">Monitorowani użytkownicy</string>
     <string name="monitor_notifications_enabled">Powiadomienia włączone</string>
     <string name="monitor_primary_nickname">Główny nick</string>
@@ -43,11 +43,11 @@
     <string name="action_remove_alias">Usuń</string>
     <string name="monitor_alias_observed">wykryto przy zmianie nicka</string>
     <string name="monitor_alias_duplicate">Ten nick jest już w grupie.</string>
-    <string name="monitor_alias_conflict">Ten nick jest już monitorowany w grupie %9$s.</string>
-    <string name="monitor_status_online_as">Online jako %10$s</string>
+    <string name="monitor_alias_conflict">Ten nick jest już monitorowany w grupie %1$s.</string>
+    <string name="monitor_status_online_as">Online jako %1$s</string>
     <string name="monitor_status_online_since">Online od %1$s, %2$s</string>
     <string name="monitor_status_online_as_since">Online jako %1$s od %2$s, %3$s</string>
-    <string name="monitor_status_away_as">Nieobecny jako %11$s</string>
+    <string name="monitor_status_away_as">Nieobecny jako %1$s</string>
     <string name="monitor_status_away_since">Nieobecny od %1$s, %2$s</string>
     <string name="monitor_status_away_as_since">Nieobecny jako %1$s od %2$s, %3$s</string>
     <string name="monitor_status_offline_last_seen">Offline · ostatnio widziany %1$s o %2$s</string>
@@ -56,21 +56,21 @@
     <string name="monitor_status_some_aliases_over_limit">niektóre aliasy przekraczają limit serwera</string>
     <string name="monitor_status_partial_unavailable">Obecność częściowo niedostępna: osiągnięto limit serwera</string>
     <plurals name="monitor_status_aliases_online">
-        <item quantity="one">%12$d alias online</item>
-        <item quantity="few">%13$d aliasy online</item>
-        <item quantity="many">%14$d aliasów online</item>
-        <item quantity="other">%15$d aliasu online</item>
+        <item quantity="one">%1$d alias online</item>
+        <item quantity="few">%1$d aliasy online</item>
+        <item quantity="many">%1$d aliasów online</item>
+        <item quantity="other">%1$d aliasu online</item>
     </plurals>
 
     <string name="action_ignore_user">Ignoruj użytkownika</string>
-    <string name="ignore_user_title">Ignoruj %16$s</string>
+    <string name="ignore_user_title">Ignoruj %1$s</string>
     <string name="ignore_identify_by">Identyfikuj według</string>
     <string name="ignore_nickname">Nick</string>
-    <string name="ignore_nickname_value">Nick: %17$s</string>
+    <string name="ignore_nickname_value">Nick: %1$s</string>
     <string name="ignore_ident">Ident</string>
-    <string name="ignore_ident_value">Ident: %18$s</string>
+    <string name="ignore_ident_value">Ident: %1$s</string>
     <string name="ignore_host">Host</string>
-    <string name="ignore_host_value">Host: %19$s</string>
+    <string name="ignore_host_value">Host: %1$s</string>
     <string name="ignore_messages">Ignoruj</string>
     <string name="ignore_duration">Czas trwania</string>
     <string name="ignore_always">Zawsze</string>

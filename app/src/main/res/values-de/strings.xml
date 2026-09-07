@@ -11,20 +11,20 @@
 
     <string name="tab_server">-Server</string>
     <string name="message_hint">Senden Sie eine Nachricht</string>
-    <string name="message_join">%2$s ist beigetreten</string>
-    <string name="message_kick">%3$s hat %4$s (%5$s) gekickt</string>
-    <string name="message_part">%6$s ist gegangen (%7$s)</string>
-    <string name="message_part_no_message">%8$s ist gegangen</string>
-    <string name="message_quit">%9$s hat die Verbindung getrennt (%10$s)</string>
-    <string name="message_nick_change">%11$s heißt jetzt %12$s</string>
-    <string name="message_topic">Thema: %13$s</string>
-    <string name="message_topic_whotime">Thema wurde von %14$s auf %15$s gesetzt</string>
-    <string name="message_topic_by">Thema: %16$s, gesetzt von %17$s</string>
+    <string name="message_join">%1$s ist beigetreten</string>
+    <string name="message_kick">%1$s hat %2$s (%3$s) gekickt</string>
+    <string name="message_part">%1$s ist gegangen (%2$s)</string>
+    <string name="message_part_no_message">%1$s ist gegangen</string>
+    <string name="message_quit">%1$s hat die Verbindung getrennt (%2$s)</string>
+    <string name="message_nick_change">%1$s heißt jetzt %2$s</string>
+    <string name="message_topic">Thema: %1$s</string>
+    <string name="message_topic_whotime">Thema wurde von %1$s auf %2$s gesetzt</string>
+    <string name="message_topic_by">Thema: %1$s, gesetzt von %2$s</string>
     <string name="message_topic_none">Thema wurde nicht festgelegt</string>
 
-    <string name="message_host_info">Servername ist %18$s, auf dem %19$s ausgeführt wird. Unterstützte Benutzermodi: %20$s, unterstützte Kanalmodi: %21$s</string>
+    <string name="message_host_info">Servername ist %1$s, auf dem %2$s ausgeführt wird. Unterstützte Benutzermodi: %3$s, unterstützte Kanalmodi: %4$s</string>
     <string name="message_motd">Botschaft des Tages</string>
-    <string name="message_whois">%22$s\'s Benutzerinformationen</string>
+    <string name="message_whois">%1$s\'s Benutzerinformationen</string>
 
     <string name="message_mode">%1$s %2$s</string>
     <string name="message_mode_set">-Set %1$s</string>
@@ -56,7 +56,7 @@
     <string name="command_send_raw">Als Rohdaten senden</string>
 
     <string name="channel_topic">Thema</string>
-    <string name="channel_topic_info">gesetzt von %38$s auf %39$s</string>
+    <string name="channel_topic_info">gesetzt von %1$s auf %2$s</string>
     <string name="channel_topic_none">Es wurde kein Thema festgelegt</string>
     <string name="channel_members">Mitglieder</string>
 
@@ -67,11 +67,11 @@
 
     <plurals name="unread_message_counter">
         <item quantity="one">1 ungelesene Nachricht</item>
-        <item quantity="other">%40$d ungelesene Nachrichten</item>
+        <item quantity="other">%1$d ungelesene Nachrichten</item>
     </plurals>
     <plurals name="mention_counter">
         <item quantity="one">1 Erwähnung</item>
-        <item quantity="other">%41$d Erwähnungen</item>
+        <item quantity="other">%1$d Erwähnungen</item>
     </plurals>
     <string name="unread_counter_with_mentions">%1$s · %2$s</string>
     <string name="unread_99_plus">99+ ungelesene Nachrichten</string>
@@ -89,7 +89,7 @@
 
     <plurals name="message_delete_confirm">
         <item quantity="one">Sind Sie sicher, dass Sie die ausgewählte Nachricht löschen möchten?</item>
-        <item quantity="other">Sind Sie sicher, dass Sie die ausgewählten %42$d-Nachrichten löschen möchten?</item>
+        <item quantity="other">Sind Sie sicher, dass Sie die ausgewählten %1$d-Nachrichten löschen möchten?</item>
     </plurals>
     <string name="message_delete_confirm_note">Die Nachrichten werden nur auf diesem Gerät gelöscht.</string>
 
@@ -160,7 +160,7 @@
 
     <!-- Channel operator actions -->
     <string name="operator_actions">Bedieneraktionen</string>
-    <string name="operator_actions_for">Bedieneraktionen in %43$s</string>
+    <string name="operator_actions_for">Bedieneraktionen in %1$s</string>
     <string name="operator_kick">Tritt</string>
     <string name="operator_kickban">Kickban-Host</string>
     <string name="operator_tban">Temporärer Ban-Host</string>
@@ -186,20 +186,20 @@
     <string name="file_upload_confirm">%1$s (%2$s) hochladen und den temporären Link an %3$s senden?</string>
     <string name="file_upload_progress">Temporäre Datei wird hochgeladen…</string>
     <string name="file_upload_sent">Datei hochgeladen und Link gesendet</string>
-    <string name="file_upload_failed">Upload fehlgeschlagen: %44$s</string>
-    <string name="file_upload_send_failed">Die Datei wurde hochgeladen, aber der Link konnte nicht gesendet werden: %45$s</string>
+    <string name="file_upload_failed">Upload fehlgeschlagen: %1$s</string>
+    <string name="file_upload_send_failed">Die Datei wurde hochgeladen, aber der Link konnte nicht gesendet werden: %1$s</string>
     <string name="search_messages_title">Konversation suchen</string>
     <string name="search_messages_hint">Nachrichtentext oder Spitzname</string>
     <string name="search_messages_loading">Gespeicherte Nachrichten werden geladen…</string>
     <string name="search_messages_failed">Gespeicherte Nachrichten konnten nicht geladen werden.</string>
-    <string name="search_messages_ready">Suche in den neuesten gespeicherten %46$d-Nachrichten.</string>
+    <string name="search_messages_ready">Suche in den neuesten gespeicherten %1$d-Nachrichten.</string>
     <string name="search_messages_no_results">Keine Treffer.</string>
     <string name="search_messages_count">Entspricht %1$d von %2$d</string>
     <string name="search_previous">Zurück</string>
     <string name="search_next">Weiter</string>
 
     <string name="action_delete_confirm_title">Sind Sie sicher?</string>
-    <string name="action_delete_confirm_body">Sind Sie sicher, dass Sie %47$s löschen möchten? Dies kann nicht rückgängig gemacht werden.</string>
+    <string name="action_delete_confirm_body">Sind Sie sicher, dass Sie %1$s löschen möchten? Dies kann nicht rückgängig gemacht werden.</string>
 
     <!-- Format -->
 
@@ -216,20 +216,20 @@
     <string name="service_open_private_chat">Offenes privates Gespräch</string>
     <string name="service_message_send_failed">Der Befehl konnte nicht an den IRC-Dienst gesendet werden</string>
     <plurals name="service_status_connected">
-        <item quantity="one">Verbunden mit dem %48$d-Netzwerk</item>
-        <item quantity="other">Verbunden mit %49$d-Netzwerken</item>
+        <item quantity="one">Verbunden mit dem %1$d-Netzwerk</item>
+        <item quantity="other">Verbunden mit %1$d-Netzwerken</item>
     </plurals>
     <plurals name="service_status_connecting">
-        <item quantity="one">stellt eine Verbindung zum %50$d-Netzwerk her</item>
-        <item quantity="other">verbindet sich mit %51$d-Netzwerken</item>
+        <item quantity="one">stellt eine Verbindung zum %1$d-Netzwerk her</item>
+        <item quantity="other">verbindet sich mit %1$d-Netzwerken</item>
     </plurals>
     <plurals name="service_status_disconnected">
-        <item quantity="one">vom %52$d-Netzwerk getrennt</item>
-        <item quantity="other">von %53$d-Netzwerken getrennt</item>
+        <item quantity="one">vom %1$d-Netzwerk getrennt</item>
+        <item quantity="other">von %1$d-Netzwerken getrennt</item>
     </plurals>
     <plurals name="notify_multiple_messages">
-        <item quantity="one">%54$d ungelesene Nachricht</item>
-        <item quantity="other">%55$d ungelesene Nachrichten</item>
+        <item quantity="one">%1$d ungelesene Nachricht</item>
+        <item quantity="other">%1$d ungelesene Nachrichten</item>
     </plurals>
 
     <string name="notification_action_required">Benutzeraktion erforderlich</string>
@@ -247,8 +247,8 @@
     <string name="connection_error_command_title">Fehler bei der Verarbeitung von Post-Connect-Befehlen</string>
     <string name="connection_error_command_notification_desc">Beim Versuch, Post-Connect-Befehle zu verarbeiten, ist ein interner Fehler aufgetreten.</string>
     <plurals name="connection_error_command_dialog_content">
-        <item quantity="one">Bei der Verarbeitung des folgenden Befehls für das Netzwerk \"%56$s\":\n\n%57$s ist ein Fehler aufgetreten</item>
-        <item quantity="other">Bei der Verarbeitung der folgenden Befehle für das Netzwerk \"%58$s\":\n\n%59$s ist ein Fehler aufgetreten</item>
+        <item quantity="one">Bei der Verarbeitung des folgenden Befehls für das Netzwerk \"%1$s\":\n\n%2$s ist ein Fehler aufgetreten</item>
+        <item quantity="other">Bei der Verarbeitung der folgenden Befehle für das Netzwerk \"%1$s\":\n\n%2$s ist ein Fehler aufgetreten</item>
     </plurals>
 
     <!-- Server list -->
@@ -256,8 +256,8 @@
     <string name="server_list_header_active">Aktiv</string>
     <string name="server_list_header_inactive">Inaktiv</string>
     <plurals name="server_list_connected">
-        <item quantity="one">Verbunden, %60$d-Kanal</item>
-        <item quantity="other">Verbunden, %61$d-Kanäle</item>
+        <item quantity="one">Verbunden, %1$d-Kanal</item>
+        <item quantity="other">Verbunden, %1$d-Kanäle</item>
     </plurals>
     <string name="server_list_connecting">Verbinden…</string>
     <string name="server_list_disconnected">Nicht verbunden</string>
@@ -275,8 +275,8 @@
     <string name="server_port">-Port</string>
     <string name="server_ssl">Verwenden Sie SSL/TLS</string>
     <plurals name="server_manage_custom_certs_text">
-        <item quantity="one">%62$d benutzerdefiniertes Zertifikat gespeichert</item>
-        <item quantity="other">%63$d benutzerdefinierte Zertifikate gespeichert</item>
+        <item quantity="one">%1$d benutzerdefiniertes Zertifikat gespeichert</item>
+        <item quantity="other">%1$d benutzerdefinierte Zertifikate gespeichert</item>
     </plurals>
     <string name="server_manage_custom_certs">Benutzerdefinierte Zertifikate verwalten</string>
     <string name="server_password_unchanged">Unverändert</string>
@@ -289,7 +289,7 @@
     <string name="server_user">Benutzer</string>
     <string name="server_realname">Echter Name</string>
     <string name="server_sasl_ext_none">Kein Zertifikat festgelegt</string>
-    <string name="server_sasl_ext_fp">Zertifikat-Fingerabdruck: %64$s</string>
+    <string name="server_sasl_ext_fp">Zertifikat-Fingerabdruck: %1$s</string>
     <string name="server_sasl_ext_import">PEM importieren</string>
     <string name="server_sasl_ext_create">Neu erstellen</string>
     <string name="error_cert_already_present">Die angegebene Datei enthält mehr als einen einzelnen Zertifikateintrag.</string>
@@ -311,7 +311,7 @@
 
     <!-- Certificate error dialog -->
 
-    <string name="certificate_error">Das Zertifikat %65$s\' konnte nicht überprüft werden</string>
+    <string name="certificate_error">Das Zertifikat %1$s\' konnte nicht überprüft werden</string>
     <string name="certificate_error_ignore">Akzeptieren und fortfahren</string>
     <string name="certificate_bad_cert">Das folgende Zertifikat wird vom System nicht erkannt:</string>
     <string name="certificate_bad_hostname">Der vom Host im Zertifikat angegebene Hostname (%1$s) stimmt nicht mit dem Hostnamen überein, mit dem wir eine Verbindung herstellen (%2$s).</string>
@@ -324,8 +324,8 @@
     <string name="action_sort_member_count">Nach Mitgliederanzahl sortieren</string>
 
     <plurals name="channel_list_title_with_member_count">
-        <item quantity="one">%66$s (%67$d-Mitglied)</item>
-        <item quantity="other">%68$s (%69$d-Mitglieder)</item>
+        <item quantity="one">%1$s (%2$d-Mitglied)</item>
+        <item quantity="other">%1$s (%2$d-Mitglieder)</item>
     </plurals>
 
     <!-- Settings -->
@@ -334,7 +334,7 @@
 
     <string name="value_default">Standard</string>
     <string name="value_custom">Benutzerdefiniert</string>
-    <string name="value_custom_specific">Benutzerdefiniert (%70$s)</string>
+    <string name="value_custom_specific">Benutzerdefiniert (%1$s)</string>
     <string name="value_none">Keine</string>
     <string name="value_any">Beliebig</string>
     <string name="value_always">Immer</string>
@@ -342,7 +342,7 @@
     <string name="value_preset">Voreinstellung</string>
     <string name="value_not_set">Nicht festgelegt</string>
     <string name="value_total">Gesamt</string>
-    <string name="value_copy">%71$s (Kopie)</string>
+    <string name="value_copy">%1$s (Kopie)</string>
     <string name="entry_name">Name</string>
     <string name="entry_text">Text</string>
     <string name="entry_username">Benutzername</string>
@@ -358,20 +358,20 @@
     <!-- Time -->
 
     <plurals name="time_seconds">
-        <item quantity="one">%72$d Sekunde</item>
-        <item quantity="other">%73$d Sekunden</item>
+        <item quantity="one">%1$d Sekunde</item>
+        <item quantity="other">%1$d Sekunden</item>
     </plurals>
     <plurals name="time_minutes">
-        <item quantity="one">%74$d Minute</item>
-        <item quantity="other">%75$d Minuten</item>
+        <item quantity="one">%1$d Minute</item>
+        <item quantity="other">%1$d Minuten</item>
     </plurals>
     <plurals name="time_hours">
-        <item quantity="one">%76$d Stunde</item>
-        <item quantity="other">%77$d Stunden</item>
+        <item quantity="one">%1$d Stunde</item>
+        <item quantity="other">%1$d Stunden</item>
     </plurals>
     <plurals name="time_days">
-        <item quantity="one">%78$d Tag</item>
-        <item quantity="other">%79$d Tage</item>
+        <item quantity="one">%1$d Tag</item>
+        <item quantity="other">%1$d Tage</item>
     </plurals>
 
     <!-- User settings -->
@@ -581,13 +581,13 @@
     <string name="notification_rule_summary_any_server">Beliebiger Server</string>
     <string name="notification_rule_summary_any_channel">jeder Kanal</string>
     <plurals name="notification_rule_summary_multi_channels">
-        <item quantity="one">%80$d Kanäle</item>
-        <item quantity="other">%81$d Kanäle</item>
+        <item quantity="one">%1$d Kanäle</item>
+        <item quantity="other">%1$d Kanäle</item>
     </plurals>
     <string name="notification_rule_summary_any_nick">beliebiger Nick</string>
     <plurals name="notification_rule_summary_multi_nicks">
-        <item quantity="one">%82$d Kerben</item>
-        <item quantity="other">%83$d Kerben</item>
+        <item quantity="one">%1$d Kerben</item>
+        <item quantity="other">%1$d Kerben</item>
     </plurals>
 
     <string name="notification_header_options">Optionen</string>
@@ -627,8 +627,8 @@
     <string name="reconnect_header_tries">Versuche</string>
 
     <plurals name="reconnect_desc_tries">
-        <item quantity="one">\" (%84$d versuchen)\"</item>
-        <item quantity="other">\" (%85$d versucht)\"</item>
+        <item quantity="one">\" (%1$d versuchen)\"</item>
+        <item quantity="other">\" (%1$d versucht)\"</item>
     </plurals>
 
     <string-array name="duration_types">
@@ -724,17 +724,17 @@
     <!-- Ignore list -->
 
     <string name="title_activity_ignore_list">Ignorierliste</string>
-    <string name="title_activity_ignore_list_network">Ignorierliste für %86$s</string>
+    <string name="title_activity_ignore_list_network">Ignorierliste für %1$s</string>
     <string name="title_activity_edit_ignore_entry">Bearbeiten Sie einen Ignoriereintrag</string>
     <string name="title_activity_add_ignore_entry">Fügen Sie einen Ignoriereintrag hinzu</string>
 
     <!-- User info -->
 
-    <string name="user_title_away">%87$s (abwesend)</string>
+    <string name="user_title_away">%1$s (abwesend)</string>
     <string name="user_nick">Nick</string>
     <string name="user_hostname">Hostname</string>
     <string name="user_server">-Server</string>
-    <string name="user_server_format">%88$s (%89$s)</string>
+    <string name="user_server_format">%1$s (%2$s)</string>
     <string name="user_channels">Kanäle</string>
     <string name="user_idle">Leerlaufzeit</string>
     <string name="user_server_op">Serverbetreiberstatus</string>
@@ -744,7 +744,7 @@
     <string name="user_account">-Konto</string>
     <string name="user_away">Abwesenheitsnachricht</string>
 
-    <string name="user_info_copied">%90$s in die Zwischenablage kopiert.</string>
+    <string name="user_info_copied">%1$s in die Zwischenablage kopiert.</string>
 
     <!-- Color picker -->
 
@@ -788,21 +788,21 @@
     <string name="notification_channel_dcc">@string/title_activity_dcc</string>
     <string name="dcc_summary_notification_title">DCC Übertragungen laufen</string>
     <plurals name="dcc_summary_notification_text">
-        <item quantity="one">%91$d Übertragung läuft</item>
-        <item quantity="other">%92$d Übertragungen laufen</item>
+        <item quantity="one">%1$d Übertragung läuft</item>
+        <item quantity="other">%1$d Übertragungen laufen</item>
     </plurals>
-    <string name="dcc_active_upload_transfer_status">Hochladen auf %93$s</string>
-    <string name="dcc_active_download_transfer_status">Herunterladen von %94$s</string>
+    <string name="dcc_active_upload_transfer_status">Hochladen auf %1$s</string>
+    <string name="dcc_active_download_transfer_status">Herunterladen von %1$s</string>
     <string name="dcc_active_waiting_for_connection">Warten auf Verbindung…</string>
     <string name="dcc_active_waiting_for_approval">Warten auf Benutzergenehmigung…</string>
-    <string name="dcc_approve_notification_body">%95$s (vom Server: %96$s) hat Ihnen eine Datei gesendet</string>
+    <string name="dcc_approve_notification_body">%1$s (vom Server: %2$s) hat Ihnen eine Datei gesendet</string>
     <string name="dcc_history_upload">%2$s auf %3$s (%1$s) hochgeladen</string>
     <string name="dcc_history_download">%2$s von %3$s (%1$s) heruntergeladen</string>
     <string name="dcc_history_download_failed">Fehler beim Herunterladen von %2$s von %1$s</string>
 
-    <string name="dcc_approve_download_title">DCC-Datei: %97$s</string>
-    <string name="dcc_approve_download_title_with_size">DCC Datei: %98$s (%99$s)</string>
-    <string name="dcc_approve_download_body">%100$s (vom Server: %101$s) hat Ihnen eine Datei gesendet.\n\nWarnung: Dieser Download wird über eine unsichere unverschlüsselte &amp;-Verbindung übertragen. Wenn Sie diesen Download akzeptieren, kann die andere Partei Ihre IP-Adresse sehen. Sie sollten es nur akzeptieren, wenn Sie diesem Benutzer vertrauen.</string>
+    <string name="dcc_approve_download_title">DCC-Datei: %1$s</string>
+    <string name="dcc_approve_download_title_with_size">DCC Datei: %1$s (%2$s)</string>
+    <string name="dcc_approve_download_body">%1$s (vom Server: %2$s) hat Ihnen eine Datei gesendet.\n\nWarnung: Dieser Download wird über eine unsichere unverschlüsselte &amp;-Verbindung übertragen. Wenn Sie diesen Download akzeptieren, kann die andere Partei Ihre IP-Adresse sehen. Sie sollten es nur akzeptieren, wenn Sie diesem Benutzer vertrauen.</string>
     <string name="dcc_approve_download_enable_anyway">Trotzdem aktivieren</string>
 
     <string name="dcc_enable_send_warning_title">Sicherheitswarnung</string>
@@ -824,13 +824,13 @@
 
     <string name="channel_modes_menu">Kanalmodi</string>
     <string name="action_list_channels">Kanäle auflisten</string>
-    <string name="channel_modes_title">Modi für %102$s</string>
+    <string name="channel_modes_title">Modi für %1$s</string>
     <string name="channel_modes_loading">Aktive Kanalmodi werden geladen…</string>
     <string name="channel_modes_failed">Die Kanalmodi konnten nicht geladen werden.</string>
     <string name="channel_modes_timeout">Der Server hat die aktiven Kanalmodi nicht zurückgegeben.</string>
     <string name="channel_modes_none">Dieser Server hat keine bearbeitbaren Flag-Modi angekündigt.</string>
     <string name="channel_modes_no_changes">Keine Modusänderungen ausgewählt.</string>
-    <string name="channel_modes_profile">Definitionen: %103$s</string>
+    <string name="channel_modes_profile">Definitionen: %1$s</string>
     <string name="channel_modes_profile_inspircd3">InspIRCd 3</string>
     <string name="channel_modes_profile_inspircd4">InspIRCd 4</string>
     <string name="channel_modes_profile_generic">IRC Standard-/vom Server angekündigte Typen</string>
@@ -838,7 +838,7 @@
     <string name="channel_mode_limit">Benutzerlimit (+l)</string>
     <string name="channel_mode_key_hint">Schlüssel</string>
     <string name="channel_mode_limit_hint">Maximale Benutzerzahl</string>
-    <string name="channel_mode_value_required">Geben Sie einen Wert für den Modus +%104$s ein.</string>
+    <string name="channel_mode_value_required">Geben Sie einen Wert für den Modus +%1$s ein.</string>
     <string name="channel_mode_desc_i">Kanal nur auf Einladung</string>
     <string name="channel_mode_desc_m">Nur stimmberechtigte oder privilegierte Benutzer können sprechen</string>
     <string name="channel_mode_desc_n">Blockieren Sie Nachrichten von außerhalb des Kanals</string>
@@ -865,7 +865,7 @@
     <string name="channel_mode_managed">wird vom Server oder von Diensten verwaltet</string>
 
     <string name="ban_list_menu">Verbotsliste</string>
-    <string name="ban_list_title">Verbotsliste für %105$s</string>
+    <string name="ban_list_title">Verbotsliste für %1$s</string>
     <string name="ban_list_loading">Die Sperrliste wird geladen…</string>
     <string name="ban_list_failed">Die Sperrliste konnte nicht geladen werden.</string>
     <string name="ban_list_host">Host/Maske</string>
@@ -881,8 +881,8 @@
     <string name="ban_list_cleanup_none">Es wurden keine berechtigten Ident- oder Host-Sperren gefunden, die zwischen 48 und 72 Stunden alt sind.</string>
     <string name="ban_list_cleanup_confirm_title">Temporäre Verbote aufräumen?</string>
     <plurals name="ban_list_cleanup_confirm_message">
-        <item quantity="one">%106$d berechtigtes Verbot ist ausgewählt. j: und R: Einträge, unbekannte Daten und andere Maskentypen sind ausgeschlossen.</item>
-        <item quantity="other">%107$d berechtigte Sperren werden ausgewählt. j: und R: Einträge, unbekannte Daten und andere Maskentypen sind ausgeschlossen.</item>
+        <item quantity="one">%1$d berechtigtes Verbot ist ausgewählt. j: und R: Einträge, unbekannte Daten und andere Maskentypen sind ausgeschlossen.</item>
+        <item quantity="other">%1$d berechtigte Sperren werden ausgewählt. j: und R: Einträge, unbekannte Daten und andere Maskentypen sind ausgeschlossen.</item>
     </plurals>
     <string name="ban_list_cleanup_review">Auswahl überprüfen</string>
     <string name="ban_list_cleanup_remove">Jetzt entfernen</string>
@@ -945,7 +945,7 @@
     <string name="voice_permission_required">Zum Aufzeichnen einer Sprachnachricht ist eine Mikrofonberechtigung erforderlich.</string>
     <string name="voice_record_failed">Sprachaufzeichnung konnte nicht gestartet werden.</string>
     <string name="voice_record_title">Sprachnachricht aufzeichnen</string>
-    <string name="voice_record_in_progress">Aufnahme… %108$s</string>
+    <string name="voice_record_in_progress">Aufnahme… %1$s</string>
     <string name="voice_record_stop">Stopp</string>
     <string name="voice_record_play">Abspielen</string>
     <string name="voice_record_pause">Pause</string>
