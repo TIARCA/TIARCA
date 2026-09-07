@@ -27,8 +27,8 @@
     <string name="message_whois">Información de usuario de %1$s</string>
 
     <string name="message_mode">%1$s %2$s</string>
-    <string name="message_mode_set">ha establecido %1$s</string>
-    <string name="message_mode_unset">ha quitado %1$s</string>
+    <string name="message_mode_set">estableció %1$s</string>
+    <string name="message_mode_unset">quitó %1$s</string>
     <string name="message_mode_gave">ha dado %1$s</string>
     <string name="message_mode_removed">ha quitado %1$s</string>
 
@@ -41,11 +41,11 @@
     </plurals>
     <string name="message_mode_channel_value">modo de canal \'%1$s\' a %2$s</string>
     <string name="message_mode_channel_ban">un ban sobre %1$s</string>
-    <string name="message_mode_nick_owner">el estado de propietario del canal</string>
-    <string name="message_mode_nick_admin">el estado de administrador del canal</string>
-    <string name="message_mode_nick_op">el estado de operador del canal</string>
-    <string name="message_mode_nick_half_op">el estado de half-op del canal</string>
-    <string name="message_mode_nick_voice">el voice</string>
+    <string name="message_mode_nick_owner">estado de propietario del canal</string>
+    <string name="message_mode_nick_admin">estado de administrador del canal</string>
+    <string name="message_mode_nick_op">estado de operador del canal</string>
+    <string name="message_mode_nick_half_op">estado de half-op del canal</string>
+    <string name="message_mode_nick_voice">voice</string>
 
     <string name="message_ctcp_ping">Se ha recibido un ping CTCP</string>
     <string name="message_ctcp_version">Se ha recibido una solicitud CTCP VERSION</string>
@@ -160,20 +160,20 @@
 
     <!-- Channel operator actions -->
     <string name="operator_actions">Acciones de operador</string>
-    <string name="operator_actions_for">Acciones de operador en %1$s</string>
+    <string name="operator_actions_for">Acciones de operador para %1$s</string>
     <string name="operator_kick">Kick</string>
     <string name="operator_kickban">Kickban al host</string>
-    <string name="operator_tban">Ban temporal al host</string>
-    <string name="operator_mute">Silenciar host</string>
-    <string name="operator_audi">Audi al ident</string>
+    <string name="operator_tban">TBAN del host</string>
+    <string name="operator_mute">Mute del host</string>
+    <string name="operator_audi">Audi del ident</string>
     <string name="operator_unban_host">Quitar ban exacto del host</string>
     <string name="operator_voice">Dar voice</string>
     <string name="operator_mask">Máscara de ban</string>
     <string name="operator_invalid_mask">Introduce una máscara válida sin espacios.</string>
     <string name="operator_historical_data">Datos históricos de WHOWAS</string>
     <string name="operator_historical_data_desc">El host y el ident pertenecen a la conexión más reciente del usuario.</string>
-    <string name="operator_choose_channel">Elegir canal de operador</string>
-    <string name="operator_not_authorised">Las acciones de operador requieren estado half-op o superior en este canal.</string>
+    <string name="operator_choose_channel">Elegir canal donde eres operador</string>
+    <string name="operator_not_authorised">Las acciones de operador requieren estado de half-op o superior en este canal.</string>
     <string name="operator_reason_optional">Motivo (opcional)</string>
     <string name="operator_custom_reason">Mensaje personalizado</string>
     <string name="operator_duration">Duración (por ejemplo, 3h)</string>
@@ -878,7 +878,7 @@
     <string name="ban_list_select_one">Selecciona al menos un ban.</string>
     <string name="ban_list_confirm_title">¿Eliminar los bans seleccionados?</string>
     <string name="ban_list_cleanup">Limpiar</string>
-    <string name="ban_list_cleanup_none">No se han encontrado bans aptos para la limpieza.</string>
+    <string name="ban_list_cleanup_none">No se encontraron bans aptos para la limpieza.</string>
     <string name="ban_list_cleanup_confirm_title">¿Eliminar bans temporales?</string>
     <plurals name="ban_list_cleanup_confirm_message">
         <item quantity="one">Se ha seleccionado %1$d ban válido. Se excluyen j:, R:, fechas desconocidas y otros tipos de máscara.</item>
