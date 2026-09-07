@@ -822,14 +822,14 @@
 
     <!-- DCC -->
 
-    <string name="title_activity_dcc">DCC przelewy</string>
+    <string name="title_activity_dcc">Transfery DCC</string>
     <string name="notification_channel_dcc">@string/title_activity_dcc</string>
-    <string name="dcc_summary_notification_title">DCC Trwa przesyłanie</string>
+    <string name="dcc_summary_notification_title">Trwające transfery DCC</string>
     <plurals name="dcc_summary_notification_text">
-        <item quantity="one">%1$d aktywny transfer</item>
-        <item quantity="few">%1$d aktywne transfery</item>
-        <item quantity="many">%1$d aktywnych transferów</item>
-        <item quantity="other">%1$d aktywnego transferu</item>
+        <item quantity="one">%1$d trwający transfer</item>
+        <item quantity="few">%1$d trwające transfery</item>
+        <item quantity="many">%1$d trwających transferów</item>
+        <item quantity="other">%1$d trwającego transferu</item>
     </plurals>
     <string name="dcc_active_upload_transfer_status">Przesyłanie do %1$s</string>
     <string name="dcc_active_download_transfer_status">Pobieranie z %1$s</string>
@@ -842,11 +842,11 @@
 
     <string name="dcc_approve_download_title">DCC plik: %1$s</string>
     <string name="dcc_approve_download_title_with_size">DCC plik: %1$s (%2$s)</string>
-    <string name="dcc_approve_download_body">%1$s (z serwera: %2$s) wysłał Ci plik.\n\nOstrzeżenie: Ten plik do pobrania będzie przesyłany przez niezabezpieczone, nieszyfrowane połączenie &amp;. Zaakceptowanie tego pobierania umożliwi drugiej stronie zobaczenie Twojego adresu IP. Powinieneś to zaakceptować tylko wtedy, gdy ufasz temu użytkownikowi.</string>
+    <string name="dcc_approve_download_body">%1$s (z serwera: %2$s) wysłał Ci plik.\n\nOstrzeżenie: ten plik zostanie przesłany przez niezabezpieczone i nieszyfrowane połączenie. Zaakceptowanie pobierania pozwoli drugiej stronie zobaczyć Twój adres IP. Zaakceptuj tylko wtedy, gdy ufasz temu użytkownikowi.</string>
     <string name="dcc_approve_download_enable_anyway">Włącz mimo to</string>
 
     <string name="dcc_enable_send_warning_title">Ostrzeżenie dotyczące bezpieczeństwa</string>
-    <string name="dcc_enable_send_warning_body">DCC to starszy protokół udostępniania plików peer to peer, w którym pliki są przesyłane przez niezabezpieczone i nieszyfrowane połączenie. Oznacza to, że wszystkie dane przesyłane za pomocą tej funkcji mogą potencjalnie zostać skopiowane lub zmanipulowane przez osoby atakujące, szczególnie w publicznych sieciach Wi-Fi.\nAdodatkowo, ze względu na charakter protokołu \', udostępniając pliki za pomocą DCC, przekazujesz także swój adres IP drugiej stronie. DCC generalnie nie działa podczas korzystania z komórkowej transmisji danych i może nie działać w przypadku niektórych połączeń Wi-Fi.\n\nZ tego powodu zalecamy korzystanie z usług udostępniania stron trzecich i udostępnianie łącza tylko użytkownikowi docelowemu zamiast DCC.</string>
+    <string name="dcc_enable_send_warning_body">DCC to starszy protokół udostępniania plików peer-to-peer, w którym pliki są przesyłane przez niezabezpieczone i nieszyfrowane połączenie. Oznacza to, że przesyłane dane mogą zostać skopiowane lub zmodyfikowane przez osoby atakujące, szczególnie w publicznych sieciach Wi-Fi.\nPonadto, ze względu na sposób działania protokołu, udostępniając pliki przez DCC przekazujesz drugiej stronie swój adres IP. DCC zazwyczaj nie działa przy transmisji danych komórkowych i może nie działać w niektórych sieciach Wi-Fi.\n\nZ tego powodu zalecamy korzystanie z zewnętrznych usług udostępniania plików i przekazywanie docelowemu użytkownikowi wyłącznie linku zamiast używania DCC.</string>
 
     <string name="dcc_system_downloads_permission_dialog_title">Pozwolenie na pobieranie folderu</string>
     <string name="dcc_system_downloads_permission_dialog_text">Odmówiono uprawnień do folderu Pobrane, dlatego użyty zostanie wewnętrzny katalog pobranych aplikacji. Jeśli nie jest to pożądane, kliknij opcję Zapytaj ponownie.</string>
@@ -911,20 +911,26 @@
     <string name="ban_list_host">Host/maska</string>
     <string name="ban_list_setter">Autor</string>
     <string name="ban_list_date">Data</string>
+    <string name="ban_list_search_hint">Szukaj…</string>
+    <string name="ban_list_search_clear">Wyczyść wyszukiwanie w liście banów</string>
     <string name="ban_list_select_all">Wybierz wszystko</string>
     <string name="ban_list_remove_selected">Usuń wybrane</string>
     <string name="ban_list_empty">Lista banów i wyjątków jest pusta.</string>
+    <string name="ban_list_no_results">Brak banów pasujących do wyszukiwania.</string>
     <string name="ban_list_unknown">Nieznany</string>
     <string name="ban_list_select_one">Wybierz co najmniej jeden ban lub wyjątek.</string>
     <string name="ban_list_confirm_title">Usunąć wybrane bany lub wyjątki?</string>
+    <string name="ban_list_tab_bans">Bany</string>
+    <string name="ban_list_tab_exceptions">Wyjątki</string>
     <string name="ban_list_cleanup">Czyszczenie</string>
-    <string name="ban_list_cleanup_none">Nie znaleziono kwalifikujących się blokad identyfikatora ani hosta w okresie od 48 do 72 godzin.</string>
-    <string name="ban_list_cleanup_confirm_title">Usunąć tymczasowe zakazy?</string>
+    <string name="ban_list_cleanup_none">Nie znaleziono banów kwalifikujących się do czyszczenia.</string>
+    <string name="ban_list_exceptions_not_supported">Ten serwer nie obsługuje wyjątków (+e).</string>
+    <string name="ban_list_cleanup_confirm_title">Wyczyścić tymczasowe bany?</string>
     <plurals name="ban_list_cleanup_confirm_message">
-        <item quantity="one">Wybrano kwalifikującą się blokadę %1$d. j: i R: wpisy, nieznane daty i inne typy masek są wyłączone.</item>
-        <item quantity="few">%1$d. j: i R: wpisy, nieznane daty i inne typy masek są wyłączone.</item>
-        <item quantity="many">%1$d. j: i R: wpisy, nieznane daty i inne typy masek są wyłączone.</item>
-        <item quantity="other">%1$d. j: i R: wpisy, nieznane daty i inne typy masek są wyłączone.</item>
+        <item quantity="one">Wybrano %1$d ban kwalifikujący się do usunięcia. Wpisy j: i R:, nieznane daty oraz inne typy masek są pomijane.</item>
+        <item quantity="few">Wybrano %1$d bany kwalifikujące się do usunięcia. Wpisy j: i R:, nieznane daty oraz inne typy masek są pomijane.</item>
+        <item quantity="many">Wybrano %1$d banów kwalifikujących się do usunięcia. Wpisy j: i R:, nieznane daty oraz inne typy masek są pomijane.</item>
+        <item quantity="other">Wybrano %1$d bana kwalifikującego się do usunięcia. Wpisy j: i R:, nieznane daty oraz inne typy masek są pomijane.</item>
     </plurals>
     <string name="ban_list_cleanup_review">Przejrzyj wybór</string>
     <string name="ban_list_cleanup_remove">Usuń teraz</string>
@@ -952,7 +958,7 @@
     <string name="pref_quick_command_word_normalized">Poprawiono słowo aktywacyjne. Używać ! po których następują litery, cyfry lub podkreślenia.</string>
     <string name="pref_quick_command_word_duplicate">To słowo aktywacyjne jest już użyte. Wartość domyślna została przywrócona.</string>
     <string name="pref_tmdb_key">TMDb API klucz (v3)</string>
-    <string name="pref_tmdb_key_hint">Klucz aplikacji w zestawie; dotknij, aby użyć innego klawisza</string>
+    <string name="pref_tmdb_key_hint">Wbudowany klucz aplikacji; dotknij, aby użyć innego klucza</string>
     <string name="quick_command_empty">Wpisz wyszukiwanie po poleceniu.</string>
     <string name="quick_command_no_target">Najpierw otwórz kanał lub prywatną rozmowę.</string>
     <string name="quick_command_progress">Polecenie przetwarzania…</string>
@@ -1031,8 +1037,8 @@
 
     <string name="media_checking">Sprawdzam łącze do multimediów…</string>
     <string name="media_open_failed">Nie można otworzyć tego linku.</string>
-    <string name="media_viewer_title">Głoska bezdźwięczna</string>
-    <string name="media_open_external">Otwarte zewnętrznie</string>
+    <string name="media_viewer_title">Multimedia</string>
+    <string name="media_open_external">Otwórz zewnętrznie</string>
     <string name="media_audio_label">Odtwarzanie dźwięku</string>
 
 </resources>
