@@ -339,13 +339,13 @@
     <string name="value_any">Cualquiera</string>
     <string name="value_always">Siempre</string>
     <string name="value_never">Nunca</string>
-    <string name="value_preset">Programar</string>
+    <string name="value_preset">Preestablecido</string>
     <string name="value_not_set">No establecido</string>
     <string name="value_total">Total</string>
     <string name="value_copy">%1$s (copia)</string>
-    <string name="entry_name">Texto</string>
+    <string name="entry_name">Nombre</string>
     <string name="entry_text">Texto</string>
-    <string name="entry_username">Contraseña</string>
+    <string name="entry_username">Nombre de usuario</string>
     <string name="entry_password">Contraseña</string>
     <string name="entry_comment">Comentario</string>
 
@@ -389,7 +389,7 @@
 
     <!-- Interface settings -->
 
-    <string name="pref_header_interface">Idioma</string>
+    <string name="pref_header_interface">Interfaz</string>
     <string name="pref_header_language">Idioma</string>
     <string name="pref_title_language">Idioma de la aplicación</string>
     <string-array name="pref_entries_language">
@@ -467,14 +467,14 @@
     <string name="message_format_event_hostname">Mostrar el nombre de host del usuario</string>
     <string name="message_format_date_invalid">Formato de fecha/hora no válido</string>
 
-    <string name="message_format_time">Remitente</string>
-    <string name="message_format_sender">Mensaje</string>
-    <string name="message_format_message">Prefijo</string>
+    <string name="message_format_time">hora</string>
+    <string name="message_format_sender">remitente</string>
+    <string name="message_format_message">mensaje</string>
     <string name="message_format_sender_prefix">prefijo</string>
-    <string name="message_format_time_add">Tiempo</string>
-    <string name="message_format_sender_add">Mensaje</string>
+    <string name="message_format_time_add">Hora</string>
+    <string name="message_format_sender_add">Remitente</string>
     <string name="message_format_message_add">Mensaje</string>
-    <string name="message_format_wrap_anchor_add">Anclaje envolvente</string>
+    <string name="message_format_wrap_anchor_add">Anclaje de ajuste</string>
     <string name="message_format_sender_prefix_add">Prefijo del remitente</string>
 
     <string name="message_format_add_chip">Agregar chip de formato</string>
