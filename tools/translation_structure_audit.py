@@ -42,13 +42,46 @@ def placeholders(text):
     return [(m.group(1) or "", m.group(2)) for m in PLACEHOLDER_RE.finditer(text)]
 
 
-def placeholder_shape(elem):
-    val = text_of(elem)
-    if isinstance(val, str):
-        return placeholders(val)
-    if isinstance(val, dict):
-        return {k: placeholders(v) for k, v in val.items()}
-    return [placeholders(v) for v in val]
+def compare_placeholders(base_elem, locale_elem):
+    if base_elem.tag == "string":
+        bp = placeholders(text_of(base_elem))
+        lp = placeholders(text_of(locale_elem))
+        return None if bp == lp else (bp, lp)
+
+    if base_elem.tag == "string-array":
+        bvals = text_of(base_elem)
+        lvals = text_of(locale_elem)
+        if len(bvals) != len(lvals):
+            return ("array_length", len(bvals), len(lvals))
+        bad = []
+        for i, (b, l) in enumerate(zip(bvals, lvals)):
+            bp = placeholders(b)
+            lp = placeholders(l)
+            if bp != lp:
+                bad.append((i, bp, lp))
+        return None if not bad else bad
+
+    # Android locales may legitimately define additional plural categories
+    # (for example Polish few/many or Romanian few). Compare each locale
+    # category against the same English category when present, otherwise
+    # against English "other". This validates formatting without forcing
+    # English plural grammar onto other languages.
+    bvals = text_of(base_elem)
+    lvals = text_of(locale_elem)
+    bad = []
+    for quantity, ltext in lvals.items():
+        btext = bvals.get(quantity, bvals.get("other"))
+        if btext is None:
+            bad.append((quantity, "missing_base_fallback", placeholders(ltext)))
+            continue
+        bp = placeholders(btext)
+        lp = placeholders(ltext)
+        if bp != lp:
+            bad.append((quantity, bp, lp))
+    for quantity in bvals:
+        if quantity not in lvals and quantity not in {"zero", "two", "few", "many"}:
+            bad.append((quantity, "missing_locale_quantity", placeholders(bvals[quantity])))
+    return None if not bad else bad
 
 
 def load_locale(dirname):
@@ -85,10 +118,9 @@ def main():
             if b.tag != l.tag:
                 mismatches.append((key, "type", b.tag, l.tag))
                 continue
-            bp = placeholder_shape(b)
-            lp = placeholder_shape(l)
-            if bp != lp:
-                mismatches.append((key, "placeholders", bp, lp))
+            diff = compare_placeholders(b, l)
+            if diff is not None:
+                mismatches.append((key, "placeholders", diff))
 
         print(f"\n[{locale}]")
         print(f"resources={len(data)} missing={len(missing)} extra={len(extra)} duplicates={len(dups)} placeholder_mismatches={len(mismatches)}")
