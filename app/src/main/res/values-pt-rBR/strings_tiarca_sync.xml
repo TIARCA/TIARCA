@@ -6,7 +6,7 @@
     <string name="action_open_private">Abrir conversa privada</string>
     <string name="action_mention_user">Mencionar</string>
     <string name="action_edit_monitor_user">Editar monitoramento</string>
-    <string name="operator_kickban_ident">Kickban por ident</string>
+    <string name="operator_kickban_ident">Kickban no ident</string>
     <string name="operator_devoice">Remover voice</string>
     <string name="operator_ident_unavailable">O ident do usuário não está disponível.</string>
     <string name="pref_title_custom_username">Usar nome de usuário personalizado</string>
@@ -23,7 +23,7 @@
     <string name="monitor_user_notify_offline">Notificar quando ficar offline</string>
     <string name="monitor_status_online">Online</string>
     <string name="monitor_status_offline">Offline</string>
-    <string name="monitor_status_away">Ausente</string>
+    <string name="monitor_status_away">Away</string>
     <string name="monitor_status_unavailable">Presença indisponível</string>
     <string name="monitor_status_over_limit">Não monitorado: limite do servidor atingido</string>
     <string name="monitor_server_unsupported">Este servidor não oferece suporte a MONITOR.</string>
@@ -42,9 +42,9 @@
     <string name="monitor_status_online_as">Online como %1$s</string>
     <string name="monitor_status_online_since">Online desde %1$s às %2$s</string>
     <string name="monitor_status_online_as_since">Online como %1$s desde %2$s às %3$s</string>
-    <string name="monitor_status_away_as">Ausente como %1$s</string>
-    <string name="monitor_status_away_since">Ausente desde %1$s às %2$s</string>
-    <string name="monitor_status_away_as_since">Ausente como %1$s desde %2$s às %3$s</string>
+    <string name="monitor_status_away_as">Away como %1$s</string>
+    <string name="monitor_status_away_since">Away desde %1$s às %2$s</string>
+    <string name="monitor_status_away_as_since">Away como %1$s desde %2$s às %3$s</string>
     <string name="monitor_status_offline_last_seen">Offline · visto pela última vez em %1$s às %2$s</string>
     <string name="monitor_status_offline_last_seen_unknown">Offline · última presença online indisponível</string>
     <string name="monitor_status_unknown">Status ainda não disponível</string>
