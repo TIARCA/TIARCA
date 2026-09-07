@@ -9,54 +9,54 @@
     <string name="navigation_drawer_open">Cajón de navegación abierto</string>
     <string name="navigation_drawer_close">Cerrar el cajón de navegación</string>
 
-    <string name="tab_server">Estado del medio operador del canal</string>
+    <string name="tab_server">Servidor</string>
     <string name="message_hint">Enviar un mensaje</string>
-    <string name="message_join">%s se ha unido</string>
-    <string name="message_kick">%s ha expulsado a %s (%s)</string>
-    <string name="message_part">%s se ha ido (%s)</string>
-    <string name="message_part_no_message">%s se ha ido</string>
-    <string name="message_quit">%s se ha desconectado (%s)</string>
-    <string name="message_nick_change">%s ahora se conoce como %s</string>
-    <string name="message_topic">Tema: %s</string>
-    <string name="message_topic_whotime">El tema fue establecido por %s en %s</string>
-    <string name="message_topic_by">Tema: %s, establecido por %s</string>
+    <string name="message_join">%1$s se ha unido</string>
+    <string name="message_kick">%1$s ha expulsado a %2$s (%3$s)</string>
+    <string name="message_part">%1$s se ha ido (%2$s)</string>
+    <string name="message_part_no_message">%1$s se ha ido</string>
+    <string name="message_quit">%1$s se ha desconectado (%2$s)</string>
+    <string name="message_nick_change">%1$s ahora se conoce como %2$s</string>
+    <string name="message_topic">Tema: %1$s</string>
+    <string name="message_topic_whotime">El tema fue establecido por %1$s en %2$s</string>
+    <string name="message_topic_by">Tema: %1$s, establecido por %2$s</string>
     <string name="message_topic_none">El tema no fue establecido</string>
 
-    <string name="message_host_info">El nombre del servidor es %s y ejecuta %s. Modos de usuario admitidos: %s, modos de canal admitidos: %s</string>
+    <string name="message_host_info">El nombre del servidor es %1$s y ejecuta %2$s. Modos de usuario admitidos: %3$s, modos de canal admitidos: %4$s</string>
     <string name="message_motd">Mensaje del día</string>
-    <string name="message_whois">%s\'s información de usuario</string>
+    <string name="message_whois">Información de usuario de %1$s</string>
 
-    <string name="message_mode">%s %s</string>
-    <string name="message_mode_set">conjunto %s</string>
-    <string name="message_mode_unset">desarmado %s</string>
-    <string name="message_mode_gave">dio %s</string>
-    <string name="message_mode_removed">eliminado %s</string>
+    <string name="message_mode">%1$s %2$s</string>
+    <string name="message_mode_set">ha establecido %1$s</string>
+    <string name="message_mode_unset">ha quitado %1$s</string>
+    <string name="message_mode_gave">ha dado %1$s</string>
+    <string name="message_mode_removed">ha retirado %1$s</string>
 
-    <string name="message_mode_gave_to">%s a %s</string>
-    <string name="message_mode_removed_from">%s de %s</string>
+    <string name="message_mode_gave_to">%1$s a %2$s</string>
+    <string name="message_mode_removed_from">%1$s de %2$s</string>
 
     <plurals name="message_mode_channel">
-        <item quantity="one">modo canal \'%s\'</item>
-        <item quantity="other">modos de canal \'%s\'</item>
+        <item quantity="one">modo canal \'%1$s\'</item>
+        <item quantity="other">modos de canal \'%1$s\'</item>
     </plurals>
-    <string name="message_mode_channel_value">\'%s\' a %s</string>
-    <string name="message_mode_channel_ban">una prohibición de %s</string>
-    <string name="message_mode_nick_owner">Estado de administrador del canal</string>
-    <string name="message_mode_nick_admin">Estado del operador del canal</string>
-    <string name="message_mode_nick_op">Estado del medio operador del canal</string>
-    <string name="message_mode_nick_half_op">Tema</string>
-    <string name="message_mode_nick_voice">voz</string>
+    <string name="message_mode_channel_value">modo de canal \'%1$s\' a %2$s</string>
+    <string name="message_mode_channel_ban">un ban sobre %1$s</string>
+    <string name="message_mode_nick_owner">estado de propietario del canal</string>
+    <string name="message_mode_nick_admin">estado de administrador del canal</string>
+    <string name="message_mode_nick_op">estado de operador del canal</string>
+    <string name="message_mode_nick_half_op">estado de half-op del canal</string>
+    <string name="message_mode_nick_voice">voice</string>
 
     <string name="message_ctcp_ping">Recibió un ping CTCP</string>
-    <string name="message_ctcp_version">Recibió una versión CTCP</string>
+    <string name="message_ctcp_version">Recibida una solicitud CTCP VERSION</string>
 
     <string name="command_error_not_found">No se encontró dicho comando.</string>
     <string name="command_error_internal">Se produjo un error interno al intentar procesar el comando.</string>
 
-    <string name="command_send_raw">Enviar sin formato</string>
+    <string name="command_send_raw">Enviar como comando raw</string>
 
     <string name="channel_topic">Tema</string>
-    <string name="channel_topic_info">configurado por %s en %s</string>
+    <string name="channel_topic_info">configurado por %1$s en %2$s</string>
     <string name="channel_topic_none">No se estableció ningún tema</string>
     <string name="channel_members">Miembros</string>
 
@@ -67,11 +67,11 @@
 
     <plurals name="unread_message_counter">
         <item quantity="one">1 mensaje no leído</item>
-        <item quantity="other">%d mensajes no leídos</item>
+        <item quantity="other">%1$d mensajes no leídos</item>
     </plurals>
     <plurals name="mention_counter">
         <item quantity="one">1 mención</item>
-        <item quantity="other">%d menciona</item>
+        <item quantity="other">%1$d menciones</item>
     </plurals>
     <string name="unread_counter_with_mentions">%1$s · %2$s</string>
     <string name="unread_99_plus">99+ mensajes no leídos</string>
@@ -80,16 +80,16 @@
     <string name="action_mark_mentions_read">Marcar todas las menciones como leídas</string>
     <string name="mention_previous">Mención anterior</string>
     <string name="mention_next">Siguiente mención</string>
-    <string name="mention_position">Mencione %1$d de %2$d</string>
+    <string name="mention_position">Mención %1$d de %2$d</string>
     <string name="mention_none">No se encontraron menciones en esta conversación.</string>
     <string name="mention_unavailable">Esta mención ya no está disponible en el historial de chat.</string>
     <string name="unread_backlog_title">Mensajes no leídos</string>
     <string name="unread_go_first">Ir al primer mensaje no leído</string>
-    <string name="unread_go_latest">Ir a la última versión y marcar como leído</string>
+    <string name="unread_go_latest">Ir al último mensaje y marcar como leído</string>
 
     <plurals name="message_delete_confirm">
         <item quantity="one">¿Estás seguro de que deseas eliminar el mensaje seleccionado?</item>
-        <item quantity="other">¿Está seguro de que desea eliminar los mensajes %d seleccionados?</item>
+        <item quantity="other">¿Está seguro de que desea eliminar los mensajes %1$d seleccionados?</item>
     </plurals>
     <string name="message_delete_confirm_note">Los mensajes solo se eliminarán en este dispositivo.</string>
 
@@ -105,7 +105,7 @@
     <string name="action_connect">Conectar</string>
     <string name="action_disconnect">Desconectar</string>
     <string name="action_reconnect">Reconectar</string>
-    <string name="action_open">Abierto</string>
+    <string name="action_open">Abrir</string>
     <string name="action_back">Volver</string>
     <string name="action_close">Cerrar</string>
     <string name="accessibility_send_message">Enviar mensaje</string>
@@ -116,10 +116,10 @@
     <string name="network_catalog_manual">Agregar manualmente</string>
     <string name="network_catalog_manual_summary">Ingrese una dirección personalizada y configuración de conexión</string>
     <string name="network_catalog_search_hint">Buscar redes</string>
-    <string name="network_catalog_sort_users">La mayoría de los usuarios</string>
+    <string name="network_catalog_sort_users">Más usuarios</string>
     <string name="network_catalog_sort_name">Nombre A–Z</string>
-    <string name="network_catalog_approximately">aproximadamente usuarios de %1$s · canales de %2$s</string>
-    <string name="network_catalog_unavailable">no disponible</string>
+    <string name="network_catalog_approximately">aproximadamente %1$s usuarios · %2$s canales</string>
+    <string name="network_catalog_unavailable">número de usuarios no disponible</string>
     <string name="network_catalog_confirm_title">¿Agregar %1$s?</string>
     <string name="network_catalog_confirm_body">Servidor: %1$s\nPuerto: %2$d\nSeguridad: %3$s\n\nLos detalles se pueden cambiar antes de guardar.</string>
     <string name="network_catalog_tls">TLS habilitado</string>
@@ -132,8 +132,8 @@
     <string name="action_add_rule">Agregar regla</string>
     <string name="action_reorder">Reordenar</string>
     <string name="action_undo">Deshacer</string>
-    <string name="action_copy">Clon</string>
-    <string name="action_clone">Acabado</string>
+    <string name="action_copy">Copiar</string>
+    <string name="action_clone">Clonar</string>
     <string name="action_continue">Continuar</string>
     <string name="action_finish">Finalizar</string>
     <string name="action_search">Buscar</string>
@@ -142,7 +142,7 @@
     <string name="action_sort_none">No ordenar</string>
     <string name="action_sort_name">Ordenar por nombre</string>
     <string name="action_join_channel">Unirse al canal</string>
-    <string name="action_message_user">Mensaje de usuario</string>
+    <string name="action_message_user">Escribir al usuario</string>
     <string name="action_part_channel">Salir del canal</string>
     <string name="action_close_direct">Cerrar conversación</string>
     <string name="action_clear_all">Borrar todo</string>
@@ -154,28 +154,28 @@
     <string name="action_accept">Aceptar</string>
     <string name="action_reject">Rechazar</string>
     <string name="action_ask_again">Preguntar de nuevo</string>
-    <string name="action_rename">Rebautizar</string>
+    <string name="action_rename">Renombrar</string>
     <string name="action_export">Exportar</string>
     <string name="action_import_theme">Importar tema</string>
 
     <!-- Channel operator actions -->
     <string name="operator_actions">Acciones del operador</string>
-    <string name="operator_actions_for">Acciones del operador en %s</string>
-    <string name="operator_kick">Patada</string>
-    <string name="operator_kickban">Kickban</string>
-    <string name="operator_tban">Anfitrión de prohibición temporal</string>
-    <string name="operator_mute">Silenciar host</string>
-    <string name="operator_audi">Identificación de Audi</string>
-    <string name="operator_unban_host">Eliminar la prohibición exacta del host</string>
-    <string name="operator_voice">Dar voz</string>
-    <string name="operator_mask">Máscara de prohibición</string>
+    <string name="operator_actions_for">Acciones del operador en %1$s</string>
+    <string name="operator_kick">Kick</string>
+    <string name="operator_kickban">Kickban de host</string>
+    <string name="operator_tban">TBAN de host</string>
+    <string name="operator_mute">Mute de host</string>
+    <string name="operator_audi">Audi de ident</string>
+    <string name="operator_unban_host">Eliminar ban exacto de host</string>
+    <string name="operator_voice">Dar voice</string>
+    <string name="operator_mask">Máscara de ban</string>
     <string name="operator_invalid_mask">Ingrese una máscara válida sin espacios.</string>
     <string name="operator_historical_data">Datos históricos WHOWAS</string>
-    <string name="operator_historical_data_desc">El host y la identificación pertenecen a la conexión más reciente del usuario.</string>
-    <string name="operator_choose_channel">Elige canal operador</string>
-    <string name="operator_not_authorised">Las acciones del operador requieren un estado de media operación o superior en este canal.</string>
-    <string name="operator_reason_optional">(opcional)</string>
-    <string name="operator_custom_reason">Motivo personalizado</string>
+    <string name="operator_historical_data_desc">El host y el ident pertenecen a la conexión más reciente del usuario.</string>
+    <string name="operator_choose_channel">Elegir canal donde eres operador</string>
+    <string name="operator_not_authorised">Las acciones de operador requieren estado half-op o superior en este canal.</string>
+    <string name="operator_reason_optional">Motivo (opcional)</string>
+    <string name="operator_custom_reason">Mensaje personalizado…</string>
     <string name="operator_duration">Duración (por ejemplo 3h)</string>
     <string name="operator_invalid_duration">Introduzca una duración como 30 m, 3 h o 1 d.</string>
     <string name="operator_confirm_title">Confirmar acción del operador</string>
@@ -186,25 +186,25 @@
     <string name="file_upload_confirm">¿Subir %1$s (%2$s) y enviar el enlace temporal a %3$s?</string>
     <string name="file_upload_progress">Subiendo archivo temporal…</string>
     <string name="file_upload_sent">Archivo cargado y enlace enviado</string>
-    <string name="file_upload_failed">Error al cargar: %s</string>
-    <string name="file_upload_send_failed">El archivo fue subido, pero no se pudo enviar el enlace: %s</string>
+    <string name="file_upload_failed">Error al cargar: %1$s</string>
+    <string name="file_upload_send_failed">El archivo fue subido, pero no se pudo enviar el enlace: %1$s</string>
     <string name="search_messages_title">Buscar conversación</string>
     <string name="search_messages_hint">Texto del mensaje o apodo</string>
     <string name="search_messages_loading">Cargando mensajes guardados…</string>
     <string name="search_messages_failed">No se pudieron cargar los mensajes guardados.</string>
-    <string name="search_messages_ready">Busque dentro de los últimos mensajes guardados de %d.</string>
+    <string name="search_messages_ready">Buscar entre los últimos %1$d mensajes guardados.</string>
     <string name="search_messages_no_results">No hay coincidencias.</string>
-    <string name="search_messages_count">Coincidencia de %1$d con %2$d</string>
+    <string name="search_messages_count">Coincidencia %1$d de %2$d</string>
     <string name="search_previous">Anterior</string>
     <string name="search_next">Siguiente</string>
 
     <string name="action_delete_confirm_title">¿Estás seguro?</string>
-    <string name="action_delete_confirm_body">¿Está seguro de que desea eliminar %s? Esto no se puede deshacer.</string>
+    <string name="action_delete_confirm_body">¿Está seguro de que desea eliminar %1$s? Esto no se puede deshacer.</string>
 
     <!-- Format -->
 
     <string name="format_bold">Negrita</string>
-    <string name="format_italic">cursiva</string>
+    <string name="format_italic">Cursiva</string>
     <string name="format_underline">Subrayado</string>
     <string name="format_text_color">Color del texto</string>
     <string name="format_fill_color">Color de fondo</string>
@@ -212,24 +212,24 @@
 
     <!-- Service -->
 
-    <string name="service_title">conectado a IRC</string>
+    <string name="service_title">Conectado a IRC</string>
     <string name="service_open_private_chat">Abrir conversación privada</string>
     <string name="service_message_send_failed">No se pudo enviar el comando al servicio IRC</string>
     <plurals name="service_status_connected">
-        <item quantity="one">Conectado a la red %d</item>
-        <item quantity="other">Conectado a redes %d</item>
+        <item quantity="one">Conectado a la red %1$d</item>
+        <item quantity="other">Conectado a redes %1$d</item>
     </plurals>
     <plurals name="service_status_connecting">
-        <item quantity="one">conectándose a la red %d</item>
-        <item quantity="other">conectándose a redes %d</item>
+        <item quantity="one">conectándose a la red %1$d</item>
+        <item quantity="other">conectándose a redes %1$d</item>
     </plurals>
     <plurals name="service_status_disconnected">
-        <item quantity="one">desconectado de la red %d</item>
-        <item quantity="other">desconectado de las redes %d</item>
+        <item quantity="one">desconectado de la red %1$d</item>
+        <item quantity="other">desconectado de las redes %1$d</item>
     </plurals>
     <plurals name="notify_multiple_messages">
-        <item quantity="one">%d mensaje no leído</item>
-        <item quantity="other">%d mensajes no leídos</item>
+        <item quantity="one">%1$d mensaje no leído</item>
+        <item quantity="other">%1$d mensajes no leídos</item>
     </plurals>
 
     <string name="notification_action_required">Se requiere acción del usuario</string>
@@ -247,8 +247,8 @@
     <string name="connection_error_command_title">Error al procesar comandos posteriores a la conexión</string>
     <string name="connection_error_command_notification_desc">Se ha producido un error interno al intentar procesar comandos posteriores a la conexión.</string>
     <plurals name="connection_error_command_dialog_content">
-        <item quantity="one">Se ha producido un error al procesar el siguiente comando para la red \"%s\":\n\n%s</item>
-        <item quantity="other">Se ha producido un error al procesar los siguientes comandos para la red \"%s\":\n\n%s</item>
+        <item quantity="one">Se ha producido un error al procesar el siguiente comando para la red \"%1$s\":\n\n%2$s</item>
+        <item quantity="other">Se ha producido un error al procesar los siguientes comandos para la red \"%1$s\":\n\n%2$s</item>
     </plurals>
 
     <!-- Server list -->
@@ -256,8 +256,8 @@
     <string name="server_list_header_active">Activo</string>
     <string name="server_list_header_inactive">Inactivo</string>
     <plurals name="server_list_connected">
-        <item quantity="one">conectado, canal %d</item>
-        <item quantity="other">conectado, canales %d</item>
+        <item quantity="one">conectado, canal %1$d</item>
+        <item quantity="other">conectado, canales %1$d</item>
     </plurals>
     <string name="server_list_connecting">Conectando…</string>
     <string name="server_list_disconnected">Desconectado</string>
@@ -275,8 +275,8 @@
     <string name="server_port">Puerto</string>
     <string name="server_ssl">Utilice SSL/TLS</string>
     <plurals name="server_manage_custom_certs_text">
-        <item quantity="one">%d certificado personalizado guardado</item>
-        <item quantity="other">%d certificados personalizados guardados</item>
+        <item quantity="one">%1$d certificado personalizado guardado</item>
+        <item quantity="other">%1$d certificados personalizados guardados</item>
     </plurals>
     <string name="server_manage_custom_certs">Administrar certificados personalizados</string>
     <string name="server_password_unchanged">Sin cambios</string>
@@ -289,7 +289,7 @@
     <string name="server_user">Usuario</string>
     <string name="server_realname">Nombre real</string>
     <string name="server_sasl_ext_none">No hay ningún certificado establecido</string>
-    <string name="server_sasl_ext_fp">Huella digital del certificado: %s</string>
+    <string name="server_sasl_ext_fp">Huella digital del certificado: %1$s</string>
     <string name="server_sasl_ext_import">Importar PEM</string>
     <string name="server_sasl_ext_create">Crear nuevo</string>
     <string name="error_cert_already_present">El archivo especificado tiene más de una entrada de certificado.</string>
@@ -311,7 +311,7 @@
 
     <!-- Certificate error dialog -->
 
-    <string name="certificate_error">No se pudo verificar el certificado %s\'</string>
+    <string name="certificate_error">No se pudo verificar el certificado %1$s\'</string>
     <string name="certificate_error_ignore">Aceptar y continuar</string>
     <string name="certificate_bad_cert">El sistema no reconoce el siguiente certificado:</string>
     <string name="certificate_bad_hostname">El nombre de host proporcionado en el certificado (%1$s) por el host no coincide con el nombre de host al que nos estamos conectando (%2$s).</string>
@@ -324,8 +324,8 @@
     <string name="action_sort_member_count">Ordenar por número de miembros</string>
 
     <plurals name="channel_list_title_with_member_count">
-        <item quantity="one">%s (miembro %d)</item>
-        <item quantity="other">%s (miembros de %d)</item>
+        <item quantity="one">%1$s (miembro %2$d)</item>
+        <item quantity="other">%1$s (miembros de %2$d)</item>
     </plurals>
 
     <!-- Settings -->
@@ -334,18 +334,18 @@
 
     <string name="value_default">Predeterminado</string>
     <string name="value_custom">personalizado</string>
-    <string name="value_custom_specific">Personalizado (%s)</string>
+    <string name="value_custom_specific">Personalizado (%1$s)</string>
     <string name="value_none">Ninguno</string>
     <string name="value_any">Cualquiera</string>
     <string name="value_always">Siempre</string>
     <string name="value_never">Nunca</string>
-    <string name="value_preset">Programar</string>
+    <string name="value_preset">Preestablecido</string>
     <string name="value_not_set">No establecido</string>
     <string name="value_total">Total</string>
-    <string name="value_copy">%s (copia)</string>
-    <string name="entry_name">Texto</string>
+    <string name="value_copy">%1$s (copia)</string>
+    <string name="entry_name">Nombre</string>
     <string name="entry_text">Texto</string>
-    <string name="entry_username">Contraseña</string>
+    <string name="entry_username">Nombre de usuario</string>
     <string name="entry_password">Contraseña</string>
     <string name="entry_comment">Comentario</string>
 
@@ -358,20 +358,20 @@
     <!-- Time -->
 
     <plurals name="time_seconds">
-        <item quantity="one">%d segundo</item>
-        <item quantity="other">%d segundos</item>
+        <item quantity="one">%1$d segundo</item>
+        <item quantity="other">%1$d segundos</item>
     </plurals>
     <plurals name="time_minutes">
-        <item quantity="one">%d minuto</item>
-        <item quantity="other">%d minutos</item>
+        <item quantity="one">%1$d minuto</item>
+        <item quantity="other">%1$d minutos</item>
     </plurals>
     <plurals name="time_hours">
-        <item quantity="one">%d hora</item>
-        <item quantity="other">%d horas</item>
+        <item quantity="one">%1$d hora</item>
+        <item quantity="other">%1$d horas</item>
     </plurals>
     <plurals name="time_days">
-        <item quantity="one">%d día</item>
-        <item quantity="other">%d días</item>
+        <item quantity="one">%1$d día</item>
+        <item quantity="other">%1$d días</item>
     </plurals>
 
     <!-- User settings -->
@@ -389,7 +389,7 @@
 
     <!-- Interface settings -->
 
-    <string name="pref_header_interface">Idioma</string>
+    <string name="pref_header_interface">Interfaz</string>
     <string name="pref_header_language">Idioma</string>
     <string name="pref_title_language">Idioma de la aplicación</string>
     <string-array name="pref_entries_language">
@@ -467,14 +467,14 @@
     <string name="message_format_event_hostname">Mostrar el nombre de host del usuario</string>
     <string name="message_format_date_invalid">Formato de fecha/hora no válido</string>
 
-    <string name="message_format_time">Remitente</string>
-    <string name="message_format_sender">Mensaje</string>
-    <string name="message_format_message">Prefijo</string>
+    <string name="message_format_time">hora</string>
+    <string name="message_format_sender">remitente</string>
+    <string name="message_format_message">mensaje</string>
     <string name="message_format_sender_prefix">prefijo</string>
-    <string name="message_format_time_add">Tiempo</string>
-    <string name="message_format_sender_add">Mensaje</string>
+    <string name="message_format_time_add">Hora</string>
+    <string name="message_format_sender_add">Remitente</string>
     <string name="message_format_message_add">Mensaje</string>
-    <string name="message_format_wrap_anchor_add">Anclaje envolvente</string>
+    <string name="message_format_wrap_anchor_add">Anclaje de ajuste</string>
     <string name="message_format_sender_prefix_add">Prefijo del remitente</string>
 
     <string name="message_format_add_chip">Agregar chip de formato</string>
@@ -581,13 +581,13 @@
     <string name="notification_rule_summary_any_server">Cualquier servidor</string>
     <string name="notification_rule_summary_any_channel">cualquier canal</string>
     <plurals name="notification_rule_summary_multi_channels">
-        <item quantity="one">%d</item>
-        <item quantity="other">%d</item>
+        <item quantity="one">%1$d</item>
+        <item quantity="other">%1$d</item>
     </plurals>
     <string name="notification_rule_summary_any_nick">cualquier nick</string>
     <plurals name="notification_rule_summary_multi_nicks">
-        <item quantity="one">Mellas %d</item>
-        <item quantity="other">Mellas %d</item>
+        <item quantity="one">Mellas %1$d</item>
+        <item quantity="other">Mellas %1$d</item>
     </plurals>
 
     <string name="notification_header_options">Opciones</string>
@@ -627,8 +627,8 @@
     <string name="reconnect_header_tries">intenta</string>
 
     <plurals name="reconnect_desc_tries">
-        <item quantity="one">\"(intento %d)\"</item>
-        <item quantity="other">\"(%d intenta)\"</item>
+        <item quantity="one">\"(intento %1$d)\"</item>
+        <item quantity="other">\"(%1$d intenta)\"</item>
     </plurals>
 
     <string-array name="duration_types">
@@ -724,17 +724,17 @@
     <!-- Ignore list -->
 
     <string name="title_activity_ignore_list">Lista de ignorados</string>
-    <string name="title_activity_ignore_list_network">Lista de ignorados para %s</string>
+    <string name="title_activity_ignore_list_network">Lista de ignorados para %1$s</string>
     <string name="title_activity_edit_ignore_entry">Editar una entrada ignorada</string>
     <string name="title_activity_add_ignore_entry">Agregar una entrada ignorada</string>
 
     <!-- User info -->
 
-    <string name="user_title_away">%s (lejos)</string>
+    <string name="user_title_away">%1$s (lejos)</string>
     <string name="user_nick">Nick</string>
     <string name="user_hostname">Nombre de host</string>
     <string name="user_server">Estado del medio operador del canal</string>
-    <string name="user_server_format">%s (%s)</string>
+    <string name="user_server_format">%1$s (%2$s)</string>
     <string name="user_channels">Canales</string>
     <string name="user_idle">Tiempo de inactividad</string>
     <string name="user_server_op">Estado del operador del servidor</string>
@@ -744,7 +744,7 @@
     <string name="user_account">Cuenta</string>
     <string name="user_away">Mensaje de ausencia</string>
 
-    <string name="user_info_copied">Copiado %s al portapapeles.</string>
+    <string name="user_info_copied">Copiado %1$s al portapapeles.</string>
 
     <!-- Color picker -->
 
@@ -788,21 +788,21 @@
     <string name="notification_channel_dcc">@string/title_activity_dcc</string>
     <string name="dcc_summary_notification_title">DCC transferencias en curso</string>
     <plurals name="dcc_summary_notification_text">
-        <item quantity="one">%d transferencia en curso</item>
-        <item quantity="other">%d transferencias en curso</item>
+        <item quantity="one">%1$d transferencia en curso</item>
+        <item quantity="other">%1$d transferencias en curso</item>
     </plurals>
-    <string name="dcc_active_upload_transfer_status">Cargando a %s</string>
-    <string name="dcc_active_download_transfer_status">Descarga desde %s</string>
+    <string name="dcc_active_upload_transfer_status">Cargando a %1$s</string>
+    <string name="dcc_active_download_transfer_status">Descarga desde %1$s</string>
     <string name="dcc_active_waiting_for_connection">Esperando conexión…</string>
     <string name="dcc_active_waiting_for_approval">Esperando la aprobación del usuario…</string>
-    <string name="dcc_approve_notification_body">%s (del servidor: %s) le ha enviado un archivo</string>
+    <string name="dcc_approve_notification_body">%1$s (del servidor: %2$s) le ha enviado un archivo</string>
     <string name="dcc_history_upload">subido %2$s a %3$s (%1$s)</string>
     <string name="dcc_history_download">Descargado %2$s de %3$s (%1$s)</string>
     <string name="dcc_history_download_failed">No se pudo descargar %2$s de %1$s</string>
 
-    <string name="dcc_approve_download_title">Archivo DCC: %s</string>
-    <string name="dcc_approve_download_title_with_size">DCC: %s (%s)</string>
-    <string name="dcc_approve_download_body">%s (del servidor: %s) le ha enviado un archivo.\n\nAdvertencia: esta descarga se transmitirá a través de una conexión no cifrada &amp; insegura. Aceptar esta descarga permitirá que la otra parte vea su dirección IP. Debes aceptarlo sólo si confías en este usuario.</string>
+    <string name="dcc_approve_download_title">Archivo DCC: %1$s</string>
+    <string name="dcc_approve_download_title_with_size">DCC: %1$s (%2$s)</string>
+    <string name="dcc_approve_download_body">%1$s (del servidor: %2$s) le ha enviado un archivo.\n\nAdvertencia: esta descarga se transmitirá a través de una conexión no cifrada &amp; insegura. Aceptar esta descarga permitirá que la otra parte vea su dirección IP. Debes aceptarlo sólo si confías en este usuario.</string>
     <string name="dcc_approve_download_enable_anyway">Habilitar de todos modos</string>
 
     <string name="dcc_enable_send_warning_title">Advertencia de seguridad</string>
@@ -824,13 +824,13 @@
 
     <string name="channel_modes_menu">Modos de canal</string>
     <string name="action_list_channels">Listar canales</string>
-    <string name="channel_modes_title">para %s</string>
+    <string name="channel_modes_title">para %1$s</string>
     <string name="channel_modes_loading">Cargando modos de canal activo…</string>
     <string name="channel_modes_failed">No se pudieron cargar los modos del canal.</string>
     <string name="channel_modes_timeout">El servidor no devolvió los modos de canal activos.</string>
     <string name="channel_modes_none">Este servidor no anunció ningún modo de indicador editable.</string>
     <string name="channel_modes_no_changes">No se seleccionaron cambios de modo.</string>
-    <string name="channel_modes_profile">Definiciones: %s</string>
+    <string name="channel_modes_profile">Definiciones: %1$s</string>
     <string name="channel_modes_profile_inspircd3">InspIRCd 3</string>
     <string name="channel_modes_profile_inspircd4">InspIRCd 4</string>
     <string name="channel_modes_profile_generic">IRC tipos estándar/anunciados por el servidor</string>
@@ -838,7 +838,7 @@
     <string name="channel_mode_limit">Límite de usuarios (+l)</string>
     <string name="channel_mode_key_hint">Llave</string>
     <string name="channel_mode_limit_hint">Número máximo de usuarios</string>
-    <string name="channel_mode_value_required">Introduzca un valor para el modo +%s.</string>
+    <string name="channel_mode_value_required">Introduzca un valor para el modo +%1$s.</string>
     <string name="channel_mode_desc_i">Canal solo por invitación</string>
     <string name="channel_mode_desc_m">Sólo los usuarios con voz o privilegiados pueden hablar</string>
     <string name="channel_mode_desc_n">Bloquear mensajes desde fuera del canal</string>
@@ -865,7 +865,7 @@
     <string name="channel_mode_managed">gestionado por servidor o servicios</string>
 
     <string name="ban_list_menu">Lista de prohibiciones</string>
-    <string name="ban_list_title">Lista de prohibiciones para %s</string>
+    <string name="ban_list_title">Lista de prohibiciones para %1$s</string>
     <string name="ban_list_loading">Cargando la lista de baneos…</string>
     <string name="ban_list_failed">No se pudo cargar la lista de prohibiciones.</string>
     <string name="ban_list_host">Anfitrión/máscara</string>
@@ -881,8 +881,8 @@
     <string name="ban_list_cleanup_none">No se encontraron prohibiciones de host o de identificación elegibles con una antigüedad de entre 48 y 72 horas.</string>
     <string name="ban_list_cleanup_confirm_title">¿Limpiar prohibiciones temporales?</string>
     <plurals name="ban_list_cleanup_confirm_message">
-        <item quantity="one">%d se ha seleccionado la prohibición elegible. Se excluyen las entradas j: y R:, fechas desconocidas y otros tipos de máscaras.</item>
-        <item quantity="other">%d Se seleccionan prohibiciones elegibles. Se excluyen las entradas j: y R:, fechas desconocidas y otros tipos de máscaras.</item>
+        <item quantity="one">%1$d se ha seleccionado la prohibición elegible. Se excluyen las entradas j: y R:, fechas desconocidas y otros tipos de máscaras.</item>
+        <item quantity="other">%1$d Se seleccionan prohibiciones elegibles. Se excluyen las entradas j: y R:, fechas desconocidas y otros tipos de máscaras.</item>
     </plurals>
     <string name="ban_list_cleanup_review">Revisar selección</string>
     <string name="ban_list_cleanup_remove">Eliminar ahora</string>
@@ -945,7 +945,7 @@
     <string name="voice_permission_required">Se requiere permiso de micrófono para grabar un mensaje de voz.</string>
     <string name="voice_record_failed">No se pudo iniciar la grabación de voz.</string>
     <string name="voice_record_title">Grabar mensaje de voz</string>
-    <string name="voice_record_in_progress">Grabación… %s</string>
+    <string name="voice_record_in_progress">Grabación… %1$s</string>
     <string name="voice_record_stop">Detener</string>
     <string name="voice_record_play">Reproducir</string>
     <string name="voice_record_pause">Pausa</string>

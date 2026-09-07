@@ -19,24 +19,56 @@ public class SpannableStringHelper {
     public static final String SPAN_TYPE_STYLE = "style";
 
     public static CharSequence format(CharSequence seq, Object... args) {
-        int argI = 0;
+        int nextArgIdx = 0;
         SpannableStringBuilder builder = new SpannableStringBuilder(seq);
-        for (int i = 0; i < builder.length() - 1; i++) {
+        int i = 0;
+        while (i < builder.length()) {
             if (builder.charAt(i) == '%') {
-                int c = builder.charAt(++i);
+                int start = i;
+                i++;
+                if (i >= builder.length())
+                    break;
+                int position = -1;
+                int numStart = i;
+                while (i < builder.length() && Character.isDigit(builder.charAt(i))) {
+                    i++;
+                }
+                if (i > numStart && i < builder.length() && builder.charAt(i) == '$') {
+                    try {
+                        position = Integer.parseInt(builder.subSequence(numStart, i).toString());
+                    } catch (NumberFormatException ignored) {
+                    }
+                    i++; // skip '$'
+                } else {
+                    i = numStart; // reset index if no '$'
+                }
+                if (i >= builder.length())
+                    break;
+                char conversion = builder.charAt(i);
+                i++; // advance past conversion specifier
+
                 CharSequence replacement = null;
-                switch (c) {
-                    case 's':
-                        replacement = (CharSequence) args[argI++];
-                        break;
-                    case '%':
-                        replacement = "%";
-                        break;
+                if (conversion == '%') {
+                    replacement = "%";
+                } else if (conversion == 's' || conversion == 'd') {
+                    int argIndex = (position > 0) ? position - 1 : nextArgIdx++;
+                    if (argIndex >= 0 && argIndex < args.length) {
+                        Object arg = args[argIndex];
+                        if (arg instanceof CharSequence)
+                            replacement = (CharSequence) arg;
+                        else if (arg != null)
+                            replacement = String.valueOf(arg);
+                        else
+                            replacement = "null";
+                    }
                 }
+
                 if (replacement != null) {
-                    builder.replace(i - 1, i + 1, replacement);
-                    i += replacement.length() - 2;
+                    builder.replace(start, i, replacement);
+                    i = start + replacement.length();
                 }
+            } else {
+                i++;
             }
         }
         return builder;

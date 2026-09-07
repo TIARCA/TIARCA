@@ -12,36 +12,36 @@
 
     <string name="tab_server">Server</string>
     <string name="message_hint">Send a message</string>
-    <string name="message_join">%s has joined</string>
-    <string name="message_kick">%s has kicked %s (%s)</string>
-    <string name="message_part">%s has left (%s)</string>
-    <string name="message_part_no_message">%s has left</string>
-    <string name="message_quit">%s has disconnected (%s)</string>
-    <string name="message_nick_change">%s is now known as %s</string>
-    <string name="message_topic">Topic: %s</string>
-    <string name="message_topic_whotime">Topic was set by %s on %s</string>
-    <string name="message_topic_by">Topic: %s, set by %s</string>
+    <string name="message_join">%1$s has joined</string>
+    <string name="message_kick">%1$s has kicked %2$s (%3$s)</string>
+    <string name="message_part">%1$s has left (%2$s)</string>
+    <string name="message_part_no_message">%1$s has left</string>
+    <string name="message_quit">%1$s has disconnected (%2$s)</string>
+    <string name="message_nick_change">%1$s is now known as %2$s</string>
+    <string name="message_topic">Topic: %1$s</string>
+    <string name="message_topic_whotime">Topic was set by %1$s on %2$s</string>
+    <string name="message_topic_by">Topic: %1$s, set by %2$s</string>
     <string name="message_topic_none">Topic was not set</string>
 
-    <string name="message_host_info">Server name is %s, running %s. Supported user modes: %s, supported channel modes: %s</string>
+    <string name="message_host_info">Server name is %1$s, running %2$s. Supported user modes: %3$s, supported channel modes: %4$s</string>
     <string name="message_motd">Message of the Day</string>
-    <string name="message_whois">%s\'s user information</string>
+    <string name="message_whois">%1$s\'s user information</string>
 
-    <string name="message_mode">%s %s</string>
-    <string name="message_mode_set">set %s</string>
-    <string name="message_mode_unset">unset %s</string>
-    <string name="message_mode_gave">gave %s</string>
-    <string name="message_mode_removed">removed %s</string>
+    <string name="message_mode">%1$s %2$s</string>
+    <string name="message_mode_set">set %1$s</string>
+    <string name="message_mode_unset">unset %1$s</string>
+    <string name="message_mode_gave">gave %1$s</string>
+    <string name="message_mode_removed">removed %1$s</string>
 
-    <string name="message_mode_gave_to">%s to %s</string>
-    <string name="message_mode_removed_from">%s from %s</string>
+    <string name="message_mode_gave_to">%1$s to %2$s</string>
+    <string name="message_mode_removed_from">%1$s from %2$s</string>
 
     <plurals name="message_mode_channel">
-        <item quantity="one">channel mode \'%s\'</item>
-        <item quantity="other">channel modes \'%s\'</item>
+        <item quantity="one">channel mode \'%1$s\'</item>
+        <item quantity="other">channel modes \'%1$s\'</item>
     </plurals>
-    <string name="message_mode_channel_value">channel mode \'%s\' to %s</string>
-    <string name="message_mode_channel_ban">a ban on %s</string>
+    <string name="message_mode_channel_value">channel mode \'%1$s\' to %2$s</string>
+    <string name="message_mode_channel_ban">a ban on %1$s</string>
     <string name="message_mode_nick_owner">channel owner status</string>
     <string name="message_mode_nick_admin">channel admin status</string>
     <string name="message_mode_nick_op">channel operator status</string>
@@ -57,7 +57,7 @@
     <string name="command_send_raw">Send as raw</string>
 
     <string name="channel_topic">Topic</string>
-    <string name="channel_topic_info">set by %s on %s</string>
+    <string name="channel_topic_info">set by %1$s on %2$s</string>
     <string name="channel_topic_none">No topic was set</string>
     <string name="channel_members">Members</string>
     <string name="member_search_hint">Search users</string>
@@ -70,11 +70,11 @@
 
     <plurals name="unread_message_counter">
         <item quantity="one">1 unread message</item>
-        <item quantity="other">%d unread messages</item>
+        <item quantity="other">%1$d unread messages</item>
     </plurals>
     <plurals name="mention_counter">
         <item quantity="one">1 mention</item>
-        <item quantity="other">%d mentions</item>
+        <item quantity="other">%1$d mentions</item>
     </plurals>
     <string name="unread_counter_with_mentions">%1$s · %2$s</string>
     <string name="unread_99_plus">99+ unread messages</string>
@@ -92,7 +92,7 @@
 
     <plurals name="message_delete_confirm">
         <item quantity="one">Are you sure you want to delete the selected message?</item>
-        <item quantity="other">Are you sure you want to delete the selected %d messages?</item>
+        <item quantity="other">Are you sure you want to delete the selected %1$d messages?</item>
     </plurals>
     <string name="message_delete_confirm_note">The messages will only be deleted on this device.</string>
 
@@ -166,7 +166,7 @@
 
     <!-- Channel operator actions -->
     <string name="operator_actions">Operator actions</string>
-    <string name="operator_actions_for">Operator actions in %s</string>
+    <string name="operator_actions_for">Operator actions in %1$s</string>
     <string name="operator_kick">Kick</string>
     <string name="operator_kickban">Kickban host</string>
     <string name="operator_kickban_ident">Kickban ident</string>
@@ -195,20 +195,20 @@
     <string name="file_upload_confirm">Upload %1$s (%2$s) and send the temporary link to %3$s?</string>
     <string name="file_upload_progress">Uploading temporary file…</string>
     <string name="file_upload_sent">File uploaded and link sent</string>
-    <string name="file_upload_failed">Upload failed: %s</string>
-    <string name="file_upload_send_failed">The file was uploaded, but the link could not be sent: %s</string>
+    <string name="file_upload_failed">Upload failed: %1$s</string>
+    <string name="file_upload_send_failed">The file was uploaded, but the link could not be sent: %1$s</string>
     <string name="search_messages_title">Search conversation</string>
     <string name="search_messages_hint">Message text or nickname</string>
     <string name="search_messages_loading">Loading saved messages…</string>
     <string name="search_messages_failed">Could not load saved messages.</string>
-    <string name="search_messages_ready">Search within the latest %d saved messages.</string>
+    <string name="search_messages_ready">Search within the latest %1$d saved messages.</string>
     <string name="search_messages_no_results">No matches.</string>
     <string name="search_messages_count">Match %1$d of %2$d</string>
     <string name="search_previous">Previous</string>
     <string name="search_next">Next</string>
 
     <string name="action_delete_confirm_title">Are you sure?</string>
-    <string name="action_delete_confirm_body">Are you sure you want to delete %s? This cannot be undone.</string>
+    <string name="action_delete_confirm_body">Are you sure you want to delete %1$s? This cannot be undone.</string>
 
     <!-- Format -->
 
@@ -225,20 +225,20 @@
     <string name="service_open_private_chat">Open private conversation</string>
     <string name="service_message_send_failed">The command could not be sent to the IRC service</string>
     <plurals name="service_status_connected">
-        <item quantity="one">Connected to %d network</item>
-        <item quantity="other">Connected to %d networks</item>
+        <item quantity="one">Connected to %1$d network</item>
+        <item quantity="other">Connected to %1$d networks</item>
     </plurals>
     <plurals name="service_status_connecting">
-        <item quantity="one">connecting to %d network</item>
-        <item quantity="other">connecting to %d networks</item>
+        <item quantity="one">connecting to %1$d network</item>
+        <item quantity="other">connecting to %1$d networks</item>
     </plurals>
     <plurals name="service_status_disconnected">
-        <item quantity="one">disconnected from %d network</item>
-        <item quantity="other">disconnected from %d networks</item>
+        <item quantity="one">disconnected from %1$d network</item>
+        <item quantity="other">disconnected from %1$d networks</item>
     </plurals>
     <plurals name="notify_multiple_messages">
-        <item quantity="one">%d unread message</item>
-        <item quantity="other">%d unread messages</item>
+        <item quantity="one">%1$d unread message</item>
+        <item quantity="other">%1$d unread messages</item>
     </plurals>
 
     <string name="notification_action_required">User action required</string>
@@ -256,8 +256,8 @@
     <string name="connection_error_command_title">Error processing post-connect commands</string>
     <string name="connection_error_command_notification_desc">An internal error has occurred while trying to process post-connect commands.</string>
     <plurals name="connection_error_command_dialog_content">
-        <item quantity="one">An error has occurred processing the following command for the network \"%s\":\n\n%s</item>
-        <item quantity="other">An error has occurred processing the following commands for the network \"%s\":\n\n%s</item>
+        <item quantity="one">An error has occurred processing the following command for the network \"%1$s\":\n\n%2$s</item>
+        <item quantity="other">An error has occurred processing the following commands for the network \"%1$s\":\n\n%2$s</item>
     </plurals>
 
     <!-- Server list -->
@@ -265,8 +265,8 @@
     <string name="server_list_header_active">Active</string>
     <string name="server_list_header_inactive">Inactive</string>
     <plurals name="server_list_connected">
-        <item quantity="one">Connected, %d channel</item>
-        <item quantity="other">Connected, %d channels</item>
+        <item quantity="one">Connected, %1$d channel</item>
+        <item quantity="other">Connected, %1$d channels</item>
     </plurals>
     <string name="server_list_connecting">Connecting…</string>
     <string name="server_list_disconnected">Disconnected</string>
@@ -284,8 +284,8 @@
     <string name="server_port">Port</string>
     <string name="server_ssl">Use SSL/TLS</string>
     <plurals name="server_manage_custom_certs_text">
-        <item quantity="one">%d custom certificate saved</item>
-        <item quantity="other">%d custom certificates saved</item>
+        <item quantity="one">%1$d custom certificate saved</item>
+        <item quantity="other">%1$d custom certificates saved</item>
     </plurals>
     <string name="server_manage_custom_certs">Manage custom certificates</string>
     <string name="server_password_unchanged">Unchanged</string>
@@ -298,7 +298,7 @@
     <string name="server_user">User</string>
     <string name="server_realname">Real name</string>
     <string name="server_sasl_ext_none">No certificate set</string>
-    <string name="server_sasl_ext_fp">Certificate fingerprint: %s</string>
+    <string name="server_sasl_ext_fp">Certificate fingerprint: %1$s</string>
     <string name="server_sasl_ext_import">Import PEM</string>
     <string name="server_sasl_ext_create">Create new</string>
     <string name="error_cert_already_present">The specified file has more than a single certificate entry.</string>
@@ -320,7 +320,7 @@
 
     <!-- Certificate error dialog -->
 
-    <string name="certificate_error">Failed to verify %s\'s certificate</string>
+    <string name="certificate_error">Failed to verify %1$s\'s certificate</string>
     <string name="certificate_error_ignore">Accept and continue</string>
     <string name="certificate_bad_cert">The following certificate is not recognized by the system:</string>
     <string name="certificate_bad_hostname">The hostname provided in the certificate (%1$s) by the host does not match the hostname we are connecting to (%2$s).</string>
@@ -333,8 +333,8 @@
     <string name="action_sort_member_count">Sort by member count</string>
 
     <plurals name="channel_list_title_with_member_count">
-        <item quantity="one">%s (%d member)</item>
-        <item quantity="other">%s (%d members)</item>
+        <item quantity="one">%1$s (%2$d member)</item>
+        <item quantity="other">%1$s (%2$d members)</item>
     </plurals>
 
     <!-- Settings -->
@@ -343,7 +343,7 @@
 
     <string name="value_default">Default</string>
     <string name="value_custom">Custom</string>
-    <string name="value_custom_specific">Custom (%s)</string>
+    <string name="value_custom_specific">Custom (%1$s)</string>
     <string name="value_none">None</string>
     <string name="value_any">Any</string>
     <string name="value_always">Always</string>
@@ -351,7 +351,7 @@
     <string name="value_preset">Preset</string>
     <string name="value_not_set">Not set</string>
     <string name="value_total">Total</string>
-    <string name="value_copy">%s (copy)</string>
+    <string name="value_copy">%1$s (copy)</string>
     <string name="entry_name">Name</string>
     <string name="entry_text">Text</string>
     <string name="entry_username">Username</string>
@@ -367,20 +367,20 @@
     <!-- Time -->
 
     <plurals name="time_seconds">
-        <item quantity="one">%d second</item>
-        <item quantity="other">%d seconds</item>
+        <item quantity="one">%1$d second</item>
+        <item quantity="other">%1$d seconds</item>
     </plurals>
     <plurals name="time_minutes">
-        <item quantity="one">%d minute</item>
-        <item quantity="other">%d minutes</item>
+        <item quantity="one">%1$d minute</item>
+        <item quantity="other">%1$d minutes</item>
     </plurals>
     <plurals name="time_hours">
-        <item quantity="one">%d hour</item>
-        <item quantity="other">%d hours</item>
+        <item quantity="one">%1$d hour</item>
+        <item quantity="other">%1$d hours</item>
     </plurals>
     <plurals name="time_days">
-        <item quantity="one">%d day</item>
-        <item quantity="other">%d days</item>
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
     </plurals>
 
     <!-- User settings -->
@@ -591,11 +591,11 @@
     <string name="notification_rule_summary_any_server">Any server</string>
     <string name="notification_rule_summary_any_channel">any channel</string>
     <plurals name="notification_rule_summary_multi_channels">
-        <item quantity="other">%d channels</item>
+        <item quantity="other">%1$d channels</item>
     </plurals>
     <string name="notification_rule_summary_any_nick">any nick</string>
     <plurals name="notification_rule_summary_multi_nicks">
-        <item quantity="other">%d nicks</item>
+        <item quantity="other">%1$d nicks</item>
     </plurals>
 
     <string name="notification_header_options">Options</string>
@@ -635,8 +635,8 @@
     <string name="reconnect_header_tries">Tries</string>
 
     <plurals name="reconnect_desc_tries">
-        <item quantity="one">" (%d try)"</item>
-        <item quantity="other">" (%d tries)"</item>
+        <item quantity="one">" (%1$d try)"</item>
+        <item quantity="other">" (%1$d tries)"</item>
     </plurals>
 
     <string-array name="duration_types">
@@ -733,14 +733,14 @@
 
     <string name="title_activity_ignore_list">Ignore list</string>
     <string name="title_activity_monitored_users">Monitored users</string>
-    <string name="title_activity_monitored_users_network">Monitored users on %s</string>
+    <string name="title_activity_monitored_users_network">Monitored users on %1$s</string>
     <plurals name="monitored_users_count">
-        <item quantity="one">%d monitored user</item>
-        <item quantity="other">%d monitored users</item>
+        <item quantity="one">%1$d monitored user</item>
+        <item quantity="other">%1$d monitored users</item>
     </plurals>
     <string name="action_monitor_user">Monitor user</string>
     <string name="action_remove_monitored_user">Remove from monitored users</string>
-    <string name="monitor_user_title">Monitor %s</string>
+    <string name="monitor_user_title">Monitor %1$s</string>
     <string name="monitor_user_nickname">Nickname</string>
     <string name="monitor_user_presence">Monitor presence</string>
     <string name="monitor_user_notify_online">Notify when they come online</string>
@@ -751,8 +751,8 @@
     <string name="monitor_status_unavailable">Presence unavailable</string>
     <string name="monitor_status_over_limit">Not monitored: server limit reached</string>
     <string name="monitor_server_unsupported">This server does not support MONITOR.</string>
-    <string name="monitor_notification_online">%s came online</string>
-    <string name="monitor_notification_offline">%s went offline</string>
+    <string name="monitor_notification_online">%1$s came online</string>
+    <string name="monitor_notification_offline">%1$s went offline</string>
     <string name="monitor_notification_channel">Monitored users</string>
     <string name="monitor_notifications_enabled">Notifications enabled</string>
     <string name="monitor_primary_nickname">Primary nickname</string>
@@ -762,11 +762,11 @@
     <string name="action_remove_alias">Remove</string>
     <string name="monitor_alias_observed">learned from nickname change</string>
     <string name="monitor_alias_duplicate">This nickname is already in the group.</string>
-    <string name="monitor_alias_conflict">This nickname is already monitored in the group %s.</string>
-    <string name="monitor_status_online_as">Online as %s</string>
+    <string name="monitor_alias_conflict">This nickname is already monitored in the group %1$s.</string>
+    <string name="monitor_status_online_as">Online as %1$s</string>
     <string name="monitor_status_online_since">Online since %1$s at %2$s</string>
     <string name="monitor_status_online_as_since">Online as %1$s since %2$s at %3$s</string>
-    <string name="monitor_status_away_as">Away as %s</string>
+    <string name="monitor_status_away_as">Away as %1$s</string>
     <string name="monitor_status_away_since">Away since %1$s at %2$s</string>
     <string name="monitor_status_away_as_since">Away as %1$s since %2$s at %3$s</string>
     <string name="monitor_status_offline_last_seen">Offline · last seen on %1$s at %2$s</string>
@@ -775,21 +775,21 @@
     <string name="monitor_status_some_aliases_over_limit">some aliases exceed the server limit</string>
     <string name="monitor_status_partial_unavailable">Presence partially unavailable: server limit reached</string>
     <plurals name="monitor_status_aliases_online">
-        <item quantity="one">%d alias online</item>
-        <item quantity="other">%d aliases online</item>
+        <item quantity="one">%1$d alias online</item>
+        <item quantity="other">%1$d aliases online</item>
     </plurals>
-    <string name="title_activity_ignore_list_network">Ignore list for %s</string>
+    <string name="title_activity_ignore_list_network">Ignore list for %1$s</string>
     <string name="title_activity_edit_ignore_entry">Edit an ignore entry</string>
     <string name="title_activity_add_ignore_entry">Add an ignore entry</string>
     <string name="action_ignore_user">Ignore user</string>
-    <string name="ignore_user_title">Ignore %s</string>
+    <string name="ignore_user_title">Ignore %1$s</string>
     <string name="ignore_identify_by">Identify by</string>
     <string name="ignore_nickname">Nickname</string>
-    <string name="ignore_nickname_value">Nickname: %s</string>
+    <string name="ignore_nickname_value">Nickname: %1$s</string>
     <string name="ignore_ident">Ident</string>
-    <string name="ignore_ident_value">Ident: %s</string>
+    <string name="ignore_ident_value">Ident: %1$s</string>
     <string name="ignore_host">Host</string>
-    <string name="ignore_host_value">Host: %s</string>
+    <string name="ignore_host_value">Host: %1$s</string>
     <string name="ignore_messages">Ignore</string>
     <string name="ignore_duration">Duration</string>
     <string name="ignore_always">Always</string>
@@ -802,11 +802,11 @@
 
     <!-- User info -->
 
-    <string name="user_title_away">%s (away)</string>
+    <string name="user_title_away">%1$s (away)</string>
     <string name="user_nick">Nick</string>
     <string name="user_hostname">Hostname</string>
     <string name="user_server">Server</string>
-    <string name="user_server_format">%s (%s)</string>
+    <string name="user_server_format">%1$s (%2$s)</string>
     <string name="user_channels">Channels</string>
     <string name="user_idle">Idle time</string>
     <string name="user_server_op">Server operator status</string>
@@ -816,7 +816,7 @@
     <string name="user_account">Account</string>
     <string name="user_away">Away message</string>
 
-    <string name="user_info_copied">Copied %s to clipboard.</string>
+    <string name="user_info_copied">Copied %1$s to clipboard.</string>
 
     <!-- Color picker -->
 
@@ -860,21 +860,21 @@
     <string name="notification_channel_dcc">@string/title_activity_dcc</string>
     <string name="dcc_summary_notification_title">DCC transfers in progress</string>
     <plurals name="dcc_summary_notification_text">
-        <item quantity="one">%d transfer in progress</item>
-        <item quantity="other">%d transfers in progress</item>
+        <item quantity="one">%1$d transfer in progress</item>
+        <item quantity="other">%1$d transfers in progress</item>
     </plurals>
-    <string name="dcc_active_upload_transfer_status">Uploading to %s</string>
-    <string name="dcc_active_download_transfer_status">Downloading from %s</string>
+    <string name="dcc_active_upload_transfer_status">Uploading to %1$s</string>
+    <string name="dcc_active_download_transfer_status">Downloading from %1$s</string>
     <string name="dcc_active_waiting_for_connection">Waiting for connection…</string>
     <string name="dcc_active_waiting_for_approval">Waiting for user approval…</string>
-    <string name="dcc_approve_notification_body">%s (from server: %s) has sent you a file</string>
+    <string name="dcc_approve_notification_body">%1$s (from server: %2$s) has sent you a file</string>
     <string name="dcc_history_upload">Uploaded %2$s to %3$s (%1$s)</string>
     <string name="dcc_history_download">Downloaded %2$s from %3$s (%1$s)</string>
     <string name="dcc_history_download_failed">Failed to downloaded %2$s from %1$s</string>
 
-    <string name="dcc_approve_download_title">DCC file: %s</string>
-    <string name="dcc_approve_download_title_with_size">DCC file: %s (%s)</string>
-    <string name="dcc_approve_download_body">%s (from server: %s) has sent you a file.\n\nWarning: This download will be transmitted over an insecure &amp; unencrypted connection. Accepting this download will allow the other party to see your IP address. You should accept it only if you trust this user.</string>
+    <string name="dcc_approve_download_title">DCC file: %1$s</string>
+    <string name="dcc_approve_download_title_with_size">DCC file: %1$s (%2$s)</string>
+    <string name="dcc_approve_download_body">%1$s (from server: %2$s) has sent you a file.\n\nWarning: This download will be transmitted over an insecure &amp; unencrypted connection. Accepting this download will allow the other party to see your IP address. You should accept it only if you trust this user.</string>
     <string name="dcc_approve_download_enable_anyway">Enable anyway</string>
 
     <string name="dcc_enable_send_warning_title">Security warning</string>
@@ -896,13 +896,13 @@
 
     <string name="channel_modes_menu">Channel modes</string>
     <string name="action_list_channels">List channels</string>
-    <string name="channel_modes_title">Modes for %s</string>
+    <string name="channel_modes_title">Modes for %1$s</string>
     <string name="channel_modes_loading">Loading active channel modes…</string>
     <string name="channel_modes_failed">Could not load the channel modes.</string>
     <string name="channel_modes_timeout">The server did not return the active channel modes.</string>
     <string name="channel_modes_none">This server did not advertise any editable flag modes.</string>
     <string name="channel_modes_no_changes">No mode changes selected.</string>
-    <string name="channel_modes_profile">Definitions: %s</string>
+    <string name="channel_modes_profile">Definitions: %1$s</string>
     <string name="channel_modes_profile_inspircd3">InspIRCd 3</string>
     <string name="channel_modes_profile_inspircd4">InspIRCd 4</string>
     <string name="channel_modes_profile_generic">IRC standard / server-advertised types</string>
@@ -910,7 +910,7 @@
     <string name="channel_mode_limit">User limit (+l)</string>
     <string name="channel_mode_key_hint">Key</string>
     <string name="channel_mode_limit_hint">Maximum users</string>
-    <string name="channel_mode_value_required">Enter a value for mode +%s.</string>
+    <string name="channel_mode_value_required">Enter a value for mode +%1$s.</string>
     <string name="channel_mode_desc_i">Invite-only channel</string>
     <string name="channel_mode_desc_m">Only voiced or privileged users can speak</string>
     <string name="channel_mode_desc_n">Block messages from outside the channel</string>
@@ -937,7 +937,7 @@
     <string name="channel_mode_managed">managed by server or services</string>
 
     <string name="ban_list_menu">Ban list</string>
-    <string name="ban_list_title">Ban list for %s</string>
+    <string name="ban_list_title">Ban list for %1$s</string>
     <string name="ban_list_loading">Loading the ban list…</string>
     <string name="ban_list_failed">Could not load the ban list.</string>
     <string name="ban_list_host">Host / mask</string>
@@ -959,8 +959,8 @@
     <string name="ban_list_exceptions_not_supported">Exceptions (+e) are not supported by this server.</string>
     <string name="ban_list_cleanup_confirm_title">Clean up temporary bans?</string>
     <plurals name="ban_list_cleanup_confirm_message">
-        <item quantity="one">%d eligible ban is selected. j: and R: entries, unknown dates and other mask types are excluded.</item>
-        <item quantity="other">%d eligible bans are selected. j: and R: entries, unknown dates and other mask types are excluded.</item>
+        <item quantity="one">%1$d eligible ban is selected. j: and R: entries, unknown dates and other mask types are excluded.</item>
+        <item quantity="other">%1$d eligible bans are selected. j: and R: entries, unknown dates and other mask types are excluded.</item>
     </plurals>
     <string name="ban_list_cleanup_review">Review selection</string>
     <string name="ban_list_cleanup_remove">Remove now</string>
@@ -1024,7 +1024,7 @@
     <string name="voice_permission_required">Microphone permission is required to record a voice message.</string>
     <string name="voice_record_failed">Voice recording could not be started.</string>
     <string name="voice_record_title">Record voice message</string>
-    <string name="voice_record_in_progress">Recording… %s</string>
+    <string name="voice_record_in_progress">Recording… %1$s</string>
     <string name="voice_record_stop">Stop</string>
     <string name="voice_record_play">Play</string>
     <string name="voice_record_pause">Pause</string>

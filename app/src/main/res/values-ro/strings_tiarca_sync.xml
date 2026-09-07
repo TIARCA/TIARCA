@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="about_revolution_github">Revolution IRC pe GitHub</string>
+    <string name="member_search_hint">Caută utilizatori</string>
+    <string name="member_search_clear">Șterge căutarea utilizatorilor</string>
+    <string name="action_open_private">Deschide conversația privată</string>
+    <string name="action_mention_user">Menționează</string>
+    <string name="action_edit_monitor_user">Editează monitorizarea</string>
+    <string name="operator_kickban_ident">Kickban după ident</string>
+    <string name="operator_devoice">Elimină voice</string>
+    <string name="operator_ident_unavailable">Ident-ul utilizatorului nu este disponibil.</string>
+    <string name="pref_title_custom_username">Folosește un nume de utilizator personalizat</string>
+
+    <string name="title_activity_monitored_users">Utilizatori monitorizați</string>
+    <string name="title_activity_monitored_users_network">Utilizatori monitorizați pe %1$s</string>
+    <plurals name="monitored_users_count">
+        <item quantity="one">%1$d utilizator monitorizat</item>
+        <item quantity="few">%1$d utilizatori monitorizați</item>
+        <item quantity="other">%1$d de utilizatori monitorizați</item>
+    </plurals>
+    <string name="action_monitor_user">Monitorizează utilizatorul</string>
+    <string name="action_remove_monitored_user">Elimină din utilizatorii monitorizați</string>
+    <string name="monitor_user_title">Monitorizează %1$s</string>
+    <string name="monitor_user_nickname">Nick</string>
+    <string name="monitor_user_presence">Monitorizează prezența</string>
+    <string name="monitor_user_notify_online">Notifică atunci când intră online</string>
+    <string name="monitor_user_notify_offline">Notifică atunci când trece offline</string>
+    <string name="monitor_status_online">Online</string>
+    <string name="monitor_status_offline">Offline</string>
+    <string name="monitor_status_away">Absent</string>
+    <string name="monitor_status_unavailable">Prezență indisponibilă</string>
+    <string name="monitor_status_over_limit">Nemonitorizat: limita serverului a fost atinsă</string>
+    <string name="monitor_server_unsupported">Acest server nu acceptă MONITOR.</string>
+    <string name="monitor_notification_online">%1$s a intrat online</string>
+    <string name="monitor_notification_offline">%1$s a trecut offline</string>
+    <string name="monitor_notification_channel">Utilizatori monitorizați</string>
+    <string name="monitor_notifications_enabled">Notificări activate</string>
+    <string name="monitor_primary_nickname">Nick principal</string>
+    <string name="monitor_aliases">Aliasuri monitorizate</string>
+    <string name="action_add_monitor_alias">Adaugă alias</string>
+    <string name="action_add_alias_confirm">Adaugă</string>
+    <string name="action_remove_alias">Elimină</string>
+    <string name="monitor_alias_observed">învățat dintr-o schimbare de nick</string>
+    <string name="monitor_alias_duplicate">Acest nick este deja în grup.</string>
+    <string name="monitor_alias_conflict">Acest nick este deja monitorizat în grupul %1$s.</string>
+    <string name="monitor_status_online_as">Online ca %1$s</string>
+    <string name="monitor_status_online_since">Online din %1$s la %2$s</string>
+    <string name="monitor_status_online_as_since">Online ca %1$s din %2$s la %3$s</string>
+    <string name="monitor_status_away_as">Absent ca %1$s</string>
+    <string name="monitor_status_away_since">Absent din %1$s la %2$s</string>
+    <string name="monitor_status_away_as_since">Absent ca %1$s din %2$s la %3$s</string>
+    <string name="monitor_status_offline_last_seen">Offline · văzut ultima dată pe %1$s la %2$s</string>
+    <string name="monitor_status_offline_last_seen_unknown">Offline · ultima prezență online nu este disponibilă</string>
+    <string name="monitor_status_unknown">Starea nu este încă disponibilă</string>
+    <string name="monitor_status_some_aliases_over_limit">unele aliasuri depășesc limita serverului</string>
+    <string name="monitor_status_partial_unavailable">Prezență parțial indisponibilă: limita serverului a fost atinsă</string>
+    <plurals name="monitor_status_aliases_online">
+        <item quantity="one">%1$d alias online</item>
+        <item quantity="few">%1$d aliasuri online</item>
+        <item quantity="other">%1$d de aliasuri online</item>
+    </plurals>
+
+    <string name="action_ignore_user">Ignoră utilizatorul</string>
+    <string name="ignore_user_title">Ignoră %1$s</string>
+    <string name="ignore_identify_by">Identifică după</string>
+    <string name="ignore_nickname">Nick</string>
+    <string name="ignore_nickname_value">Nick: %1$s</string>
+    <string name="ignore_ident">Ident</string>
+    <string name="ignore_ident_value">Ident: %1$s</string>
+    <string name="ignore_host">Host</string>
+    <string name="ignore_host_value">Host: %1$s</string>
+    <string name="ignore_messages">Ignoră</string>
+    <string name="ignore_duration">Durată</string>
+    <string name="ignore_always">Întotdeauna</string>
+    <string name="ignore_custom_duration">Durată personalizată</string>
+    <string name="ignore_hours">Ore</string>
+    <string name="ignore_invalid_duration">Introdu un număr pozitiv de ore</string>
+    <string name="ignore_select_identity">Selectează cel puțin un câmp de identitate</string>
+    <string name="action_ignore">Ignoră</string>
+    <string name="action_remove_ignore">Nu mai ignora</string>
+
+    <string name="ban_list_search_hint">Caută…</string>
+    <string name="ban_list_search_clear">Șterge căutarea din lista de banuri</string>
+    <string name="ban_list_no_results">Niciun ban nu corespunde căutării.</string>
+    <string name="ban_list_tab_bans">Banuri</string>
+    <string name="ban_list_tab_exceptions">Excepții</string>
+    <string name="ban_list_exceptions_not_supported">Acest server nu acceptă excepții (+e).</string>
+    <string name="camera_permission_required">Este necesară permisiunea pentru cameră pentru a face o fotografie.</string>
+</resources>

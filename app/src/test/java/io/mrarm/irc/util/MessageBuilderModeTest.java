@@ -180,4 +180,119 @@ public class MessageBuilderModeTest {
         assertTrue(text.contains("il voice a UserA"));
         assertTrue(text.contains("il voice a UserB"));
     }
+
+    @Test
+    public void testResourcePlaceholdersValidation() throws Exception {
+        java.io.File resDir = new java.io.File("../app/src/main/res");
+        if (!resDir.exists()) {
+            resDir = new java.io.File("src/main/res");
+        }
+        assertTrue("Resource directory not found", resDir.exists());
+
+        java.io.File valuesDir = new java.io.File(resDir, "values");
+        java.util.Map<String, ResourceInfo> baseResources = loadResourcesFromDirectory(valuesDir);
+
+        java.io.File[] valueDirs = resDir.listFiles((dir, name) -> name.startsWith("values"));
+        assertTrue("No values directories found", valueDirs != null && valueDirs.length > 0);
+
+        for (java.io.File valDir : valueDirs) {
+            java.util.Map<String, ResourceInfo> localeResources = loadResourcesFromDirectory(valDir);
+            for (java.util.Map.Entry<String, ResourceInfo> entry : localeResources.entrySet()) {
+                String key = entry.getKey();
+                ResourceInfo resInfo = entry.getValue();
+
+                // Rule 1: Max positional index cannot exceed the total number of placeholders in this specific string
+                if (resInfo.maxPositionalIndex != -1) {
+                    assertTrue("Invalid positional placeholder index %" + resInfo.maxPositionalIndex
+                                    + "$ (exceeds total placeholder count " + resInfo.totalPlaceholderCount
+                                    + ") in " + resInfo.sourceFile + " for element " + key + ": \"" + resInfo.rawText + "\"",
+                            resInfo.maxPositionalIndex <= resInfo.totalPlaceholderCount);
+                }
+
+                // Rule 2: Compare against base English resource if present
+                ResourceInfo baseInfo = baseResources.get(key);
+                if (baseInfo != null) {
+                    int expectedCount = baseInfo.totalPlaceholderCount;
+                    if (resInfo.maxPositionalIndex != -1) {
+                        assertTrue("Positional placeholder index %" + resInfo.maxPositionalIndex
+                                        + "$ exceeds expected base argument count (" + expectedCount
+                                        + ") in " + resInfo.sourceFile + " for element " + key + ": \"" + resInfo.rawText + "\"",
+                                resInfo.maxPositionalIndex <= expectedCount);
+                    }
+                    assertTrue("Placeholder count (" + resInfo.totalPlaceholderCount
+                                    + ") exceeds expected base argument count (" + expectedCount
+                                    + ") in " + resInfo.sourceFile + " for element " + key + ": \"" + resInfo.rawText + "\"",
+                            resInfo.totalPlaceholderCount <= expectedCount);
+                }
+            }
+        }
+    }
+
+    private java.util.Map<String, ResourceInfo> loadResourcesFromDirectory(java.io.File dir) throws Exception {
+        java.util.Map<String, ResourceInfo> map = new java.util.HashMap<>();
+        java.io.File[] xmlFiles = dir.listFiles((d, name) -> name.endsWith(".xml"));
+        if (xmlFiles == null) return map;
+
+        javax.xml.parsers.DocumentBuilderFactory dbf = javax.xml.parsers.DocumentBuilderFactory.newInstance();
+        javax.xml.parsers.DocumentBuilder db = dbf.newDocumentBuilder();
+        java.util.regex.Pattern placeholderPattern = java.util.regex.Pattern.compile("%(?:(\\d+)\\$)?([a-zA-Z])");
+
+        for (java.io.File xmlFile : xmlFiles) {
+            org.w3c.dom.Document doc = db.parse(xmlFile);
+
+            org.w3c.dom.NodeList stringNodes = doc.getElementsByTagName("string");
+            for (int i = 0; i < stringNodes.getLength(); i++) {
+                org.w3c.dom.Element elem = (org.w3c.dom.Element) stringNodes.item(i);
+                String name = elem.getAttribute("name");
+                String text = elem.getTextContent();
+                if (name != null && !name.isEmpty() && text != null) {
+                    map.put(name, parseResourceInfo(xmlFile.getPath(), text, placeholderPattern));
+                }
+            }
+
+            org.w3c.dom.NodeList pluralNodes = doc.getElementsByTagName("plurals");
+            for (int i = 0; i < pluralNodes.getLength(); i++) {
+                org.w3c.dom.Element pluralElem = (org.w3c.dom.Element) pluralNodes.item(i);
+                String pluralName = pluralElem.getAttribute("name");
+                org.w3c.dom.NodeList itemNodes = pluralElem.getElementsByTagName("item");
+                for (int j = 0; j < itemNodes.getLength(); j++) {
+                    org.w3c.dom.Element itemElem = (org.w3c.dom.Element) itemNodes.item(j);
+                    String quantity = itemElem.getAttribute("quantity");
+                    String text = itemElem.getTextContent();
+                    if (pluralName != null && quantity != null && text != null) {
+                        map.put(pluralName + "[" + quantity + "]", parseResourceInfo(xmlFile.getPath(), text, placeholderPattern));
+                    }
+                }
+            }
+        }
+        return map;
+    }
+
+    private ResourceInfo parseResourceInfo(String sourceFile, String text, java.util.regex.Pattern pattern) {
+        ResourceInfo info = new ResourceInfo();
+        info.sourceFile = sourceFile;
+        info.rawText = text;
+        String cleanText = text.replace("%%", "");
+        java.util.regex.Matcher matcher = pattern.matcher(cleanText);
+        while (matcher.find()) {
+            info.totalPlaceholderCount++;
+            String posStr = matcher.group(1);
+            if (posStr != null) {
+                int pos = Integer.parseInt(posStr);
+                if (pos > info.maxPositionalIndex) {
+                    info.maxPositionalIndex = pos;
+                }
+            }
+            info.placeholderTypes.add(matcher.group(2));
+        }
+        return info;
+    }
+
+    private static class ResourceInfo {
+        String sourceFile;
+        String rawText;
+        int totalPlaceholderCount = 0;
+        int maxPositionalIndex = -1;
+        List<String> placeholderTypes = new ArrayList<>();
+    }
 }

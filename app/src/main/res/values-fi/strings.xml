@@ -9,56 +9,56 @@
     <string name="navigation_drawer_open">Avaa navigointilaatikko</string>
     <string name="navigation_drawer_close">Sulje navigointilaatikko</string>
 
-    <string name="tab_server">palvelin</string>
+    <string name="tab_server">Palvelin</string>
     <string name="message_hint">Lähetä viesti</string>
-    <string name="message_join">%s on liittynyt</string>
-    <string name="message_kick">%s on potkinut %s (%s)</string>
-    <string name="message_part">%s on lähtenyt (%s)</string>
-    <string name="message_part_no_message">%s on lähtenyt</string>
-    <string name="message_quit">%s on katkennut (%s)</string>
-    <string name="message_nick_change">%s tunnetaan nyt nimellä %s</string>
-    <string name="message_topic">Aihe: %s</string>
-    <string name="message_topic_whotime">Aiheen asetti %s mallilla %s</string>
-    <string name="message_topic_by">Aihe: %s, asettaja %s</string>
+    <string name="message_join">%1$s on liittynyt</string>
+    <string name="message_kick">%1$s on potkinut %2$s (%3$s)</string>
+    <string name="message_part">%1$s on lähtenyt (%2$s)</string>
+    <string name="message_part_no_message">%1$s on lähtenyt</string>
+    <string name="message_quit">%1$s on katkennut (%2$s)</string>
+    <string name="message_nick_change">%1$s tunnetaan nyt nimellä %2$s</string>
+    <string name="message_topic">Aihe: %1$s</string>
+    <string name="message_topic_whotime">Aiheen asetti %1$s mallilla %2$s</string>
+    <string name="message_topic_by">Aihe: %1$s, asettaja %2$s</string>
     <string name="message_topic_none">Aihetta ei asetettu</string>
 
-    <string name="message_host_info">Palvelimen nimi on %s, jossa on %s. Tuetut käyttäjätilat: %s, tuetut kanavatilat: %s</string>
+    <string name="message_host_info">Palvelimen nimi on %1$s, jossa on %2$s. Tuetut käyttäjätilat: %3$s, tuetut kanavatilat: %4$s</string>
     <string name="message_motd">Päivän viesti</string>
-    <string name="message_whois">%s\'s käyttäjätiedot</string>
+    <string name="message_whois">%1$s:n käyttäjätiedot</string>
 
-    <string name="message_mode">%s %s</string>
-    <string name="message_mode_set">sarja %s</string>
-    <string name="message_mode_unset">irrotettu %s</string>
-    <string name="message_mode_gave">antoi %s:n</string>
-    <string name="message_mode_removed">poistettu %s</string>
+    <string name="message_mode">%1$s %2$s</string>
+    <string name="message_mode_set">asetti %1$s</string>
+    <string name="message_mode_unset">poisti %1$s</string>
+    <string name="message_mode_gave">antoi %1$s</string>
+    <string name="message_mode_removed">poisti %1$s</string>
 
-    <string name="message_mode_gave_to">%s - %s</string>
-    <string name="message_mode_removed_from">%s alkaen %s</string>
+    <string name="message_mode_gave_to">%1$s käyttäjälle %2$s</string>
+    <string name="message_mode_removed_from">%1$s käyttäjältä %2$s</string>
 
     <plurals name="message_mode_channel">
-        <item quantity="one">kanavatila \'%s\'</item>
-        <item quantity="other">kanavatilat \'%s\'</item>
+        <item quantity="one">kanavatila \'%1$s\'</item>
+        <item quantity="other">kanavatilat \'%1$s\'</item>
     </plurals>
-    <string name="message_mode_channel_value">kanavatila \'%s\' - %s</string>
-    <string name="message_mode_channel_ban">%s:n kielto</string>
-    <string name="message_mode_nick_owner">-kanavan omistajan tila</string>
-    <string name="message_mode_nick_admin">-kanavan järjestelmänvalvojan tila</string>
-    <string name="message_mode_nick_op">-kanavan operaattorin tila</string>
-    <string name="message_mode_nick_half_op">-kanavan puolioperaattorin tila</string>
-    <string name="message_mode_nick_voice">ääni</string>
+    <string name="message_mode_channel_value">kanavatilan \'%1$s\' arvoon %2$s</string>
+    <string name="message_mode_channel_ban">ban käyttäjälle %1$s</string>
+    <string name="message_mode_nick_owner">kanavan omistajan tila</string>
+    <string name="message_mode_nick_admin">kanavan ylläpitäjän tila</string>
+    <string name="message_mode_nick_op">kanavaoperaattorin tila</string>
+    <string name="message_mode_nick_half_op">kanavan half-op-tila</string>
+    <string name="message_mode_nick_voice">voice</string>
 
     <string name="message_ctcp_ping">Vastaanotettu CTCP-ping</string>
-    <string name="message_ctcp_version">Vastaanotettu CTCP-versio</string>
+    <string name="message_ctcp_version">CTCP VERSION -pyyntö vastaanotettu</string>
 
     <string name="command_error_not_found">Tällaista komentoa ei löytynyt.</string>
     <string name="command_error_internal">Sisäinen virhe tapahtui yritettäessä käsitellä komentoa.</string>
 
-    <string name="command_send_raw">Lähetä raakana</string>
+    <string name="command_send_raw">Lähetä raw-komentona</string>
 
     <string name="channel_topic">Aihe</string>
-    <string name="channel_topic_info">asetti %s mallilla %s</string>
+    <string name="channel_topic_info">asetti %1$s mallilla %2$s</string>
     <string name="channel_topic_none">Aihetta ei ole asetettu</string>
-    <string name="channel_members">jäsenet</string>
+    <string name="channel_members">Jäsenet</string>
 
 
     <string name="message_share_title">Jaa chat-viestit</string>
@@ -67,20 +67,20 @@
 
     <plurals name="unread_message_counter">
         <item quantity="one">1 lukematon viesti</item>
-        <item quantity="other">%d lukemattomat viestit</item>
+        <item quantity="other">%1$d lukematonta viestiä</item>
     </plurals>
     <plurals name="mention_counter">
         <item quantity="one">1 maininta</item>
-        <item quantity="other">%d mainitsee</item>
+        <item quantity="other">%1$d mainintaa</item>
     </plurals>
     <string name="unread_counter_with_mentions">%1$s · %2$s</string>
     <string name="unread_99_plus">99+ lukemattomia viestejä</string>
-    <string name="action_mentions">mainitsee</string>
+    <string name="action_mentions">Maininnat</string>
     <string name="action_mark_read">Merkitse luetuksi</string>
     <string name="action_mark_mentions_read">Merkitse kaikki maininnat luetuiksi</string>
     <string name="mention_previous">Edellinen maininta</string>
     <string name="mention_next">Seuraava maininta</string>
-    <string name="mention_position">Mainitse %1$d %2$d:stä</string>
+    <string name="mention_position">Maininta %1$d / %2$d</string>
     <string name="mention_none">Tästä keskustelusta ei löytynyt mainintoja</string>
     <string name="mention_unavailable">Tämä maininta ei ole enää saatavilla chat-historiassa</string>
     <string name="unread_backlog_title">Lukemattomat viestit</string>
@@ -89,7 +89,7 @@
 
     <plurals name="message_delete_confirm">
         <item quantity="one">Haluatko varmasti poistaa valitun viestin?</item>
-        <item quantity="other">Haluatko varmasti poistaa valitut %d-viestit?</item>
+        <item quantity="other">Haluatko varmasti poistaa valitut %1$d-viestit?</item>
     </plurals>
     <string name="message_delete_confirm_note">Viestit poistetaan vain tästä laitteesta.</string>
 
@@ -98,15 +98,15 @@
     <string name="action_ok">OK</string>
     <string name="action_done">Valmis</string>
     <string name="action_delete">Poista</string>
-    <string name="action_edit">Edit</string>
+    <string name="action_edit">Muokkaa</string>
     <string name="action_cancel">Peruuta</string>
     <string name="action_expand">Laajenna</string>
     <string name="action_settings">Asetukset</string>
-    <string name="action_connect">Liitäntä</string>
+    <string name="action_connect">Yhdistä</string>
     <string name="action_disconnect">Irrota</string>
     <string name="action_reconnect">Liitä uudelleen</string>
-    <string name="action_open">Avoinna</string>
-    <string name="action_back">Takaosa</string>
+    <string name="action_open">Avaa</string>
+    <string name="action_back">Takaisin</string>
     <string name="action_close">Sulje</string>
     <string name="accessibility_send_message">Lähetä viesti</string>
     <string name="accessibility_complete_nickname">Täydennä nimimerkki</string>
@@ -115,11 +115,11 @@
     <string name="network_catalog_title">Lisää palvelin</string>
     <string name="network_catalog_manual">Lisää manuaalisesti</string>
     <string name="network_catalog_manual_summary">Anna mukautettu osoite ja yhteysasetukset</string>
-    <string name="network_catalog_search_hint">Hakuverkot</string>
-    <string name="network_catalog_sort_users">Useimmat käyttäjät</string>
+    <string name="network_catalog_search_hint">Hae verkkoja</string>
+    <string name="network_catalog_sort_users">Eniten käyttäjiä</string>
     <string name="network_catalog_sort_name">Nimi A–Z</string>
-    <string name="network_catalog_approximately">noin %1$s käyttäjät · %2$s kanavat</string>
-    <string name="network_catalog_unavailable">väestö ei saatavilla</string>
+    <string name="network_catalog_approximately">noin %1$s käyttäjää · %2$s kanavaa</string>
+    <string name="network_catalog_unavailable">käyttäjämäärä ei saatavilla</string>
     <string name="network_catalog_confirm_title">Lisää %1$s?</string>
     <string name="network_catalog_confirm_body">Palvelin: %1$s\nPort: %2$d\nTurvallisuus: %3$s\n\nTietoja voidaan muuttaa ennen tallentamista.</string>
     <string name="network_catalog_tls">TLS käytössä</string>
@@ -130,76 +130,76 @@
     <string name="server_hide_advanced">Piilota lisäasetukset</string>
     <string name="action_add_below">Lisää alle</string>
     <string name="action_add_rule">Lisää sääntö</string>
-    <string name="action_reorder">Tilaa uudelleen</string>
+    <string name="action_reorder">Järjestä uudelleen</string>
     <string name="action_undo">Kumoa</string>
-    <string name="action_copy">kopio</string>
-    <string name="action_clone">Klooni</string>
+    <string name="action_copy">Kopioi</string>
+    <string name="action_clone">Kloonaa</string>
     <string name="action_continue">Jatka</string>
-    <string name="action_finish">Viimeistely</string>
-    <string name="action_search">Haku</string>
+    <string name="action_finish">Valmis</string>
+    <string name="action_search">Hae</string>
     <string name="action_search_ellipsis">Haku…</string>
     <string name="action_sort">Lajittele</string>
     <string name="action_sort_none">Älä lajittele</string>
     <string name="action_sort_name">Lajittele nimen mukaan</string>
     <string name="action_join_channel">Liity kanavaan</string>
-    <string name="action_message_user">Viestikäyttäjä</string>
+    <string name="action_message_user">Lähetä viesti käyttäjälle</string>
     <string name="action_part_channel">Poistu kanavasta</string>
     <string name="action_close_direct">Sulje keskustelu</string>
     <string name="action_clear_all">Tyhjennä kaikki</string>
-    <string name="action_reset">Reset</string>
-    <string name="action_exit">Uloskäynti</string>
+    <string name="action_reset">Palauta</string>
+    <string name="action_exit">Poistu</string>
     <string name="action_reply">Vastaa</string>
-    <string name="action_share">Share</string>
+    <string name="action_share">Jaa</string>
     <string name="action_dcc_send">Lähetä DCC:n kautta</string>
     <string name="action_accept">Hyväksy</string>
-    <string name="action_reject">Hylkääminen</string>
+    <string name="action_reject">Hylkää</string>
     <string name="action_ask_again">Kysy uudelleen</string>
     <string name="action_rename">Nimeä uudelleen</string>
-    <string name="action_export">vienti</string>
+    <string name="action_export">Vie</string>
     <string name="action_import_theme">Tuo teema</string>
 
     <!-- Channel operator actions -->
-    <string name="operator_actions">Käyttäjän toimet</string>
-    <string name="operator_actions_for">Käyttäjän toimet %s:ssä</string>
-    <string name="operator_kick">-potku</string>
-    <string name="operator_kickban">Kickban isäntä</string>
-    <string name="operator_tban">Väliaikainen kieltoisäntä</string>
-    <string name="operator_mute">Mykistä isäntä</string>
-    <string name="operator_audi">Audi ident</string>
-    <string name="operator_unban_host">Poista tarkka isäntäkielto</string>
-    <string name="operator_voice">Anna ääni</string>
-    <string name="operator_mask">Ban maski</string>
+    <string name="operator_actions">Operaattorin toiminnot</string>
+    <string name="operator_actions_for">Operaattorin toiminnot kanavalla %1$s</string>
+    <string name="operator_kick">Kick</string>
+    <string name="operator_kickban">Kickban hostille</string>
+    <string name="operator_tban">TBAN hostille</string>
+    <string name="operator_mute">Mute hostille</string>
+    <string name="operator_audi">Audi identille</string>
+    <string name="operator_unban_host">Poista hostin tarkka ban</string>
+    <string name="operator_voice">Anna voice</string>
+    <string name="operator_mask">Ban-mask</string>
     <string name="operator_invalid_mask">Anna kelvollinen maski ilman välilyöntejä.</string>
     <string name="operator_historical_data">Historialliset WHOWAS-tiedot</string>
-    <string name="operator_historical_data_desc">Isäntä ja tunnus kuuluvat käyttäjän viimeisimpään yhteyteen.</string>
-    <string name="operator_choose_channel">Valitse operaattorikanava</string>
-    <string name="operator_not_authorised">Käyttäjän toiminnot edellyttävät puolikäyttöistä tai korkeampaa tilaa tällä kanavalla.</string>
+    <string name="operator_historical_data_desc">Host ja ident kuuluvat käyttäjän viimeisimpään yhteyteen.</string>
+    <string name="operator_choose_channel">Valitse kanava, jolla olet operaattori</string>
+    <string name="operator_not_authorised">Operaattoritoiminnot edellyttävät half-op-tilaa tai korkeampaa tällä kanavalla.</string>
     <string name="operator_reason_optional">Syy (valinnainen)</string>
-    <string name="operator_custom_reason">Mukautettu syy</string>
+    <string name="operator_custom_reason">Mukautettu viesti…</string>
     <string name="operator_duration">Kesto (esimerkiksi 3h)</string>
     <string name="operator_invalid_duration">Syötä kesto, kuten 30m, 3h tai 1d.</string>
-    <string name="operator_confirm_title">Vahvista käyttäjän toiminta</string>
-    <string name="operator_confirm_action">Lisätäänkö %1$s malliin %2$s mallissa %3$s?</string>
+    <string name="operator_confirm_title">Vahvista operaattoritoiminto</string>
+    <string name="operator_confirm_action">Käytetäänkö toimintoa %1$s käyttäjään %2$s kanavalla %3$s?</string>
     <string name="operator_command_sent">Komento lähetetty</string>
     <string name="file_upload_action">Lähetä tiedosto</string>
     <string name="file_upload_title">Lähetä SimosNapilla</string>
     <string name="file_upload_confirm">Lataa %1$s (%2$s) ja lähetä väliaikainen linkki osoitteeseen %3$s?</string>
     <string name="file_upload_progress">Ladataan väliaikaista tiedostoa…</string>
     <string name="file_upload_sent">Tiedosto ladattu ja linkki lähetetty</string>
-    <string name="file_upload_failed">Lataus epäonnistui: %s</string>
-    <string name="file_upload_send_failed">Tiedosto ladattiin, mutta linkkiä ei voitu lähettää: %s</string>
+    <string name="file_upload_failed">Lataus epäonnistui: %1$s</string>
+    <string name="file_upload_send_failed">Tiedosto ladattiin, mutta linkkiä ei voitu lähettää: %1$s</string>
     <string name="search_messages_title">Hae keskustelua</string>
     <string name="search_messages_hint">Viestin teksti tai lempinimi</string>
     <string name="search_messages_loading">Ladataan tallennettuja viestejä…</string>
     <string name="search_messages_failed">Ei voitu ladata tallennettuja viestejä.</string>
-    <string name="search_messages_ready">Hae viimeisimmistä %d tallennetuista viesteistä.</string>
+    <string name="search_messages_ready">Hae viimeisimmistä %1$d tallennetuista viesteistä.</string>
     <string name="search_messages_no_results">Ei osumia.</string>
-    <string name="search_messages_count">Vastaa %1$d ja %2$d</string>
+    <string name="search_messages_count">Osumia %1$d / %2$d</string>
     <string name="search_previous">Edellinen</string>
     <string name="search_next">Seuraava</string>
 
     <string name="action_delete_confirm_title">Oletko varma?</string>
-    <string name="action_delete_confirm_body">Haluatko varmasti poistaa %s? Tätä ei voi kumota.</string>
+    <string name="action_delete_confirm_body">Haluatko varmasti poistaa %1$s? Tätä ei voi kumota.</string>
 
     <!-- Format -->
 
@@ -216,20 +216,20 @@
     <string name="service_open_private_chat">Avaa yksityinen keskustelu</string>
     <string name="service_message_send_failed">Komentoa ei voitu lähettää IRC-palveluun</string>
     <plurals name="service_status_connected">
-        <item quantity="one">Yhdistetty %d-verkkoon</item>
-        <item quantity="other">Yhdistetty %d-verkkoihin</item>
+        <item quantity="one">Yhdistetty %1$d-verkkoon</item>
+        <item quantity="other">Yhdistetty %1$d-verkkoihin</item>
     </plurals>
     <plurals name="service_status_connecting">
-        <item quantity="one">muodostaa yhteyden %d-verkkoon</item>
-        <item quantity="other">muodostaa yhteyden %d-verkkoihin</item>
+        <item quantity="one">muodostaa yhteyden %1$d-verkkoon</item>
+        <item quantity="other">muodostaa yhteyden %1$d-verkkoihin</item>
     </plurals>
     <plurals name="service_status_disconnected">
-        <item quantity="one">irrotettu %d-verkosta</item>
-        <item quantity="other">irrotettu %d-verkoista</item>
+        <item quantity="one">irrotettu %1$d-verkosta</item>
+        <item quantity="other">irrotettu %1$d-verkoista</item>
     </plurals>
     <plurals name="notify_multiple_messages">
-        <item quantity="one">%d lukematon viesti</item>
-        <item quantity="other">%d lukemattomat viestit</item>
+        <item quantity="one">%1$d lukematon viesti</item>
+        <item quantity="other">%1$d lukemattomat viestit</item>
     </plurals>
 
     <string name="notification_action_required">Tarvitaan käyttäjän toimia</string>
@@ -247,8 +247,8 @@
     <string name="connection_error_command_title">Virhe yhdistämisen jälkeisten komentojen käsittelyssä</string>
     <string name="connection_error_command_notification_desc">Sisäinen virhe yritettäessä käsitellä yhteyden jälkeisiä komentoja.</string>
     <plurals name="connection_error_command_dialog_content">
-        <item quantity="one">Seuraavan verkon komennon \"%s\" käsittelyssä tapahtui virhe:\n\n%s</item>
-        <item quantity="other">Seuraavien verkon komentojen käsittelyssä tapahtui virhe. \"%s\":\n\n%s</item>
+        <item quantity="one">Seuraavan verkon komennon \"%1$s\" käsittelyssä tapahtui virhe:\n\n%2$s</item>
+        <item quantity="other">Seuraavien verkon komentojen käsittelyssä tapahtui virhe. \"%1$s\":\n\n%2$s</item>
     </plurals>
 
     <!-- Server list -->
@@ -256,8 +256,8 @@
     <string name="server_list_header_active">aktiivinen</string>
     <string name="server_list_header_inactive">Ei käytössä</string>
     <plurals name="server_list_connected">
-        <item quantity="one">kytketty, %d kanava</item>
-        <item quantity="other">Yhdistetty, %d-kanavat</item>
+        <item quantity="one">kytketty, %1$d kanava</item>
+        <item quantity="other">Yhdistetty, %1$d-kanavat</item>
     </plurals>
     <string name="server_list_connecting">Yhdistetään…</string>
     <string name="server_list_disconnected">irrotettu</string>
@@ -275,8 +275,8 @@
     <string name="server_port">Italialainen</string>
     <string name="server_ssl">Käytä SSL/TLS</string>
     <plurals name="server_manage_custom_certs_text">
-        <item quantity="one">%d mukautettu sertifikaatti tallennettu</item>
-        <item quantity="other">%d mukautetut sertifikaatit tallennettu</item>
+        <item quantity="one">%1$d mukautettu sertifikaatti tallennettu</item>
+        <item quantity="other">%1$d mukautetut sertifikaatit tallennettu</item>
     </plurals>
     <string name="server_manage_custom_certs">Hallitse mukautettuja varmenteita</string>
     <string name="server_password_unchanged">Ei muutoksia</string>
@@ -289,7 +289,7 @@
     <string name="server_user">käyttäjä</string>
     <string name="server_realname">Oikea nimi</string>
     <string name="server_sasl_ext_none">Varmennetta ei ole asetettu</string>
-    <string name="server_sasl_ext_fp">Sertifikaatti sormenjälki: %s</string>
+    <string name="server_sasl_ext_fp">Sertifikaatti sormenjälki: %1$s</string>
     <string name="server_sasl_ext_import">Tuo PEM</string>
     <string name="server_sasl_ext_create">Luo uusi</string>
     <string name="error_cert_already_present">Määritetyssä tiedostossa on useampi kuin yksi varmennemerkintä.</string>
@@ -311,7 +311,7 @@
 
     <!-- Certificate error dialog -->
 
-    <string name="certificate_error">%s\'s-sertifikaatin vahvistaminen epäonnistui</string>
+    <string name="certificate_error">%1$s\'s-sertifikaatin vahvistaminen epäonnistui</string>
     <string name="certificate_error_ignore">Hyväksy ja jatka</string>
     <string name="certificate_bad_cert">Järjestelmä ei tunnista seuraavaa sertifikaattia:</string>
     <string name="certificate_bad_hostname">Isäntäkoneen varmenteessa (%1$s) antama isäntänimi ei vastaa isäntänimeä, johon muodostamme yhteyden (%2$s).</string>
@@ -324,8 +324,8 @@
     <string name="action_sort_member_count">Lajittele jäsenmäärän mukaan</string>
 
     <plurals name="channel_list_title_with_member_count">
-        <item quantity="one">%s (%d-jäsen)</item>
-        <item quantity="other">%s (%d-jäsenet)</item>
+        <item quantity="one">%1$s (%2$d-jäsen)</item>
+        <item quantity="other">%1$s (%2$d-jäsenet)</item>
     </plurals>
 
     <!-- Settings -->
@@ -334,7 +334,7 @@
 
     <string name="value_default">Oletus</string>
     <string name="value_custom">Custom</string>
-    <string name="value_custom_specific">Custom (%s)</string>
+    <string name="value_custom_specific">Custom (%1$s)</string>
     <string name="value_none">Ei mitään</string>
     <string name="value_any">Mikä tahansa</string>
     <string name="value_always">Aina</string>
@@ -342,7 +342,7 @@
     <string name="value_preset">Esiasetus</string>
     <string name="value_not_set">Ei asetettu</string>
     <string name="value_total">Yhteensä</string>
-    <string name="value_copy">%s (kopio)</string>
+    <string name="value_copy">%1$s (kopio)</string>
     <string name="entry_name">Nimi</string>
     <string name="entry_text">Teksti</string>
     <string name="entry_username">Käyttäjätunnus</string>
@@ -358,20 +358,20 @@
     <!-- Time -->
 
     <plurals name="time_seconds">
-        <item quantity="one">%d toinen</item>
-        <item quantity="other">%d sekuntia</item>
+        <item quantity="one">%1$d toinen</item>
+        <item quantity="other">%1$d sekuntia</item>
     </plurals>
     <plurals name="time_minutes">
-        <item quantity="one">%d minuutti</item>
-        <item quantity="other">%d minuuttia</item>
+        <item quantity="one">%1$d minuutti</item>
+        <item quantity="other">%1$d minuuttia</item>
     </plurals>
     <plurals name="time_hours">
-        <item quantity="one">%d tunti</item>
-        <item quantity="other">%d tuntia</item>
+        <item quantity="one">%1$d tunti</item>
+        <item quantity="other">%1$d tuntia</item>
     </plurals>
     <plurals name="time_days">
-        <item quantity="one">%d päivä</item>
-        <item quantity="other">%d päivää</item>
+        <item quantity="one">%1$d päivä</item>
+        <item quantity="other">%1$d päivää</item>
     </plurals>
 
     <!-- User settings -->
@@ -581,13 +581,13 @@
     <string name="notification_rule_summary_any_server">Mikä tahansa palvelin</string>
     <string name="notification_rule_summary_any_channel">mikä tahansa kanava</string>
     <plurals name="notification_rule_summary_multi_channels">
-        <item quantity="one">%d kanavat</item>
-        <item quantity="other">%d kanavat</item>
+        <item quantity="one">%1$d kanavat</item>
+        <item quantity="other">%1$d kanavat</item>
     </plurals>
     <string name="notification_rule_summary_any_nick">mikä tahansa nick</string>
     <plurals name="notification_rule_summary_multi_nicks">
-        <item quantity="one">%d kolot</item>
-        <item quantity="other">%d kolot</item>
+        <item quantity="one">%1$d kolot</item>
+        <item quantity="other">%1$d kolot</item>
     </plurals>
 
     <string name="notification_header_options">Vaihtoehdot</string>
@@ -627,8 +627,8 @@
     <string name="reconnect_header_tries">yrittää</string>
 
     <plurals name="reconnect_desc_tries">
-        <item quantity="one">\"(%d try)\"</item>
-        <item quantity="other">\"(%d yrittää)\"</item>
+        <item quantity="one">\"(%1$d try)\"</item>
+        <item quantity="other">\"(%1$d yrittää)\"</item>
     </plurals>
 
     <string-array name="duration_types">
@@ -724,17 +724,17 @@
     <!-- Ignore list -->
 
     <string name="title_activity_ignore_list">Ohita luettelo</string>
-    <string name="title_activity_ignore_list_network">Ohita %s:n luettelo</string>
+    <string name="title_activity_ignore_list_network">Ohita %1$s:n luettelo</string>
     <string name="title_activity_edit_ignore_entry">Muokkaa ohitusmerkintää</string>
     <string name="title_activity_add_ignore_entry">Lisää ohitusmerkintä</string>
 
     <!-- User info -->
 
-    <string name="user_title_away">%s (poissa)</string>
+    <string name="user_title_away">%1$s (poissa)</string>
     <string name="user_nick">Nick</string>
     <string name="user_hostname">Isäntänimi</string>
     <string name="user_server">palvelin</string>
-    <string name="user_server_format">%s (%s)</string>
+    <string name="user_server_format">%1$s (%2$s)</string>
     <string name="user_channels">-kanavat</string>
     <string name="user_idle">Tyhjäkäyntiaika</string>
     <string name="user_server_op">Palvelimen operaattorin tila</string>
@@ -744,7 +744,7 @@
     <string name="user_account">-tili</string>
     <string name="user_away">Poissa viesti</string>
 
-    <string name="user_info_copied">Kopioitu %s leikepöydälle.</string>
+    <string name="user_info_copied">Kopioitu %1$s leikepöydälle.</string>
 
     <!-- Color picker -->
 
@@ -788,21 +788,21 @@
     <string name="notification_channel_dcc">@string/title_activity_dcc</string>
     <string name="dcc_summary_notification_title">DCC -siirrot käynnissä</string>
     <plurals name="dcc_summary_notification_text">
-        <item quantity="one">%d siirto käynnissä</item>
-        <item quantity="other">%d -siirrot käynnissä</item>
+        <item quantity="one">%1$d siirto käynnissä</item>
+        <item quantity="other">%1$d -siirrot käynnissä</item>
     </plurals>
-    <string name="dcc_active_upload_transfer_status">Lähetetään numeroon %s</string>
-    <string name="dcc_active_download_transfer_status">Ladataan kohteesta %s</string>
+    <string name="dcc_active_upload_transfer_status">Lähetetään numeroon %1$s</string>
+    <string name="dcc_active_download_transfer_status">Ladataan kohteesta %1$s</string>
     <string name="dcc_active_waiting_for_connection">Odotetaan yhteyttä…</string>
     <string name="dcc_active_waiting_for_approval">Odotetaan käyttäjän hyväksyntää…</string>
-    <string name="dcc_approve_notification_body">%s (palvelimelta: %s) on lähettänyt sinulle tiedoston</string>
+    <string name="dcc_approve_notification_body">%1$s (palvelimelta: %2$s) on lähettänyt sinulle tiedoston</string>
     <string name="dcc_history_upload">Ladattu %2$s numeroon %3$s (%1$s)</string>
     <string name="dcc_history_download">Ladattu %2$s kohteesta %3$s (%1$s)</string>
     <string name="dcc_history_download_failed">%2$s:n lataaminen kohteesta %1$s epäonnistui</string>
 
-    <string name="dcc_approve_download_title">DCC tiedosto: %s</string>
-    <string name="dcc_approve_download_title_with_size">DCC tiedosto: %s (%s)</string>
-    <string name="dcc_approve_download_body">%s (palvelimelta: %s) on lähettänyt sinulle tiedoston.\n\nVaroitus: Tämä lataus lähetetään suojaamattoman &amp; salaamattoman yhteyden kautta. Kun hyväksyt tämän latauksen, toinen osapuoli näkee IP-osoitteesi. Sinun tulee hyväksyä se vain, jos luotat tähän käyttäjään.</string>
+    <string name="dcc_approve_download_title">DCC tiedosto: %1$s</string>
+    <string name="dcc_approve_download_title_with_size">DCC tiedosto: %1$s (%2$s)</string>
+    <string name="dcc_approve_download_body">%1$s (palvelimelta: %2$s) on lähettänyt sinulle tiedoston.\n\nVaroitus: Tämä lataus lähetetään suojaamattoman &amp; salaamattoman yhteyden kautta. Kun hyväksyt tämän latauksen, toinen osapuoli näkee IP-osoitteesi. Sinun tulee hyväksyä se vain, jos luotat tähän käyttäjään.</string>
     <string name="dcc_approve_download_enable_anyway">Ota silti käyttöön</string>
 
     <string name="dcc_enable_send_warning_title">Turvavaroitus</string>
@@ -824,13 +824,13 @@
 
     <string name="channel_modes_menu">Kanavatilat</string>
     <string name="action_list_channels">Listaa kanavat</string>
-    <string name="channel_modes_title">-tilat mallille %s</string>
+    <string name="channel_modes_title">-tilat mallille %1$s</string>
     <string name="channel_modes_loading">Ladataan aktiivisia kanavatiloja…</string>
     <string name="channel_modes_failed">Kanavatiloja ei voitu ladata.</string>
     <string name="channel_modes_timeout">Palvelin ei palauttanut aktiivisia kanavatiloja.</string>
     <string name="channel_modes_none">Tämä palvelin ei mainostanut muokattavia lipputiloja.</string>
     <string name="channel_modes_no_changes">Tilamuutoksia ei ole valittu.</string>
-    <string name="channel_modes_profile">Määritelmät: %s</string>
+    <string name="channel_modes_profile">Määritelmät: %1$s</string>
     <string name="channel_modes_profile_inspircd3">InspIRCd 3</string>
     <string name="channel_modes_profile_inspircd4">InspIRCd 4</string>
     <string name="channel_modes_profile_generic">IRC vakio / palvelimen mainostamat tyypit</string>
@@ -838,7 +838,7 @@
     <string name="channel_mode_limit">Käyttäjäraja (+l)</string>
     <string name="channel_mode_key_hint">Avain</string>
     <string name="channel_mode_limit_hint">Enimmäiskäyttäjät</string>
-    <string name="channel_mode_value_required">Anna arvo tilalle +%s.</string>
+    <string name="channel_mode_value_required">Anna arvo tilalle +%1$s.</string>
     <string name="channel_mode_desc_i">Vain kutsu -kanava</string>
     <string name="channel_mode_desc_m">Vain äänekkäät tai etuoikeutetut käyttäjät voivat puhua</string>
     <string name="channel_mode_desc_n">Estä viestit kanavan ulkopuolelta</string>
@@ -865,7 +865,7 @@
     <string name="channel_mode_managed">palvelimen tai palveluiden hallinnassa</string>
 
     <string name="ban_list_menu">Kieltoluettelo</string>
-    <string name="ban_list_title">Kieltoluettelo mallille %s</string>
+    <string name="ban_list_title">Kieltoluettelo mallille %1$s</string>
     <string name="ban_list_loading">Ladataan kieltoluetteloa…</string>
     <string name="ban_list_failed">Kieltoluetteloa ei voitu ladata.</string>
     <string name="ban_list_host">Isäntä / maski</string>
@@ -881,8 +881,8 @@
     <string name="ban_list_cleanup_none">Sopivia identiteetti- tai isäntäkieltoja ei löytynyt 48–72 tunnin ikäisiltä.</string>
     <string name="ban_list_cleanup_confirm_title">Poistetaanko väliaikaiset kiellot?</string>
     <plurals name="ban_list_cleanup_confirm_message">
-        <item quantity="one">%d kelvollinen kielto on valittu. j: ja R: merkinnät, tuntemattomat päivämäärät ja muut maskityypit eivät sisälly.</item>
-        <item quantity="other">%d kelvolliset kiellot on valittu. j: ja R: merkinnät, tuntemattomat päivämäärät ja muut maskityypit eivät sisälly.</item>
+        <item quantity="one">%1$d kelvollinen kielto on valittu. j: ja R: merkinnät, tuntemattomat päivämäärät ja muut maskityypit eivät sisälly.</item>
+        <item quantity="other">%1$d kelvolliset kiellot on valittu. j: ja R: merkinnät, tuntemattomat päivämäärät ja muut maskityypit eivät sisälly.</item>
     </plurals>
     <string name="ban_list_cleanup_review">Tarkista valinta</string>
     <string name="ban_list_cleanup_remove">Poista nyt</string>
@@ -945,7 +945,7 @@
     <string name="voice_permission_required">Ääniviestin tallentamiseen tarvitaan mikrofonilupa.</string>
     <string name="voice_record_failed">Äänen tallennusta ei voitu aloittaa.</string>
     <string name="voice_record_title">Nauhoita ääniviesti</string>
-    <string name="voice_record_in_progress">Tallennus… %s</string>
+    <string name="voice_record_in_progress">Tallennus… %1$s</string>
     <string name="voice_record_stop">Pysäytys</string>
     <string name="voice_record_play">Toista</string>
     <string name="voice_record_pause">Tauko</string>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="pref_entries_language_all" translatable="false">
+        <item>System (default)</item>
+        <item>Italiano</item>
+        <item>English</item>
+        <item>Deutsch</item>
+        <item>Español</item>
+        <item>Suomi</item>
+        <item>Français</item>
+        <item>Polski</item>
+        <item>Português (Brasil)</item>
+        <item>Română</item>
+    </string-array>
+    <string-array name="pref_entry_values_language_all" translatable="false">
+        <item>system</item>
+        <item>it</item>
+        <item>en</item>
+        <item>de</item>
+        <item>es</item>
+        <item>fi</item>
+        <item>fr</item>
+        <item>pl</item>
+        <item>pt-BR</item>
+        <item>ro</item>
+    </string-array>
+</resources>
