@@ -4,6 +4,7 @@ import re
 
 # Human-reviewed TIARCA translations. English strings.xml is the source of truth;
 # Italian is used as a second semantic reference for IRC-specific UI terminology.
+# Keep every edit explicit: this is intentionally not a machine-translation pass.
 FIXES = {
     "es": {
         "tab_server": "Servidor",
@@ -43,7 +44,6 @@ FIXES = {
         "notification_rule_server": "Servidor",
         "notification_sound": "Sonido",
         "notification_vibration": "Vibración",
-        "duration_types": "__SKIP__",
         "edit_command_alias_type": "Tipo",
         "edit_command_alias_syntax": "Sintaxis",
         "edit_command_alias_channel": "Canal",
@@ -57,8 +57,6 @@ FIXES = {
 
 
 def replace_string(text: str, name: str, value: str) -> str:
-    if value == "__SKIP__":
-        return text
     pat = re.compile(r'(<string\s+name="' + re.escape(name) + r'"[^>]*>)(.*?)(</string>)', re.S)
     text2, n = pat.subn(lambda m: m.group(1) + value + m.group(3), text, count=1)
     if n != 1:
@@ -74,7 +72,7 @@ def main():
         for name, value in fixes.items():
             text = replace_string(text, name, value)
         path.write_text(text, encoding="utf-8")
-        print(f"Updated {path} ({sum(v != '__SKIP__' for v in fixes.values())} strings)")
+        print(f"Updated {path} ({len(fixes)} strings)")
 
 if __name__ == "__main__":
     main()
