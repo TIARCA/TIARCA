@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="server_has_password">I have a password</string>
+    <string name="server_ident">Ident</string>
+    <string name="server_join_channels">Join channels</string>
+    <string name="server_channel_list">Channel list</string>
+    <string name="server_channel_list_connecting">Please wait. Connecting…</string>
+    <string name="server_channel_list_connection_error">Unable to connect and retrieve the channel list.</string>
+    <string name="server_channel_list_empty">No channels found.</string>
+</resources>
