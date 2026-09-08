@@ -1,5 +1,11 @@
 # TIARCA — Changelog
 
+## v0.8.2
+
+- Corretta **Cerca nella conversazione**: una nuova ricerca seleziona ora per prima l’occorrenza più recente invece della più vecchia.
+- **Precedente** risale cronologicamente verso i risultati più vecchi, mentre **Successiva** torna verso quelli più recenti, in modo coerente con la navigazione delle menzioni.
+- Il contatore dei risultati segue lo stesso ordine: con 8 corrispondenze la ricerca parte da `8/8`, poi **Precedente** passa a `7/8`, `6/8` e così via.
+
 ## v0.8.1
 
 ### Navigazione messaggi, ricerca e menzioni
