@@ -32,7 +32,7 @@ public class IgnoreListActivity extends ThemedActivity {
             finish();
             return;
         }
-        setTitle(getString(R.string.title_activity_ignore_list_network, mServer.name));
+        setTitle(getString(R.string.ignored_users_network_label, mServer.name));
 
         RecyclerView recyclerView = findViewById(R.id.items);
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
