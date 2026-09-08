@@ -11,4 +11,5 @@
     <string name="whowas_server_info">Info server</string>
     <string name="operator_no_eligible_channels">Non ci sono canali aperti in cui hai lo stato half-op o superiore.</string>
     <string name="ignored_users_label">Utenti ignorati</string>
+    <string name="ignored_users_network_label">Utenti ignorati su %1$s</string>
 </resources>
