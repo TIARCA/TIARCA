@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="exit_confirm_title">Ieși din TIARCA?</string>
+    <string name="action_disconnect_and_exit">Deconectează și ieși</string>
     <string name="action_stay_in_background">Rămâi în fundal</string>
 </resources>
