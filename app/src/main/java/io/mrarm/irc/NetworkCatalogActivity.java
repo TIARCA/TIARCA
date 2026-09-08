@@ -112,9 +112,27 @@ public class NetworkCatalogActivity extends ThemedActivity {
                     intent.putStringArrayListExtra(EditServerActivity.ARG_ADDRESSES, addresses);
                     intent.putExtra(EditServerActivity.ARG_PORT, endpoint.port);
                     intent.putExtra(EditServerActivity.ARG_SSL, endpoint.tls);
+
+                    // These are starter values only. They are handed to the new-server form once,
+                    // so deleting or changing them never causes TIARCA to add them back later.
+                    if (isSimosnap(network, endpoint)) {
+                        ArrayList<String> starterChannels = new ArrayList<>();
+                        starterChannels.add("#amicizia");
+                        starterChannels.add("#chatitaly");
+                        intent.putStringArrayListExtra(
+                                EditServerActivity.ARG_AUTOJOIN_CHANNELS, starterChannels);
+                    }
                     mEditServerLauncher.launch(intent);
                 })
                 .show();
+    }
+
+    private static boolean isSimosnap(Network network, Endpoint endpoint) {
+        if (network != null && network.name != null &&
+                network.name.toLowerCase(Locale.ROOT).contains("simosnap"))
+            return true;
+        return endpoint != null && endpoint.host != null &&
+                endpoint.host.toLowerCase(Locale.ROOT).contains("simosnap");
     }
 
     @Override
@@ -182,11 +200,10 @@ public class NetworkCatalogActivity extends ThemedActivity {
 
         @Override
         public void onBindViewHolder(NetworkHolder holder, int position) {
-            if (position == 0) {
+            if (position == 0)
                 holder.bindManual();
-            } else {
+            else
                 holder.bindNetwork(mShown.get(position - 1));
-            }
         }
 
         @Override
