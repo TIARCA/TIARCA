@@ -1,0 +1,29 @@
+name: Create TIARCA v0.9.1.1 tag
+
+on:
+  push:
+    paths:
+      - '.github/workflows/create-release-tag-0.9.1.1.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  create-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target release commit
+        uses: actions/checkout@v4
+        with:
+          ref: ab743ee8b743963b0addeed9b4fa8485b9c18452
+          fetch-depth: 0
+      - name: Create and push v0.9.1.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --tags origin refs/tags/v0.9.1.1 >/dev/null 2>&1; then
+            echo 'Tag v0.9.1.1 already exists; nothing to do.'
+            exit 0
+          fi
+          git tag v0.9.1.1 ab743ee8b743963b0addeed9b4fa8485b9c18452
+          git push origin refs/tags/v0.9.1.1
