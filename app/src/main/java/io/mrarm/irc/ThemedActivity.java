@@ -6,8 +6,12 @@ import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
+import androidx.activity.OnBackPressedCallback;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 
 import io.mrarm.irc.util.theme.ThemeManager;
 
@@ -22,6 +26,44 @@ public class ThemedActivity extends AppCompatActivity implements ThemeManager.Th
         helper.addThemeChangeListener(this);
         mDarkMode = AppCompatDelegate.getDefaultNightMode();
         super.onCreate(savedInstanceState);
+    }
+
+    @Override
+    protected void onPostCreate(Bundle savedInstanceState) {
+        super.onPostCreate(savedInstanceState);
+        if (!(this instanceof MainActivity))
+            return;
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                MainActivity activity = (MainActivity) ThemedActivity.this;
+                View drawerView = findViewById(R.id.drawer_layout);
+                boolean drawerOpen = drawerView instanceof DrawerLayout &&
+                        (((DrawerLayout) drawerView).isDrawerOpen(GravityCompat.START) ||
+                                ((DrawerLayout) drawerView).isDrawerOpen(GravityCompat.END));
+
+                if (!(activity.getCurrentFragment() instanceof ServerListFragment) || drawerOpen) {
+                    setEnabled(false);
+                    try {
+                        getOnBackPressedDispatcher().onBackPressed();
+                    } finally {
+                        if (!isFinishing())
+                            setEnabled(true);
+                    }
+                    return;
+                }
+
+                new AlertDialog.Builder(activity)
+                        .setTitle(R.string.exit_confirm_title)
+                        .setPositiveButton(R.string.action_close, (dialog, which) ->
+                                ((IRCApplication) getApplication()).requestExit())
+                        .setNeutralButton(R.string.action_stay_in_background, (dialog, which) ->
+                                finish())
+                        .setNegativeButton(R.string.action_cancel, null)
+                        .show();
+            }
+        });
     }
 
     @Override
