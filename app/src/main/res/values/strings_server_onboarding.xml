@@ -7,4 +7,6 @@
     <string name="server_channel_list_connecting">Please wait. Connecting…</string>
     <string name="server_channel_list_connection_error">Unable to connect and retrieve the channel list.</string>
     <string name="server_channel_list_empty">No channels found.</string>
+    <string name="server_auth_username_required">Enter the username.</string>
+    <string name="server_auth_password_required">Enter the password.</string>
 </resources>
