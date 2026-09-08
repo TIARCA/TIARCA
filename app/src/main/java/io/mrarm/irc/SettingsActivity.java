@@ -116,7 +116,7 @@ public class SettingsActivity extends ThemedActivity {
                 v.getContext().startActivity(new Intent(v.getContext(), BackupActivity.class));
             }));
             ret.add(new Item(R.string.pref_header_about, R.drawable.ic_info, (View v) ->
-                    UpdateManager.showAboutDialog((SettingsActivity) v.getContext())));
+                    UpdateManager.showAboutDialog(requireActivity())));
             return ret;
         }
 
