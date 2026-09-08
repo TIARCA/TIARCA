@@ -56,7 +56,7 @@ public class ThemedActivity extends AppCompatActivity implements ThemeManager.Th
 
                 new AlertDialog.Builder(activity)
                         .setTitle(R.string.exit_confirm_title)
-                        .setPositiveButton(R.string.action_close, (dialog, which) ->
+                        .setPositiveButton(R.string.action_disconnect_and_exit, (dialog, which) ->
                                 ((IRCApplication) getApplication()).requestExit())
                         .setNeutralButton(R.string.action_stay_in_background, (dialog, which) ->
                                 finish())
