@@ -60,6 +60,7 @@ import io.mrarm.irc.chat.ChatFragment;
 import io.mrarm.irc.config.AppSettings;
 import io.mrarm.irc.config.SharingSettings;
 import io.mrarm.irc.dialog.UserSearchDialog;
+import io.mrarm.irc.dialog.WhowasQueryDialog;
 import io.mrarm.irc.dialog.ChatMessageSearchDialog;
 import io.mrarm.irc.dialog.ChannelBanListDialog;
 import io.mrarm.irc.dialog.ChannelModesDialog;
@@ -539,6 +540,7 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
             menu.findItem(R.id.action_direct_whois).setVisible(connected && inDirectChat);
             String current = fragment.getCurrentChannel();
             menu.findItem(R.id.action_list_channels).setVisible(connected && current == null);
+            menu.findItem(R.id.action_whowas).setVisible(connected && current == null);
             ChannelNotificationManager notificationManager = current == null ? null :
                     fragment.getConnectionInfo().getNotificationManager()
                             .getChannelManager(current, true);
@@ -563,6 +565,9 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
         int id = item.getItemId();
         if (id == R.id.action_list_channels) {
             openChannelList();
+        } else if (id == R.id.action_whowas) {
+            ChatFragment fragment = (ChatFragment) getCurrentFragment();
+            WhowasQueryDialog.show(this, fragment.getConnectionInfo());
         } else if (id == R.id.action_join_channel) {
             View v = LayoutInflater.from(this).inflate(R.layout.dialog_chip_edit_text, null);
             ChipsEditText editText = v.findViewById(R.id.chip_edit_text);

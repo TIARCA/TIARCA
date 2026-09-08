@@ -29,6 +29,8 @@ import io.mrarm.irc.ServerConnectionInfo;
 import io.mrarm.irc.dialog.UserBottomSheetDialog;
 import io.mrarm.irc.dialog.NicknameContextMenu;
 import io.mrarm.irc.dialog.MenuBottomSheetDialog;
+import io.mrarm.irc.irc.WhowasStatusMessageInfo;
+import io.mrarm.irc.view.WhowasRecordView;
 import io.mrarm.irc.util.AlignToPointSpan;
 import io.mrarm.irc.util.IRCColorUtils;
 import io.mrarm.irc.util.MessageBuilder;
@@ -39,6 +41,7 @@ public class ServerStatusMessagesAdapter extends RecyclerView.Adapter<RecyclerVi
 
     private static final int TYPE_MESSAGE = 0;
     private static final int TYPE_EXPANDABLE_MESSAGE = 1;
+    private static final int TYPE_WHOWAS = 2;
 
     private ServerConnectionInfo mConnection;
     private StatusMessageList mMessages;
@@ -73,6 +76,8 @@ public class ServerStatusMessagesAdapter extends RecyclerView.Adapter<RecyclerVi
             View view = LayoutInflater.from(viewGroup.getContext())
                     .inflate(R.layout.chat_expandable_message, viewGroup, false);
             return new ExpandableMessageHolder(view, this);
+        } else if (viewType == TYPE_WHOWAS) {
+            return new WhowasHolder(new WhowasRecordView(viewGroup.getContext()));
         }
         return null;
     }
@@ -84,6 +89,9 @@ public class ServerStatusMessagesAdapter extends RecyclerView.Adapter<RecyclerVi
             ((MessageHolder) holder).bind(mMessages.getMessages().get(position));
         } else if (viewType == TYPE_EXPANDABLE_MESSAGE) {
             ((ExpandableMessageHolder) holder).bind(position,
+                    mMessages.getMessages().get(position));
+        } else if (viewType == TYPE_WHOWAS) {
+            ((WhowasHolder) holder).bind((WhowasStatusMessageInfo)
                     mMessages.getMessages().get(position));
         }
     }
@@ -104,11 +112,24 @@ public class ServerStatusMessagesAdapter extends RecyclerView.Adapter<RecyclerVi
 
     @Override
     public int getItemViewType(int position) {
+        if (mMessages.getMessages().get(position) instanceof WhowasStatusMessageInfo)
+            return TYPE_WHOWAS;
         StatusMessageInfo.MessageType type = mMessages.getMessages().get(position).getType();
         if (type == StatusMessageInfo.MessageType.MOTD ||
                 type == StatusMessageInfo.MessageType.WHOIS)
             return TYPE_EXPANDABLE_MESSAGE;
         return TYPE_MESSAGE;
+    }
+
+    public class WhowasHolder extends RecyclerView.ViewHolder {
+        private final WhowasRecordView recordView;
+        WhowasHolder(WhowasRecordView view) {
+  super(view);
+  recordView = view;
+        }
+        void bind(WhowasStatusMessageInfo info) {
+  recordView.bind(mConnection, info.getResult());
+        }
     }
 
     public class MessageHolder extends RecyclerView.ViewHolder {

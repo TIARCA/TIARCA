@@ -1,5 +1,13 @@
 # TIARCA — Changelog
 
+## v0.9.1.2
+
+- WHOWAS ora raccoglie e mostra record storici strutturati nella scheda Server: nickname, ident, host, real name, server, orario di disconnessione quando fornito dal server e info server aggiuntive.
+- Le risposte WHOWAS multiple per lo stesso nickname vengono mantenute come record distinti; il numeric `312` condiviso con WHOIS viene associato al record WHOWAS senza comparire come protocollo grezzo.
+- Nei record WHOWAS nickname, ident, host e server hanno un pulsante di copia; long press sul nickname apre il menu contestuale, su ident/host apre il Kickban con la mask corrispondente e scelta del canale operatore quando necessaria.
+- Aggiunto WHOWAS al menu della scheda Server con richiesta del nickname.
+- Corretta la voce italiana “Ignora l'elenco” in “Utenti ignorati”.
+
 ## v0.9.1.1
 
 - Corretto il fallback **WHOWAS**: il numeric IRC `312`, condiviso con WHOIS, non viene più interpretato come una risposta WHOIS fuori sequenza e non compare più come riga protocollo grezza nella scheda **Server** durante la consultazione dei dati storici di un nickname.
