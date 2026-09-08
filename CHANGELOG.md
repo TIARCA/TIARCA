@@ -1,5 +1,10 @@
 # TIARCA — Changelog
 
+## v0.9.1.1
+
+- Corretto il fallback **WHOWAS**: il numeric IRC `312`, condiviso con WHOIS, non viene più interpretato come una risposta WHOIS fuori sequenza e non compare più come riga protocollo grezza nella scheda **Server** durante la consultazione dei dati storici di un nickname.
+- Aggiunto un test di regressione per le risposte `312` ricevute durante WHOWAS.
+
 ## v0.9.1
 
 ### Aggiornamenti integrati
