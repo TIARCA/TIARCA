@@ -1,5 +1,61 @@
 # TIARCA — Changelog
 
+## v0.8.1
+
+### Navigazione messaggi, ricerca e menzioni
+
+- Ridisegnata la navigazione delle menzioni: il contatore superiore mostra le menzioni non ancora visitate e apre per prima la menzione non letta più recente.
+- Visitando le menzioni il contatore viene decrementato progressivamente senza interferire con il conteggio dei normali messaggi non letti.
+- La barra inferiore delle menzioni usa ora tre comandi estesi e interamente cliccabili — **Precedente**, **Chiudi** e **Successiva** — con etichette compatte sugli schermi più stretti.
+- Chiudere la barra delle menzioni non ripristina più la vecchia posizione della chat: la conversazione rimane esattamente sul punto raggiunto.
+- I salti a un messaggio, sia dalle menzioni sia dalla ricerca, centrano il messaggio nella chat quando possibile per mostrare meglio il contesto precedente e successivo.
+- I risultati di **Cerca nella conversazione** sono ora apribili direttamente: un tocco sull’anteprima chiude il dialog e porta al messaggio nella chat.
+- Aggiunto un pulsante traslucido con freccia verso il basso che compare quando si naviga lontano dal fondo della conversazione e riporta immediatamente all’ultimo messaggio.
+
+### Ban, eccezioni e moderazione
+
+- Unificata la gestione di **Ban** ed **Eccezioni** (`+b` / `+e`) nella stessa schermata **Ban | Eccezioni**, con ricerca, selezione multipla e aggiornamenti MODE in tempo reale.
+- Aggiunto il supporto ai numerici InspIRCd `348/349` e al parametro `EXCEPTS` di ISUPPORT per la lista eccezioni.
+- La funzione di pulizia è ora indicata semplicemente come **Pulizia** e può selezionare anche i ban ident-only `*!ident@*` più vecchi di 7 giorni quando la data è affidabile; la pulizia continua ad applicarsi esclusivamente ai ban.
+- Corretto il crash **Handler registration name collision** nella schermata Ban | Eccezioni riutilizzando il gestore MODE esistente senza registrare un secondo handler principale.
+- L’azione Voice nel menu utente è ora un vero toggle: propone **Dai voice** o **Togli voice** in base allo stato corrente dell’utente.
+- Corretta la formattazione dei messaggi IRC MODE relativi a voice, op, half-op, admin e owner, inclusa la resa italiana.
+
+### Utenti monitorati
+
+- La lista MONITOR conserva e mostra ora lo **stato noto più recente** dell’utente, il nickname/alias attivo e i relativi timestamp anche dopo disconnessioni del client e riavvii dell’app.
+- Sistemata la semantica di `onlineSince` e `lastSeen`: gli eventi duplicati non alterano i timestamp e uno stato sconosciuto non inventa una falsa data di ultima presenza.
+- Corrette la navigazione contestuale e l’apertura dei PVT dalla schermata **Utenti monitorati**.
+- Corretto il backup/ripristino delle liste MONITOR anche quando alcuni file opzionali di storage non esistono.
+
+### Server e connessioni
+
+- Aggiunto il **riordino manuale dei server/network** tramite drag & drop, accessibile da **Riordina**; l’ordine è persistente e usa UUID stabili senza riconnettere o ricreare le connessioni attive.
+- Corretto il dominio predefinito Simosnap da `irc.simosnap.com` a `irc.simosnap.org`; le configurazioni esistenti vengono migrate automaticamente, compresi gli indirizzi di fallback.
+- Rafforzate le regole R8/ProGuard per impedire che handler IRC, capability e filtri necessari vengano rimossi o rinominati nelle build release.
+- Corretta la gestione delle eccezioni dei certificati TLS non affidabili, che torna a mostrare correttamente la richiesta di conferma invece di rifiutare silenziosamente la connessione.
+- Corretto un crash del catalogo network nelle build minificate dovuto alla deserializzazione Gson delle classi interne.
+
+### Stabilità e interfaccia
+
+- Corretto un ANR/blocco al ritorno dell’app in primo piano riducendo gli aggiornamenti non necessari delle chat non attive e spostando alcune notifiche fuori dalle sezioni sincronizzate.
+- Eliminati flicker, schermate nere temporanee e perdita della posizione di scorrimento nella lista utenti del drawer destro grazie ad aggiornamenti differenziali.
+- Tutte le operazioni **Copia** salvano ora sempre testo semplice negli appunti, senza formattazioni Spannable residue.
+- Corretto il crash `ClassCastException` degli alias di comando/autocompletamento causato dalla deserializzazione Gson, mantenendo compatibilità con dati salvati da versioni precedenti.
+
+### Lingue e localizzazione
+
+- Portata a copertura completa la localizzazione in **Italiano, English, Deutsch, Español, Français, Polski, Português (Brasil), Suomi e Română**, tutte selezionabili dalle impostazioni Lingua.
+- Riviste e corrette le traduzioni TIARCA specifiche, con particolare attenzione a terminologia IRC, moderazione, DCC, MONITOR, impostazioni e messaggi dinamici.
+- Uniformati i placeholder Android alla forma posizionale (`%1$s`, `%2$s`, `%1$d`, ecc.) e aggiornato `SpannableStringHelper` per gestirli preservando gli span di formattazione.
+- Aggiunto un audit automatico delle risorse di traduzione alla CI per rilevare risorse mancanti, extra, duplicate e placeholder incompatibili.
+
+### Build, test e rilascio
+
+- Aggiunta una pipeline CI con audit traduzioni, test automatici e build dell’APK debug.
+- Aggiunto il workflow **Candidate** per produrre manualmente APK release firmati, minificati e con resource shrinking usando la stessa chiave della release ufficiale.
+- Aggiornate le GitHub Actions alle versioni correnti e consolidati i workflow permanenti in **CI**, **Candidate** e **Release**.
+
 ## v0.7.14
 
 - Corretto il posizionamento dei messaggi nei PVT aperti dalla lista **Utenti monitorati**.
