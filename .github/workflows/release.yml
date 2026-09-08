@@ -132,6 +132,8 @@ jobs:
         run: |
           set -euo pipefail
           VERSION='${{ needs.prepare-release.outputs.version }}'
+          CURRENT_TAG='${{ needs.prepare-release.outputs.tag }}'
+
           awk -v header="## v${VERSION}" '
             $0 == header { found=1; next }
             found && /^## v/ { exit }
@@ -143,8 +145,11 @@ jobs:
             exit 1
           fi
 
-          printf '\n**Full Changelog**: https://github.com/TIARCA/TIARCA/compare/v0.7.14...%s\n' \
-            '${{ needs.prepare-release.outputs.tag }}' >> release-notes.md
+          PREVIOUS_TAG=$(git tag --sort=-version:refname | grep -v "^${CURRENT_TAG}$" | head -n 1 || true)
+          if [[ -n "$PREVIOUS_TAG" ]]; then
+            printf '\n**Full Changelog**: https://github.com/TIARCA/TIARCA/compare/%s...%s\n' \
+              "$PREVIOUS_TAG" "$CURRENT_TAG" >> release-notes.md
+          fi
 
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v6
