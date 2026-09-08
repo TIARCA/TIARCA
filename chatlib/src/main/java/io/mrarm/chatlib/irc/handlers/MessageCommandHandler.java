@@ -75,7 +75,10 @@ public class MessageCommandHandler implements CommandHandler {
                     channelData = connection.getJoinedChannelData(channel);
                 } catch (NoSuchChannelException ignored) {
                 }
-                if (sender == null || (channelData == null && sender.getUser() == null && sender.getHost() == null)) {
+                boolean isSelfMessage = sender != null && sender.getNick() != null &&
+                        sender.getNick().equalsIgnoreCase(connection.getUserNick());
+                if (sender == null || (channelData == null && sender.getUser() == null &&
+                        sender.getHost() == null && !isSelfMessage)) {
                     connection.getServerStatusData().addMessage(new StatusMessageInfo(sender != null ?
                             sender.getServerName() : null, new Date(), StatusMessageInfo.MessageType.NOTICE, text));
                     continue;
@@ -170,7 +173,8 @@ public class MessageCommandHandler implements CommandHandler {
                     return;
                 }
 
-                dccClientManager.onFileOffered(connection, sender, filename, ip, port, size);
+                dccClientManager.onFileOffered(connection, sender, filename, reverseId == -1 ? filename : filename, ip, port);
+                return;
             }
         }
         // TODO: Implement other CTCP commands
