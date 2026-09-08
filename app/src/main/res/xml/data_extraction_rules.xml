@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android 12+ backup and migration rules.
+
+    Cloud backup is disabled unless the backup transport supports encryption
+    capabilities because TIARCA's private app data can contain server passwords,
+    SASL credentials and certificate/private-key material.
+
+    Cloud backup keeps the compact persistent state needed to reconstruct the
+    app: preferences, server/network configuration, MONITOR and ignore state,
+    aliases, notification data, themes and other internal settings.
+
+    IRC history is stored in the app-specific external chat-logs directory. It
+    is excluded from cloud backup to avoid consuming the Auto Backup quota, but
+    included in direct device-to-device transfer where Android provides a
+    dedicated migration path.
+-->
+<data-extraction-rules>
+    <cloud-backup disableIfNoEncryptionCapabilities="true">
+        <include domain="sharedpref" path="." />
+        <include domain="file" path="." />
+        <include domain="database" path="." />
+    </cloud-backup>
+
+    <device-transfer>
+        <include domain="sharedpref" path="." />
+        <include domain="file" path="." />
+        <include domain="database" path="." />
+        <include domain="external" path="chat-logs" />
+    </device-transfer>
+</data-extraction-rules>

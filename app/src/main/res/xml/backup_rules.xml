@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android 11 and lower Auto Backup rules.
+
+    TIARCA server configuration can contain IRC passwords, SASL credentials,
+    client certificate material and MONITOR state, so cloud backup is allowed
+    only when the transport reports client-side encryption support.
+
+    Chat history lives under getExternalFilesDir()/chat-logs and is deliberately
+    not part of legacy cloud backup. Android 12+ has separate device-transfer
+    rules which can safely carry it directly to the new device.
+-->
+<full-backup-content>
+    <include domain="sharedpref" path="."
+        requireFlags="clientSideEncryption" />
+    <include domain="file" path="."
+        requireFlags="clientSideEncryption" />
+    <include domain="database" path="."
+        requireFlags="clientSideEncryption" />
+</full-backup-content>
