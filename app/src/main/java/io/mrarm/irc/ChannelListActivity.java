@@ -1,5 +1,8 @@
 package io.mrarm.irc;
 
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -16,11 +19,16 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import io.mrarm.chatlib.dto.ChannelList;
@@ -31,12 +39,19 @@ import io.mrarm.irc.util.AppExecutors;
 public class ChannelListActivity extends ThemedActivity {
 
     public static final String ARG_SERVER_UUID = "server_uuid";
+    public static final String RESULT_SELECTED_CHANNELS = "selected_channels";
+
+    private static final String ARG_PICKER_TOKEN = "picker_token";
+    private static final int ACTION_PICKER_DONE = 0x54494152;
+    private static final Map<String, List<ChannelList.Entry>> sPickerEntries = new HashMap<>();
 
     public static final int SORT_UNSORTED = 0;
     public static final int SORT_NAME = 1;
     public static final int SORT_MEMBER_COUNT = 2;
 
     private ServerConnectionInfo mConnection;
+    private boolean mPickerMode;
+    private final Set<String> mSelectedChannels = new LinkedHashSet<>();
     private View mMainAppBar;
     private View mSearchAppBar;
     private SearchView mSearchView;
@@ -51,7 +66,19 @@ public class ChannelListActivity extends ThemedActivity {
     private List<ChannelList.Entry> mFilteredEntries = new ArrayList<>();
 
     private final List<ChannelList.Entry> mAppendEntries = new ArrayList<>();
-    private List<ChannelList.Entry> mAssignEntries = new ArrayList<>();
+    private List<ChannelList.Entry> mAssignEntries = null;
+
+    /**
+     * Starts the existing channel-list screen as a local multi-select picker. The LIST data stays
+     * in-process so a large network cannot exceed Android's Binder transaction size.
+     */
+    public static Intent getPickerIntent(Context context, List<ChannelList.Entry> entries) {
+        String token = UUID.randomUUID().toString();
+        synchronized (sPickerEntries) {
+            sPickerEntries.put(token, new ArrayList<>(entries));
+        }
+        return new Intent(context, ChannelListActivity.class).putExtra(ARG_PICKER_TOKEN, token);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,16 +90,36 @@ public class ChannelListActivity extends ThemedActivity {
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         Toolbar searchToolbar = findViewById(R.id.search_toolbar);
-        searchToolbar.setNavigationOnClickListener((View v) -> {
-            setSearchMode(false);
-        });
+        searchToolbar.setNavigationOnClickListener((View v) -> setSearchMode(false));
 
         mMainAppBar = findViewById(R.id.appbar);
         mSearchAppBar = findViewById(R.id.search_appbar);
         mSearchView = findViewById(R.id.search_view);
 
-        UUID serverUUID = UUID.fromString(getIntent().getStringExtra(ARG_SERVER_UUID));
-        mConnection = ServerConnectionManager.getInstance(this).getConnection(serverUUID);
+        String pickerToken = getIntent().getStringExtra(ARG_PICKER_TOKEN);
+        if (pickerToken != null) {
+            mPickerMode = true;
+            synchronized (sPickerEntries) {
+                List<ChannelList.Entry> entries = sPickerEntries.remove(pickerToken);
+                if (entries != null)
+                    mEntries = entries;
+            }
+            if (mEntries.isEmpty()) {
+                Toast.makeText(this, R.string.server_channel_list_empty, Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            String uuidValue = getIntent().getStringExtra(ARG_SERVER_UUID);
+            if (uuidValue == null) {
+                finish();
+                return;
+            }
+            UUID serverUUID = UUID.fromString(uuidValue);
+            mConnection = ServerConnectionManager.getInstance(this).getConnection(serverUUID);
+            if (mConnection == null) {
+                finish();
+                return;
+            }
+        }
 
         RecyclerView recyclerView = findViewById(R.id.list);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -94,18 +141,22 @@ public class ChannelListActivity extends ThemedActivity {
             }
         });
 
-        mConnection.getApiInstance().listChannels((ChannelList list) -> {
-            synchronized (mAppendEntries) {
-                mAppendEntries.clear();
-                mAssignEntries = list.getEntries();
-            }
-            runOnUiThread(this::requestListUpdate);
-        }, (ChannelList.Entry entry) -> {
-            synchronized (mAppendEntries) {
-                mAppendEntries.add(entry);
-            }
-            runOnUiThread(this::requestListUpdate);
-        }, null);
+        if (mPickerMode) {
+            requestListUpdate();
+        } else {
+            mConnection.getApiInstance().listChannels((ChannelList list) -> {
+                synchronized (mAppendEntries) {
+                    mAppendEntries.clear();
+                    mAssignEntries = list.getEntries();
+                }
+                runOnUiThread(this::requestListUpdate);
+            }, (ChannelList.Entry entry) -> {
+                synchronized (mAppendEntries) {
+                    mAppendEntries.add(entry);
+                }
+                runOnUiThread(this::requestListUpdate);
+            }, null);
+        }
     }
 
     private static boolean filterEntry(ChannelList.Entry entry, String query) {
@@ -123,20 +174,31 @@ public class ChannelListActivity extends ThemedActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_channel_list, menu);
+        if (mPickerMode) {
+            menu.add(Menu.NONE, ACTION_PICKER_DONE, Menu.NONE, R.string.action_done)
+                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        }
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        if (id == android.R.id.home) {
+        if (id == ACTION_PICKER_DONE) {
+            Intent result = new Intent();
+            result.putStringArrayListExtra(RESULT_SELECTED_CHANNELS,
+                    new ArrayList<>(mSelectedChannels));
+            setResult(Activity.RESULT_OK, result);
+            finish();
+            return true;
+        } else if (id == android.R.id.home) {
             InputMethodManager manager = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
             manager.hideSoftInputFromWindow(getWindow().getDecorView().getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
             finish();
             return true;
         } else if (id == R.id.action_search) {
             setSearchMode(true);
-            mSearchView.setIconified(false); // This will cause the search view to be focused and show the keyboard
+            mSearchView.setIconified(false);
             return true;
         } else if (id == R.id.action_sort_none || id == R.id.action_sort_name || id == R.id.action_sort_member_count) {
             if (id == R.id.action_sort_name)
@@ -199,7 +261,8 @@ public class ChannelListActivity extends ThemedActivity {
         public String getLetterFor(int position) {
             if (mSortMode != SORT_NAME)
                 return null;
-            String channel = mFilteredEntries.get(position).getChannel();
+            List<ChannelList.Entry> source = mFilteredEntries == null ? mEntries : mFilteredEntries;
+            String channel = source.get(position).getChannel();
             return channel.length() >= 2 ? channel.substring(1, 2).toUpperCase() : "?";
         }
 
@@ -207,21 +270,32 @@ public class ChannelListActivity extends ThemedActivity {
         public int getItemCount() {
             return mFilteredEntries == null ? mEntries.size() : mFilteredEntries.size();
         }
-
     }
 
     public class ListEntry extends RecyclerView.ViewHolder {
 
-        private TextView mName;
-        private TextView mTopic;
+        private final TextView mName;
+        private final TextView mTopic;
 
         public ListEntry(View itemView) {
             super(itemView);
             mName = itemView.findViewById(R.id.name);
             mTopic = itemView.findViewById(R.id.topic);
             itemView.setOnClickListener((View view) -> {
+                String channel = (String) mName.getTag();
+                if (mPickerMode) {
+                    if (mSelectedChannels.contains(channel))
+                        mSelectedChannels.remove(channel);
+                    else
+                        mSelectedChannels.add(channel);
+                    int position = getBindingAdapterPosition();
+                    if (position != RecyclerView.NO_POSITION)
+                        mListAdapter.notifyItemChanged(position);
+                    return;
+                }
+
                 List<String> channels = new ArrayList<>();
-                channels.add((String) mName.getTag());
+                channels.add(channel);
                 mConnection.getApiInstance().joinChannels(channels, (Void v) -> {
                     runOnUiThread(() -> {
                         finish();
@@ -233,21 +307,23 @@ public class ChannelListActivity extends ThemedActivity {
         }
 
         public void bind(ChannelList.Entry entry) {
-            mName.setText(mName.getResources().getQuantityString(
+            String title = mName.getResources().getQuantityString(
                     R.plurals.channel_list_title_with_member_count, entry.getMemberCount(),
-                    entry.getChannel(), entry.getMemberCount()));
+                    entry.getChannel(), entry.getMemberCount());
+            if (mPickerMode && mSelectedChannels.contains(entry.getChannel()))
+                title = "✓ " + title;
+            mName.setText(title);
             mName.setTag(entry.getChannel());
             mTopic.setText(entry.getTopic().trim());
             mTopic.setVisibility(mTopic.getText().length() > 0 ? View.VISIBLE : View.GONE);
         }
-
     }
 
     private static class UpdateListTask implements Runnable {
 
-        private WeakReference<ChannelListActivity> mActivity;
-        private String mStartFilterQuery;
-        private int mStartSortMode;
+        private final WeakReference<ChannelListActivity> mActivity;
+        private final String mStartFilterQuery;
+        private final int mStartSortMode;
 
         public UpdateListTask(ChannelListActivity activity) {
             mActivity = new WeakReference<>(activity);
@@ -308,5 +384,4 @@ public class ChannelListActivity extends ThemedActivity {
             }
         }
     }
-
 }
