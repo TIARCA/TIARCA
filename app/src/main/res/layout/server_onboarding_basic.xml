@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <RelativeLayout
+        style="@style/EditServerItemContainer">
+
+        <ImageView
+            android:id="@+id/server_simple_auth_icon"
+            style="@style/EditServerIcon.TextInput"
+            app:srcCompat="@drawable/ic_server_password" />
+
+        <CheckBox
+            android:id="@+id/server_simple_auth_checkbox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@id/server_simple_auth_icon"
+            android:text="@string/server_has_password" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/server_simple_auth_username_ctr"
+            style="@style/EditServerTextInput"
+            android:layout_below="@id/server_simple_auth_checkbox"
+            android:layout_marginTop="6dp"
+            android:hint="@string/entry_username"
+            android:visibility="gone">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/server_simple_auth_username"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/server_simple_auth_password_ctr"
+            style="@style/EditServerTextInput"
+            android:layout_below="@id/server_simple_auth_username_ctr"
+            android:layout_marginTop="6dp"
+            android:hint="@string/entry_password"
+            app:passwordToggleEnabled="true"
+            android:visibility="gone">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/server_simple_auth_password"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPassword" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        style="@style/EditServerItemContainer">
+
+        <ImageView
+            android:id="@+id/server_simple_channels_icon"
+            style="@style/EditServerIcon.TextInput"
+            app:srcCompat="@drawable/ic_list" />
+
+        <io.mrarm.irc.view.LabelLayout
+            android:id="@+id/server_simple_channels_ctr"
+            style="@style/EditServerTextInput"
+            android:hint="@string/server_join_channels">
+
+            <io.mrarm.irc.view.ChipsEditText
+                android:id="@+id/server_simple_channels"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+        </io.mrarm.irc.view.LabelLayout>
+
+        <Button
+            android:id="@+id/server_simple_channel_list"
+            style="@style/Widget.AppCompat.Button.Borderless.Colored"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/server_simple_channels_ctr"
+            android:layout_toEndOf="@id/server_simple_channels_icon"
+            android:text="@string/server_channel_list" />
+
+    </RelativeLayout>
+
+</LinearLayout>

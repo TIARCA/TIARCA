@@ -4,12 +4,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.ParcelFileDescriptor;
-import com.google.android.material.textfield.TextInputLayout;
 import android.os.Bundle;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.appcompat.app.AlertDialog;
+import android.os.ParcelFileDescriptor;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
@@ -24,12 +20,19 @@ import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+
+import com.google.android.material.textfield.TextInputLayout;
 
 import org.spongycastle.asn1.x500.X500Name;
 import org.spongycastle.asn1.x509.SubjectPublicKeyInfo;
@@ -58,20 +61,21 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+import io.mrarm.chatlib.dto.ChannelList;
+import io.mrarm.irc.config.IdentitySettings;
 import io.mrarm.irc.config.ServerCertificateManager;
 import io.mrarm.irc.config.ServerConfigData;
 import io.mrarm.irc.config.ServerConfigManager;
-import io.mrarm.irc.config.IdentitySettings;
 import io.mrarm.irc.util.ExpandIconStateHelper;
 import io.mrarm.irc.util.PEMParser;
 import io.mrarm.irc.util.SimpleTextWatcher;
 import io.mrarm.irc.view.AutoRunCommandListEditText;
-import io.mrarm.irc.view.StaticLabelTextInputLayout;
 import io.mrarm.irc.view.ChipsEditText;
+import io.mrarm.irc.view.StaticLabelTextInputLayout;
 
 public class EditServerActivity extends ThemedActivity {
 
-    private static String TAG = "EditServerActivity";
+    private static final String TAG = "EditServerActivity";
 
     public static final String RESULT_ACTION = "io.mrarm.irc.EDIT_SERVER_RESULT_ACTION";
 
@@ -85,6 +89,7 @@ public class EditServerActivity extends ThemedActivity {
     public static String ARG_AUTOJOIN_CHANNELS = "server_autojoin_channels";
 
     private ServerConfigData mEditServer;
+    private boolean mIsNewServer;
     private EditText mServerName;
     private TextInputLayout mServerNameCtr;
     private ChipsEditText mServerAddress;
@@ -116,12 +121,29 @@ public class EditServerActivity extends ThemedActivity {
     private View mServerUserExpandIcon;
     private View mServerUserExpandContent;
 
+    // Simplified controls are used only while creating a genuinely new server. Existing-server
+    // editing (including Copy) keeps the established advanced UI and password-preservation logic.
+    private View mSimpleOnboarding;
+    private CheckBox mSimpleAuthCheckbox;
+    private TextInputLayout mSimpleAuthUserCtr;
+    private EditText mSimpleAuthUser;
+    private TextInputLayout mSimpleAuthPassCtr;
+    private EditText mSimpleAuthPass;
+    private ChipsEditText mSimpleChannels;
+    private View mSimpleChannelListButton;
+    private boolean mSyncingSimpleAuth;
+    private boolean mSyncingSimpleAuthUser;
+    private boolean mSimpleAuthUserTouched;
+
     private String[] mServerEncodingValues;
 
     private X509Certificate mServerCert = null;
     private byte[] mServerPrivKey = null;
     private String mServerPrivKeyType;
     private ActivityResultLauncher<Intent> mSaslCertificateLauncher;
+    private ActivityResultLauncher<Intent> mChannelListPickerLauncher;
+    private TemporaryChannelListConnection mTemporaryChannelListConnection;
+    private AlertDialog mChannelListProgressDialog;
 
     public static Intent getLaunchIntent(Context context, ServerConfigData data, boolean copy) {
         Intent intent = new Intent(context, EditServerActivity.class);
@@ -143,10 +165,20 @@ public class EditServerActivity extends ThemedActivity {
         mSaslCertificateLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(), result ->
                         importSaslCertificate(result.getData()));
+        mChannelListPickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(), result -> {
+                    if (result.getResultCode() != Activity.RESULT_OK || result.getData() == null)
+                        return;
+                    ArrayList<String> selected = result.getData().getStringArrayListExtra(
+                            ChannelListActivity.RESULT_SELECTED_CHANNELS);
+                    if (selected != null)
+                        mergeSelectedChannels(selected);
+                });
 
         String uuidString = getIntent().getStringExtra(ARG_SERVER_UUID);
         if (uuidString != null)
             mEditServer = ServerConfigManager.getInstance(this).findServer(UUID.fromString(uuidString));
+        mIsNewServer = mEditServer == null;
 
         setContentView(R.layout.activity_edit_server);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
@@ -199,12 +231,29 @@ public class EditServerActivity extends ThemedActivity {
         mServerCommands = findViewById(R.id.server_commands);
         mServerEncoding = findViewById(R.id.server_encoding);
 
+        TextInputLayout serverUserCtr = findViewById(R.id.server_user_ctr);
+        serverUserCtr.setHint(R.string.server_ident);
+
+        if (mIsNewServer)
+            setupSimpleOnboarding();
+
         View advancedToggle = findViewById(R.id.server_advanced_toggle);
-        View[] advancedSections = new View[] {
-                findViewById(R.id.server_ssl_section), findViewById(R.id.server_ssl_certs),
-                findViewById(R.id.server_auth_section), findViewById(R.id.server_channels_section),
-                findViewById(R.id.server_commands_section), findViewById(R.id.server_encoding_section)
-        };
+        View[] advancedSections;
+        if (mIsNewServer) {
+            // New-server auto-join channels live in the simplified block. Do not reveal the old
+            // duplicate channel editor when Advanced is expanded.
+            advancedSections = new View[] {
+                    findViewById(R.id.server_ssl_section), findViewById(R.id.server_ssl_certs),
+                    findViewById(R.id.server_auth_section),
+                    findViewById(R.id.server_commands_section), findViewById(R.id.server_encoding_section)
+            };
+        } else {
+            advancedSections = new View[] {
+                    findViewById(R.id.server_ssl_section), findViewById(R.id.server_ssl_certs),
+                    findViewById(R.id.server_auth_section), findViewById(R.id.server_channels_section),
+                    findViewById(R.id.server_commands_section), findViewById(R.id.server_encoding_section)
+            };
+        }
         advancedToggle.setOnClickListener(view -> {
             boolean show = advancedSections[0].getVisibility() != View.VISIBLE;
             for (View section : advancedSections)
@@ -216,13 +265,21 @@ public class EditServerActivity extends ThemedActivity {
         mServerUserExpandIcon = findViewById(R.id.server_user_expand);
         mServerUserExpandContent = findViewById(R.id.server_user_expand_content);
         mServerUserExpandIcon.setOnClickListener((View view) -> {
-            mServerUserExpandContent.setVisibility(mServerUserExpandContent.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
-            ExpandIconStateHelper.animateSetExpanded(mServerUserExpandIcon, mServerUserExpandContent.getVisibility() == View.VISIBLE);
+            mServerUserExpandContent.setVisibility(
+                    mServerUserExpandContent.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
+            ExpandIconStateHelper.animateSetExpanded(mServerUserExpandIcon,
+                    mServerUserExpandContent.getVisibility() == View.VISIBLE);
         });
         mServerUser.setEnabled(IdentitySettings.isCustomUsernameEnabled(this));
 
-        mServerName.addTextChangedListener(new SimpleTextWatcher((Editable s) -> mServerNameCtr.setErrorEnabled(false)));
-        mServerPort.addTextChangedListener(new SimpleTextWatcher((Editable s) -> mServerPortCtr.setErrorEnabled(false)));
+        mServerName.addTextChangedListener(new SimpleTextWatcher(
+                (Editable s) -> mServerNameCtr.setErrorEnabled(false)));
+        mServerPort.addTextChangedListener(new SimpleTextWatcher(
+                (Editable s) -> mServerPortCtr.setErrorEnabled(false)));
+        if (mIsNewServer) {
+            mServerNick.addTextChangedListener(new SimpleTextWatcher(
+                    (Editable s) -> updateSimpleAuthUsernameFromNick()));
+        }
 
         mServerSSLCertsButton.setOnClickListener((View v) -> {
             Intent intent = new Intent(EditServerActivity.this, CertificateManagerActivity.class);
@@ -238,6 +295,14 @@ public class EditServerActivity extends ThemedActivity {
         mServerAuthMode.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (mIsNewServer) {
+                    // PLAIN credentials stay in the simple block. Advanced only chooses a mode.
+                    mServerAuthUserCtr.setVisibility(View.GONE);
+                    mServerAuthPassMainCtr.setVisibility(View.GONE);
+                    mServerAuthSASLExt.setVisibility(position == 2 ? View.VISIBLE : View.GONE);
+                    syncSimpleAuthFromMode(position);
+                    return;
+                }
                 if (position == 0) {
                     mServerAuthUserCtr.setVisibility(View.GONE);
                     mServerAuthPassMainCtr.setVisibility(View.GONE);
@@ -272,7 +337,7 @@ public class EditServerActivity extends ThemedActivity {
             }
         });
 
-        mServerEncodingValues =  getResources().getStringArray(R.array.encodings_values);
+        mServerEncodingValues = getResources().getStringArray(R.array.encodings_values);
         ArrayAdapter<CharSequence> encodingAdapter = new ArrayAdapter<>(this,
                 R.layout.simple_spinner_item, android.R.id.text1,
                 getResources().getTextArray(R.array.encodings_display));
@@ -293,9 +358,8 @@ public class EditServerActivity extends ThemedActivity {
             mServerRejoinChannels.setChecked(mEditServer.rejoinChannels);
             mServerHideJoinPartMessages.setChecked(mEditServer.shouldHideJoinPartMessages());
 
-            if (mEditServer.pass != null) {
+            if (mEditServer.pass != null)
                 mServerPass.setHasProtectedPassword(mEditServer.pass);
-            }
 
             if (mEditServer.authPass != null) {
                 mServerAuthPass.setHasProtectedPassword(mEditServer.authPass);
@@ -374,9 +438,87 @@ public class EditServerActivity extends ThemedActivity {
                 mServerSSL.setChecked(getIntent().getBooleanExtra(ARG_SSL, false));
             ArrayList<String> prefillAutojoinChannels =
                     getIntent().getStringArrayListExtra(ARG_AUTOJOIN_CHANNELS);
-            if (prefillAutojoinChannels != null)
+            if (mIsNewServer) {
+                if (prefillAutojoinChannels != null && !prefillAutojoinChannels.isEmpty()) {
+                    mSimpleChannels.setItems(prefillAutojoinChannels);
+                } else {
+                    // This is an editable starter, not a committed auto-join entry. Saving filters
+                    // a lone "#" out if the user never types a channel name.
+                    mSimpleChannels.setText("#");
+                    mSimpleChannels.setSelection(mSimpleChannels.length());
+                }
+            } else if (prefillAutojoinChannels != null) {
                 mServerChannels.setItems(prefillAutojoinChannels);
+            }
         }
+    }
+
+    private void setupSimpleOnboarding() {
+        ViewGroup root = (ViewGroup) findViewById(R.id.server_user_expand_content).getParent();
+        mSimpleOnboarding = getLayoutInflater().inflate(
+                R.layout.server_onboarding_basic, root, false);
+        int insertAt = root.indexOfChild(findViewById(R.id.server_user_expand_content)) + 1;
+        root.addView(mSimpleOnboarding, insertAt);
+
+        mSimpleAuthCheckbox = mSimpleOnboarding.findViewById(R.id.server_simple_auth_checkbox);
+        mSimpleAuthUserCtr = mSimpleOnboarding.findViewById(R.id.server_simple_auth_username_ctr);
+        mSimpleAuthUser = mSimpleOnboarding.findViewById(R.id.server_simple_auth_username);
+        mSimpleAuthPassCtr = mSimpleOnboarding.findViewById(R.id.server_simple_auth_password_ctr);
+        mSimpleAuthPass = mSimpleOnboarding.findViewById(R.id.server_simple_auth_password);
+        mSimpleChannels = mSimpleOnboarding.findViewById(R.id.server_simple_channels);
+        mSimpleChannelListButton = mSimpleOnboarding.findViewById(R.id.server_simple_channel_list);
+
+        mSimpleAuthCheckbox.setOnCheckedChangeListener((button, checked) -> {
+            setSimpleAuthFieldsVisible(checked);
+            if (mSyncingSimpleAuth)
+                return;
+            mSyncingSimpleAuth = true;
+            mServerAuthMode.setSelection(checked ? 1 : 0);
+            mSyncingSimpleAuth = false;
+            if (checked)
+                updateSimpleAuthUsernameFromNick();
+        });
+        mSimpleAuthUser.addTextChangedListener(new SimpleTextWatcher(s -> {
+            if (!mSyncingSimpleAuthUser)
+                mSimpleAuthUserTouched = true;
+            mSimpleAuthUserCtr.setErrorEnabled(false);
+        }));
+        mSimpleAuthPass.addTextChangedListener(new SimpleTextWatcher(s ->
+                mSimpleAuthPassCtr.setErrorEnabled(false)));
+        mSimpleChannelListButton.setOnClickListener(view -> startTemporaryChannelList());
+    }
+
+    private void syncSimpleAuthFromMode(int position) {
+        if (!mIsNewServer || mSimpleAuthCheckbox == null)
+            return;
+        mSyncingSimpleAuth = true;
+        boolean plain = position == 1;
+        mSimpleAuthCheckbox.setChecked(plain);
+        setSimpleAuthFieldsVisible(plain);
+        mSyncingSimpleAuth = false;
+        if (plain)
+            updateSimpleAuthUsernameFromNick();
+    }
+
+    private void setSimpleAuthFieldsVisible(boolean visible) {
+        if (mSimpleAuthUserCtr == null)
+            return;
+        mSimpleAuthUserCtr.setVisibility(visible ? View.VISIBLE : View.GONE);
+        mSimpleAuthPassCtr.setVisibility(visible ? View.VISIBLE : View.GONE);
+    }
+
+    private void updateSimpleAuthUsernameFromNick() {
+        if (!mIsNewServer || mSimpleAuthCheckbox == null ||
+                !mSimpleAuthCheckbox.isChecked() || mSimpleAuthUserTouched)
+            return;
+        String[] nicks = mServerNick.getItems();
+        String nick = nicks.length > 0 ? nicks[0].trim() : "";
+        if (nick.isEmpty())
+            return;
+        mSyncingSimpleAuthUser = true;
+        mSimpleAuthUser.setText(nick);
+        mSimpleAuthUser.setSelection(mSimpleAuthUser.length());
+        mSyncingSimpleAuthUser = false;
     }
 
     private boolean validate() {
@@ -413,6 +555,188 @@ public class EditServerActivity extends ThemedActivity {
         return succeeded;
     }
 
+    private boolean validateTemporaryConnection() {
+        if (mServerAddress.getItems().length == 0) {
+            findViewById(R.id.server_ssl_section).setVisibility(View.VISIBLE);
+            mServerAddressCtr.setError(getString(R.string.server_error_invalid_address));
+            mServerAddress.requestFocus();
+            return false;
+        }
+        try {
+            Integer.parseInt(mServerPort.getText().toString());
+        } catch (NumberFormatException e) {
+            findViewById(R.id.server_ssl_section).setVisibility(View.VISIBLE);
+            mServerPortCtr.setError(getString(R.string.server_error_invalid_port));
+            mServerPort.requestFocus();
+            return false;
+        }
+        if (!IdentitySettings.hasNickname(mServerNick.getItems())) {
+            Toast.makeText(this, R.string.connection_error_no_nick, Toast.LENGTH_SHORT).show();
+            mServerNick.requestFocus();
+            return false;
+        }
+        if (mServerAuthMode.getSelectedItemPosition() == 1 && mIsNewServer) {
+            boolean valid = true;
+            if (TextUtils.isEmpty(mSimpleAuthUser.getText())) {
+                mSimpleAuthUserCtr.setError(getString(R.string.server_auth_username_required));
+                valid = false;
+            }
+            if (TextUtils.isEmpty(mSimpleAuthPass.getText())) {
+                mSimpleAuthPassCtr.setError(getString(R.string.server_auth_password_required));
+                valid = false;
+            }
+            if (!valid)
+                return false;
+        }
+        return true;
+    }
+
+    private ServerConfigData buildTemporaryServerConfig() {
+        ServerConfigData data = new ServerConfigData();
+        data.uuid = UUID.randomUUID();
+        data.name = mServerName.getText().toString();
+        data.setConnectionAddresses(Arrays.asList(mServerAddress.getItems()));
+        data.port = Integer.parseInt(mServerPort.getText().toString());
+        data.ssl = mServerSSL.isChecked();
+        data.charset = mServerEncodingValues[mServerEncoding.getSelectedItemPosition()];
+        data.pass = nullifyIfEmpty(mServerPass.getPassword());
+        data.nicks = Arrays.asList(mServerNick.getItems());
+        if (IdentitySettings.isCustomUsernameEnabled(this))
+            data.user = nullifyIfEmpty(mServerUser.getText().toString());
+        data.realname = nullifyIfEmpty(mServerRealname.getText().toString());
+
+        int authMode = mServerAuthMode.getSelectedItemPosition();
+        if (authMode == 1) {
+            data.authMode = ServerConfigData.AUTH_SASL;
+            if (mIsNewServer) {
+                data.authUser = nullifyIfEmpty(mSimpleAuthUser.getText().toString());
+                data.authPass = nullifyIfEmpty(mSimpleAuthPass.getText().toString());
+            } else {
+                data.authUser = nullifyIfEmpty(mServerAuthUser.getText().toString());
+                data.authPass = nullifyIfEmpty(mServerAuthPass.getPassword());
+            }
+        } else if (authMode == 2) {
+            data.authMode = ServerConfigData.AUTH_SASL_EXTERNAL;
+            try {
+                data.authCertData = mServerCert == null ? null : mServerCert.getEncoded();
+            } catch (CertificateEncodingException e) {
+                throw new RuntimeException(e);
+            }
+            data.authCertPrivKey = mServerPrivKey;
+            data.authCertPrivKeyType = mServerPrivKeyType;
+        }
+        return data;
+    }
+
+    private void startTemporaryChannelList() {
+        if (!validateTemporaryConnection())
+            return;
+        if (mTemporaryChannelListConnection != null)
+            mTemporaryChannelListConnection.cancel();
+
+        ProgressBar progress = new ProgressBar(this);
+        int padding = Math.round(16 * getResources().getDisplayMetrics().density);
+        progress.setPadding(padding, padding, padding, padding);
+        mChannelListProgressDialog = new AlertDialog.Builder(this)
+                .setMessage(R.string.server_channel_list_connecting)
+                .setView(progress)
+                .setNegativeButton(R.string.action_cancel, (dialog, which) -> {
+                    if (mTemporaryChannelListConnection != null)
+                        mTemporaryChannelListConnection.cancel();
+                    mTemporaryChannelListConnection = null;
+                })
+                .setOnCancelListener(dialog -> {
+                    if (mTemporaryChannelListConnection != null)
+                        mTemporaryChannelListConnection.cancel();
+                    mTemporaryChannelListConnection = null;
+                })
+                .show();
+
+        mTemporaryChannelListConnection = new TemporaryChannelListConnection(
+                this, buildTemporaryServerConfig());
+        mTemporaryChannelListConnection.start(new TemporaryChannelListConnection.Callback() {
+            @Override
+            public void onSuccess(List<ChannelList.Entry> entries) {
+                runOnUiThread(() -> {
+                    mTemporaryChannelListConnection = null;
+                    dismissChannelListProgress();
+                    if (isFinishing() || isDestroyed())
+                        return;
+                    if (entries == null || entries.isEmpty()) {
+                        Toast.makeText(EditServerActivity.this,
+                                R.string.server_channel_list_empty, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    mChannelListPickerLauncher.launch(
+                            ChannelListActivity.getPickerIntent(EditServerActivity.this, entries));
+                });
+            }
+
+            @Override
+            public void onError(Exception error) {
+                Log.w(TAG, "Temporary LIST connection failed", error);
+                runOnUiThread(() -> {
+                    mTemporaryChannelListConnection = null;
+                    dismissChannelListProgress();
+                    if (!isFinishing() && !isDestroyed()) {
+                        Toast.makeText(EditServerActivity.this,
+                                R.string.server_channel_list_connection_error,
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+        });
+    }
+
+    private void dismissChannelListProgress() {
+        if (mChannelListProgressDialog != null) {
+            mChannelListProgressDialog.dismiss();
+            mChannelListProgressDialog = null;
+        }
+    }
+
+    private void mergeSelectedChannels(List<String> selected) {
+        if (!mIsNewServer || mSimpleChannels == null || selected == null || selected.isEmpty())
+            return;
+        ArrayList<String> merged = new ArrayList<>();
+        for (String existing : mSimpleChannels.getItems()) {
+            if (existing == null)
+                continue;
+            String value = existing.trim();
+            if (value.isEmpty() || value.equals("#"))
+                continue;
+            addChannelIfMissing(merged, value);
+        }
+        for (String channel : selected) {
+            if (channel != null && !channel.trim().isEmpty())
+                addChannelIfMissing(merged, channel.trim());
+        }
+        mSimpleChannels.setItems(merged);
+    }
+
+    private static void addChannelIfMissing(List<String> channels, String candidate) {
+        for (String channel : channels) {
+            if (channel.equalsIgnoreCase(candidate))
+                return;
+        }
+        channels.add(candidate);
+    }
+
+    private List<String> getNewServerAutojoinChannels() {
+        ArrayList<String> channels = new ArrayList<>();
+        if (mSimpleChannels == null)
+            return channels;
+        for (String raw : mSimpleChannels.getItems()) {
+            if (raw == null)
+                continue;
+            String channel = raw.trim();
+            if (channel.isEmpty() || channel.equals("#"))
+                continue;
+            addChannelIfMissing(channels, channel);
+        }
+        return channels;
+    }
+
     private boolean save() {
         if (!validate())
             return false;
@@ -421,7 +745,8 @@ public class EditServerActivity extends ThemedActivity {
             mEditServer = new ServerConfigData();
             mEditServer.uuid = UUID.randomUUID();
         } else {
-            ServerConnectionInfo conn = ServerConnectionManager.getInstance(this).getConnection(mEditServer.uuid);
+            ServerConnectionInfo conn = ServerConnectionManager.getInstance(this)
+                    .getConnection(mEditServer.uuid);
             if (conn != null) {
                 conn.disconnect();
                 ServerConnectionManager.getInstance(this).removeConnection(conn);
@@ -447,8 +772,13 @@ public class EditServerActivity extends ThemedActivity {
         mEditServer.authCertPrivKeyType = null;
         if (authModeInt == 1) {
             mEditServer.authMode = ServerConfigData.AUTH_SASL;
-            mEditServer.authUser = mServerAuthUser.getText().toString();
-            mEditServer.authPass = nullifyIfEmpty(mServerAuthPass.getPassword());
+            if (mIsNewServer) {
+                mEditServer.authUser = mSimpleAuthUser.getText().toString();
+                mEditServer.authPass = nullifyIfEmpty(mSimpleAuthPass.getText().toString());
+            } else {
+                mEditServer.authUser = mServerAuthUser.getText().toString();
+                mEditServer.authPass = nullifyIfEmpty(mServerAuthPass.getPassword());
+            }
         } else if (authModeInt == 2) {
             mEditServer.authMode = ServerConfigData.AUTH_SASL_EXTERNAL;
             mEditServer.authUser = null;
@@ -465,7 +795,8 @@ public class EditServerActivity extends ThemedActivity {
             mEditServer.authUser = null;
             mEditServer.authPass = null;
         }
-        mEditServer.autojoinChannels = Arrays.asList(mServerChannels.getItems());
+        mEditServer.autojoinChannels = mIsNewServer
+                ? getNewServerAutojoinChannels() : Arrays.asList(mServerChannels.getItems());
         mEditServer.rejoinChannels = mServerRejoinChannels.isChecked();
         mEditServer.hideJoinPartMessages = mServerHideJoinPartMessages.isChecked();
         mEditServer.execCommandsConnected = mServerCommands.getText().length() > 0
@@ -480,9 +811,8 @@ public class EditServerActivity extends ThemedActivity {
             Toast.makeText(this, R.string.server_save_error, Toast.LENGTH_SHORT).show();
             return false;
         }
-        if (addConnection) {
+        if (addConnection)
             ServerConnectionManager.getInstance(this).tryCreateConnection(mEditServer, this);
-        }
         return true;
     }
 
@@ -490,10 +820,22 @@ public class EditServerActivity extends ThemedActivity {
     protected void onResume() {
         super.onResume();
         if (mEditServer != null) {
-            List<String> aliases = ServerCertificateManager.get(this, mEditServer.uuid).getCertificateAliases();
+            List<String> aliases = ServerCertificateManager.get(this, mEditServer.uuid)
+                    .getCertificateAliases();
             int count = aliases != null ? aliases.size() : 0;
-            mServerSSLCertsLbl.setText(getResources().getQuantityString(R.plurals.server_manage_custom_certs_text, count, count));
+            mServerSSLCertsLbl.setText(getResources().getQuantityString(
+                    R.plurals.server_manage_custom_certs_text, count, count));
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (mTemporaryChannelListConnection != null) {
+            mTemporaryChannelListConnection.cancel();
+            mTemporaryChannelListConnection = null;
+        }
+        dismissChannelListProgress();
+        super.onDestroy();
     }
 
     @Override
@@ -509,7 +851,10 @@ public class EditServerActivity extends ThemedActivity {
             if (id == R.id.action_done) {
                 mServerAddress.clearFocus();
                 mServerNick.clearFocus();
-                mServerChannels.clearFocus();
+                if (mIsNewServer && mSimpleChannels != null)
+                    mSimpleChannels.clearFocus();
+                else
+                    mServerChannels.clearFocus();
                 if (!save())
                     return true;
 
@@ -519,7 +864,8 @@ public class EditServerActivity extends ThemedActivity {
             }
 
             InputMethodManager manager = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
-            manager.hideSoftInputFromWindow(getWindow().getDecorView().getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+            manager.hideSoftInputFromWindow(getWindow().getDecorView().getWindowToken(),
+                    InputMethodManager.HIDE_NOT_ALWAYS);
 
             finish();
             return true;
@@ -584,7 +930,6 @@ public class EditServerActivity extends ThemedActivity {
         return sslEnabled ? 6697 : 6667;
     }
 
-
     private static String getCertificateFingerprint(X509Certificate cert) {
         try {
             StringBuilder builder = new StringBuilder();
@@ -607,10 +952,10 @@ public class EditServerActivity extends ThemedActivity {
         BigInteger serial = new BigInteger(64, new SecureRandom());
         Date from = new Date();
         Date to = new Date(from.getTime() + 30L * 365L * 24L * 60L * 60L * 1000L);
-        X509v3CertificateBuilder builder = new X509v3CertificateBuilder(name, serial, from, to, name, SubjectPublicKeyInfo.getInstance(kp.getPublic().getEncoded()));
+        X509v3CertificateBuilder builder = new X509v3CertificateBuilder(name, serial, from, to,
+                name, SubjectPublicKeyInfo.getInstance(kp.getPublic().getEncoded()));
         ContentSigner signer = new JcaContentSignerBuilder("SHA256WithRSA").build(kp.getPrivate());
         X509CertificateHolder holder = builder.build(signer);
-
 
         CertificateFactory factory = CertificateFactory.getInstance("X.509");
         mServerCert = (X509Certificate) factory.generateCertificate(
@@ -677,7 +1022,5 @@ public class EditServerActivity extends ThemedActivity {
                 return mProtectedValue;
             return mEditText.getText().toString();
         }
-
     }
-
 }

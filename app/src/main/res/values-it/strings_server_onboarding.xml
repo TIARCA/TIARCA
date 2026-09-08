@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="server_has_password">Ho una password</string>
+    <string name="server_ident">Ident</string>
+    <string name="server_join_channels">Collegati ai canali</string>
+    <string name="server_channel_list">Lista canali</string>
+    <string name="server_channel_list_connecting">Attendere prego. Connessione in corso…</string>
+    <string name="server_channel_list_connection_error">Impossibile connettersi e recuperare la lista dei canali.</string>
+    <string name="server_channel_list_empty">Nessun canale trovato.</string>
+    <string name="server_auth_username_required">Inserisci il nome utente.</string>
+    <string name="server_auth_password_required">Inserisci la password.</string>
+</resources>
