@@ -41,13 +41,14 @@ public class ServerConnectionManager {
 
     private final Context mContext;
     private final File mConnectedServersFile;
+    private final Object mConnectedServersFileLock = new Object();
     private final HashMap<UUID, ServerConnectionInfo> mConnectionsMap = new HashMap<>();
     private final ArrayList<ServerConnectionInfo> mConnections = new ArrayList<>();
     private final HashMap<UUID, ServerConnectionInfo> mDisconnectingConnections = new HashMap<>();
     private final List<ConnectionsListener> mListeners = new ArrayList<>();
     private final List<ServerConnectionInfo.ChannelListChangeListener> mChannelsListeners = new ArrayList<>();
     private final List<ServerConnectionInfo.InfoChangeListener> mInfoListeners = new ArrayList<>();
-    private boolean mDestroying = false;
+    private volatile boolean mDestroying = false;
 
     public static boolean hasInstance() {
         return instance != null;
@@ -60,6 +61,10 @@ public class ServerConnectionManager {
     }
 
     public static synchronized void destroyInstance() {
+        destroyInstance(false);
+    }
+
+    public static synchronized void destroyInstance(boolean clearSavedSession) {
         if (instance == null)
             return;
         instance.mDestroying = true;
@@ -69,6 +74,8 @@ public class ServerConnectionManager {
             instance.removeConnection(connection, false);
             instance.killDisconnectingConnection(connection.getUUID());
         }
+        if (clearSavedSession)
+            instance.clearSavedSession();
         instance = null;
     }
 
@@ -97,23 +104,38 @@ public class ServerConnectionManager {
     }
 
     private void saveAutoconnectList() {
-        ConnectedServersList list = new ConnectedServersList();
-        list.servers = new ArrayList<>();
-        for (ServerConnectionInfo connectionInfo : getConnections()) {
-            ConnectedServerInfo server = new ConnectedServerInfo();
-            server.uuid = connectionInfo.getUUID();
-            server.channels = connectionInfo.getChannels();
-            list.servers.add(server);
+        synchronized (mConnectedServersFileLock) {
+            if (mDestroying)
+                return;
+            ConnectedServersList list = new ConnectedServersList();
+            list.servers = new ArrayList<>();
+            for (ServerConnectionInfo connectionInfo : getConnections()) {
+                ConnectedServerInfo server = new ConnectedServerInfo();
+                server.uuid = connectionInfo.getUUID();
+                server.channels = connectionInfo.getChannels();
+                list.servers.add(server);
+            }
+            if (mDestroying)
+                return;
+            try {
+                BufferedWriter writer = new BufferedWriter(new FileWriter(mConnectedServersFile));
+                SettingsHelper.getGson().toJson(list, writer);
+                writer.close();
+            } catch (Exception ignored) {
+            }
         }
-        try {
-            BufferedWriter writer = new BufferedWriter(new FileWriter(mConnectedServersFile));
-            SettingsHelper.getGson().toJson(list, writer);
-            writer.close();
-        } catch (Exception ignored) {
+    }
+
+    private void clearSavedSession() {
+        synchronized (mConnectedServersFileLock) {
+            if (mConnectedServersFile.exists())
+                mConnectedServersFile.delete();
         }
     }
 
     void saveAutoconnectListAsync() {
+        if (mDestroying)
+            return;
         AppExecutors.IO.execute(this::saveAutoconnectList);
     }
 
