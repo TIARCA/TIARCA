@@ -5,15 +5,15 @@ TIARCA (*TIARCA Is Another Relay Chat App*) è un fork di [Revolution IRC](https
 
 TIARCA ne prosegue lo sviluppo come progetto indipendente, mantenendo la licenza GNU GPLv3 e introducendo nuove funzionalità, correzioni e aggiornamenti per le versioni moderne di Android. Il lavoro originale di Revolution IRC e le successive modifiche di TIARCA restano chiaramente distinti.
 
-## Ultima release — TIARCA 0.8.1
+## Ultima release — TIARCA 0.8.2
 
-La release stabile corrente è **TIARCA 0.8.1**.
+La release stabile corrente è **TIARCA 0.8.2**.
 
-- [Scarica TIARCA 0.8.1 APK](https://github.com/TIARCA/TIARCA/releases/download/v0.8.1/TIARCA-v0.8.1.apk)
-- [Pagina della release 0.8.1](https://github.com/TIARCA/TIARCA/releases/tag/v0.8.1)
+- [Scarica TIARCA 0.8.2 APK](https://github.com/TIARCA/TIARCA/releases/download/v0.8.2/TIARCA-v0.8.2.apk)
+- [Pagina della release 0.8.2](https://github.com/TIARCA/TIARCA/releases/tag/v0.8.2)
 - [Novità e changelog completo](CHANGELOG.md)
 
-La 0.8.1 introduce, tra le altre cose, il riordino manuale dei server, la schermata unificata **Ban | Eccezioni**, miglioramenti a MONITOR, una navigazione completamente rivista di menzioni e risultati di ricerca, il pulsante rapido per tornare all’ultimo messaggio, numerose correzioni di stabilità e la copertura completa delle nove lingue supportate.
+La 0.8.2 corregge l’ordine di navigazione di **Cerca nella conversazione**: una nuova ricerca parte ora dall’occorrenza più recente, **Precedente** risale verso i risultati più vecchi e il contatore parte coerentemente dall’ultimo risultato, ad esempio `8/8`.
 
 Questo repository contiene il codice sorgente di TIARCA. Non rappresenta una pubblicazione su F-Droid o Google Play; gli APK ufficiali vengono distribuiti tramite GitHub Releases.
 
