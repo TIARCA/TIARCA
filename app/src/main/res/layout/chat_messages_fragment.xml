@@ -53,6 +53,23 @@
 
     </LinearLayout>
 
+    <ImageButton
+        android:id="@+id/jump_to_latest"
+        style="@style/Icon.Opaque"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="12dp"
+        android:layout_marginRight="12dp"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_jump_to_latest"
+        android:contentDescription="@string/action_go_to_latest"
+        android:elevation="5dp"
+        android:alpha="0.82"
+        android:padding="12dp"
+        android:visibility="gone"
+        app:srcCompat="@drawable/ic_arrow_down_24dp" />
+
     <LinearLayout
         android:id="@+id/mention_navigation"
         android:layout_width="match_parent"
@@ -62,49 +79,49 @@
         android:gravity="center_vertical"
         android:background="?attr/colorBackgroundFloating"
         android:elevation="6dp"
-        android:paddingStart="4dp"
-        android:paddingLeft="4dp"
-        android:paddingEnd="4dp"
-        android:paddingRight="4dp"
         android:visibility="gone">
 
-        <ImageButton
+        <TextView
             android:id="@+id/mention_previous"
-            style="@style/Icon.Opaque"
-            android:layout_width="48dp"
+            android:layout_width="0dp"
             android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/mention_previous"
-            android:padding="12dp"
-            app:srcCompat="@drawable/ic_chevron_left" />
+            android:layout_weight="1"
+            android:gravity="center"
+            android:singleLine="true"
+            android:ellipsize="none"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:background="?attr/selectableItemBackground"
+            android:text="@string/mention_previous_nav"
+            android:textAppearance="@style/TextAppearance.AppCompat.Body1" />
 
         <TextView
             android:id="@+id/mention_position"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
             android:layout_weight="1"
             android:gravity="center"
+            android:singleLine="true"
+            android:ellipsize="none"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:background="?attr/selectableItemBackground"
+            android:text="@string/mention_close_nav"
             android:textAppearance="@style/TextAppearance.AppCompat.Body1" />
 
-        <ImageButton
+        <TextView
             android:id="@+id/mention_next"
-            style="@style/Icon.Opaque"
-            android:layout_width="48dp"
+            android:layout_width="0dp"
             android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/mention_next"
-            android:padding="12dp"
-            app:srcCompat="@drawable/ic_chevron_right" />
-
-        <ImageButton
-            android:id="@+id/mention_close"
-            style="@style/Icon.Opaque"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/action_close"
-            android:padding="14dp"
-            app:srcCompat="@drawable/ic_close_16dp" />
+            android:layout_weight="1"
+            android:gravity="center"
+            android:singleLine="true"
+            android:ellipsize="none"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:background="?attr/selectableItemBackground"
+            android:text="@string/mention_next_nav"
+            android:textAppearance="@style/TextAppearance.AppCompat.Body1" />
 
     </LinearLayout>
 
