@@ -145,8 +145,7 @@ public class ChatMessageSearchDialog {
                     matches.add(result);
             }
         }
-        int oldCurrent = current;
-        current = matches.isEmpty() ? -1 : Math.min(Math.max(oldCurrent, 0), matches.size() - 1);
+        current = matches.isEmpty() ? -1 : matches.size() - 1;
         updateResult();
     }
 
