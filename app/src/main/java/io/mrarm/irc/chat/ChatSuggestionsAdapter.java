@@ -8,6 +8,7 @@ import android.widget.Filter;
 import android.widget.Filterable;
 import android.widget.TextView;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.Fragment;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,8 +18,10 @@ import java.util.Set;
 import io.mrarm.chatlib.dto.ModeList;
 import io.mrarm.chatlib.dto.NickWithPrefix;
 import io.mrarm.chatlib.irc.ServerConnectionApi;
+import io.mrarm.irc.MainActivity;
 import io.mrarm.irc.R;
 import io.mrarm.irc.ServerConnectionInfo;
+import io.mrarm.irc.dialog.NicknameContextMenu;
 import io.mrarm.irc.util.SelectableRecyclerViewAdapter;
 
 public class ChatSuggestionsAdapter extends SelectableRecyclerViewAdapter<ChatSuggestionsAdapter.ItemHolder> implements Filterable {
@@ -32,7 +35,6 @@ public class ChatSuggestionsAdapter extends SelectableRecyclerViewAdapter<ChatSu
     private boolean mServicesEnabled = false;
     private MyFilter mFilter;
     private OnItemClickListener mClickListener;
-    private OnNickLongClickListener mNickLongClickListener;
 
     public ChatSuggestionsAdapter(Context context, ServerConnectionInfo connection, List<NickWithPrefix> members) {
         super(context);
@@ -43,10 +45,6 @@ public class ChatSuggestionsAdapter extends SelectableRecyclerViewAdapter<ChatSu
 
     public void setClickListener(OnItemClickListener listener) {
         mClickListener = listener;
-    }
-
-    public void setNickLongClickListener(OnNickLongClickListener listener) {
-        mNickLongClickListener = listener;
     }
 
     public void setMembers(List<NickWithPrefix> members) {
@@ -114,6 +112,19 @@ public class ChatSuggestionsAdapter extends SelectableRecyclerViewAdapter<ChatSu
         return mFilter;
     }
 
+    private boolean showNickContextMenu(View view, NickWithPrefix nick) {
+        Context context = view.getContext();
+        String sourceChannel = null;
+        if (context instanceof MainActivity) {
+            Fragment fragment = ((MainActivity) context).getCurrentFragment();
+            if (fragment instanceof ChatFragment &&
+                    ((ChatFragment) fragment).getConnectionInfo() == mConnection)
+                sourceChannel = ((ChatFragment) fragment).getCurrentChannel();
+        }
+        NicknameContextMenu.show(context, mConnection, nick.getNick(), sourceChannel);
+        return true;
+    }
+
     public class ItemHolder extends SelectableRecyclerViewAdapter.ViewHolder {
 
         private TextView mText;
@@ -126,8 +137,8 @@ public class ChatSuggestionsAdapter extends SelectableRecyclerViewAdapter<ChatSu
             });
             view.setOnLongClickListener((View v) -> {
                 Object item = v.getTag();
-                return item instanceof NickWithPrefix && mNickLongClickListener != null &&
-                        mNickLongClickListener.onNickLongClick((NickWithPrefix) item);
+                return item instanceof NickWithPrefix &&
+                        showNickContextMenu(v, (NickWithPrefix) item);
             });
         }
 
@@ -201,10 +212,6 @@ public class ChatSuggestionsAdapter extends SelectableRecyclerViewAdapter<ChatSu
 
     public interface OnItemClickListener {
         void onItemClick(Object item);
-    }
-
-    public interface OnNickLongClickListener {
-        boolean onNickLongClick(NickWithPrefix nick);
     }
 
 }
