@@ -28,7 +28,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Detect version and publish a missing tag
+      - name: Detect version
         id: version
         shell: bash
         run: |
@@ -49,21 +49,6 @@ jobs:
               exit 1
             fi
             PUBLISH_RELEASE=true
-          elif [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
-            if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
-              echo "Tag $TAG already exists; no release will be created."
-            else
-              git config user.name "github-actions[bot]"
-              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-              git tag -a "$TAG" "$GITHUB_SHA" -m "TIARCA $TAG"
-              if git push origin "refs/tags/$TAG"; then
-                PUBLISH_RELEASE=true
-              elif git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
-                echo "Tag $TAG was created concurrently; no duplicate release will be created."
-              else
-                exit 1
-              fi
-            fi
           fi
 
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
@@ -110,7 +95,7 @@ jobs:
       - name: Build signed release APK
         run: ./gradlew :app:assembleRelease
 
-      - name: Name release APK
+      - name: Name and checksum release APK
         id: apk
         shell: bash
         run: |
@@ -121,9 +106,13 @@ jobs:
             exit 1
           fi
           OUTPUT="app/build/outputs/apk/release/TIARCA-${{ needs.prepare-release.outputs.tag }}.apk"
+          CHECKSUM="${OUTPUT}.sha256"
           cp "$APK" "$OUTPUT"
+          (cd "$(dirname "$OUTPUT")" && sha256sum "$(basename "$OUTPUT")") > "$CHECKSUM"
           echo "apk=$OUTPUT" >> "$GITHUB_OUTPUT"
+          echo "checksum=$CHECKSUM" >> "$GITHUB_OUTPUT"
           echo "Generated APK: $OUTPUT"
+          echo "Generated checksum: $CHECKSUM"
 
       - name: Prepare release notes from changelog
         shell: bash
@@ -149,11 +138,13 @@ jobs:
               "$PREVIOUS_TAG" "$CURRENT_TAG" >> release-notes.md
           fi
 
-      - name: Upload APK as artifact
+      - name: Upload release files as artifact
         uses: actions/upload-artifact@v6
         with:
           name: TIARCA-release
-          path: ${{ steps.apk.outputs.apk }}
+          path: |
+            ${{ steps.apk.outputs.apk }}
+            ${{ steps.apk.outputs.checksum }}
 
       - name: Create GitHub Release
         if: needs.prepare-release.outputs.publish_release == 'true'
@@ -161,5 +152,7 @@ jobs:
         with:
           tag_name: ${{ needs.prepare-release.outputs.tag }}
           name: TIARCA v${{ needs.prepare-release.outputs.version }}
-          files: ${{ steps.apk.outputs.apk }}
+          files: |
+            ${{ steps.apk.outputs.apk }}
+            ${{ steps.apk.outputs.checksum }}
           body_path: release-notes.md
