@@ -32,6 +32,7 @@ public class ChatSuggestionsAdapter extends SelectableRecyclerViewAdapter<ChatSu
     private boolean mServicesEnabled = false;
     private MyFilter mFilter;
     private OnItemClickListener mClickListener;
+    private OnNickLongClickListener mNickLongClickListener;
 
     public ChatSuggestionsAdapter(Context context, ServerConnectionInfo connection, List<NickWithPrefix> members) {
         super(context);
@@ -42,6 +43,10 @@ public class ChatSuggestionsAdapter extends SelectableRecyclerViewAdapter<ChatSu
 
     public void setClickListener(OnItemClickListener listener) {
         mClickListener = listener;
+    }
+
+    public void setNickLongClickListener(OnNickLongClickListener listener) {
+        mNickLongClickListener = listener;
     }
 
     public void setMembers(List<NickWithPrefix> members) {
@@ -119,6 +124,11 @@ public class ChatSuggestionsAdapter extends SelectableRecyclerViewAdapter<ChatSu
             view.setOnClickListener((View v) -> {
                 mClickListener.onItemClick(v.getTag());
             });
+            view.setOnLongClickListener((View v) -> {
+                Object item = v.getTag();
+                return item instanceof NickWithPrefix && mNickLongClickListener != null &&
+                        mNickLongClickListener.onNickLongClick((NickWithPrefix) item);
+            });
         }
 
         public void bind(Object item) {
@@ -191,6 +201,10 @@ public class ChatSuggestionsAdapter extends SelectableRecyclerViewAdapter<ChatSu
 
     public interface OnItemClickListener {
         void onItemClick(Object item);
+    }
+
+    public interface OnNickLongClickListener {
+        boolean onNickLongClick(NickWithPrefix nick);
     }
 
 }
