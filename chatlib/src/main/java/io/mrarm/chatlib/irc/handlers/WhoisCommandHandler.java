@@ -50,6 +50,13 @@ public class WhoisCommandHandler extends RequestResponseCommandHandler<String, W
             if (numeric == RPL_WHOISUSER) {
                 builder = new WhoisInfo.Builder();
                 currentReply.put(nick, builder);
+            } else if (numeric == RPL_WHOISSERVER) {
+                // Numeric 312 is shared by WHOIS and WHOWAS. During a WHOWAS lookup it may
+                // legitimately arrive without a preceding WHOIS 311. Consume it here instead
+                // of reporting it as malformed WHOIS and leaking the raw protocol line to the
+                // server-status view. The dedicated WHOWAS collector owns the surrounding
+                // 314/369 sequence.
+                return;
             } else {
                 throw new InvalidMessageException("Whois data not started with a RPL_WHOISUSER");
             }
