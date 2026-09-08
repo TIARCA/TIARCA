@@ -43,7 +43,7 @@ public class ChannelListActivity extends ThemedActivity {
     private ListAdapter mListAdapter;
 
     private String mFilterQuery;
-    private int mSortMode = SORT_NAME;
+    private int mSortMode = SORT_MEMBER_COUNT;
 
     private UpdateListTask mUpdateListTask;
 
