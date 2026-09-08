@@ -5,11 +5,13 @@ import android.os.Bundle;
 import androidx.fragment.app.Fragment;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import io.mrarm.chatlib.irc.ServerConnectionApi;
 import io.mrarm.irc.R;
 import io.mrarm.irc.ServerConnectionInfo;
 
@@ -20,6 +22,7 @@ public class ChatPagerAdapter extends FragmentStateAdapter {
     private List<String> channels;
     private Map<String, Long> channelIds = new HashMap<>();
     private long nextChannelId = 1;
+    private PrivateQueryListUpdate.Rename lastPrivateQueryRename;
 
     public ChatPagerAdapter(Fragment fragment, ServerConnectionInfo connectionInfo) {
         super(fragment);
@@ -66,7 +69,14 @@ public class ChatPagerAdapter extends FragmentStateAdapter {
     }
 
     public void updateChannelList() {
-        channels = connectionInfo.getChannels();
+        List<String> previous = channels == null ? new ArrayList<>() : new ArrayList<>(channels);
+        List<String> connectionChannels = connectionInfo.getChannels();
+        List<String> updated = connectionChannels == null ? new ArrayList<>() :
+                new ArrayList<>(connectionChannels);
+        lastPrivateQueryRename = PrivateQueryListUpdate.findSingleRename(previous, updated,
+                getSupportedChannelPrefixes());
+        channels = updated;
+
         Iterator<Map.Entry<String, Long>> it = channelIds.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, Long> entry = it.next();
@@ -78,6 +88,16 @@ public class ChatPagerAdapter extends FragmentStateAdapter {
                 channelIds.put(channel, nextChannelId++);
         }
         notifyDataSetChanged();
+    }
+
+    private String getSupportedChannelPrefixes() {
+        if (!(connectionInfo.getApiInstance() instanceof ServerConnectionApi))
+            return "#&+!";
+        StringBuilder prefixes = new StringBuilder();
+        for (char prefix : ((ServerConnectionApi) connectionInfo.getApiInstance())
+                .getServerConnectionData().getSupportList().getSupportedChannelTypes())
+            prefixes.append(prefix);
+        return prefixes.toString();
     }
 
     @Override
@@ -119,7 +139,11 @@ public class ChatPagerAdapter extends FragmentStateAdapter {
     }
 
     public int findChannel(String channel) {
-        return channels.indexOf(channel) + 1;
+        String currentName = PrivateQueryListUpdate.findIgnoreCase(channels, channel);
+        if (currentName == null && lastPrivateQueryRename != null && channel != null &&
+                lastPrivateQueryRename.from.equalsIgnoreCase(channel))
+            currentName = PrivateQueryListUpdate.findIgnoreCase(channels, lastPrivateQueryRename.to);
+        return currentName == null ? 0 : channels.indexOf(currentName) + 1;
     }
 
 }
