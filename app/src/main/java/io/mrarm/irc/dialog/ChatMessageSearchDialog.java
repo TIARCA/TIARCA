@@ -16,6 +16,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AlertDialog;
+import androidx.fragment.app.Fragment;
 
 import java.text.DateFormat;
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ import io.mrarm.chatlib.dto.MessageInfo;
 import io.mrarm.chatlib.dto.MessageList;
 import io.mrarm.irc.R;
 import io.mrarm.irc.chat.ChatFragment;
+import io.mrarm.irc.chat.ChatMessagesFragment;
 
 /** Searches the recent persisted message history of the active channel or query. */
 public class ChatMessageSearchDialog {
@@ -44,7 +46,6 @@ public class ChatMessageSearchDialog {
     private Button previous;
     private Button next;
     private int current = -1;
-    private String restoreMessageId;
 
     public ChatMessageSearchDialog(Activity activity, ChatFragment fragment) {
         this.activity = activity;
@@ -53,7 +54,6 @@ public class ChatMessageSearchDialog {
     }
 
     public void show() {
-        restoreMessageId = fragment.getCurrentVisibleMessageId();
         int padding = (int) (16 * activity.getResources().getDisplayMetrics().density);
         LinearLayout root = new LinearLayout(activity);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -71,7 +71,10 @@ public class ChatMessageSearchDialog {
 
         preview = new TextView(activity);
         preview.setTypeface(Typeface.MONOSPACE);
-        preview.setTextIsSelectable(true);
+        preview.setTextIsSelectable(false);
+        preview.setClickable(true);
+        preview.setFocusable(true);
+        preview.setPadding(padding / 2, padding / 2, padding / 2, padding / 2);
         root.addView(preview, new LinearLayout.LayoutParams(-1, -2));
 
         LinearLayout controls = new LinearLayout(activity);
@@ -93,16 +96,13 @@ public class ChatMessageSearchDialog {
         next.setEnabled(false);
         previous.setOnClickListener(v -> move(-1));
         next.setOnClickListener(v -> move(1));
+        preview.setOnClickListener(v -> openCurrentResult(dialog));
         query.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) { filter(); }
             @Override public void afterTextChanged(Editable s) { }
         });
         dialog.show();
-        dialog.setOnDismissListener(ignored -> {
-            if (restoreMessageId != null)
-                fragment.setCurrentChannel(channel, restoreMessageId);
-        });
         loadMessages();
     }
 
@@ -147,20 +147,21 @@ public class ChatMessageSearchDialog {
         }
         int oldCurrent = current;
         current = matches.isEmpty() ? -1 : Math.min(Math.max(oldCurrent, 0), matches.size() - 1);
-        updateResult(false);
+        updateResult();
     }
 
     private void move(int delta) {
         if (matches.isEmpty())
             return;
         current = (current + delta + matches.size()) % matches.size();
-        updateResult(true);
+        updateResult();
     }
 
-    private void updateResult(boolean jump) {
+    private void updateResult() {
         boolean enabled = current >= 0;
         previous.setEnabled(enabled);
         next.setEnabled(enabled);
+        preview.setEnabled(enabled);
         if (!enabled) {
             status.setText(query.getText().length() == 0
                     ? activity.getString(R.string.search_messages_ready, allMessages.size())
@@ -189,8 +190,21 @@ public class ChatMessageSearchDialog {
             start += needle.length();
         }
         preview.setText(highlighted);
-        if (jump || enabled)
-            fragment.setCurrentChannel(channel, result.id.toString());
+    }
+
+    private void openCurrentResult(AlertDialog dialog) {
+        if (current < 0 || current >= matches.size())
+            return;
+        Result result = matches.get(current);
+        dialog.dismiss();
+        for (Fragment child : fragment.getChildFragmentManager().getFragments()) {
+            if (child instanceof ChatMessagesFragment &&
+                    channel.equals(((ChatMessagesFragment) child).getChannelName())) {
+                ((ChatMessagesFragment) child).jumpToMessage(result.id.toString());
+                return;
+            }
+        }
+        fragment.setCurrentChannel(channel, result.id.toString());
     }
 
     private static class Result {
