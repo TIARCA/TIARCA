@@ -974,9 +974,9 @@ public class EditServerActivity extends ThemedActivity {
 
     private static class ResettablePasswordHelper {
 
-        private final StaticLabelTextInputLayout mContainer;
-        private final EditText mEditText;
-        private final View mResetButton;
+        private StaticLabelTextInputLayout mContainer;
+        private EditText mEditText;
+        private View mResetButton;
         private String mProtectedValue;
 
         private final TextWatcher mResetWatcher = new SimpleTextWatcher((s) -> {
