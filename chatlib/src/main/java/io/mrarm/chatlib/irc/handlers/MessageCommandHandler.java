@@ -173,8 +173,7 @@ public class MessageCommandHandler implements CommandHandler {
                     return;
                 }
 
-                dccClientManager.onFileOffered(connection, sender, filename, reverseId == -1 ? filename : filename, ip, port);
-                return;
+                dccClientManager.onFileOffered(connection, sender, filename, ip, port, size);
             }
         }
         // TODO: Implement other CTCP commands
