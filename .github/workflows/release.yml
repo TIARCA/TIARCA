@@ -82,6 +82,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}
+          fetch-depth: 0
 
       - name: Set up Java 21
         uses: actions/setup-java@v5
@@ -126,6 +127,25 @@ jobs:
           echo "apk=$OUTPUT" >> "$GITHUB_OUTPUT"
           echo "Generated APK: $OUTPUT"
 
+      - name: Prepare release notes from changelog
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION='${{ needs.prepare-release.outputs.version }}'
+          awk -v header="## v${VERSION}" '
+            $0 == header { found=1; next }
+            found && /^## v/ { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+
+          if [[ ! -s release-notes.md ]]; then
+            echo "Unable to extract release notes for v${VERSION} from CHANGELOG.md" >&2
+            exit 1
+          fi
+
+          printf '\n**Full Changelog**: https://github.com/TIARCA/TIARCA/compare/v0.7.14...%s\n' \
+            '${{ needs.prepare-release.outputs.tag }}' >> release-notes.md
+
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v6
         with:
@@ -139,4 +159,4 @@ jobs:
           tag_name: ${{ needs.prepare-release.outputs.tag }}
           name: TIARCA v${{ needs.prepare-release.outputs.version }}
           files: ${{ steps.apk.outputs.apk }}
-          generate_release_notes: true
+          body_path: release-notes.md
