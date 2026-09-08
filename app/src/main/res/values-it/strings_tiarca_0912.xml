@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_whowas">WHOWAS</string>
+    <string name="whowas_nickname_prompt">Nickname</string>
+    <string name="whowas_record_title">WHOWAS — %1$s</string>
+    <string name="whowas_ident">Ident</string>
+    <string name="whowas_host">Host</string>
+    <string name="whowas_real_name">Real name</string>
+    <string name="whowas_server">Server</string>
+    <string name="whowas_disconnected_at">Disconnessione</string>
+    <string name="whowas_server_info">Info server</string>
+    <string name="operator_no_eligible_channels">Non ci sono canali aperti in cui hai lo stato half-op o superiore.</string>
+    <string name="ignored_users_label">Utenti ignorati</string>
+</resources>

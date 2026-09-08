@@ -162,14 +162,13 @@ public class UserBottomSheetDialog {
         if (mConnection == null || !(mConnection.getApiInstance() instanceof IRCConnection))
             return;
         IRCConnection connection = (IRCConnection) mConnection.getApiInstance();
-        WhowasCommandHandler handler = connection.getServerConnectionData()
-                .getCommandHandlerList().getHandler(WhowasCommandHandler.class);
-        if (handler == null) {
-            handler = new WhowasCommandHandler();
-            connection.getServerConnectionData().getCommandHandlerList().registerHandler(handler);
-        }
+        WhowasCommandHandler handler = WhowasCommandHandler.getOrInstall(
+                connection.getServerConnectionData());
         handler.request(nick, new WhowasCommandHandler.Callback() {
-            @Override public void onResult(WhowasCommandHandler.Result result) {
+            @Override public void onResult(List<WhowasCommandHandler.Result> results) {
+                if (results.isEmpty())
+                    return;
+                WhowasCommandHandler.Result result = results.get(0);
                 if (mRecyclerView != null)
                     mRecyclerView.post(() -> setHistoricalData(result));
                 else
@@ -192,6 +191,13 @@ public class UserBottomSheetDialog {
         addEntry(R.string.operator_historical_data,
                 mContext.getString(R.string.operator_historical_data_desc));
         addEntry(R.string.user_hostname, result.host);
+        if (result.server != null)
+            addEntry(R.string.user_server, result.server);
+        if (result.disconnectTime != null)
+            addEntry(R.string.whowas_disconnected_at, java.text.DateFormat.getDateTimeInstance(
+                    java.text.DateFormat.SHORT, java.text.DateFormat.MEDIUM).format(result.disconnectTime));
+        if (result.serverInfo != null)
+            addEntry(R.string.whowas_server_info, result.serverInfo);
         if (mAdapter != null)
             mAdapter.notifyDataSetChanged();
         refreshChannelState();
@@ -511,6 +517,42 @@ public class UserBottomSheetDialog {
                     .getUser(nick, null, null, null, null).get();
         } catch (Exception ignored) {
             return null;
+        }
+    }
+
+    /** Opens the normal kickban confirmation for historical WHOWAS masks. */
+    public static void showHistoricalKickban(Context context, ServerConnectionInfo connection,
+                                   String nick, String banMask, int actionId) {
+        if (context == null || connection == null || nick == null || banMask == null ||
+      !(connection.getApiInstance() instanceof IRCConnection))
+  return;
+        List<String> eligible = new ArrayList<>();
+        ServerConnectionData data = ((IRCConnection) connection.getApiInstance()).getServerConnectionData();
+        for (String channel : data.getJoinedChannelList()) {
+  if (hasOperatorPrivileges(connection, channel))
+      eligible.add(channel);
+        }
+        if (eligible.isEmpty()) {
+  Toast.makeText(context, R.string.operator_no_eligible_channels, Toast.LENGTH_LONG).show();
+  return;
+        }
+        java.util.function.Consumer<String> open = channel -> {
+  UserBottomSheetDialog dialog = new UserBottomSheetDialog(context);
+  dialog.setConnection(connection);
+  dialog.mNick = nick;
+  dialog.mSourceChannel = channel;
+  dialog.mTargetPresent = false;
+  dialog.showKickDialog(banMask, actionId);
+        };
+        if (eligible.size() == 1) {
+  open.accept(eligible.get(0));
+        } else {
+  String[] channels = eligible.toArray(new String[0]);
+  new AlertDialog.Builder(context)
+          .setTitle(R.string.operator_choose_channel)
+          .setItems(channels, (d, which) -> open.accept(channels[which]))
+          .setNegativeButton(R.string.action_cancel, null)
+          .show();
         }
     }
 

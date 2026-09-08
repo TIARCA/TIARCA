@@ -23,7 +23,16 @@ public class WhoisCommandHandler extends RequestResponseCommandHandler<String, W
 
     public static final int ERR_NOSUCHNICK = 401;
 
+    public interface OrphanServerReplyListener {
+        void onOrphanServerReply(List<String> params);
+    }
+
     private final Map<String, WhoisInfo.Builder> currentReply = new HashMap<>();
+    private volatile OrphanServerReplyListener orphanServerReplyListener;
+
+    public void setOrphanServerReplyListener(OrphanServerReplyListener listener) {
+        orphanServerReplyListener = listener;
+    }
 
     public WhoisCommandHandler(ErrorCommandHandler handler) {
         super(handler, true);
@@ -51,11 +60,11 @@ public class WhoisCommandHandler extends RequestResponseCommandHandler<String, W
                 builder = new WhoisInfo.Builder();
                 currentReply.put(nick, builder);
             } else if (numeric == RPL_WHOISSERVER) {
-                // Numeric 312 is shared by WHOIS and WHOWAS. During a WHOWAS lookup it may
-                // legitimately arrive without a preceding WHOIS 311. Consume it here instead
-                // of reporting it as malformed WHOIS and leaking the raw protocol line to the
-                // server-status view. The dedicated WHOWAS collector owns the surrounding
-                // 314/369 sequence.
+                // Numeric 312 is shared by WHOIS and WHOWAS. If there is no active WHOIS
+                // builder, give the WHOWAS collector first access to the server/time tuple.
+                OrphanServerReplyListener listener = orphanServerReplyListener;
+                if (listener != null)
+                    listener.onOrphanServerReply(params);
                 return;
             } else {
                 throw new InvalidMessageException("Whois data not started with a RPL_WHOISUSER");
