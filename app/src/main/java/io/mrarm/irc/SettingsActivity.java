@@ -1,14 +1,12 @@
 package io.mrarm.irc;
 
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 import android.view.MenuItem;
 import android.view.View;
-import androidx.appcompat.app.AlertDialog;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -118,22 +116,10 @@ public class SettingsActivity extends ThemedActivity {
                 v.getContext().startActivity(new Intent(v.getContext(), BackupActivity.class));
             }));
             ret.add(new Item(R.string.pref_header_about, R.drawable.ic_info, (View v) ->
-                    new AlertDialog.Builder(v.getContext())
-                            .setTitle(R.string.about_title)
-                            .setMessage(v.getContext().getString(R.string.about_body,
-                                    BuildConfig.VERSION_NAME))
-                            .setNeutralButton(R.string.about_revolution_github, (dialog, which) ->
-                                    v.getContext().startActivity(new Intent(Intent.ACTION_VIEW,
-                                            Uri.parse("https://github.com/MCMrARM/revolution-irc"))))
-                            .setPositiveButton(android.R.string.ok, null)
-                            .show()));
+                    UpdateManager.showAboutDialog((SettingsActivity) v.getContext())));
             return ret;
         }
 
     }
-
-
-
-
 
 }
