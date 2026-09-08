@@ -1,0 +1,8 @@
+<resources>
+    <string name="mention_previous_nav">‹ Edellinen</string>
+    <string name="mention_close_nav">✕ Sulje</string>
+    <string name="mention_next_nav">Seuraava ›</string>
+    <string name="mention_previous_nav_short">‹ Edell.</string>
+    <string name="mention_next_nav_short">Seur. ›</string>
+    <string name="action_go_to_latest">Siirry uusimpaan viestiin</string>
+</resources>

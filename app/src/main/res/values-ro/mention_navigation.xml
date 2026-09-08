@@ -1,0 +1,8 @@
+<resources>
+    <string name="mention_previous_nav">‹ Anterioară</string>
+    <string name="mention_close_nav">✕ Închide</string>
+    <string name="mention_next_nav">Următoare ›</string>
+    <string name="mention_previous_nav_short">‹ Ant.</string>
+    <string name="mention_next_nav_short">Urm. ›</string>
+    <string name="action_go_to_latest">Mergi la cel mai recent mesaj</string>
+</resources>

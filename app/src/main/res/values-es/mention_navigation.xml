@@ -1,0 +1,8 @@
+<resources>
+    <string name="mention_previous_nav">‹ Anterior</string>
+    <string name="mention_close_nav">✕ Cerrar</string>
+    <string name="mention_next_nav">Siguiente ›</string>
+    <string name="mention_previous_nav_short">‹ Ant.</string>
+    <string name="mention_next_nav_short">Sig. ›</string>
+    <string name="action_go_to_latest">Ir al último mensaje</string>
+</resources>
