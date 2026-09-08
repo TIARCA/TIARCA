@@ -1,5 +1,37 @@
 # TIARCA — Changelog
 
+## v0.9.1
+
+### Aggiornamenti integrati
+
+- Aggiunto in **Informazioni su TIARCA** il controllo aggiornamenti da GitHub Releases, con comando manuale **Cerca aggiornamenti** sempre disponibile.
+- Al primo avvio della 0.9.1 TIARCA chiede una sola volta se abilitare il controllo automatico; se accettato verifica la disponibilità di nuove release al massimo una volta ogni 7 giorni.
+- Il controllo automatico è silenzioso quando l'app è aggiornata o la rete non è disponibile; il controllo manuale mostra invece un esito esplicito.
+- Quando è disponibile una nuova versione vengono mostrati versione installata, nuova versione e note della release; l'APK viene scaricato soltanto dopo la conferma dell'utente.
+- Prima di aprire l'installer Android, TIARCA verifica che l'APK appartenga allo stesso package e sia firmato con la stessa chiave dell'app installata. L'installazione finale resta sempre sotto il controllo dell'installer Android.
+
+### Server, autenticazione e canali
+
+- Ridisegnata la configurazione iniziale dei nuovi server con il flusso semplificato **Ho una password**: username SASL precompilato dal nickname ma modificabile, password dedicata e SASL PLAIN impostato automaticamente, mantenendo le modalità avanzate disponibili.
+- Rinominato il campo IRC **Utente** in **Ident** per distinguerlo chiaramente dallo username dell'account SASL.
+- Aggiunto il campo **Collegati ai canali** nella configurazione semplice; per Simosnap vengono proposti inizialmente `#amicizia` e `#chatitaly`, sempre modificabili o eliminabili dall'utente.
+- Aggiunta **Lista canali** durante la creazione del server: TIARCA effettua una connessione IRC temporanea isolata, recupera `LIST`, si disconnette e apre il selettore multiplo senza registrare sessioni, reconnect, notifiche o cronologia.
+- La Lista canali parte ora ordinata per numero utenti decrescente; in **Entra nel canale** il campo viene precompilato con `#`, senza impedirne la modifica o la cancellazione.
+- Corretta la schermata **Aggiungi un nuovo server** affinché tutti i campi restino raggiungibili e scorribili sopra la tastiera Android.
+
+### Chat, nickname e sessione
+
+- Corretto lo stato delle query private dopo i cambi nickname, evitando conversazioni residue o riaperte con il vecchio nick e migliorando il riconoscimento dei messaggi locali.
+- Aggiunto il long press sui nickname nei suggerimenti dell'autocompletamento `@`: il tap breve continua a completare il nick, mentre il long press apre il normale menu utente con PVT, menzione, WHOIS, MONITOR, Ignore e azioni operatore consentite.
+- Eliminati alcuni aggiornamenti completi della lista messaggi che potevano produrre un lampeggio nero dell'intero canale durante il redraw.
+- Il tasto Indietro propone ora **Disconnetti ed esci**, **Rimani in background** e **Annulla**; l'uscita volontaria disconnette ordinatamente i server, ferma i servizi e non ripristina automaticamente la sessione al successivo avvio.
+
+### Backup e rilascio
+
+- Abilitato il backup/ripristino Android cifrato delle configurazioni e preferenze compatibili; il trasferimento diretto tra dispositivi può includere anche i log chat, mentre il backup manuale TIARCA rimane separato e invariato.
+- Il workflow Release non parte più a ogni merge su `main`: la CI resta automatica, Candidate resta manuale e Release viene eseguita manualmente o tramite tag `v*`.
+- Le release ufficiali pubblicano ora, oltre all'APK firmato, anche il relativo file SHA-256.
+
 ## v0.8.2
 
 - Corretta **Cerca nella conversazione**: una nuova ricerca seleziona ora per prima l’occorrenza più recente invece della più vecchia.

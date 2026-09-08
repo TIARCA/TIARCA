@@ -110,6 +110,8 @@ public class IRCApplication extends Application implements Application.ActivityL
 
     @Override
     public void onActivityResumed(Activity activity) {
+        if (activity instanceof MainActivity)
+            UpdateManager.maybePromptAndCheck(activity);
     }
 
     @Override

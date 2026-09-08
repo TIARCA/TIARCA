@@ -5,15 +5,15 @@ TIARCA (*TIARCA Is Another Relay Chat App*) è un fork di [Revolution IRC](https
 
 TIARCA ne prosegue lo sviluppo come progetto indipendente, mantenendo la licenza GNU GPLv3 e introducendo nuove funzionalità, correzioni e aggiornamenti per le versioni moderne di Android. Il lavoro originale di Revolution IRC e le successive modifiche di TIARCA restano chiaramente distinti.
 
-## Ultima release — TIARCA 0.8.2
+## Ultima release — TIARCA 0.9.1
 
-La release stabile corrente è **TIARCA 0.8.2**.
+La release stabile corrente è **TIARCA 0.9.1**.
 
-- [Scarica TIARCA 0.8.2 APK](https://github.com/TIARCA/TIARCA/releases/download/v0.8.2/TIARCA-v0.8.2.apk)
-- [Pagina della release 0.8.2](https://github.com/TIARCA/TIARCA/releases/tag/v0.8.2)
+- [Scarica TIARCA 0.9.1 APK](https://github.com/TIARCA/TIARCA/releases/download/v0.9.1/TIARCA-v0.9.1.apk)
+- [Pagina della release 0.9.1](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.1)
 - [Novità e changelog completo](CHANGELOG.md)
 
-La 0.8.2 corregge l’ordine di navigazione di **Cerca nella conversazione**: una nuova ricerca parte ora dall’occorrenza più recente, **Precedente** risale verso i risultati più vecchi e il contatore parte coerentemente dall’ultimo risultato, ad esempio `8/8`.
+La 0.9.1 introduce il controllo aggiornamenti integrato da GitHub Releases, il nuovo onboarding dei server con SASL semplificato e selezione canali tramite LIST temporanea, migliora uscita/background e ripristino sessione, aggiunge il backup Android cifrato e include diverse correzioni a query private, redraw delle chat e interazione con i nickname.
 
 Questo repository contiene il codice sorgente di TIARCA. Non rappresenta una pubblicazione su F-Droid o Google Play; gli APK ufficiali vengono distribuiti tramite GitHub Releases.
 
@@ -24,6 +24,9 @@ Questo repository contiene il codice sorgente di TIARCA. Non rappresenta una pub
 * utenti monitorati tramite IRC MONITOR con stato persistente;
 * ricerca nei messaggi, menzioni, contatori non letti e navigazione contestuale nella cronologia;
 * riordino manuale dei server/network;
+* onboarding dei server con SASL semplificato, canali predefiniti modificabili e LIST usabile come selettore;
+* controllo aggiornamenti integrato con opt-in, verifica periodica settimanale e installazione assistita degli APK ufficiali GitHub;
+* backup Android cifrato e trasferimento dispositivo, mantenendo separato il backup manuale TIARCA;
 * condivisione di immagini, file, audio e video tramite link temporanei;
 * comandi rapidi configurabili, inclusi `!yt`, `!wiki`, `!calc`, `!movie`, `!ora` e `!dizionario`;
 * catalogo di network IRC, configurazione multiserver e numerose correzioni di compatibilità Android;
