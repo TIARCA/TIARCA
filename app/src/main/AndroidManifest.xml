@@ -108,7 +108,7 @@
             android:label="@string/title_activity_monitored_users" />
         <activity
             android:name=".EditIgnoreEntryActivity"
-            android:label="@string/title_activity_ignore_entry" />
+            android:label="@string/title_activity_edit_ignore_entry" />
         <activity
             android:name=".ChannelListActivity"
             android:configChanges="keyboardHidden|orientation|screenSize|screenLayout"
