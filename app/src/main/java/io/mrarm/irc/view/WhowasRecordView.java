@@ -4,7 +4,7 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.graphics.Typeface;
-import android.text.format.DateFormat;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.ImageButton;
@@ -54,26 +54,26 @@ public class WhowasRecordView extends LinearLayout {
         bindRow(realName, result.realName);
         bindRow(server, result.server);
         String when = result.disconnectTime == null ? null :
-      java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT,
-              java.text.DateFormat.MEDIUM).format(result.disconnectTime);
+                java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT,
+                        java.text.DateFormat.MEDIUM).format(result.disconnectTime);
         bindRow(disconnected, when);
         bindRow(serverInfo, result.serverInfo);
 
         nick.value.setOnLongClickListener(v -> {
-  NicknameContextMenu.show(getContext(), connection, result.nick, null);
-  return true;
+            NicknameContextMenu.show(getContext(), connection, result.nick, null);
+            return true;
         });
         ident.value.setOnLongClickListener(v -> {
-  if (result.user != null)
-      UserBottomSheetDialog.showHistoricalKickban(getContext(), connection, result.nick,
-              "*!" + result.user + "@*", R.string.operator_kickban_ident);
-  return true;
+            if (result.user != null)
+                UserBottomSheetDialog.showHistoricalKickban(getContext(), connection, result.nick,
+                        "*!" + result.user + "@*", R.string.operator_kickban_ident);
+            return true;
         });
         host.value.setOnLongClickListener(v -> {
-  if (result.host != null)
-      UserBottomSheetDialog.showHistoricalKickban(getContext(), connection, result.nick,
-              "*!*@" + result.host, R.string.operator_kickban);
-  return true;
+            if (result.host != null)
+                UserBottomSheetDialog.showHistoricalKickban(getContext(), connection, result.nick,
+                        "*!*@" + result.host, R.string.operator_kickban);
+            return true;
         });
     }
 
@@ -92,11 +92,14 @@ public class WhowasRecordView extends LinearLayout {
         row.addView(value, valueParams);
         ImageButton copy = null;
         if (copyable) {
-  copy = new ImageButton(getContext());
-  copy.setImageResource(R.drawable.ic_content_copy);
-  copy.setBackgroundResource(android.R.attr.selectableItemBackgroundBorderless);
-  copy.setContentDescription(getContext().getString(R.string.action_copy));
-  row.addView(copy, new LayoutParams(dp(40), dp(40)));
+            copy = new ImageButton(getContext());
+            copy.setImageResource(R.drawable.ic_content_copy);
+            TypedValue selectable = new TypedValue();
+            if (getContext().getTheme().resolveAttribute(
+                    android.R.attr.selectableItemBackgroundBorderless, selectable, true))
+                copy.setBackgroundResource(selectable.resourceId);
+            copy.setContentDescription(getContext().getString(R.string.action_copy));
+            row.addView(copy, new LayoutParams(dp(40), dp(40)));
         }
         addView(row, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         return new Row(row, label, value, copy);
@@ -107,13 +110,13 @@ public class WhowasRecordView extends LinearLayout {
         row.container.setVisibility(visible ? VISIBLE : GONE);
         row.value.setText(visible ? value : "");
         if (row.copy != null) {
-  row.copy.setEnabled(visible);
-  row.copy.setOnClickListener(v -> {
-      ClipboardManager clipboard = (ClipboardManager) getContext()
-              .getSystemService(Context.CLIPBOARD_SERVICE);
-      if (clipboard != null)
-          clipboard.setPrimaryClip(ClipData.newPlainText(row.label.getText(), value));
-  });
+            row.copy.setEnabled(visible);
+            row.copy.setOnClickListener(v -> {
+                ClipboardManager clipboard = (ClipboardManager) getContext()
+                        .getSystemService(Context.CLIPBOARD_SERVICE);
+                if (clipboard != null)
+                    clipboard.setPrimaryClip(ClipData.newPlainText(row.label.getText(), value));
+            });
         }
     }
 
@@ -127,10 +130,10 @@ public class WhowasRecordView extends LinearLayout {
         final TextView value;
         final ImageButton copy;
         Row(View container, TextView label, TextView value, ImageButton copy) {
-  this.container = container;
-  this.label = label;
-  this.value = value;
-  this.copy = copy;
+            this.container = container;
+            this.label = label;
+            this.value = value;
+            this.copy = copy;
         }
     }
 }
