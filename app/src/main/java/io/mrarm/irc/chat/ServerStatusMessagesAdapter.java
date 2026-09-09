@@ -21,6 +21,8 @@ import androidx.annotation.NonNull;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import io.mrarm.chatlib.dto.StatusMessageInfo;
 import io.mrarm.chatlib.dto.StatusMessageList;
@@ -46,6 +48,8 @@ public class ServerStatusMessagesAdapter extends RecyclerView.Adapter<RecyclerVi
     private static final int TYPE_MESSAGE = 0;
     private static final int TYPE_EXPANDABLE_MESSAGE = 1;
     private static final int TYPE_WHOWAS = 2;
+    private static final Pattern ACCEPT_LIST_CONFIRMATION = Pattern.compile(
+            "^([^\\s:]+)\\s+is now on your accept list(?:\\.|$)", Pattern.CASE_INSENSITIVE);
 
     private ServerConnectionInfo mConnection;
     private StatusMessageList mMessages;
@@ -173,11 +177,51 @@ public class ServerStatusMessagesAdapter extends RecyclerView.Adapter<RecyclerVi
                         buildCallerIdMessage(context, (CallerIdStatusMessageInfo) message)));
                 return;
             }
-            mText.setText(AlignToPointSpan.apply(mText,
-                    MessageBuilder.getInstance(context).buildStatusMessage(message,
-                            createServiceClickSpan(message))));
+            CharSequence built = MessageBuilder.getInstance(context).buildStatusMessage(message,
+                    createServiceClickSpan(message));
+            built = addAcceptConfirmationNickLink(built, message.getMessage());
+            mText.setText(AlignToPointSpan.apply(mText, built));
         }
 
+    }
+
+    private CharSequence addAcceptConfirmationNickLink(CharSequence built, String rawMessage) {
+        if (built == null || rawMessage == null)
+            return built;
+        Matcher matcher = ACCEPT_LIST_CONFIRMATION.matcher(rawMessage);
+        if (!matcher.find())
+            return built;
+        final String nick = matcher.group(1);
+        String rendered = built.toString();
+        int start = rendered.indexOf(nick);
+        if (start < 0)
+            return built;
+        SpannableStringBuilder text = new SpannableStringBuilder(built);
+        text.setSpan(createPrivateChatNickSpan(nick), start, start + nick.length(),
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return text;
+    }
+
+    private ClickableSpan createPrivateChatNickSpan(final String nick) {
+        return new LongClickableSpan() {
+            @Override
+            public void onClick(@NonNull View widget) {
+                mConnection.addStoredConversation(nick);
+                if (widget.getContext() instanceof MainActivity)
+                    ((MainActivity) widget.getContext()).openServer(mConnection, nick);
+            }
+
+            @Override
+            public boolean onLongClick(@NonNull View widget) {
+                NicknameContextMenu.show(widget.getContext(), mConnection, nick, null);
+                return true;
+            }
+
+            @Override
+            public void updateDrawState(@NonNull TextPaint ds) {
+                ds.setUnderlineText(false);
+            }
+        };
     }
 
     private CharSequence buildCallerIdMessage(Context context, CallerIdStatusMessageInfo message) {
@@ -227,26 +271,7 @@ public class ServerStatusMessagesAdapter extends RecyclerView.Adapter<RecyclerVi
         final String nick = message.getSender();
         if (!mConnection.isKnownServiceNick(nick))
             return null;
-        return new LongClickableSpan() {
-            @Override
-            public void onClick(@NonNull View widget) {
-                mConnection.addStoredConversation(nick);
-                if (widget.getContext() instanceof MainActivity)
-                    ((MainActivity) widget.getContext()).openServer(mConnection, nick);
-            }
-
-            @Override
-            public boolean onLongClick(@NonNull View widget) {
-                NicknameContextMenu.show(widget.getContext(), mConnection, nick, null);
-                return true;
-            }
-
-            @Override
-            public void updateDrawState(@NonNull TextPaint ds) {
-                // Keep the existing nick colour and make it behave like chat nicknames.
-                ds.setUnderlineText(false);
-            }
-        };
+        return createPrivateChatNickSpan(nick);
     }
 
     public class ExpandableMessageHolder extends RecyclerView.ViewHolder {
