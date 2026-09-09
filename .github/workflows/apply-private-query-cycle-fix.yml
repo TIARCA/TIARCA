@@ -1,0 +1,54 @@
+name: Apply private query nick-cycle fix
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/apply-private-query-cycle-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply-fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/private-query-nick-cycle
+          fetch-depth: 0
+      - name: Wire normalized alias handling into private query rename
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('app/src/main/java/io/mrarm/irc/ServerConnectionInfo.java')
+          s = p.read_text()
+          old = '''        synchronized (this) {
+              mQueryNickAliases.put(oldNick.toLowerCase(Locale.ROOT), newNick);
+              // Preserve a chain when a user changes nick more than once in one connection.
+              for (Map.Entry<String, String> alias : mQueryNickAliases.entrySet()) {
+                  if (alias.getValue().equalsIgnoreCase(oldNick))
+                      alias.setValue(newNick);
+              }
+          }'''
+          new = '''        synchronized (this) {
+              PrivateConversationAliases.recordNickChange(mQueryNickAliases, oldNick, newNick);
+          }'''
+          if old not in s:
+              raise SystemExit('Expected renamePrivateConversation alias block not found')
+          p.write_text(s.replace(old, new, 1))
+      - name: Commit fix branch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add app/src/main/java/io/mrarm/irc/ServerConnectionInfo.java
+          git commit -m 'Normalize private query aliases on nick changes'
+          git push origin HEAD:fix/private-query-nick-cycle
+      - name: Remove temporary workflow from main
+        if: always()
+        run: |
+          git fetch origin main
+          git checkout -B main origin/main
+          git rm .github/workflows/apply-private-query-cycle-fix.yml
+          git commit -m 'Remove temporary private query fix workflow'
+          git push origin main
