@@ -532,12 +532,7 @@ public class ServerConnectionInfo {
                 !hasOpenConversation(oldNick))
             return;
         synchronized (this) {
-            mQueryNickAliases.put(oldNick.toLowerCase(Locale.ROOT), newNick);
-            // Preserve a chain when a user changes nick more than once in one connection.
-            for (Map.Entry<String, String> alias : mQueryNickAliases.entrySet()) {
-                if (alias.getValue().equalsIgnoreCase(oldNick))
-                    alias.setValue(newNick);
-            }
+            PrivateConversationAliases.recordNickChange(mQueryNickAliases, oldNick, newNick);
         }
         List<String> renamed;
         synchronized (this) {

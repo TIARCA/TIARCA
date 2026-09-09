@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 public class PrivateConversationAliasTest {
 
@@ -35,6 +36,34 @@ public class PrivateConversationAliasTest {
         assertEquals("guest9836", targets.get(0));
         assertEquals("secondnick", targets.get(1));
         assertEquals("FinalNick", targets.get(2));
+    }
+
+    @Test
+    public void returningToOriginalNickDoesNotCreateAliasCycle() {
+        Map<String, String> aliases = new LinkedHashMap<>();
+
+        PrivateConversationAliases.recordNickChange(aliases, "Alpha", "Beta");
+        PrivateConversationAliases.recordNickChange(aliases, "Beta", "Alpha");
+
+        assertFalse(aliases.containsKey("alpha"));
+        assertEquals("Alpha", aliases.get("beta"));
+        assertEquals("Alpha", PrivateConversationAliases.resolve(aliases, "Beta"));
+        assertEquals("Alpha", PrivateConversationAliases.resolve(aliases, "Alpha"));
+    }
+
+    @Test
+    public void longNickHistoryAlwaysResolvesToCurrentNick() {
+        Map<String, String> aliases = new LinkedHashMap<>();
+
+        PrivateConversationAliases.recordNickChange(aliases, "Alpha", "Beta");
+        PrivateConversationAliases.recordNickChange(aliases, "Beta", "Gamma");
+        PrivateConversationAliases.recordNickChange(aliases, "Gamma", "Alpha");
+        PrivateConversationAliases.recordNickChange(aliases, "Alpha", "Delta");
+
+        assertEquals("Delta", PrivateConversationAliases.resolve(aliases, "Alpha"));
+        assertEquals("Delta", PrivateConversationAliases.resolve(aliases, "Beta"));
+        assertEquals("Delta", PrivateConversationAliases.resolve(aliases, "Gamma"));
+        assertEquals("Delta", PrivateConversationAliases.resolve(aliases, "Delta"));
     }
 
     @Test
