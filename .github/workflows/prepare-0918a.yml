@@ -1,0 +1,45 @@
+name: Prepare 0.9.1.8a changelog
+
+on:
+  push:
+    branches:
+      - release/0.9.1.8a
+    paths:
+      - .github/workflows/prepare-0918a.yml
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/0.9.1.8a
+          fetch-depth: 0
+      - name: Prepend changelog entry
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('CHANGELOG.md')
+          text = p.read_text(encoding='utf-8')
+          marker = '# TIARCA — Changelog\n'
+          entry = '''\n## v0.9.1.8a\n\n- Corretto il parsing del numeric IRC `718` su SimosNap: il nickname reale del mittente viene distinto dalla maschera `ident@host`.\n- Il pulsante **ACCETTA** invia ora `ACCEPT +<nickname>` usando il nickname corretto, evitando l'errore IRC `401 No such nick`.\n- Aggiunto un test di regressione basato sul formato `718` osservato dal vivo su SimosNap.\n'''
+          if '## v0.9.1.8a' not in text:
+              text = text.replace(marker, marker + entry, 1)
+              p.write_text(text, encoding='utf-8')
+      - name: Commit changelog
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add CHANGELOG.md
+          git diff --cached --quiet || git commit -m 'Document TIARCA 0.9.1.8a'
+          git push origin HEAD:release/0.9.1.8a
+      - name: Remove temporary workflow
+        if: always()
+        run: |
+          git pull --rebase origin release/0.9.1.8a
+          git rm -f .github/workflows/prepare-0918a.yml
+          git commit -m 'Remove temporary 0.9.1.8a preparer'
+          git push origin HEAD:release/0.9.1.8a
