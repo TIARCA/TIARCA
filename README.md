@@ -5,12 +5,12 @@ TIARCA (*TIARCA Is Another Relay Chat App*) è un fork di [Revolution IRC](https
 
 TIARCA ne prosegue lo sviluppo come progetto indipendente, mantenendo la licenza GNU GPLv3 e introducendo nuove funzionalità, correzioni e aggiornamenti per le versioni moderne di Android. Il lavoro originale di Revolution IRC e le successive modifiche di TIARCA restano chiaramente distinti.
 
-## Ultima release — TIARCA 0.9.1.5
+## Ultima release — TIARCA 0.9.1.6
 
-La release stabile corrente è **TIARCA 0.9.1.5**.
+La release stabile corrente è **TIARCA 0.9.1.6**.
 
-- [Scarica TIARCA 0.9.1.5 APK](https://github.com/TIARCA/TIARCA/releases/download/v0.9.1.5/TIARCA-v0.9.1.5.apk)
-- [Pagina della release 0.9.1.5](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.1.5)
+- [Scarica TIARCA 0.9.1.6 APK](https://github.com/TIARCA/TIARCA/releases/download/v0.9.1.6/TIARCA-v0.9.1.6.apk)
+- [Pagina della release 0.9.1.6](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.1.6)
 - [Novità e changelog completo](CHANGELOG.md)
 
 La 0.9.1.5 introduce un motore condiviso per interpretare le modalità IRC in base al tipo di server. La schermata **Modalità del canale** usa ora lo stesso registro server-aware della nuova voce **Modalità utente** disponibile nella scheda Server; sono riconosciuti profili IRCnet, InspIRCd 3/4, UnrealIRCd 6, Solanum ed Ergo, mentre i mode sconosciuti vengono mostrati senza attribuire loro significati arbitrari.

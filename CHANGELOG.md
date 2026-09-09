@@ -1,5 +1,11 @@
 # TIARCA — Changelog
 
+## v0.9.1.6
+
+- Ampliate le descrizioni dei mode IRC di canale e utente con profili più specifici per SimosNap, IRCnet, Undernet e Libera.Chat.
+- Interpretazione migliorata dei mode server-specifici senza attribuire significati arbitrari ai mode sconosciuti.
+- Raffinata la gestione condivisa delle modalità IRC mantenendo separati supporto annunciato dal server, significato del mode ed editabilità.
+
 ## v0.9.1.5
 
 - Aggiunta **Modalità utente** nel menu della scheda Server: mostra i mode annunciati dal server, quelli attivi e consente di modificarli quando sono impostabili dall’utente.
