@@ -1,5 +1,10 @@
 # TIARCA — Changelog
 
+## v0.9.1.4
+
+- Migliorata la resa dei record WHOWAS: l'icona Copia usa ora una tinta grigia visibile sia con tema scuro sia con tema chiaro.
+- Ridotta l'altezza dei pulsanti Copia da 40 a 32 dp, eliminando lo spazio verticale eccessivo tra le righe Nick, Ident, Host e Server senza ridurre la leggibilità dei dati.
+
 ## v0.9.1.3
 
 - Corretto WHOWAS: il collector viene ora installato alla creazione di ogni connessione IRC, prima dell'avvio del thread di rete, così le risposte non ricadono più come numeric `314`/`369` grezzi nella scheda Server.

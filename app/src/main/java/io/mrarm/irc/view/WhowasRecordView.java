@@ -3,6 +3,8 @@ package io.mrarm.irc.view;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -10,6 +12,8 @@ import android.view.View;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
+import androidx.core.widget.ImageViewCompat;
 
 import io.mrarm.irc.R;
 import io.mrarm.irc.ServerConnectionInfo;
@@ -94,12 +98,14 @@ public class WhowasRecordView extends LinearLayout {
         if (copyable) {
             copy = new ImageButton(getContext());
             copy.setImageResource(R.drawable.ic_content_copy);
+            // Neutral gray remains visible on both the light and dark app themes.
+            ImageViewCompat.setImageTintList(copy, ColorStateList.valueOf(Color.GRAY));
             TypedValue selectable = new TypedValue();
             if (getContext().getTheme().resolveAttribute(
                     android.R.attr.selectableItemBackgroundBorderless, selectable, true))
                 copy.setBackgroundResource(selectable.resourceId);
             copy.setContentDescription(getContext().getString(R.string.action_copy));
-            row.addView(copy, new LayoutParams(dp(40), dp(40)));
+            row.addView(copy, new LayoutParams(dp(32), dp(32)));
         }
         addView(row, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         return new Row(row, label, value, copy);
