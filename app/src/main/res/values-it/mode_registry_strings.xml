@@ -58,8 +58,6 @@
     <string name="irc_mode_user_i">Invisibile: non compare nelle ricerche WHO generiche</string>
     <string name="irc_mode_user_w">Riceve i WALLOPS</string>
     <string name="irc_mode_user_bot">Contrassegna il client come bot</string>
-    <string name="irc_mode_user_channel_deaf">Non riceve i normali messaggi dei canali</string>
-    <string name="irc_mode_user_private_deaf">Blocca i messaggi privati</string>
     <string name="irc_mode_user_censor">Applica il filtro parole del server</string>
     <string name="irc_mode_user_hide_oper">Nasconde lo stato di operatore IRC</string>
     <string name="irc_mode_user_hide_idle">Nasconde il tempo di inattività</string>
@@ -71,6 +69,4 @@
     <string name="irc_mode_user_registered">Account autenticato/registrato (gestito da server/servizi)</string>
     <string name="irc_mode_user_server_notices">Riceve determinate notifiche del server</string>
     <string name="irc_mode_user_no_forward">Disabilita il forwarding dei canali</string>
-    <string name="irc_mode_user_callerid">Caller-ID: limita i privati agli utenti accettati</string>
-    <string name="irc_mode_user_registered_only_pm">Accetta privati solo da utenti registrati</string>
 </resources>
