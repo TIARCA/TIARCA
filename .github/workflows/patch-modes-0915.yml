@@ -1,0 +1,58 @@
+name: One-shot modes integration patcher
+
+on:
+  push:
+    branches: [feature/shared-irc-modes-0915]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/shared-irc-modes-0915
+      - name: Patch integration and version
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app/src/main/java/io/mrarm/irc/MainActivity.java')
+          s=p.read_text()
+          old='import io.mrarm.irc.dialog.ChannelModesDialog;\n'
+          new=old+'import io.mrarm.irc.dialog.UserModesDialog;\n'
+          assert old in s and 'import io.mrarm.irc.dialog.UserModesDialog;' not in s
+          s=s.replace(old,new,1)
+          old='menu.findItem(R.id.action_whowas).setVisible(connected && current == null);\n'
+          new=old+'            menu.findItem(R.id.action_user_modes).setVisible(connected && current == null);\n'
+          assert old in s
+          s=s.replace(old,new,1)
+          old='''        } else if (id == R.id.action_join_channel) {\n'''
+          new='''        } else if (id == R.id.action_user_modes) {\n            ChatFragment fragment = (ChatFragment) getCurrentFragment();\n            new UserModesDialog(this, fragment.getConnectionInfo()).show();\n        } else if (id == R.id.action_join_channel) {\n'''
+          assert old in s
+          s=s.replace(old,new,1)
+          p.write_text(s)
+
+          p=Path('app/build.gradle')
+          s=p.read_text()
+          assert 'versionCode 9014' in s and 'versionName "0.9.1.4"' in s
+          s=s.replace('versionCode 9014','versionCode 9015',1).replace('versionName "0.9.1.4"','versionName "0.9.1.5"',1)
+          p.write_text(s)
+
+          p=Path('CHANGELOG.md')
+          s=p.read_text()
+          marker='# TIARCA — Changelog\n'
+          assert marker in s and '## v0.9.1.5' not in s
+          entry='''\n## v0.9.1.5\n\n- Aggiunta **Modalità utente** nel menu della scheda Server: mostra i mode annunciati dal server, quelli attivi e consente di modificarli quando sono impostabili dall’utente.\n- Unificata l’interpretazione dei mode canale e utente in un registro condiviso sensibile al profilo IRCd.\n- Estese le descrizioni dinamiche oltre InspIRCd con profili IRCnet, UnrealIRCd 6, Solanum ed Ergo; i mode non riconosciuti restano visibili come specifici del server senza interpretazioni arbitrarie.\n- Le modalità gestite dal server o dai services vengono mostrate ma non rese modificabili quando il profilo le identifica come tali.\n'''
+          s=s.replace(marker, marker+entry,1)
+          p.write_text(s)
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add app/src/main/java/io/mrarm/irc/MainActivity.java app/build.gradle CHANGELOG.md
+          git commit -m "Integrate user modes UI and bump 0.9.1.5"
+          git push
