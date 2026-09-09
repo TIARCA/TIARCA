@@ -52,6 +52,12 @@
     <color name="memberVoice">#FF00FFFF</color>
     <color name="memberNormal">#fff</color>
 
+    <!-- The message-format editor uses transparent chips. In dark mode the light-theme
+         fallback (#20000000) is effectively invisible on a black surface, so provide
+         explicit night colours with enough contrast while preserving the same subtle look. -->
+    <color name="chipColor">#403F9FFF</color>
+    <color name="transparentChipColor">#33FFFFFF</color>
+
     <color name="formatDefaultColorIndicator">#5CFFFFFF</color>
 
 </resources>
