@@ -13,8 +13,8 @@ android {
         applicationId "io.tiarca.irc"
         minSdkVersion 28
         targetSdkVersion 36
-        versionCode 9013
-        versionName "0.9.1.3"
+        versionCode 9014
+        versionName "0.9.1.4"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary true
@@ -47,7 +47,7 @@ android {
             multiDexEnabled true
         }
     }
-    namespace 'io.mrarm.irc'
+    namespace 'io.tiarca.irc'
     buildFeatures {
         buildConfig true
     }
