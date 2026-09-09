@@ -1,5 +1,10 @@
 # TIARCA — Changelog
 
+## v0.9.1.7
+
+- Corretto il routing delle conversazioni private quando un utente cambia nickname e poi torna a un nickname precedente: la cronologia degli alias viene normalizzata senza cicli, evitando messaggi ricevuti invisibili nella query aperta.
+- Aggiunti test di regressione per sequenze `A → B → A` e per catene più lunghe di cambi nickname.
+
 ## v0.9.1.6
 
 - Ampliate le descrizioni dei mode IRC di canale e utente con profili più specifici per SimosNap, IRCnet, Undernet e Libera.Chat.
