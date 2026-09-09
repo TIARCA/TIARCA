@@ -33,10 +33,10 @@ public class WhowasCommandHandler implements CommandHandler {
         public Date disconnectTime;
 
         Result(String nick, String user, String host, String realName) {
-  this.nick = nick;
-  this.user = user;
-  this.host = host;
-  this.realName = realName;
+            this.nick = nick;
+            this.user = user;
+            this.host = host;
+            this.realName = realName;
         }
     }
 
@@ -54,12 +54,12 @@ public class WhowasCommandHandler implements CommandHandler {
     public static WhowasCommandHandler getOrInstall(ServerConnectionData data) {
         WhowasCommandHandler handler = data.getCommandHandlerList().getHandler(WhowasCommandHandler.class);
         if (handler == null) {
-  handler = new WhowasCommandHandler();
-  data.getCommandHandlerList().registerHandler(handler);
+            handler = new WhowasCommandHandler();
+            data.getCommandHandlerList().registerHandler(handler);
         }
         WhoisCommandHandler whois = data.getCommandHandlerList().getHandler(WhoisCommandHandler.class);
         if (whois != null)
-  whois.setOrphanServerReplyListener(handler::handleOrphanServerReply);
+            whois.setOrphanServerReplyListener(handler::handleOrphanServerReply);
         return handler;
     }
 
@@ -74,69 +74,87 @@ public class WhowasCommandHandler implements CommandHandler {
 
     @Override
     public synchronized void handle(ServerConnectionData connection, MessagePrefix sender,
-                          String command, List<String> params, Map<String, String> tags)
-  throws InvalidMessageException {
+                                    String command, List<String> params, Map<String, String> tags)
+            throws InvalidMessageException {
         int numeric = CommandHandler.toNumeric(command);
         String nick = CommandHandler.getParamWithCheck(params, 1);
-        String key = key(nick);
-        RequestState state = requests.get(key);
+        String requestKey = key(nick);
+        RequestState state = requests.get(requestKey);
+
+        // WHOWAS can be sent from the Server overflow dialog, from a configured/raw command,
+        // or by typing /WHOWAS.  The 0.9.1.2 collector was installed only by the dialog, so
+        // replies from the other entry points fell through as raw 314/369 lines.  Once this
+        // handler is installed for the connection, a 314 starts a passive batch as well.
+        if (numeric == RPL_WHOWASUSER && state == null) {
+            state = new RequestState(null);
+            requests.put(requestKey, state);
+        }
         if (state == null)
-  return;
+            return;
+
         if (numeric == RPL_WHOWASUSER) {
-  state.results.add(new Result(nick,
-          CommandHandler.getParamWithCheck(params, 2),
-          CommandHandler.getParamWithCheck(params, 3),
-          CommandHandler.getParamOrNull(params, 5)));
+            state.results.add(new Result(nick,
+                    CommandHandler.getParamWithCheck(params, 2),
+                    CommandHandler.getParamWithCheck(params, 3),
+                    CommandHandler.getParamOrNull(params, 5)));
         } else if (numeric == RPL_ENDOFWHOWAS) {
-  requests.remove(key);
-  if (!state.results.isEmpty())
-      state.callback.onResult(new ArrayList<>(state.results));
-  else
-      state.callback.onError("WHOWAS data unavailable");
+            requests.remove(requestKey);
+            if (!state.results.isEmpty()) {
+                List<Result> completed = new ArrayList<>(state.results);
+                if (state.callback != null) {
+                    state.callback.onResult(completed);
+                } else {
+                    for (Result result : completed)
+                        connection.getServerStatusData().addMessage(new WhowasStatusMessageInfo(result));
+                }
+            } else if (state.callback != null) {
+                state.callback.onError("WHOWAS data unavailable");
+            }
         } else if (numeric == ERR_WASNOSUCHNICK) {
-  requests.remove(key);
-  state.callback.onError(CommandHandler.getParamOrDefault(params, 2,
-          "WHOWAS data unavailable"));
+            requests.remove(requestKey);
+            if (state.callback != null)
+                state.callback.onError(CommandHandler.getParamOrDefault(params, 2,
+                        "WHOWAS data unavailable"));
         }
     }
 
     /** Called by WhoisCommandHandler for numeric 312 when there is no active WHOIS reply. */
     public synchronized void handleOrphanServerReply(List<String> params) {
         if (params.size() < 3)
-  return;
-        String key = key(params.get(1));
-        RequestState state = requests.get(key);
+            return;
+        String requestKey = key(params.get(1));
+        RequestState state = requests.get(requestKey);
         if (state == null || state.results.isEmpty())
-  return;
+            return;
         Result result = state.results.get(state.results.size() - 1);
         result.server = params.get(2);
         String info = params.size() > 3 ? params.get(3) : null;
         Date time = parseDisconnectTime(info);
         if (time != null)
-  result.disconnectTime = time;
+            result.disconnectTime = time;
         else
-  result.serverInfo = info;
+            result.serverInfo = info;
     }
 
     static Date parseDisconnectTime(String value) {
         if (value == null || value.trim().isEmpty())
-  return null;
+            return null;
         String input = value.trim();
         if (input.matches("[0-9]{10}")) {
-  try { return new Date(Long.parseLong(input) * 1000L); }
-  catch (NumberFormatException ignored) { return null; }
+            try { return new Date(Long.parseLong(input) * 1000L); }
+            catch (NumberFormatException ignored) { return null; }
         }
         String[] patterns = {
-      "EEE MMM dd yyyy HH:mm:ss",
-      "EEE MMM dd HH:mm:ss yyyy",
-      "EEE MMM d yyyy HH:mm:ss",
-      "EEE MMM d HH:mm:ss yyyy"
+                "EEE MMM dd yyyy HH:mm:ss",
+                "EEE MMM dd HH:mm:ss yyyy",
+                "EEE MMM d yyyy HH:mm:ss",
+                "EEE MMM d HH:mm:ss yyyy"
         };
         for (String pattern : patterns) {
-  SimpleDateFormat parser = new SimpleDateFormat(pattern, Locale.US);
-  parser.setLenient(false);
-  try { return parser.parse(input); }
-  catch (ParseException ignored) { }
+            SimpleDateFormat parser = new SimpleDateFormat(pattern, Locale.US);
+            parser.setLenient(false);
+            try { return parser.parse(input); }
+            catch (ParseException ignored) { }
         }
         return null;
     }
