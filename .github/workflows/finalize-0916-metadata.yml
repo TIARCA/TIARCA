@@ -1,0 +1,39 @@
+name: Finalize TIARCA 0.9.1.6 metadata
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/finalize-0916-metadata.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Update changelog and README
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -c 'from pathlib import Path; p=Path("CHANGELOG.md"); t=p.read_text(encoding="utf-8"); m="# TIARCA — Changelog\n\n"; s="## v0.9.1.6\n\n- Ampliate le descrizioni dei mode IRC di canale e utente con profili più specifici per SimosNap, IRCnet, Undernet e Libera.Chat.\n- Interpretazione migliorata dei mode server-specifici senza attribuire significati arbitrari ai mode sconosciuti.\n- Raffinata la gestione condivisa delle modalità IRC mantenendo separati supporto annunciato dal server, significato del mode ed editabilità.\n\n"; p.write_text(t if "## v0.9.1.6" in t else t.replace(m,m+s,1),encoding="utf-8")'
+          python3 -c 'from pathlib import Path; p=Path("README.md"); t=p.read_text(encoding="utf-8"); t=t.replace("## Ultima release — TIARCA 0.9.1.5","## Ultima release — TIARCA 0.9.1.6").replace("La release stabile corrente è **TIARCA 0.9.1.5**.","La release stabile corrente è **TIARCA 0.9.1.6**.").replace("Scarica TIARCA 0.9.1.5 APK","Scarica TIARCA 0.9.1.6 APK").replace("releases/download/v0.9.1.5/TIARCA-v0.9.1.5.apk","releases/download/v0.9.1.6/TIARCA-v0.9.1.6.apk").replace("Pagina della release 0.9.1.5","Pagina della release 0.9.1.6").replace("releases/tag/v0.9.1.5","releases/tag/v0.9.1.6"); p.write_text(t,encoding="utf-8")'
+
+      - name: Commit metadata and self-clean
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/finalize-0916-metadata.yml
+          git add CHANGELOG.md README.md
+          git commit -m "Finalize TIARCA 0.9.1.6 release metadata"
+          git push origin HEAD:main
