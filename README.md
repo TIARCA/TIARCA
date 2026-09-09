@@ -13,7 +13,7 @@ La release stabile corrente è **TIARCA 0.9.1.6**.
 - [Pagina della release 0.9.1.6](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.1.6)
 - [Novità e changelog completo](CHANGELOG.md)
 
-La 0.9.1.5 introduce un motore condiviso per interpretare le modalità IRC in base al tipo di server. La schermata **Modalità del canale** usa ora lo stesso registro server-aware della nuova voce **Modalità utente** disponibile nella scheda Server; sono riconosciuti profili IRCnet, InspIRCd 3/4, UnrealIRCd 6, Solanum ed Ergo, mentre i mode sconosciuti vengono mostrati senza attribuire loro significati arbitrari.
+La 0.9.1.6 amplia il motore condiviso delle modalità IRC con descrizioni più precise e profili dedicati per SimosNap, IRCnet, Undernet e Libera.Chat, migliorando sia **Modalità del canale** sia **Modalità utente** senza inventare il significato dei mode non riconosciuti.
 
 Questo repository contiene il codice sorgente di TIARCA. Non rappresenta una pubblicazione su F-Droid o Google Play; gli APK ufficiali vengono distribuiti tramite GitHub Releases.
 
