@@ -49,6 +49,14 @@
                 android:layout_marginLeft="@dimen/activity_horizontal_margin_s4"
                 android:layout_marginRight="@dimen/activity_horizontal_margin_s4" />
 
+            <io.mrarm.irc.view.RightClockSettingsCheckBox
+                android:id="@+id/message_time_right"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/message_format_time_right"
+                android:layout_marginLeft="@dimen/activity_horizontal_margin_s4"
+                android:layout_marginRight="@dimen/activity_horizontal_margin_s4" />
+
             <View style="@style/MessageFormatSettingsDivider"
                 android:layout_marginTop="8dp" />
 
