@@ -67,6 +67,30 @@ public class CommandAliasManager {
         sDefaultAliases.add(CommandAlias.raw("whois", "<user>", "WHOIS ${user}"));
         sDefaultAliases.add(CommandAlias.raw("away", "[message...]", "AWAY :${message}"));
         sDefaultAliases.add(CommandAlias.raw("quit", "[message...]", "QUIT :${message}"));
+
+        // Direct IRC protocol commands. These intentionally pass their arguments through to the
+        // server: support and network-specific semantics remain authoritative on the IRC server.
+        addNativeRawAlias("whowas", "<user> [count] [server]", "WHOWAS");
+        addNativeRawAlias("accept", "[+|-]<user> [users...]", "ACCEPT");
+        addNativeRawAlias("invite", "<user> [channel]", "INVITE");
+        addNativeRawAlias("ison", "<users...>", "ISON");
+        addNativeRawAlias("userhost", "<users...>", "USERHOST");
+        addNativeRawAlias("motd", "[server]", "MOTD");
+        addNativeRawAlias("version", "[server]", "VERSION");
+        addNativeRawAlias("time", "[server]", "TIME");
+        addNativeRawAlias("admin", "[server]", "ADMIN");
+        addNativeRawAlias("info", "[server]", "INFO");
+        addNativeRawAlias("lusers", "[mask] [server]", "LUSERS");
+        addNativeRawAlias("links", "[remote-server] [server-mask]", "LINKS");
+        addNativeRawAlias("stats", "<query> [server]", "STATS");
+        addNativeRawAlias("knock", "<channel> [message...]", "KNOCK");
+        addNativeRawAlias("list", "[channels] [server]", "LIST");
+        addNativeRawAlias("names", "[channels] [server]", "NAMES");
+        addNativeRawAlias("who", "[mask] [flags]", "WHO");
+    }
+
+    private static void addNativeRawAlias(String name, String syntax, String command) {
+        sDefaultAliases.add(CommandAlias.raw(name, syntax, command + " ${args}"));
     }
 
     public static CommandAliasManager getInstance(Context context) {
@@ -158,9 +182,7 @@ public class CommandAliasManager {
     }
 
     public static class UserAliasesSettings {
-
         public List<CommandAlias> userAliases;
-
     }
 
     public List<CommandAlias> getUserAliases() {
@@ -247,9 +269,7 @@ public class CommandAliasManager {
         throw new RuntimeException("Internal error");
     }
 
-
     public static class CommandAlias {
-
         public static final int MODE_MESSAGE = 0;
         public static final int MODE_CLIENT = 1;
         public static final int MODE_RAW = 2;
@@ -300,11 +320,9 @@ public class CommandAliasManager {
             ret.mode = MODE_MESSAGE;
             return ret;
         }
-
     }
 
     public static class ProcessCommandResult {
-
         public int mode;
         public String channel;
         public String text;
@@ -323,7 +341,5 @@ public class CommandAliasManager {
             ret.text = text;
             return ret;
         }
-
     }
-
 }
