@@ -10,7 +10,8 @@ public class CallerIdStatusMessageInfo extends StatusMessageInfo {
     private final String source;
 
     public CallerIdStatusMessageInfo(String nick, String source) {
-        super(null, new Date(), MessageType.NOTICE, "Caller-ID request from " + nick);
+        super(null, new Date(), MessageType.NOTICE,
+                nick + " vuole scriverti, ma hai attiva la modalità +g.");
         this.nick = nick;
         this.source = source;
     }
