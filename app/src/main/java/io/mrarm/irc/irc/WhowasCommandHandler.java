@@ -49,6 +49,7 @@ public class WhowasCommandHandler implements CommandHandler {
     private static final int RPL_WHOWASUSER = 314;
     private static final int RPL_ENDOFWHOWAS = 369;
     private static final int ERR_WASNOSUCHNICK = 406;
+    private static final int RPL_TARGUMODEG = 718;
     private final Map<String, RequestState> requests = new HashMap<>();
 
     public static WhowasCommandHandler getOrInstall(ServerConnectionData data) {
@@ -69,7 +70,9 @@ public class WhowasCommandHandler implements CommandHandler {
 
     @Override
     public Object[] getHandledCommands() {
-        return new Object[] { RPL_WHOWASUSER, RPL_ENDOFWHOWAS, ERR_WASNOSUCHNICK };
+        return new Object[] {
+                RPL_WHOWASUSER, RPL_ENDOFWHOWAS, ERR_WASNOSUCHNICK, RPL_TARGUMODEG
+        };
     }
 
     @Override
@@ -77,6 +80,20 @@ public class WhowasCommandHandler implements CommandHandler {
                                     String command, List<String> params, Map<String, String> tags)
             throws InvalidMessageException {
         int numeric = CommandHandler.toNumeric(command);
+
+        // InspIRCd caller-id (+g) uses numeric 718 to notify the protected user that somebody
+        // is trying to send a private message.  The nickname is a protocol parameter; do not
+        // parse the human-readable trailing text as it is server/localisation dependent.
+        if (numeric == RPL_TARGUMODEG) {
+            String callerNick = getCallerIdNick(params);
+            if (callerNick != null) {
+                String source = params.size() > 1 ? params.get(1) : null;
+                connection.getServerStatusData().addMessage(
+                        new CallerIdStatusMessageInfo(callerNick, source));
+            }
+            return;
+        }
+
         String nick = CommandHandler.getParamWithCheck(params, 1);
         String requestKey = key(nick);
         RequestState state = requests.get(requestKey);
@@ -116,6 +133,18 @@ public class WhowasCommandHandler implements CommandHandler {
                 state.callback.onError(CommandHandler.getParamOrDefault(params, 2,
                         "WHOWAS data unavailable"));
         }
+    }
+
+    static String getCallerIdNick(List<String> params) {
+        // Wire form observed on InspIRCd/SimosNap:
+        // 718 <me> <source-ident-or-uid@host> <nick> :is messaging you ...
+        if (params == null || params.size() < 3)
+            return null;
+        String nick = params.get(2);
+        if (nick == null)
+            return null;
+        nick = nick.trim();
+        return nick.isEmpty() ? null : nick;
     }
 
     /** Called by WhoisCommandHandler for numeric 312 when there is no active WHOIS reply. */
