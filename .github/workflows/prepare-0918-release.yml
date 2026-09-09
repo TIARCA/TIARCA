@@ -1,0 +1,52 @@
+name: Prepare 0.9.1.8 release metadata
+
+on:
+  push:
+    paths:
+      - '.github/workflows/prepare-0918-release.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release branch
+        uses: actions/checkout@v4
+        with:
+          ref: release/0.9.1.8
+          fetch-depth: 0
+      - name: Prepend 0.9.1.8 changelog
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('CHANGELOG.md')
+          text = p.read_text(encoding='utf-8')
+          if '## v0.9.1.8' not in text:
+              marker = '# TIARCA — Changelog\n'
+              entry = '''\n## v0.9.1.8\n\n- Aggiunti comandi IRC nativi utilizzabili direttamente senza `/raw`: `/whowas`, `/accept`, `/invite`, `/ison`, `/userhost`, `/motd`, `/version`, `/time`, `/admin`, `/info`, `/lusers`, `/links`, `/stats`, `/knock`, `/list`, `/names` e `/who`; argomenti e supporto restano demandati al server IRC.\n- Gestito strutturalmente il numeric `718` dei server con caller-id/modalità `+g`: TIARCA ricava il nickname dai parametri IRC e mostra nella scheda Server una richiesta leggibile con azione **ACCETTA**.\n- Premendo **ACCETTA** TIARCA invia direttamente `ACCEPT +<nickname>`, senza richiedere `/raw` e senza dipendere dal testo descrittivo inglese inviato dal server.\n- Aggiunti test di regressione per l'inventario dei comandi IRC nativi e per il parsing del numeric `718`.\n'''
+              if not text.startswith(marker):
+                  raise SystemExit('Unexpected CHANGELOG header')
+              p.write_text(marker + entry + text[len(marker):], encoding='utf-8')
+      - name: Commit release metadata
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add CHANGELOG.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'Document TIARCA 0.9.1.8'
+            git push origin HEAD:release/0.9.1.8
+          fi
+      - name: Remove temporary workflow
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch origin main
+          git checkout -B cleanup origin/main
+          git rm .github/workflows/prepare-0918-release.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Remove temporary 0.9.1.8 preparation workflow'
+          git push origin HEAD:main
