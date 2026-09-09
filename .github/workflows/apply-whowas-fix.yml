@@ -1,0 +1,34 @@
+name: Apply WHOWAS routing fix
+on:
+  push:
+    paths:
+      - '.github/workflows/apply-whowas-fix.yml'
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/whowas-routing-readme
+      - name: Install WHOWAS collector at connection creation
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app/src/main/java/io/mrarm/irc/ServerConnectionInfo.java')
+          s=p.read_text()
+          imp='import io.mrarm.irc.irc.WhoXAccountHandler;\n'
+          assert imp in s
+          s=s.replace(imp, imp+'import io.mrarm.irc.irc.WhowasCommandHandler;\n', 1)
+          needle='            ServerConnectionData monitoredConnectionData = connection.getServerConnectionData();\n'
+          assert needle in s
+          repl=needle+'            // WHOWAS must be installed before the network thread starts so replies are\n            // structured regardless of whether the command came from the menu or /WHOWAS.\n            WhowasCommandHandler.getOrInstall(monitoredConnectionData);\n'
+          s=s.replace(needle,repl,1)
+          p.write_text(s)
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add app/src/main/java/io/mrarm/irc/ServerConnectionInfo.java
+          git commit -m 'Install WHOWAS collector for every IRC connection'
+          git push origin HEAD:fix/whowas-routing-readme
