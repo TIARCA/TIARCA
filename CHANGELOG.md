@@ -1,5 +1,10 @@
 # TIARCA — Changelog
 
+## v0.9.1.8c
+
+- Corretti i chip dell'editor **Formato del messaggio** nel tema scuro, rendendoli nuovamente distinguibili sullo sfondo nero.
+- Corretta la gestione della tastiera Android nella schermata **Formato del messaggio**: su Android recenti l'area di editing e la barra di formattazione rispettano ora gli inset della tastiera e delle barre di sistema, così tutte le sezioni restano raggiungibili e scorribili.
+
 ## v0.9.1.8b
 
 - Reso cliccabile il nickname nei messaggi server che confermano l'aggiunta alla ACCEPT list: un tap sul nick apre direttamente il relativo PVT.
