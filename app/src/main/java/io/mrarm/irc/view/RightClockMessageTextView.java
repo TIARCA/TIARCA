@@ -29,6 +29,7 @@ public class RightClockMessageTextView extends AppCompatTextView
         implements SharedPreferences.OnSharedPreferenceChangeListener {
 
     private CharSequence mOriginalText;
+    private BufferType mLastBufferType = BufferType.NORMAL;
     private boolean mInitialized;
     private boolean mApplying;
 
@@ -56,7 +57,7 @@ public class RightClockMessageTextView extends AppCompatTextView
         super.onAttachedToWindow();
         DefaultPreferences.get(getContext()).registerOnSharedPreferenceChangeListener(this);
         if (mOriginalText != null)
-            applyRightClock(mOriginalText, getBufferType());
+            applyRightClock(mOriginalText, mLastBufferType);
     }
 
     @Override
@@ -68,7 +69,7 @@ public class RightClockMessageTextView extends AppCompatTextView
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         if (RightClockSettings.PREF_MESSAGE_TIME_RIGHT.equals(key) && mOriginalText != null)
-            applyRightClock(mOriginalText, getBufferType());
+            applyRightClock(mOriginalText, mLastBufferType);
     }
 
     @Override
@@ -77,8 +78,9 @@ public class RightClockMessageTextView extends AppCompatTextView
             super.setText(text, type);
             return;
         }
+        mLastBufferType = type != null ? type : BufferType.NORMAL;
         mOriginalText = text;
-        applyRightClock(text, type);
+        applyRightClock(text, mLastBufferType);
     }
 
     private void applyRightClock(CharSequence source, BufferType type) {
