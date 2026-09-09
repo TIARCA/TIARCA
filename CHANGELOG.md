@@ -1,5 +1,11 @@
 # TIARCA — Changelog
 
+## v0.9.1.3
+
+- Corretto WHOWAS: il collector viene ora installato alla creazione di ogni connessione IRC, prima dell'avvio del thread di rete, così le risposte non ricadono più come numeric `314`/`369` grezzi nella scheda Server.
+- Le risposte WHOWAS vengono raccolte come record strutturati anche quando il comando parte da `/WHOWAS` o da altri ingressi oltre al dialog dedicato; restano supportati record multipli e l'associazione del `312` quando il server lo fornisce.
+- Aggiornata la home del repository, rimasta erroneamente ferma alla 0.9.1.1.
+
 ## v0.9.1.2
 
 - WHOWAS ora raccoglie e mostra record storici strutturati nella scheda Server: nickname, ident, host, real name, server, orario di disconnessione quando fornito dal server e info server aggiuntive.
