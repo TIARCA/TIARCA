@@ -1,5 +1,12 @@
 # TIARCA — Changelog
 
+## v0.9.1.5
+
+- Aggiunta **Modalità utente** nel menu della scheda Server: mostra i mode annunciati dal server, quelli attivi e consente di modificarli quando sono impostabili dall’utente.
+- Unificata l’interpretazione dei mode canale e utente in un registro condiviso sensibile al profilo IRCd.
+- Estese le descrizioni dinamiche oltre InspIRCd con profili IRCnet, UnrealIRCd 6, Solanum ed Ergo; i mode non riconosciuti restano visibili come specifici del server senza interpretazioni arbitrarie.
+- Le modalità gestite dal server o dai services vengono mostrate ma non rese modificabili quando il profilo le identifica come tali.
+
 ## v0.9.1.4
 
 - Migliorata la resa dei record WHOWAS: l'icona Copia usa ora una tinta grigia visibile sia con tema scuro sia con tema chiaro.

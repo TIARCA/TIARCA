@@ -64,6 +64,7 @@ import io.mrarm.irc.dialog.WhowasQueryDialog;
 import io.mrarm.irc.dialog.ChatMessageSearchDialog;
 import io.mrarm.irc.dialog.ChannelBanListDialog;
 import io.mrarm.irc.dialog.ChannelModesDialog;
+import io.mrarm.irc.dialog.UserModesDialog;
 import io.mrarm.irc.dialog.SimosnapSendMenu;
 import io.mrarm.irc.dialog.UserBottomSheetDialog;
 import io.mrarm.irc.dialog.VoiceRecorderDialog;
@@ -541,6 +542,7 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
             String current = fragment.getCurrentChannel();
             menu.findItem(R.id.action_list_channels).setVisible(connected && current == null);
             menu.findItem(R.id.action_whowas).setVisible(connected && current == null);
+            menu.findItem(R.id.action_user_modes).setVisible(connected && current == null);
             ChannelNotificationManager notificationManager = current == null ? null :
                     fragment.getConnectionInfo().getNotificationManager()
                             .getChannelManager(current, true);
@@ -568,6 +570,9 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
         } else if (id == R.id.action_whowas) {
             ChatFragment fragment = (ChatFragment) getCurrentFragment();
             WhowasQueryDialog.show(this, fragment.getConnectionInfo());
+        } else if (id == R.id.action_user_modes) {
+            ChatFragment fragment = (ChatFragment) getCurrentFragment();
+            new UserModesDialog(this, fragment.getConnectionInfo()).show();
         } else if (id == R.id.action_join_channel) {
             View v = LayoutInflater.from(this).inflate(R.layout.dialog_chip_edit_text, null);
             ChipsEditText editText = v.findViewById(R.id.chip_edit_text);
