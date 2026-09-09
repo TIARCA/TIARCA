@@ -1,5 +1,11 @@
 # TIARCA — Changelog
 
+## v0.9.1.8a
+
+- Corretto il parsing del numeric IRC `718` su SimosNap: il nickname reale del mittente viene distinto dalla maschera `ident@host`.
+- Il pulsante **ACCETTA** invia ora `ACCEPT +<nickname>` usando il nickname corretto, evitando l'errore IRC `401 No such nick`.
+- Aggiunto un test di regressione basato sul formato `718` osservato dal vivo su SimosNap.
+
 ## v0.9.1.8
 
 - Aggiunti comandi IRC nativi utilizzabili direttamente senza `/raw`: `/whowas`, `/accept`, `/invite`, `/ison`, `/userhost`, `/motd`, `/version`, `/time`, `/admin`, `/info`, `/lusers`, `/links`, `/stats`, `/knock`, `/list`, `/names` e `/who`; argomenti e supporto restano demandati al server IRC.
