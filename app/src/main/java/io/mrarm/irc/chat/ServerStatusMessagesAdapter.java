@@ -6,6 +6,8 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.graphics.Typeface;
 import androidx.recyclerview.widget.RecyclerView;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
 import android.text.TextPaint;
 import android.text.style.ClickableSpan;
 import android.util.TypedValue;
@@ -23,12 +25,14 @@ import java.util.Set;
 import io.mrarm.chatlib.dto.StatusMessageInfo;
 import io.mrarm.chatlib.dto.StatusMessageList;
 import io.mrarm.chatlib.dto.WhoisStatusMessageInfo;
+import io.mrarm.chatlib.irc.IRCConnection;
 import io.mrarm.irc.MainActivity;
 import io.mrarm.irc.R;
 import io.mrarm.irc.ServerConnectionInfo;
 import io.mrarm.irc.dialog.UserBottomSheetDialog;
 import io.mrarm.irc.dialog.NicknameContextMenu;
 import io.mrarm.irc.dialog.MenuBottomSheetDialog;
+import io.mrarm.irc.irc.CallerIdStatusMessageInfo;
 import io.mrarm.irc.irc.WhowasStatusMessageInfo;
 import io.mrarm.irc.view.WhowasRecordView;
 import io.mrarm.irc.util.AlignToPointSpan;
@@ -124,11 +128,11 @@ public class ServerStatusMessagesAdapter extends RecyclerView.Adapter<RecyclerVi
     public class WhowasHolder extends RecyclerView.ViewHolder {
         private final WhowasRecordView recordView;
         WhowasHolder(WhowasRecordView view) {
-  super(view);
-  recordView = view;
+            super(view);
+            recordView = view;
         }
         void bind(WhowasStatusMessageInfo info) {
-  recordView.bind(mConnection, info.getResult());
+            recordView.bind(mConnection, info.getResult());
         }
     }
 
@@ -164,11 +168,40 @@ public class ServerStatusMessagesAdapter extends RecyclerView.Adapter<RecyclerVi
                         .buildDisconnectWarning(message.getDate())));
                 return;
             }
+            if (message instanceof CallerIdStatusMessageInfo) {
+                mText.setText(AlignToPointSpan.apply(mText,
+                        buildCallerIdMessage(context, (CallerIdStatusMessageInfo) message)));
+                return;
+            }
             mText.setText(AlignToPointSpan.apply(mText,
                     MessageBuilder.getInstance(context).buildStatusMessage(message,
                             createServiceClickSpan(message))));
         }
 
+    }
+
+    private CharSequence buildCallerIdMessage(Context context, CallerIdStatusMessageInfo message) {
+        SpannableStringBuilder text = new SpannableStringBuilder(
+                MessageBuilder.getInstance(context).buildStatusMessage(message));
+        text.append(" ");
+        int start = text.length();
+        text.append("[ACCETTA]");
+        text.setSpan(new ClickableSpan() {
+            @Override
+            public void onClick(@NonNull View widget) {
+                if (!(mConnection.getApiInstance() instanceof IRCConnection))
+                    return;
+                ((IRCConnection) mConnection.getApiInstance()).sendCommandRaw(
+                        "ACCEPT +" + message.getNick(), null, null);
+            }
+
+            @Override
+            public void updateDrawState(@NonNull TextPaint ds) {
+                super.updateDrawState(ds);
+                ds.setUnderlineText(true);
+            }
+        }, start, text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return text;
     }
 
     private void showServiceMessageMenu(View view, StatusMessageInfo message) {
