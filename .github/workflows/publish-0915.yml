@@ -1,0 +1,31 @@
+name: Publish TIARCA 0.9.1.5 tag
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Verify and publish exact release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          RELEASE_SHA=f13215e8e1378728ee31bdb2960f907be85e01c6
+          git show "$RELEASE_SHA:app/build.gradle" | grep -q 'versionCode 9015'
+          git show "$RELEASE_SHA:app/build.gradle" | grep -q 'versionName "0.9.1.5"'
+          git show "$RELEASE_SHA:CHANGELOG.md" | grep -q '^## v0.9.1.5$'
+          if git rev-parse -q --verify refs/tags/v0.9.1.5 >/dev/null; then
+            test "$(git rev-list -n1 v0.9.1.5)" = "$RELEASE_SHA"
+          else
+            git tag v0.9.1.5 "$RELEASE_SHA"
+            git push origin refs/tags/v0.9.1.5
+          fi
