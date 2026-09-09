@@ -2,7 +2,8 @@ name: Publish TIARCA 0.9.1.6
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
       - ".github/workflows/publish-0916.yml"
 
@@ -13,71 +14,30 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout main
+      - name: Checkout release commit
         uses: actions/checkout@v5
         with:
-          ref: main
+          ref: c44028c0a82acb170126a860f24ee2d4cc6364a1
           fetch-depth: 0
 
-      - name: Finalize release metadata and self-clean
-        id: metadata
+      - name: Verify version
         shell: bash
         run: |
           set -euo pipefail
           grep -q 'versionCode 9016' app/build.gradle
           grep -q 'versionName "0.9.1.6"' app/build.gradle
 
-          python - <<'PY'
-          from pathlib import Path
-          import re
-
-          changelog = Path('CHANGELOG.md')
-          text = changelog.read_text(encoding='utf-8')
-          section = '''## v0.9.1.6
-
-- Ampliate le descrizioni dei mode IRC di canale e utente con profili più specifici per SimosNap, IRCnet, Undernet e Libera.Chat.
-- Migliorata l'interpretazione dei mode server-specifici senza attribuire significati arbitrari ai mode sconosciuti.
-- Raffinata la gestione condivisa delle modalità IRC mantenendo separati supporto annunciato dal server, significato del mode ed editabilità.
-
-'''
-          if '## v0.9.1.6' not in text:
-              marker = '# TIARCA — Changelog\n\n'
-              if marker not in text:
-                  raise SystemExit('Changelog header not found')
-              text = text.replace(marker, marker + section, 1)
-              changelog.write_text(text, encoding='utf-8')
-
-          readme = Path('README.md')
-          r = readme.read_text(encoding='utf-8')
-          r = r.replace('## Ultima release — TIARCA 0.9.1.5', '## Ultima release — TIARCA 0.9.1.6')
-          r = r.replace('La release stabile corrente è **TIARCA 0.9.1.5**.', 'La release stabile corrente è **TIARCA 0.9.1.6**.')
-          r = r.replace('https://github.com/TIARCA/TIARCA/releases/download/v0.9.1.5/TIARCA-v0.9.1.5.apk', 'https://github.com/TIARCA/TIARCA/releases/download/v0.9.1.6/TIARCA-v0.9.1.6.apk')
-          r = r.replace('Scarica TIARCA 0.9.1.5 APK', 'Scarica TIARCA 0.9.1.6 APK')
-          r = r.replace('https://github.com/TIARCA/TIARCA/releases/tag/v0.9.1.5', 'https://github.com/TIARCA/TIARCA/releases/tag/v0.9.1.6')
-          r = r.replace('Pagina della release 0.9.1.5', 'Pagina della release 0.9.1.6')
-          r = re.sub(r'La 0\.9\.1\.5 introduce.*?significati arbitrari\.',
-                     'La 0.9.1.6 amplia il motore condiviso delle modalità IRC con descrizioni più precise e profili dedicati per SimosNap, IRCnet, Undernet e Libera.Chat, migliorando sia **Modalità del canale** sia **Modalità utente** senza inventare il significato dei mode non riconosciuti.',
-                     r, count=1, flags=re.S)
-          readme.write_text(r, encoding='utf-8')
-          PY
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm .github/workflows/publish-0916.yml
-          git add CHANGELOG.md README.md
-          git commit -m "Finalize TIARCA 0.9.1.6 release metadata"
-          git push origin HEAD:main
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
       - name: Create exact release tag
         shell: bash
         run: |
           set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if git ls-remote --exit-code --tags origin refs/tags/v0.9.1.6 >/dev/null 2>&1; then
             echo "Tag v0.9.1.6 already exists" >&2
             exit 1
           fi
-          git tag v0.9.1.6 "${{ steps.metadata.outputs.sha }}"
+          git tag v0.9.1.6 c44028c0a82acb170126a860f24ee2d4cc6364a1
           git push origin refs/tags/v0.9.1.6
 
       - name: Set up Java 21
@@ -109,22 +69,23 @@ jobs:
         run: ./gradlew :app:assembleRelease
 
       - name: Name APK and checksum
-        id: apk
         shell: bash
         run: |
           set -euo pipefail
           APK=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
           test -n "$APK"
-          cp "$APK" "TIARCA-v0.9.1.6.apk"
+          cp "$APK" TIARCA-v0.9.1.6.apk
           sha256sum TIARCA-v0.9.1.6.apk > TIARCA-v0.9.1.6.apk.sha256
           cat TIARCA-v0.9.1.6.apk.sha256
 
       - name: Prepare release notes
         shell: bash
         run: |
-          set -euo pipefail
-          awk '/^## v0\.9\.1\.6$/{f=1;next} f&&/^## v/{exit} f{print}' CHANGELOG.md > release-notes.md
-          test -s release-notes.md
+          cat > release-notes.md <<'EOF'
+          - Ampliate le descrizioni dei mode IRC di canale e utente con profili più specifici per SimosNap, IRCnet, Undernet e Libera.Chat.
+          - Migliorata l'interpretazione dei mode server-specifici senza attribuire significati arbitrari ai mode sconosciuti.
+          - Raffinata la gestione condivisa delle modalità IRC mantenendo separati supporto annunciato dal server, significato del mode ed editabilità.
+          EOF
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
