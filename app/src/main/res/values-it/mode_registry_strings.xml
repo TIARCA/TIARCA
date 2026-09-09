@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="irc_mode_profile_generic">IRC generico</string>
+    <string name="irc_mode_unknown">Modalità specifica del server (descrizione non disponibile)</string>
+    <string name="user_modes_menu">Modalità utente</string>
+    <string name="user_modes_title">Modalità utente</string>
+    <string name="user_modes_loading">Lettura delle modalità utente attive…</string>
+    <string name="user_modes_profile">Profilo server: %1$s</string>
+    <string name="user_modes_none">Il server non ha annunciato modalità utente.</string>
+    <string name="user_modes_failed">Impossibile leggere le modalità utente.</string>
+    <string name="user_modes_timeout">Il server non ha restituito le modalità utente attive.</string>
+
+    <string name="irc_mode_channel_i">Accesso solo su invito</string>
+    <string name="irc_mode_channel_m">Canale moderato</string>
+    <string name="irc_mode_channel_n">Vieta messaggi dall’esterno del canale</string>
+    <string name="irc_mode_channel_t">Solo gli utenti privilegiati possono cambiare il topic</string>
+    <string name="irc_mode_channel_s">Canale segreto</string>
+    <string name="irc_mode_channel_p">Canale privato</string>
+    <string name="irc_mode_channel_k">Chiave/password del canale</string>
+    <string name="irc_mode_channel_l">Limite utenti</string>
+    <string name="irc_mode_channel_b">Lista ban</string>
+    <string name="irc_mode_channel_registered">Canale registrato ai servizi (gestito dal server)</string>
+    <string name="irc_mode_channel_tls_only">Accesso consentito solo tramite TLS</string>
+    <string name="irc_mode_channel_no_color">Vieta colori/codici di formattazione</string>
+    <string name="irc_mode_channel_no_ctcp">Vieta CTCP nel canale</string>
+    <string name="irc_mode_channel_delay_join">Ritarda la visualizzazione del JOIN finché l’utente non parla</string>
+    <string name="irc_mode_channel_censor">Filtro parole configurato dal server</string>
+    <string name="irc_mode_channel_history">Cronologia del canale attiva</string>
+    <string name="irc_mode_channel_no_knock">Comando KNOCK disabilitato</string>
+    <string name="irc_mode_channel_registered_speak">Possono parlare solo utenti registrati o con privilegi</string>
+    <string name="irc_mode_channel_no_nickchange">Vieta cambi di nickname</string>
+    <string name="irc_mode_channel_oper_only">Solo operatori IRC</string>
+    <string name="irc_mode_channel_permanent">Canale permanente</string>
+    <string name="irc_mode_channel_no_kick">Comando KICK disabilitato</string>
+    <string name="irc_mode_channel_registered_join">Possono entrare solo utenti registrati</string>
+    <string name="irc_mode_channel_strip_color">Rimuove colori/codici di formattazione</string>
+    <string name="irc_mode_channel_no_notice">Vieta NOTICE al canale</string>
+    <string name="irc_mode_channel_no_invite">Comando INVITE disabilitato</string>
+    <string name="irc_mode_channel_all_tls">Tutti i membri attuali usano TLS (gestito dal server)</string>
+    <string name="irc_mode_channel_ircnet_a">Canale anonimo</string>
+    <string name="irc_mode_channel_ircnet_q">Canale quiet / restrizione specifica IRCnet</string>
+
+    <string name="irc_mode_channel_insp_A">Modalità canale A specifica di InspIRCd</string>
+    <string name="irc_mode_channel_insp_C">Vieta CTCP nel canale</string>
+    <string name="irc_mode_channel_insp_D">Ritarda la visualizzazione dei JOIN</string>
+    <string name="irc_mode_channel_insp_K">Vieta KICK</string>
+    <string name="irc_mode_channel_insp_M">Possono parlare utenti registrati o privilegiati</string>
+    <string name="irc_mode_channel_insp_N">Vieta cambi di nickname</string>
+    <string name="irc_mode_channel_insp_O">Solo operatori IRC</string>
+    <string name="irc_mode_channel_insp_Q">Vieta KICK</string>
+    <string name="irc_mode_channel_insp_R">Solo utenti registrati</string>
+    <string name="irc_mode_channel_insp_S">Rimuove formattazione/colori</string>
+    <string name="irc_mode_channel_insp_T">Vieta NOTICE al canale</string>
+    <string name="irc_mode_channel_insp_U">Modalità canale U specifica di InspIRCd</string>
+    <string name="irc_mode_channel_insp_c">Vieta colori/formattazione</string>
+    <string name="irc_mode_channel_insp_u">Modalità canale u specifica di InspIRCd</string>
+
+    <string name="irc_mode_user_i">Invisibile: non compare nelle ricerche WHO generiche</string>
+    <string name="irc_mode_user_w">Riceve i WALLOPS</string>
+    <string name="irc_mode_user_bot">Contrassegna il client come bot</string>
+    <string name="irc_mode_user_channel_deaf">Non riceve i normali messaggi dei canali</string>
+    <string name="irc_mode_user_private_deaf">Blocca i messaggi privati</string>
+    <string name="irc_mode_user_censor">Applica il filtro parole del server</string>
+    <string name="irc_mode_user_hide_oper">Nasconde lo stato di operatore IRC</string>
+    <string name="irc_mode_user_hide_idle">Nasconde il tempo di inattività</string>
+    <string name="irc_mode_user_show_whois">Notifica quando qualcuno esegue WHOIS su di te</string>
+    <string name="irc_mode_user_cloak">Usa un hostname nascosto/cloaked</string>
+    <string name="irc_mode_user_secure_messages">Accetta/invia privati solo verso connessioni sicure TLS</string>
+    <string name="irc_mode_user_tls">Connessione tramite TLS (gestito dal server)</string>
+    <string name="irc_mode_user_oper">Stato di operatore IRC (gestito dal server)</string>
+    <string name="irc_mode_user_registered">Account autenticato/registrato (gestito da server/servizi)</string>
+    <string name="irc_mode_user_server_notices">Riceve determinate notifiche del server</string>
+    <string name="irc_mode_user_no_forward">Disabilita il forwarding dei canali</string>
+    <string name="irc_mode_user_callerid">Caller-ID: limita i privati agli utenti accettati</string>
+    <string name="irc_mode_user_registered_only_pm">Accetta privati solo da utenti registrati</string>
+</resources>
