@@ -1,0 +1,47 @@
+name: Apply 0.9.1.4 Changelog
+
+on:
+  push:
+    paths:
+      - '.github/workflows/apply-0914-changelog.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release branch
+        uses: actions/checkout@v5
+        with:
+          ref: fix/whowas-ui-0.9.1.4
+          fetch-depth: 0
+
+      - name: Prepend changelog entry
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path('CHANGELOG.md')
+          text = path.read_text(encoding='utf-8')
+          marker = '## v0.9.1.4'
+          if marker not in text:
+              header = '# TIARCA — Changelog\n\n'
+              entry = '''## v0.9.1.4\n\n- Migliorata la resa dei record WHOWAS: l'icona Copia usa ora una tinta grigia visibile sia con tema scuro sia con tema chiaro.\n- Ridotta l'altezza dei pulsanti Copia da 40 a 32 dp, eliminando lo spazio verticale eccessivo tra le righe Nick, Ident, Host e Server senza ridurre la leggibilità dei dati.\n\n'''
+              if text.startswith(header):
+                  text = header + entry + text[len(header):]
+              else:
+                  text = entry + text
+              path.write_text(text, encoding='utf-8')
+
+      - name: Commit and push
+        run: |
+          if git diff --quiet -- CHANGELOG.md; then
+            echo 'CHANGELOG already updated'
+            exit 0
+          fi
+          git config user.name 'TIARCA'
+          git config user.email 'marcovange@duck.com'
+          git add CHANGELOG.md
+          git commit -m 'Add TIARCA 0.9.1.4 changelog'
+          git push origin HEAD:fix/whowas-ui-0.9.1.4
