@@ -98,6 +98,7 @@ public class WhowasRecordView extends LinearLayout {
         if (copyable) {
             copy = new ImageButton(getContext());
             copy.setImageResource(R.drawable.ic_content_copy);
+            // Neutral gray remains visible on both the light and dark app themes.
             ImageViewCompat.setImageTintList(copy, ColorStateList.valueOf(Color.GRAY));
             TypedValue selectable = new TypedValue();
             if (getContext().getTheme().resolveAttribute(
