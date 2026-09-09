@@ -5,20 +5,21 @@ TIARCA (*TIARCA Is Another Relay Chat App*) è un fork di [Revolution IRC](https
 
 TIARCA ne prosegue lo sviluppo come progetto indipendente, mantenendo la licenza GNU GPLv3 e introducendo nuove funzionalità, correzioni e aggiornamenti per le versioni moderne di Android. Il lavoro originale di Revolution IRC e le successive modifiche di TIARCA restano chiaramente distinti.
 
-## Ultima release — TIARCA 0.9.1.4
+## Ultima release — TIARCA 0.9.1.5
 
-La release stabile corrente è **TIARCA 0.9.1.4**.
+La release stabile corrente è **TIARCA 0.9.1.5**.
 
-- [Scarica TIARCA 0.9.1.4 APK](https://github.com/TIARCA/TIARCA/releases/download/v0.9.1.4/TIARCA-v0.9.1.4.apk)
-- [Pagina della release 0.9.1.4](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.1.4)
+- [Scarica TIARCA 0.9.1.5 APK](https://github.com/TIARCA/TIARCA/releases/download/v0.9.1.5/TIARCA-v0.9.1.5.apk)
+- [Pagina della release 0.9.1.5](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.1.5)
 - [Novità e changelog completo](CHANGELOG.md)
 
-La 0.9.1.4 rifinisce la visualizzazione dei record WHOWAS: icona Copia grigia e visibile con tema chiaro e scuro, righe più compatte senza gli spazi verticali eccessivi introdotti dai pulsanti. Include naturalmente la correzione di instradamento WHOWAS della 0.9.1.3 e tutte le novità della serie 0.9.1.
+La 0.9.1.5 introduce un motore condiviso per interpretare le modalità IRC in base al tipo di server. La schermata **Modalità del canale** usa ora lo stesso registro server-aware della nuova voce **Modalità utente** disponibile nella scheda Server; sono riconosciuti profili IRCnet, InspIRCd 3/4, UnrealIRCd 6, Solanum ed Ergo, mentre i mode sconosciuti vengono mostrati senza attribuire loro significati arbitrari.
 
 Questo repository contiene il codice sorgente di TIARCA. Non rappresenta una pubblicazione su F-Droid o Google Play; gli APK ufficiali vengono distribuiti tramite GitHub Releases.
 
 ## Caratteristiche aggiunte in TIARCA
 
+* gestione server-aware delle modalità IRC di canale e utente, con stato attivo, descrizioni dinamiche e protezione dei mode gestiti dal server/services;
 * strumenti di moderazione dal WHOIS e WHOWAS strutturato con copia rapida di nickname, ident, host e server;
 * gestione unificata di ban ed eccezioni di canale;
 * utenti monitorati tramite IRC MONITOR con stato persistente;
