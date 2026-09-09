@@ -13,8 +13,8 @@ android {
         applicationId "io.tiarca.irc"
         minSdkVersion 28
         targetSdkVersion 36
-        versionCode 9015
-        versionName "0.9.1.5"
+        versionCode 9016
+        versionName "0.9.1.6"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary true
@@ -40,17 +40,12 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            if (releasePropertiesFile.exists())
-                signingConfig signingConfigs.release
+            if (releasePropertiesFile.exists()) signingConfig signingConfigs.release
         }
-        debug {
-            multiDexEnabled true
-        }
+        debug { multiDexEnabled true }
     }
     namespace 'io.mrarm.irc'
-    buildFeatures {
-        buildConfig true
-    }
+    buildFeatures { buildConfig true }
     testOptions {
         unitTests {
             includeAndroidResources = true
