@@ -21,22 +21,15 @@ jobs:
         shell: python
         run: |
           from pathlib import Path
+          import re
           p = Path('app/src/main/java/io/mrarm/irc/ServerConnectionInfo.java')
           s = p.read_text()
-          old = '''        synchronized (this) {
-              mQueryNickAliases.put(oldNick.toLowerCase(Locale.ROOT), newNick);
-              // Preserve a chain when a user changes nick more than once in one connection.
-              for (Map.Entry<String, String> alias : mQueryNickAliases.entrySet()) {
-                  if (alias.getValue().equalsIgnoreCase(oldNick))
-                      alias.setValue(newNick);
-              }
-          }'''
-          new = '''        synchronized (this) {
-              PrivateConversationAliases.recordNickChange(mQueryNickAliases, oldNick, newNick);
-          }'''
-          if old not in s:
-              raise SystemExit('Expected renamePrivateConversation alias block not found')
-          p.write_text(s.replace(old, new, 1))
+          pattern = re.compile(r'(?ms)(        synchronized \(this\) \{\n)            mQueryNickAliases\.put\(oldNick\.toLowerCase\(Locale\.ROOT\), newNick\);\n            // Preserve a chain when a user changes nick more than once in one connection\.\n            for \(Map\.Entry<String, String> alias : mQueryNickAliases\.entrySet\(\)\) \{\n                if \(alias\.getValue\(\)\.equalsIgnoreCase\(oldNick\)\)\n                    alias\.setValue\(newNick\);\n            \}\n        \}')
+          replacement = '        synchronized (this) {\n            PrivateConversationAliases.recordNickChange(mQueryNickAliases, oldNick, newNick);\n        }'
+          s2, count = pattern.subn(replacement, s, count=1)
+          if count != 1:
+              raise SystemExit(f'Expected one alias block, replaced {count}')
+          p.write_text(s2)
       - name: Commit fix branch
         run: |
           git config user.name github-actions[bot]
@@ -47,6 +40,8 @@ jobs:
       - name: Remove temporary workflow from main
         if: always()
         run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git fetch origin main
           git checkout -B main origin/main
           git rm .github/workflows/apply-private-query-cycle-fix.yml
