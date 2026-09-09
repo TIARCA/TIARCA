@@ -5,15 +5,15 @@ TIARCA (*TIARCA Is Another Relay Chat App*) è un fork di [Revolution IRC](https
 
 TIARCA ne prosegue lo sviluppo come progetto indipendente, mantenendo la licenza GNU GPLv3 e introducendo nuove funzionalità, correzioni e aggiornamenti per le versioni moderne di Android. Il lavoro originale di Revolution IRC e le successive modifiche di TIARCA restano chiaramente distinti.
 
-## Ultima release — TIARCA 0.9.1.3
+## Ultima release — TIARCA 0.9.1.4
 
-La release stabile corrente è **TIARCA 0.9.1.3**.
+La release stabile corrente è **TIARCA 0.9.1.4**.
 
-- [Scarica TIARCA 0.9.1.3 APK](https://github.com/TIARCA/TIARCA/releases/download/v0.9.1.3/TIARCA-v0.9.1.3.apk)
-- [Pagina della release 0.9.1.3](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.1.3)
+- [Scarica TIARCA 0.9.1.4 APK](https://github.com/TIARCA/TIARCA/releases/download/v0.9.1.4/TIARCA-v0.9.1.4.apk)
+- [Pagina della release 0.9.1.4](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.1.4)
 - [Novità e changelog completo](CHANGELOG.md)
 
-La 0.9.1.3 corregge l'instradamento di WHOWAS affinché le risposte 314/312/369 vengano raccolte e mostrate come record strutturati anche quando il comando non parte dal dialog dedicato. Mantiene inoltre le azioni di copia e moderazione introdotte nella 0.9.1.2 e tutte le novità della serie 0.9.1.
+La 0.9.1.4 rifinisce la visualizzazione dei record WHOWAS: icona Copia grigia e visibile con tema chiaro e scuro, righe più compatte senza gli spazi verticali eccessivi introdotti dai pulsanti. Include naturalmente la correzione di instradamento WHOWAS della 0.9.1.3 e tutte le novità della serie 0.9.1.
 
 Questo repository contiene il codice sorgente di TIARCA. Non rappresenta una pubblicazione su F-Droid o Google Play; gli APK ufficiali vengono distribuiti tramite GitHub Releases.
 
