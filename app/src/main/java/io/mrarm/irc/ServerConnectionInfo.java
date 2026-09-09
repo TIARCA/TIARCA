@@ -39,6 +39,7 @@ import io.mrarm.irc.util.StubMessageStorageApi;
 import io.mrarm.irc.util.UserAutoRunCommandHelper;
 import io.mrarm.irc.irc.ChannelModeSnapshotHandler;
 import io.mrarm.irc.irc.WhoXAccountHandler;
+import io.mrarm.irc.irc.WhowasCommandHandler;
 import io.mrarm.irc.irc.MonitoredUsersManager;
 import io.mrarm.irc.irc.ServiceMessageCommandHandler;
 import io.mrarm.irc.irc.SelfKickCommandHandler;
@@ -177,6 +178,9 @@ public class ServerConnectionInfo {
                         .registerHandler(new SelfKickCommandHandler(kickHandler));
             }
             ServerConnectionData monitoredConnectionData = connection.getServerConnectionData();
+            // WHOWAS must be installed before the network thread starts so replies are
+            // structured regardless of whether the command came from the menu or /WHOWAS.
+            WhowasCommandHandler.getOrInstall(monitoredConnectionData);
             connection.getUserInfoApi().subscribeNickChanges((info, oldNick, newNick) -> {
                 renameServiceNick(oldNick, newNick);
                 renamePrivateConversation(oldNick, newNick);
