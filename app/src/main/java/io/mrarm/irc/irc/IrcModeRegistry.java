@@ -11,10 +11,10 @@ import io.mrarm.chatlib.irc.IRCConnection;
 import io.mrarm.irc.R;
 import io.mrarm.irc.ServerConnectionInfo;
 
-/** Shared server-aware descriptions and editability rules for channel and user modes. */
+/** Shared server/network-aware descriptions and editability rules for channel and user modes. */
 public final class IrcModeRegistry {
 
-    public enum Profile { GENERIC, IRCNET, INSPIRCD_3, INSPIRCD_4, UNREALIRCD_6, SOLANUM, ERGO }
+    public enum Profile { GENERIC, SIMOSNAP, IRCNET, UNDERNET, LIBERA, INSPIRCD_3, INSPIRCD_4, UNREALIRCD_6, SOLANUM, ERGO }
     public enum Target { CHANNEL, USER }
 
     private final Context context;
@@ -33,7 +33,10 @@ public final class IrcModeRegistry {
 
     public String getProfileLabel() {
         switch (profile) {
+            case SIMOSNAP: return "SimosNap (InspIRCd 3)";
             case IRCNET: return "IRCnet";
+            case UNDERNET: return "Undernet";
+            case LIBERA: return "Libera.Chat (Solanum)";
             case INSPIRCD_3: return "InspIRCd 3";
             case INSPIRCD_4: return "InspIRCd 4";
             case UNREALIRCD_6: return "UnrealIRCd 6";
@@ -46,21 +49,25 @@ public final class IrcModeRegistry {
     public String description(Target target, char mode) {
         String common = target == Target.CHANNEL ? commonChannel(mode) : commonUser(mode);
         if (common != null) return common;
-        if (target == Target.CHANNEL) return profileChannel(mode);
-        return profileUser(mode);
+        return target == Target.CHANNEL ? profileChannel(mode) : profileUser(mode);
     }
 
     public boolean isEditable(Target target, char mode) {
         if (target == Target.CHANNEL) {
-            if ((profile == Profile.INSPIRCD_3 || profile == Profile.INSPIRCD_4 ||
-                    profile == Profile.UNREALIRCD_6) && mode == 'r') return false;
+            if ((isInsp() || profile == Profile.UNREALIRCD_6) && mode == 'r') return false;
             if (profile == Profile.UNREALIRCD_6 && (mode == 'd' || mode == 'Z')) return false;
         } else {
             if (profile == Profile.UNREALIRCD_6 && (mode == 'z' || mode == 'H' || mode == 'W')) return false;
-            if ((profile == Profile.INSPIRCD_3 || profile == Profile.INSPIRCD_4) &&
-                    (mode == 'r' || mode == 'o')) return false;
+            if (isInsp() && (mode == 'r' || mode == 'o' || mode == 'k')) return false;
+            if (isInsp() && (mode == 'h' || mode == 'O')) return false;
+            if (profile == Profile.IRCNET && mode == 'o') return false;
+            if (profile == Profile.LIBERA && (mode == 'o' || mode == 'S')) return false;
         }
         return true;
+    }
+
+    private boolean isInsp() {
+        return profile == Profile.SIMOSNAP || profile == Profile.INSPIRCD_3 || profile == Profile.INSPIRCD_4;
     }
 
     private String commonChannel(char m) {
@@ -87,7 +94,15 @@ public final class IrcModeRegistry {
     }
 
     private String profileChannel(char m) {
-        if (profile == Profile.INSPIRCD_3 || profile == Profile.INSPIRCD_4) {
+        if (profile == Profile.SIMOSNAP) {
+            switch (m) {
+                case 'B': return context.getString(R.string.irc_mode_channel_simosnap_B);
+                case 'H': return context.getString(R.string.irc_mode_channel_simosnap_H);
+                case 'J': return context.getString(R.string.irc_mode_channel_simosnap_J);
+                case 'X': return context.getString(R.string.irc_mode_channel_simosnap_X);
+            }
+        }
+        if (isInsp()) {
             switch (m) {
                 case 'A': return context.getString(R.string.irc_mode_channel_insp_A);
                 case 'C': return context.getString(R.string.irc_mode_channel_insp_C);
@@ -105,6 +120,21 @@ public final class IrcModeRegistry {
                 case 'r': return context.getString(R.string.irc_mode_channel_registered);
                 case 'u': return context.getString(R.string.irc_mode_channel_insp_u);
                 case 'z': return context.getString(R.string.irc_mode_channel_tls_only);
+            }
+        }
+        if (profile == Profile.LIBERA || profile == Profile.SOLANUM) {
+            switch (m) {
+                case 'c': return context.getString(R.string.irc_mode_channel_libera_c);
+                case 'C': return context.getString(R.string.irc_mode_channel_libera_C);
+                case 'F': return context.getString(R.string.irc_mode_channel_libera_F);
+                case 'g': return context.getString(R.string.irc_mode_channel_libera_g);
+                case 'Q': return context.getString(R.string.irc_mode_channel_libera_Q);
+                case 'r': return context.getString(R.string.irc_mode_channel_libera_r);
+                case 'R': return context.getString(R.string.irc_mode_channel_libera_R);
+                case 'S': return context.getString(R.string.irc_mode_channel_libera_S);
+                case 'T': return context.getString(R.string.irc_mode_channel_libera_T);
+                case 'u': return context.getString(R.string.irc_mode_channel_libera_u);
+                case 'z': return context.getString(R.string.irc_mode_channel_libera_z);
             }
         }
         if (profile == Profile.UNREALIRCD_6) {
@@ -139,6 +169,52 @@ public final class IrcModeRegistry {
     }
 
     private String profileUser(char m) {
+        if (isInsp()) {
+            switch (m) {
+                case 'B': return context.getString(R.string.irc_mode_user_bot);
+                case 'c': return context.getString(R.string.irc_mode_user_common_channels);
+                case 'd': return context.getString(R.string.irc_mode_user_channel_deaf);
+                case 'D': return context.getString(R.string.irc_mode_user_private_deaf);
+                case 'g': return context.getString(R.string.irc_mode_user_callerid);
+                case 'h': return context.getString(R.string.irc_mode_user_helpop);
+                case 'I': return context.getString(R.string.irc_mode_user_hide_channels);
+                case 'k': return context.getString(R.string.irc_mode_user_services_protected);
+                case 'L': return context.getString(R.string.irc_mode_user_antiredirect);
+                case 'N': return context.getString(R.string.irc_mode_user_nohistory);
+                case 'O': return context.getString(R.string.irc_mode_user_override);
+                case 'o': return context.getString(R.string.irc_mode_user_oper);
+                case 'r': return context.getString(R.string.irc_mode_user_registered);
+                case 'R': return context.getString(R.string.irc_mode_user_registered_only_pm);
+                case 'S': return context.getString(R.string.irc_mode_user_strip_formatting);
+                case 'T': return context.getString(R.string.irc_mode_user_noctcp);
+                case 'x': return context.getString(R.string.irc_mode_user_cloak);
+                case 'z': return context.getString(R.string.irc_mode_user_secure_messages);
+                case 'V': if (profile == Profile.SIMOSNAP) return context.getString(R.string.irc_mode_user_noinvites);
+            }
+            return context.getString(R.string.irc_mode_user_insp_unknown);
+        }
+        if (profile == Profile.UNDERNET) {
+            switch (m) {
+                case 'd': return context.getString(R.string.irc_mode_user_undernet_d);
+                case 'x': return context.getString(R.string.irc_mode_user_undernet_x);
+                case 's': return context.getString(R.string.irc_mode_user_server_notices);
+                case 'o': return context.getString(R.string.irc_mode_user_oper);
+            }
+            return context.getString(R.string.irc_mode_user_network_specific);
+        }
+        if (profile == Profile.LIBERA || profile == Profile.SOLANUM) {
+            switch (m) {
+                case 'D': return context.getString(R.string.irc_mode_user_libera_D);
+                case 'g': return context.getString(R.string.irc_mode_user_libera_g);
+                case 'Q': return context.getString(R.string.irc_mode_user_libera_Q);
+                case 'R': return context.getString(R.string.irc_mode_user_libera_R);
+                case 'u': return context.getString(R.string.irc_mode_user_libera_u);
+                case 'x': return context.getString(R.string.irc_mode_user_cloak);
+                case 's': return context.getString(R.string.irc_mode_user_server_notices);
+                case 'o': return context.getString(R.string.irc_mode_user_oper);
+            }
+            return context.getString(R.string.irc_mode_user_network_specific);
+        }
         if (profile == Profile.UNREALIRCD_6) {
             switch (m) {
                 case 'B': return context.getString(R.string.irc_mode_user_bot);
@@ -153,26 +229,10 @@ public final class IrcModeRegistry {
                 case 'z': return context.getString(R.string.irc_mode_user_tls);
             }
         }
-        if (profile == Profile.INSPIRCD_3 || profile == Profile.INSPIRCD_4) {
-            switch (m) {
-                case 'B': return context.getString(R.string.irc_mode_user_bot);
-                case 'o': return context.getString(R.string.irc_mode_user_oper);
-                case 'r': return context.getString(R.string.irc_mode_user_registered);
-                case 's': return context.getString(R.string.irc_mode_user_server_notices);
-                case 'x': return context.getString(R.string.irc_mode_user_cloak);
-            }
-        }
         if (profile == Profile.IRCNET) {
             switch (m) {
                 case 's': return context.getString(R.string.irc_mode_user_server_notices);
-            }
-        }
-        if (profile == Profile.SOLANUM) {
-            switch (m) {
-                case 'D': return context.getString(R.string.irc_mode_user_private_deaf);
-                case 'Q': return context.getString(R.string.irc_mode_user_no_forward);
-                case 'g': return context.getString(R.string.irc_mode_user_callerid);
-                case 'x': return context.getString(R.string.irc_mode_user_cloak);
+                case 'o': return context.getString(R.string.irc_mode_user_oper);
             }
         }
         if (profile == Profile.ERGO) {
@@ -200,12 +260,15 @@ public final class IrcModeRegistry {
         }
         String address = info.getServerAddress() == null ? "" : info.getServerAddress().toLowerCase(Locale.ROOT);
         String probe = version + " " + server + " " + address;
+        if (probe.contains("simosnap")) return Profile.SIMOSNAP;
+        if (probe.contains("libera.chat")) return Profile.LIBERA;
+        if (probe.contains("undernet.org") || probe.contains("undernet")) return Profile.UNDERNET;
+        if (probe.contains("ircnet") || probe.contains("irc.atw-inter.net")) return Profile.IRCNET;
         if (probe.contains("inspircd-4") || probe.contains("inspircd 4")) return Profile.INSPIRCD_4;
-        if (probe.contains("inspircd-3") || probe.contains("inspircd 3") || address.contains("simosnap")) return Profile.INSPIRCD_3;
+        if (probe.contains("inspircd-3") || probe.contains("inspircd 3")) return Profile.INSPIRCD_3;
         if (probe.contains("unrealircd-6") || probe.contains("unrealircd 6") || probe.contains("unreal6")) return Profile.UNREALIRCD_6;
         if (probe.contains("solanum")) return Profile.SOLANUM;
         if (probe.contains("ergo")) return Profile.ERGO;
-        if (probe.contains("ircnet") || probe.contains("irc.atw-inter.net")) return Profile.IRCNET;
         return Profile.GENERIC;
     }
 
