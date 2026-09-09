@@ -1,4 +1,4 @@
-name: Apply WHOWAS routing fix
+name: Finalize WHOWAS hotfix metadata
 on:
   push:
     paths:
@@ -6,29 +6,26 @@ on:
 permissions:
   contents: write
 jobs:
-  apply:
+  finalize:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: fix/whowas-routing-readme
-      - name: Install WHOWAS collector at connection creation
+      - name: Update changelog and remove temporary workflow
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('app/src/main/java/io/mrarm/irc/ServerConnectionInfo.java')
+          p=Path('CHANGELOG.md')
           s=p.read_text()
-          imp='import io.mrarm.irc.irc.WhoXAccountHandler;\n'
-          assert imp in s
-          s=s.replace(imp, imp+'import io.mrarm.irc.irc.WhowasCommandHandler;\n', 1)
-          needle='            ServerConnectionData monitoredConnectionData = connection.getServerConnectionData();\n'
-          assert needle in s
-          repl=needle+'            // WHOWAS must be installed before the network thread starts so replies are\n            // structured regardless of whether the command came from the menu or /WHOWAS.\n            WhowasCommandHandler.getOrInstall(monitoredConnectionData);\n'
-          s=s.replace(needle,repl,1)
-          p.write_text(s)
+          marker='# TIARCA — Changelog\n'
+          assert s.startswith(marker)
+          entry='''\n## v0.9.1.3\n\n- Corretto WHOWAS: il collector viene ora installato alla creazione di ogni connessione IRC, prima dell'avvio del thread di rete, così le risposte non ricadono più come numeric `314`/`369` grezzi nella scheda Server.\n- Le risposte WHOWAS vengono raccolte come record strutturati anche quando il comando parte da `/WHOWAS` o da altri ingressi oltre al dialog dedicato; restano supportati record multipli e l'associazione del `312` quando il server lo fornisce.\n- Aggiornata la home del repository, rimasta erroneamente ferma alla 0.9.1.1.\n'''
+          p.write_text(marker+entry+s[len(marker):])
           PY
+          rm .github/workflows/apply-whowas-fix.yml
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add app/src/main/java/io/mrarm/irc/ServerConnectionInfo.java
-          git commit -m 'Install WHOWAS collector for every IRC connection'
+          git add CHANGELOG.md .github/workflows/apply-whowas-fix.yml
+          git commit -m 'Document TIARCA 0.9.1.3 WHOWAS hotfix'
           git push origin HEAD:fix/whowas-routing-readme
