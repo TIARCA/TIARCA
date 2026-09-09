@@ -13,6 +13,41 @@ final class PrivateConversationAliases {
     private PrivateConversationAliases() {
     }
 
+    /**
+     * Applies a NICK change without leaving alias chains or cycles behind.
+     *
+     * Every historical nickname that currently resolves to {@code oldNick} is flattened so it
+     * points directly at {@code newNick}. If the user returns to an earlier nickname, that
+     * nickname becomes canonical again and its stale alias is removed instead of creating a
+     * cycle such as A -> B -> A.
+     */
+    static void applyNickChange(Map<String, String> aliases, String oldNick, String newNick) {
+        if (aliases == null || oldNick == null || newNick == null ||
+                oldNick.equalsIgnoreCase(newNick))
+            return;
+
+        String oldKey = oldNick.toLowerCase(Locale.ROOT);
+        String newKey = newNick.toLowerCase(Locale.ROOT);
+        LinkedHashSet<String> historicalKeys = new LinkedHashSet<>();
+
+        for (String key : new ArrayList<>(aliases.keySet())) {
+            String resolved = resolve(aliases, key);
+            if (resolved != null && resolved.equalsIgnoreCase(oldNick))
+                historicalKeys.add(key.toLowerCase(Locale.ROOT));
+        }
+        historicalKeys.add(oldKey);
+
+        // newNick is the canonical visible nickname now. Keeping an alias for it can create
+        // A -> B -> A loops when a user returns to a previous nickname.
+        aliases.remove(newKey);
+
+        for (String key : historicalKeys) {
+            if (key.equals(newKey))
+                continue;
+            aliases.put(key, newNick);
+        }
+    }
+
     static List<String> buildCloseTargets(Map<String, String> aliases, String visibleNick) {
         LinkedHashSet<String> targets = new LinkedHashSet<>();
         if (visibleNick == null || visibleNick.isEmpty())
