@@ -1,0 +1,100 @@
+name: Publish TIARCA 0.9.1.7 hotfix
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/publish-0917-hotfix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_SHA: e9436f940dcb9174038249f9a100c309d169b1d5
+      VERSION: 0.9.1.7
+      TAG: v0.9.1.7
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: e9436f940dcb9174038249f9a100c309d169b1d5
+          fetch-depth: 0
+      - name: Verify release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
+          grep -q 'versionCode 9017' app/build.gradle
+          grep -q 'versionName "0.9.1.7"' app/build.gradle
+          grep -q '^## v0.9.1.7$' CHANGELOG.md
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+      - name: Restore release signing key
+        shell: bash
+        run: |
+          echo "${{ secrets.TIARCA_RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > tiarca-release.jks
+          cat > keystore.properties <<EOF
+          storeFile=tiarca-release.jks
+          storePassword=${{ secrets.TIARCA_RELEASE_STORE_PASSWORD }}
+          keyAlias=${{ secrets.TIARCA_RELEASE_KEY_ALIAS }}
+          keyPassword=${{ secrets.TIARCA_RELEASE_KEY_PASSWORD }}
+          EOF
+      - name: Build signed release APK
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleRelease
+      - name: Prepare APK, checksum and notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE_APK=$(find app/build/outputs/apk/release -name '*.apk' | head -n 1)
+          test -n "$SOURCE_APK"
+          cp "$SOURCE_APK" "TIARCA-${TAG}.apk"
+          sha256sum "TIARCA-${TAG}.apk" > "TIARCA-${TAG}.apk.sha256"
+          awk -v header="## v${VERSION}" '
+            $0 == header { found=1; next }
+            found && /^## v/ { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          test -s release-notes.md
+          printf '\n**Full Changelog**: https://github.com/TIARCA/TIARCA/compare/v0.9.1.6...%s\n' "$TAG" >> release-notes.md
+      - name: Create exact release tag and GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "Tag ${TAG} already exists" >&2
+            exit 1
+          fi
+          git tag "$TAG" "$RELEASE_SHA"
+          git push origin "$TAG"
+          gh release create "$TAG" \
+            "TIARCA-${TAG}.apk" \
+            "TIARCA-${TAG}.apk.sha256" \
+            --repo TIARCA/TIARCA \
+            --title "TIARCA v${VERSION}" \
+            --notes-file release-notes.md \
+            --verify-tag
+      - name: Remove temporary publisher
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git fetch origin main
+          git checkout -B main origin/main
+          if [ -f .github/workflows/publish-0917-hotfix.yml ]; then
+            git rm .github/workflows/publish-0917-hotfix.yml
+            git commit -m 'Remove temporary 0.9.1.7 publisher'
+            git push origin main
+          fi
