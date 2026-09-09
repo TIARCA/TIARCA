@@ -1,0 +1,38 @@
+name: Finalize TIARCA 0.9.1.6 README
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/fix-readme-0916.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Update README description
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -c 'from pathlib import Path; p=Path("README.md"); t=p.read_text(encoding="utf-8"); old="La 0.9.1.5 introduce un motore condiviso per interpretare le modalità IRC in base al tipo di server. La schermata **Modalità del canale** usa ora lo stesso registro server-aware della nuova voce **Modalità utente** disponibile nella scheda Server; sono riconosciuti profili IRCnet, InspIRCd 3/4, UnrealIRCd 6, Solanum ed Ergo, mentre i mode sconosciuti vengono mostrati senza attribuire loro significati arbitrari."; new="La 0.9.1.6 amplia il motore condiviso delle modalità IRC con descrizioni più precise e profili dedicati per SimosNap, IRCnet, Undernet e Libera.Chat, migliorando sia **Modalità del canale** sia **Modalità utente** senza inventare il significato dei mode non riconosciuti."; p.write_text(t.replace(old,new,1),encoding="utf-8")'
+
+      - name: Commit and self-clean
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/fix-readme-0916.yml
+          git add README.md
+          git commit -m "Fix TIARCA 0.9.1.6 README description"
+          git push origin HEAD:main
