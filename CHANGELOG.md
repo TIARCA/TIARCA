@@ -1,5 +1,12 @@
 # TIARCA — Changelog
 
+## v0.9.1.8
+
+- Aggiunti comandi IRC nativi utilizzabili direttamente senza `/raw`: `/whowas`, `/accept`, `/invite`, `/ison`, `/userhost`, `/motd`, `/version`, `/time`, `/admin`, `/info`, `/lusers`, `/links`, `/stats`, `/knock`, `/list`, `/names` e `/who`; argomenti e supporto restano demandati al server IRC.
+- Gestito strutturalmente il numeric `718` dei server con caller-id/modalità `+g`: TIARCA ricava il nickname dai parametri IRC e mostra nella scheda Server una richiesta leggibile con azione **ACCETTA**.
+- Premendo **ACCETTA** TIARCA invia direttamente `ACCEPT +<nickname>`, senza richiedere `/raw` e senza dipendere dal testo descrittivo inglese inviato dal server.
+- Aggiunti test di regressione per l'inventario dei comandi IRC nativi e per il parsing del numeric `718`.
+
 ## v0.9.1.7
 
 - Corretto il routing delle conversazioni private quando un utente cambia nickname e poi torna a un nickname precedente: la cronologia degli alias viene normalizzata senza cicli, evitando messaggi ricevuti invisibili nella query aperta.
