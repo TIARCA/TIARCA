@@ -82,12 +82,13 @@ public class WhowasCommandHandler implements CommandHandler {
         int numeric = CommandHandler.toNumeric(command);
 
         // InspIRCd caller-id (+g) uses numeric 718 to notify the protected user that somebody
-        // is trying to send a private message.  The nickname is a protocol parameter; do not
-        // parse the human-readable trailing text as it is server/localisation dependent.
+        // is trying to send a private message. The caller nickname is the first parameter after
+        // our own nick; the following parameter is the caller's ident/host mask. Do not parse
+        // the human-readable trailing text as it is server/localisation dependent.
         if (numeric == RPL_TARGUMODEG) {
             String callerNick = getCallerIdNick(params);
             if (callerNick != null) {
-                String source = params.size() > 1 ? params.get(1) : null;
+                String source = params.size() > 2 ? params.get(2) : null;
                 connection.getServerStatusData().addMessage(
                         new CallerIdStatusMessageInfo(callerNick, source));
             }
@@ -136,11 +137,11 @@ public class WhowasCommandHandler implements CommandHandler {
     }
 
     static String getCallerIdNick(List<String> params) {
-        // Wire form observed on InspIRCd/SimosNap:
-        // 718 <me> <source-ident-or-uid@host> <nick> :is messaging you ...
-        if (params == null || params.size() < 3)
+        // InspIRCd/SimosNap wire form:
+        // 718 <me> <nick> <nick!ident@host-or-ident@host> :is messaging you ...
+        if (params == null || params.size() < 2)
             return null;
-        String nick = params.get(2);
+        String nick = params.get(1);
         if (nick == null)
             return null;
         nick = nick.trim();
