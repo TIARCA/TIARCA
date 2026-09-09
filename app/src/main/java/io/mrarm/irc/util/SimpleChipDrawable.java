@@ -2,6 +2,7 @@ package io.mrarm.irc.util;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
@@ -32,8 +33,13 @@ public class SimpleChipDrawable extends Drawable {
         ta.recycle();
         ta = StyledAttributesHelper.obtainStyledAttributes(ctx, resId, new int[] { android.R.attr.textSize, android.R.attr.textColor });
         int textSize = ta.getDimensionPixelSize(android.R.attr.textSize, 0);
-        mDefaultTextColor = ta.getColor(android.R.attr.textColor, 0);
         ta.recycle();
+
+        // Chips are also used inside themed editor fields. Resolving the default text colour from
+        // the current theme avoids stale/light-theme textAppearance colours becoming black-on-black
+        // when the app switches to a dark theme. Explicit foreground spans still override this.
+        mDefaultTextColor = StyledAttributesHelper.getColor(
+                ctx, android.R.attr.textColorPrimary, Color.BLACK);
 
         mBackground = ContextCompat.getDrawable(ctx,
                 transparent ? R.drawable.transparent_chip_background : R.drawable.chip_background);
@@ -41,6 +47,7 @@ public class SimpleChipDrawable extends Drawable {
         mPaint.setAntiAlias(true);
         mPaint.setTextAlign(Paint.Align.CENTER);
         mPaint.setTextSize(textSize);
+        mPaint.setColor(mDefaultTextColor);
         if (mText != null)
             mTextWidth = (int) mPaint.measureText(mText);
         mTextHeight = (int) (mPaint.descent() - mPaint.ascent());
