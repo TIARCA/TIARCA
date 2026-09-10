@@ -10,6 +10,7 @@ import io.mrarm.irc.MonitoredUserDialog;
 import io.mrarm.irc.R;
 import io.mrarm.irc.ServerConnectionInfo;
 import io.mrarm.irc.chat.ChatFragment;
+import io.mrarm.irc.irc.CallerIdAcceptManager;
 import io.mrarm.irc.irc.MonitoredUsersManager;
 
 /** Shared, short first-level menu for a known IRC nickname. */
@@ -89,6 +90,7 @@ public final class NicknameContextMenu {
     }
 
     private static void openPrivateConversation(Context context, ServerConnectionInfo connection, String nick) {
+        CallerIdAcceptManager.acceptIfCallerIdEnabled(connection, nick);
         if (context instanceof MainActivity)
             ((MainActivity) context).openDirectConversationForSharing(connection, nick);
         else
