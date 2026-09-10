@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="channel_topic_edit_confirm">Stai per modificare il topic di %1$s. Sei sicuro?</string>
+</resources>
