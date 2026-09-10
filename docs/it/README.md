@@ -8,7 +8,7 @@ TIARCA è un client IRC per Android pensato sia per l'uso quotidiano sia per chi
 
 Scarica l'APK firmato dalla sezione Releases del repository e installalo su Android. Al primo avvio puoi creare una nuova configurazione server/network. TIARCA supporta più server e mantiene separati configurazione, conversazioni e stato delle diverse connessioni.
 
-<!-- SCREENSHOT: configurazione server -->
+![configurazione server](../images/12_configurazione_server.jpg)
 
 ## 2. Configurazione di server e autenticazione
 
@@ -20,49 +20,49 @@ Le password e le credenziali sono dati sensibili: non condividerle negli screens
 
 Il drawer laterale raccoglie server, canali e conversazioni private. La barra superiore consente di passare rapidamente tra le conversazioni aperte. I contatori distinguono i normali messaggi non letti dalle menzioni. **Utenti monitorati** è disponibile nella parte superiore del drawer; **Impostazioni** rimane in fondo al menu `…`.
 
-<!-- SCREENSHOT: drawer/menu -->
+![drawer/menu](../images/01_drawer_menu.jpg)
 
 ## 4. Canali IRC
 
 Una volta entrato in un canale puoi leggere e inviare messaggi, usare autocomplete per nickname/canali/comandi, formattazione e colori mIRC e consultare la cronologia conservata dall'app. Le normali operazioni IRC continuano a rispettare permessi e risposte del server.
 
-<!-- SCREENSHOT: chat canale -->
+![chat canale](../images/02_chat_canale.jpg)
 
 ## 5. Conversazioni private (PVT)
 
 I PVT sono conversazioni dirette con un nickname. Nella toolbar sono disponibili azioni rapide **Invia** per file/media e **Ignora**, oltre al menu `…`. Quando sei in caller-ID mode `+g` e apri volontariamente un PVT, TIARCA gestisce automaticamente `ACCEPT +nickname`, permettendo all'interlocutore di rispondere senza un passaggio manuale aggiuntivo.
 
-<!-- SCREENSHOT: PVT -->
+![PVT](../images/03_chat_privata_pvt.jpg)
 
 ## 6. WHOIS e WHOWAS
 
 WHOIS mostra le informazioni fornite dal server su un utente e offre azioni dirette. TIARCA presenta inoltre WHOWAS in forma strutturata invece di lasciare le informazioni soltanto nel log grezzo del server. I dati disponibili dipendono dal demone IRC e dai servizi della rete.
 
-<!-- SCREENSHOT: WHOIS -->
+![WHOIS](../images/04_whois.jpg)
 
 ## 7. Modalità utente
 
 TIARCA dispone di un editor delle modalità utente. I mode vengono interpretati in base alle capacità e alla famiglia del server quando possibile; l'app conosce profili per implementazioni IRC diffuse e protegge le modalità che devono essere gestite dal server o dai services. Tra i mode supportati dall'interfaccia rientra caller-ID `+g` quando disponibile sulla rete.
 
-<!-- SCREENSHOT: modalità utente -->
+![modalità utente](../images/06_modalita_utente.jpg)
 
 ## 8. Modalità canale
 
 L'editor dei channel mode mostra stato e descrizione delle modalità disponibili. TIARCA evita di trattare tutti i server come identici: parametri e semantica possono variare tra implementazioni IRC. L'effettiva possibilità di modificare un mode dipende comunque dai privilegi concessi dal server nel canale.
 
-<!-- SCREENSHOT: modalità canale -->
+![modalità canale](../images/07_modalita_canale.jpg)
 
 ## 9. Ban ed eccezioni
 
 La moderazione include una gestione unificata delle liste di ban e delle eccezioni di canale. Puoi consultare le maschere restituite dal server e, quando disponi dei privilegi necessari, modificarle dall'interfaccia. Le regole effettive restano quelle della rete IRC a cui sei connesso.
 
-<!-- SCREENSHOT: ban/eccezioni -->
+![ban/eccezioni](../images/08_ban_eccezioni.jpg)
 
 ## 10. MONITOR e utenti monitorati
 
 TIARCA supporta il comando IRC `MONITOR` sulle reti che lo implementano. La schermata **Utenti monitorati** permette di gestire l'elenco e visualizzare lo stato conosciuto dei nickname monitorati. Lo stato viene mantenuto in modo persistente dall'app dove previsto.
 
-<!-- SCREENSHOT: utenti monitorati -->
+![utenti monitorati](../images/05_utenti_monitorati.jpg)
 
 ## 11. Caller-ID +g e ACCEPT
 
@@ -72,7 +72,7 @@ Sulle reti compatibili, `+g` limita chi può inviarti messaggi privati. TIARCA g
 
 La ricerca individua messaggi nella cronologia e consente di raggiungere il risultato nel suo contesto temporale. Le menzioni hanno un contatore separato dai normali non letti, così i messaggi che richiedono attenzione non vengono confusi con l'attività generale dei canali.
 
-<!-- SCREENSHOT: ricerca messaggi -->
+![ricerca messaggi](../images/09_ricerca_messaggi.jpg)
 
 ## 13. Ignore
 
@@ -88,15 +88,15 @@ Oltre all'invio di comandi IRC standard, TIARCA gestisce direttamente numerosi c
 
 I **Comandi rapidi** sono scorciatoie configurabili che trasformano parole di attivazione in azioni/ricerche. La configurazione include comandi come `!yt`, `!wiki`, `!calc`, `!movie`, `!ora` e `!dizionario`; possono essere personalizzati nelle impostazioni.
 
-<!-- SCREENSHOT: comandi rapidi -->
+![comandi rapidi](../images/14_comandi_rapidi.jpg)
 
 ## 16. Aspetto e formato dei messaggi
 
 TIARCA offre tema chiaro e scuro e un'ampia personalizzazione dei colori dell'app. Puoi intervenire anche sul font della chat e sul formato dei messaggi, compresa la visualizzazione opzionale dell'orario sul lato destro. Le preferenze consentono di adattare l'interfaccia senza cambiare il protocollo IRC sottostante.
 
-<!-- SCREENSHOT: impostazioni interfaccia -->
-<!-- SCREENSHOT: personalizzazione colori -->
-<!-- SCREENSHOT: formato messaggi -->
+![impostazioni interfaccia](../images/10_impostazioni_interfaccia.jpg)
+![personalizzazione colori](../images/13_personalizzazione_colori.jpg)
+![formato messaggi](../images/11_formato_messaggi.jpg)
 
 ## 17. Aggiornamenti
 

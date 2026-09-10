@@ -14,4 +14,4 @@ Choose your language:
 - [Suomi](fi/README.md)
 - [Română](ro/README.md)
 
-Screenshots will be inserted progressively after privacy review. Image placeholders in the guides deliberately remain visible until the approved screenshots are available.
+All guides include the approved, privacy-safe screenshots stored in the shared `images/` directory.
