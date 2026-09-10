@@ -4,6 +4,14 @@
 build
 **/build
 *.log
+*.apk
+*.aab
+*.tmp
+*.bak
+*.old
+*.orig
+*.swp
+*~
 keystore.properties
 *.jks
 *.keystore
@@ -19,3 +27,6 @@ distribution/
 /build
 /captures
 .externalNativeBuild
+__pycache__/
+*.py[cod]
+tools/.translation-cache/

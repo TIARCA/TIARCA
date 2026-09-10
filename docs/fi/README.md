@@ -1,4 +1,4 @@
-# TIARCA 0.9.2 – täydellinen käyttöopas
+# TIARCA 0.9.3 – täydellinen käyttöopas
 
 [← Kielet](../README.md)
 
