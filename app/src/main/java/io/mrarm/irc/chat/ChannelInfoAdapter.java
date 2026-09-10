@@ -153,12 +153,12 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
         } else if (viewType == TYPE_TOPIC) {
             View view = LayoutInflater.from(viewGroup.getContext())
                     .inflate(R.layout.chat_topic, viewGroup, false);
-            return new TopicHolder(view);
+            return new TopicHolder(view, this);
         } else if (viewType == TYPE_SEARCH) {
             View view = LayoutInflater.from(viewGroup.getContext())
                     .inflate(R.layout.chat_member_search, viewGroup, false);
             return new SearchHolder(view, this);
-        } else { // TYPE_MEMBER
+        } else {
             View view = LayoutInflater.from(viewGroup.getContext())
                     .inflate(R.layout.chat_member, viewGroup, false);
             return new MemberHolder(view);
@@ -419,7 +419,7 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
         private TextView topicInfoTextView;
         private int textColorSecondary;
 
-        public TopicHolder(View view) {
+        public TopicHolder(View view, ChannelInfoAdapter adapter) {
             super(view);
             topicTextView = view.findViewById(R.id.topic);
             topicInfoTextView = view.findViewById(R.id.topic_info);
@@ -427,6 +427,9 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
                     android.R.attr.textColorSecondary, Color.BLACK);
 
             topicTextView.setMovementMethod(LinkMovementMethod.getInstance());
+            ImageButton editButton = view.findViewById(R.id.topic_edit);
+            editButton.setOnClickListener(v -> ChannelTopicEditor.show(v.getContext(),
+                    adapter.mConnection, adapter.mChannel, adapter.mTopic));
         }
 
         public void bind(String topic, String topicSetBy, Date topicSetOn) {
