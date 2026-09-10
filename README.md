@@ -4,9 +4,9 @@
 
 TIARCA keeps the speed and directness of classic IRC while adding a modern Android interface, current Android compatibility, richer moderation and user tools, configurable appearance, MONITOR support, structured IRC information, search, mentions, quick commands and an integrated update flow.
 
-> **Current stable version: 0.9.3** · Android 9+ · Open source · GPLv3
+> **Current stable version: 0.9.4** · Android 9+ · Open source · GPLv3
 
-[Download TIARCA 0.9.3](https://github.com/TIARCA/TIARCA/releases/download/v0.9.3/TIARCA-v0.9.3.apk) · [Release notes](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.3) · [Changelog](CHANGELOG.md) · [Documentation](docs/README.md)
+[Download TIARCA 0.9.4](https://github.com/TIARCA/TIARCA/releases/download/v0.9.4/TIARCA-v0.9.4.apk) · [Release notes](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.4) · [Changelog](CHANGELOG.md) · [Documentation](docs/README.md)
 
 ---
 
@@ -52,7 +52,7 @@ Documentation is available in every language currently supported by TIARCA:
 
 Download the signed APK from the latest GitHub Release. Android may ask you to allow installation from the browser or file manager used to open the APK. Official TIARCA APKs are distributed through this repository's **Releases** section.
 
-TIARCA is not currently distributed through Google Play or F-Droid.
+TIARCA is not distributed through Google Play. Version 0.9.4 is the first release prepared for submission to the official F-Droid repository; availability on F-Droid depends on completion of the F-Droid review and build process.
 
 ## Building from source
 
