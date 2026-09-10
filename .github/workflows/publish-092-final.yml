@@ -1,0 +1,72 @@
+name: Publish TIARCA 0.9.2 final
+
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/publish-092-final.yml"]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release source
+        uses: actions/checkout@v5
+        with:
+          ref: 8f46be1bf7542a9d819bedee5183756fd50b94cb
+          fetch-depth: 0
+      - name: Verify release version
+        run: |
+          grep -q 'versionName "0.9.2"' app/build.gradle
+          grep -q 'versionCode 90200' app/build.gradle
+          grep -q '^## v0.9.2$' CHANGELOG.md
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+      - name: Restore release keystore
+        run: |
+          echo "${{ secrets.TIARCA_RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > tiarca-release.jks
+          cat > keystore.properties <<EOF
+          storeFile=tiarca-release.jks
+          storePassword=${{ secrets.TIARCA_RELEASE_STORE_PASSWORD }}
+          keyAlias=${{ secrets.TIARCA_RELEASE_KEY_ALIAS }}
+          keyPassword=${{ secrets.TIARCA_RELEASE_KEY_PASSWORD }}
+          EOF
+      - name: Build signed release APK
+        run: ./gradlew :app:assembleRelease
+      - name: Prepare release assets and notes
+        run: |
+          set -euo pipefail
+          APK=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          cp "$APK" TIARCA-v0.9.2.apk
+          sha256sum TIARCA-v0.9.2.apk > TIARCA-v0.9.2.apk.sha256
+          awk '/^## v0.9.2$/{found=1;next} found && /^## v/{exit} found{print}' CHANGELOG.md > release-notes.md
+          test -s release-notes.md
+      - name: Create exact tag and public release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a v0.9.2 8f46be1bf7542a9d819bedee5183756fd50b94cb -m "TIARCA 0.9.2"
+          git push origin refs/tags/v0.9.2
+          gh release create v0.9.2 TIARCA-v0.9.2.apk TIARCA-v0.9.2.apk.sha256 --title "TIARCA v0.9.2" --notes-file release-notes.md --latest
+      - name: Remove temporary publisher workflow
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout -B cleanup origin/main
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/publish-092-final.yml
+          git commit -m "Remove temporary TIARCA 0.9.2 publisher"
+          git push origin HEAD:main
