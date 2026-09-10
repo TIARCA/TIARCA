@@ -356,6 +356,7 @@ public class UserBottomSheetDialog {
         });
 
         view.findViewById(R.id.message_button).setOnClickListener((View v) -> {
+            io.mrarm.irc.irc.CallerIdAcceptManager.acceptOutgoingPrivateConversation(mConnection, mNick);
             List<String> l = new ArrayList<>();
             l.add(mNick);
             mConnection.getApiInstance().joinChannels(l, (Void vo) -> {
