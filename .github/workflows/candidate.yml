@@ -2,9 +2,6 @@ name: Build TIARCA Candidate
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - feature/editable-channel-topic-candidate
 
 jobs:
   build-candidate:
