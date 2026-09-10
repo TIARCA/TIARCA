@@ -90,7 +90,7 @@ public final class NicknameContextMenu {
     }
 
     private static void openPrivateConversation(Context context, ServerConnectionInfo connection, String nick) {
-        CallerIdAcceptManager.acceptIfCallerIdEnabled(connection, nick);
+        CallerIdAcceptManager.acceptOutgoingPrivateConversation(connection, nick);
         if (context instanceof MainActivity)
             ((MainActivity) context).openDirectConversationForSharing(connection, nick);
         else
