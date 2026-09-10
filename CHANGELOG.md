@@ -1,5 +1,11 @@
 # TIARCA — Changelog
 
+## v0.9.3
+
+- Il topic del canale è ora modificabile direttamente dal drawer destro tramite il pulsante di modifica accanto al topic.
+- Il topic corrente viene precompilato nell'editor e la modifica richiede una conferma esplicita prima dell'invio del comando IRC `TOPIC`.
+- I permessi restano demandati al server IRC, così TIARCA non blocca modifiche legittime in base a supposizioni locali sui mode del canale.
+
 ## v0.9.2
 
 - Nei PVT aggiunti in barra superiore i pulsanti rapidi **Invia** e **Ignora**, riutilizzando le stesse azioni già disponibili nel pannello WHOIS.
