@@ -1,0 +1,1 @@
+Prepared TIARCA for F-Droid distribution with upstream metadata and a more reproducible build setup. The GitHub updater now explicitly warns F-Droid users when an update would bypass F-Droid checks. No substantial IRC feature changes from 0.9.3.
