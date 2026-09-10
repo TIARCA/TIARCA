@@ -4,9 +4,9 @@
 
 TIARCA keeps the speed and directness of classic IRC while adding a modern Android interface, current Android compatibility, richer moderation and user tools, configurable appearance, MONITOR support, structured IRC information, search, mentions, quick commands and an integrated update flow.
 
-> **Current stable version: 0.9.2** · Android 9+ · Open source · GPLv3
+> **Current stable version: 0.9.3** · Android 9+ · Open source · GPLv3
 
-[Download TIARCA 0.9.2](https://github.com/TIARCA/TIARCA/releases/download/v0.9.2/TIARCA-v0.9.2.apk) · [Release notes](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.2) · [Changelog](CHANGELOG.md) · [Documentation](docs/README.md)
+[Download TIARCA 0.9.3](https://github.com/TIARCA/TIARCA/releases/download/v0.9.3/TIARCA-v0.9.3.apk) · [Release notes](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.3) · [Changelog](CHANGELOG.md) · [Documentation](docs/README.md)
 
 ---
 
@@ -14,6 +14,7 @@ TIARCA keeps the speed and directness of classic IRC while adding a modern Andro
 
 - Multiple IRC networks and servers, TLS/SSL and SASL authentication.
 - Channels and private conversations with persistent history and unread counters.
+- Channel topic editing directly from the right drawer, with explicit confirmation before sending the native IRC `TOPIC` command.
 - WHOIS and structured WHOWAS information with direct user actions.
 - IRC user modes and channel modes with descriptions and server-aware handling.
 - Ban lists and channel exceptions in a unified interface.
