@@ -5,15 +5,15 @@ TIARCA (*TIARCA Is Another Relay Chat App*) è un fork di [Revolution IRC](https
 
 TIARCA ne prosegue lo sviluppo come progetto indipendente, mantenendo la licenza GNU GPLv3 e introducendo nuove funzionalità, correzioni e aggiornamenti per le versioni moderne di Android. Il lavoro originale di Revolution IRC e le successive modifiche di TIARCA restano chiaramente distinti.
 
-## Ultima release — TIARCA 0.9.1.8c
+## Ultima release — TIARCA 0.9.2
 
-La release stabile corrente è **TIARCA 0.9.1.8c**.
+La release stabile corrente è **TIARCA 0.9.2**.
 
-- [Scarica TIARCA 0.9.1.8c APK](https://github.com/TIARCA/TIARCA/releases/download/v0.9.1.8c/TIARCA-v0.9.1.8c.apk)
-- [Pagina della release 0.9.1.8c](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.1.8c)
+- [Scarica TIARCA 0.9.2 APK](https://github.com/TIARCA/TIARCA/releases/download/v0.9.2/TIARCA-v0.9.2.apk)
+- [Pagina della release 0.9.2](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.2)
 - [Novità e changelog completo](CHANGELOG.md)
 
-La 0.9.1.8c corregge la schermata **Formato del messaggio** su Android recenti: i controlli restano raggiungibili e scorribili sopra la tastiera, e i chip del formato mantengono un contrasto leggibile anche con tema scuro. Include inoltre le correzioni della serie 0.9.1.8 per ACCEPT e numeric IRC `718` su SimosNap.
+La 0.9.2 migliora l'interfaccia dei PVT con i pulsanti rapidi **Invia** e **Ignora**, mantiene **Impostazioni** sempre in fondo al menu e completa la gestione automatica di `ACCEPT` quando la modalità utente `+g` è attiva. Include inoltre il nuovo accesso superiore agli **Utenti monitorati** e le correzioni della serie 0.9.1.8.
 
 Questo repository contiene il codice sorgente di TIARCA. Non rappresenta una pubblicazione su F-Droid o Google Play; gli APK ufficiali vengono distribuiti tramite GitHub Releases.
 
