@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="channel_topic_edit_title">Edit topic — %1$s</string>
+    <string name="channel_topic_edit_confirm_title">Confirm topic change</string>
+    <string name="channel_topic_edit_confirm_message">You are about to change the topic of %1$s. Are you sure?</string>
+    <string name="channel_topic_edit_send_failed">Could not send the TOPIC command.</string>
+    <string name="channel_topic_edit_content_description">Edit channel topic</string>
+</resources>
