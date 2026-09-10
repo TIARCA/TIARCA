@@ -1,0 +1,7 @@
+TIARCA is a modern IRC client for Android, developed as an independent fork of Revolution IRC.
+
+It supports multiple IRC networks, channels and private conversations, message history, configurable message formatting, dark and light themes, MONITOR, structured WHOIS/WHOWAS information, channel and user modes, ban and exception management, configurable quick commands, media sharing options, notification rules, reconnect settings and extensive interface customization.
+
+TIARCA is free and open source software released under the GNU GPLv3. It does not include advertising or analytics SDKs.
+
+Some optional features use external network services, including TMDB for movie lookup and SimosNap services for temporary media sharing. These features can be disabled or simply left unused.
