@@ -1,0 +1,1 @@
+Il topic del canale è ora modificabile direttamente dal drawer destro. Il topic corrente viene precompilato e una conferma esplicita è richiesta prima di inviare il comando IRC TOPIC.
