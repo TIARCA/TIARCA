@@ -44,7 +44,7 @@ public class UserSearchDialog extends SearchDialog {
     }
 
     private void openOnlineConversation(String query) {
-        CallerIdAcceptManager.acceptIfCallerIdEnabled(mConnection, query);
+        CallerIdAcceptManager.acceptOutgoingPrivateConversation(mConnection, query);
         mConnection.registerPrivateConversation(query, () -> openConversation(query));
     }
 
