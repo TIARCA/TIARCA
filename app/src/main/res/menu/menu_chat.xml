@@ -14,8 +14,8 @@
     <item android:id="@+id/action_mark_mentions_read" android:title="@string/action_mark_mentions_read" android:visible="false" app:showAsAction="never" />
     <item android:id="@+id/action_channel_modes" android:title="@string/channel_modes_menu" android:visible="false" app:showAsAction="never" />
     <item android:id="@+id/action_channel_bans" android:title="@string/ban_list_menu" android:visible="false" app:showAsAction="never" />
-    <item android:id="@+id/action_send_media" android:title="@string/file_send_menu" android:icon="@drawable/ic_file_upload_white_16dp" android:visible="false" app:showAsAction="ifRoom" />
-    <item android:id="@+id/action_direct_ignore" android:title="@string/action_ignore_user" android:icon="@drawable/ic_close" android:visible="false" app:showAsAction="ifRoom" />
+    <item android:id="@+id/action_send_media" android:title="@string/file_send_menu" android:icon="@drawable/ic_file_upload_white_16dp" android:visible="false" app:showAsAction="always" />
+    <item android:id="@+id/action_direct_ignore" android:title="@string/action_ignore_user" android:icon="@drawable/ic_close" android:visible="false" app:showAsAction="always" />
     <item android:id="@+id/action_direct_whois" android:title="@string/action_whois" android:visible="false" app:showAsAction="never" />
     <item android:id="@+id/action_members" android:title="@string/channel_members" app:showAsAction="never" />
     <item android:id="@+id/action_ignore_list" android:title="@string/ignored_users_label" app:showAsAction="never" />
