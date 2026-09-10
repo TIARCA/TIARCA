@@ -1,6 +1,6 @@
 # TIARCA Documentation
 
-Complete user documentation for TIARCA 0.9.2.
+Complete user documentation for TIARCA 0.9.3.
 
 Choose your language:
 

@@ -1,4 +1,4 @@
-# Ghid complet TIARCA 0.9.2
+# Ghid complet TIARCA 0.9.3
 
 [← Limbi](../README.md)
 

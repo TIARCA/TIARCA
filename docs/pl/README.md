@@ -1,4 +1,4 @@
-# Pełny przewodnik po TIARCA 0.9.2
+# Pełny przewodnik po TIARCA 0.9.3
 
 [← Języki](../README.md)
 

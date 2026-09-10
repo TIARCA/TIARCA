@@ -1,4 +1,4 @@
-# Complete guide to TIARCA 0.9.2
+# Complete guide to TIARCA 0.9.3
 
 [← Languages](../README.md)
 
