@@ -140,7 +140,7 @@ public class ChannelModeSnapshotHandler implements CommandHandler {
         String nick = CommandHandler.getParamWithCheck(params, 0);
         String text = findModeText(params);
         if (text == null)
-            throw new InvalidMessageException();
+            return;
         Snapshot snapshot = parseUserModes(text);
         Callback callback = null;
         synchronized (this) {
