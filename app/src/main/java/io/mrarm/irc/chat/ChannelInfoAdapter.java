@@ -2,6 +2,7 @@ package io.mrarm.irc.chat;
 
 import android.app.Dialog;
 import android.graphics.Color;
+import androidx.appcompat.app.AlertDialog;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 import android.text.Editable;
@@ -175,7 +176,7 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
             ((TextHolder) holder).bind(item.type == AdapterItem.TYPE_HEADER_TOPIC ? R.string.channel_topic
                     : R.string.channel_members);
         else if (type == TYPE_TOPIC)
-            ((TopicHolder) holder).bind(mTopic, mTopicSetBy, mTopicSetOn);
+            ((TopicHolder) holder).bind(mConnection, mChannel, mTopic, mTopicSetBy, mTopicSetOn);
         else if (type == TYPE_SEARCH)
             ((SearchHolder) holder).bind(mSearchQuery);
         else if (type == TYPE_MEMBER)
@@ -415,21 +416,34 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
 
     public static class TopicHolder extends RecyclerView.ViewHolder {
 
-        private TextView topicTextView;
-        private TextView topicInfoTextView;
-        private int textColorSecondary;
+        private final TextView topicTextView;
+        private final TextView topicInfoTextView;
+        private final ImageButton topicEditButton;
+        private final int textColorSecondary;
+        private ServerConnectionInfo connection;
+        private String channel;
+        private String rawTopic;
 
         public TopicHolder(View view) {
             super(view);
             topicTextView = view.findViewById(R.id.topic);
             topicInfoTextView = view.findViewById(R.id.topic_info);
+            topicEditButton = view.findViewById(R.id.topic_edit);
             textColorSecondary = StyledAttributesHelper.getColor(topicTextView.getContext(),
                     android.R.attr.textColorSecondary, Color.BLACK);
 
             topicTextView.setMovementMethod(LinkMovementMethod.getInstance());
+            topicEditButton.setOnClickListener(v -> showTopicEditor());
         }
 
-        public void bind(String topic, String topicSetBy, Date topicSetOn) {
+        public void bind(ServerConnectionInfo connection, String channel, String topic,
+                         String topicSetBy, Date topicSetOn) {
+            this.connection = connection;
+            this.channel = channel;
+            this.rawTopic = topic;
+            topicEditButton.setEnabled(connection != null && connection.isConnected()
+                    && connection.getApiInstance() instanceof IRCConnection);
+
             if (topic != null) {
                 topicTextView.setText(LinkHelper.addLinks(IRCColorUtils.getFormattedString(
                         topicTextView.getContext(), topic)));
@@ -458,6 +472,44 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
                 topicInfoTextView.setText(null);
                 topicInfoTextView.setVisibility(View.GONE);
             }
+        }
+
+        private void showTopicEditor() {
+            if (connection == null || channel == null || !connection.isConnected()
+                    || !(connection.getApiInstance() instanceof IRCConnection))
+                return;
+
+            View editorView = LayoutInflater.from(topicTextView.getContext())
+                    .inflate(R.layout.dialog_edit_text, null);
+            EditText input = editorView.findViewById(R.id.edit_text);
+            input.setText(rawTopic == null ? "" : rawTopic);
+            input.setSelection(input.length());
+
+            new AlertDialog.Builder(topicTextView.getContext())
+                    .setTitle(R.string.channel_topic)
+                    .setView(editorView)
+                    .setPositiveButton(R.string.action_edit, (dialog, which) ->
+                            confirmTopicChange(input.getText().toString()))
+                    .setNegativeButton(R.string.action_cancel, null)
+                    .show();
+        }
+
+        private void confirmTopicChange(String newTopic) {
+            if (connection == null || channel == null)
+                return;
+            new AlertDialog.Builder(topicTextView.getContext())
+                    .setTitle(R.string.channel_topic)
+                    .setMessage(topicTextView.getResources().getString(
+                            R.string.channel_topic_edit_confirm, channel))
+                    .setPositiveButton(R.string.action_ok, (dialog, which) -> {
+                        if (connection.isConnected()
+                                && connection.getApiInstance() instanceof IRCConnection) {
+                            ((IRCConnection) connection.getApiInstance()).sendCommand(
+                                    "TOPIC", true, new String[] { channel, newTopic }, null, null);
+                        }
+                    })
+                    .setNegativeButton(R.string.action_cancel, null)
+                    .show();
         }
 
     }
