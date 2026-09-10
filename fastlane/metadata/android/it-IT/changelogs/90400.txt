@@ -1,0 +1,1 @@
+Preparata TIARCA per la distribuzione tramite F-Droid con metadata upstream e una configurazione di build più riproducibile. L'updater GitHub avvisa ora esplicitamente gli utenti F-Droid quando un aggiornamento bypasserebbe i controlli F-Droid. Nessuna modifica sostanziale alle funzioni IRC rispetto alla 0.9.3.

@@ -1,5 +1,12 @@
 # TIARCA — Changelog
 
+## v0.9.4
+
+- Preparata TIARCA per la distribuzione tramite F-Droid con metadata upstream, icona, screenshot e changelog dedicati.
+- Migliorata la riproducibilità della build rimuovendo la dipendenza da repository Maven locali (`mavenLocal`).
+- L'updater GitHub chiarisce ora che, nelle installazioni provenienti da F-Droid, il suo utilizzo bypassa i controlli di F-Droid.
+- Nessuna modifica sostanziale alle funzionalità IRC rispetto alla 0.9.3.
+
 ## v0.9.3
 
 - Il topic del canale è ora modificabile direttamente dal drawer destro tramite il pulsante di modifica accanto al topic.
