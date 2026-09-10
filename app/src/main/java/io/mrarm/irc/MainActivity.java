@@ -538,6 +538,7 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
             }
             menu.findItem(R.id.action_send_media).setVisible(connected && inDirectChat &&
                     SharingSettings.hasAnySendOption(this));
+            menu.findItem(R.id.action_direct_ignore).setVisible(inDirectChat);
             menu.findItem(R.id.action_direct_whois).setVisible(connected && inDirectChat);
             String current = fragment.getCurrentChannel();
             menu.findItem(R.id.action_list_channels).setVisible(connected && current == null);
@@ -624,6 +625,10 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
             ChatFragment fragment = (ChatFragment) getCurrentFragment();
             SimosnapSendMenu.show(this, fragment.getConnectionInfo(),
                     fragment.getCurrentChannel());
+        } else if (id == R.id.action_direct_ignore) {
+            ChatFragment fragment = (ChatFragment) getCurrentFragment();
+            io.mrarm.irc.dialog.IgnoreUserDialog.show(this, fragment.getConnectionInfo(),
+                    fragment.getCurrentChannel(), null, null);
         } else if (id == R.id.action_direct_whois) {
             ChatFragment fragment = (ChatFragment) getCurrentFragment();
             String nick = fragment.getCurrentChannel();
