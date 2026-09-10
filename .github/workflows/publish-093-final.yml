@@ -1,0 +1,114 @@
+name: Publish TIARCA 0.9.3
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/publish-093-final.yml"
+
+permissions:
+  contents: write
+
+env:
+  RELEASE_SOURCE: be2ee2a6df110a51d535b352a98bb7b5eafabb3b
+  VERSION: 0.9.3
+  TAG: v0.9.3
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact release source
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.RELEASE_SOURCE }}
+          fetch-depth: 0
+
+      - name: Verify release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'versionName "0.9.3"' app/build.gradle
+          grep -q 'versionCode 90300' app/build.gradle
+          grep -q '^## v0.9.3$' CHANGELOG.md
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Make Gradle executable
+        run: chmod +x gradlew
+
+      - name: Restore release keystore
+        shell: bash
+        run: |
+          echo "${{ secrets.TIARCA_RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > tiarca-release.jks
+
+      - name: Create keystore.properties
+        shell: bash
+        run: |
+          cat > keystore.properties <<EOF
+          storeFile=tiarca-release.jks
+          storePassword=${{ secrets.TIARCA_RELEASE_STORE_PASSWORD }}
+          keyAlias=${{ secrets.TIARCA_RELEASE_KEY_ALIAS }}
+          keyPassword=${{ secrets.TIARCA_RELEASE_KEY_PASSWORD }}
+          EOF
+
+      - name: Build signed release APK
+        run: ./gradlew :app:assembleRelease
+
+      - name: Prepare APK and checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          test -n "$APK"
+          cp "$APK" "TIARCA-v0.9.3.apk"
+          sha256sum "TIARCA-v0.9.3.apk" > "TIARCA-v0.9.3.apk.sha256"
+          awk '/^## v0.9.3$/{flag=1;next}/^## v/{flag=0}flag' CHANGELOG.md > release-notes.md
+          test -s release-notes.md
+
+      - name: Create annotated tag on exact release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "TIARCA"
+          git config user.email "marcovange@duck.com"
+          if git ls-remote --exit-code --tags origin "refs/tags/v0.9.3" >/dev/null 2>&1; then
+            echo "Tag v0.9.3 already exists" >&2
+            exit 1
+          fi
+          git tag -a "v0.9.3" "$RELEASE_SOURCE" -m "TIARCA 0.9.3"
+          git push origin "refs/tags/v0.9.3"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "v0.9.3" \
+            "TIARCA-v0.9.3.apk" \
+            "TIARCA-v0.9.3.apk.sha256" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "TIARCA v0.9.3" \
+            --notes-file release-notes.md \
+            --verify-tag
+
+      - name: Remove temporary publisher workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout -B cleanup origin/main
+          git rm .github/workflows/publish-093-final.yml
+          git config user.name "TIARCA"
+          git config user.email "marcovange@duck.com"
+          git commit -m "Remove temporary TIARCA 0.9.3 publisher workflow"
+          git push origin HEAD:main
