@@ -9,6 +9,7 @@ import java.util.List;
 import io.mrarm.irc.MainActivity;
 import io.mrarm.irc.R;
 import io.mrarm.irc.ServerConnectionInfo;
+import io.mrarm.irc.irc.CallerIdAcceptManager;
 import io.mrarm.irc.view.ListSearchView;
 
 public class UserSearchDialog extends SearchDialog {
@@ -43,6 +44,7 @@ public class UserSearchDialog extends SearchDialog {
     }
 
     private void openOnlineConversation(String query) {
+        CallerIdAcceptManager.acceptIfCallerIdEnabled(mConnection, query);
         mConnection.registerPrivateConversation(query, () -> openConversation(query));
     }
 
