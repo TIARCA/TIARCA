@@ -7,35 +7,35 @@ TIARCA to nowoczesny klient IRC dla Androida, wywodzący się z Revolution IRC i
 ## Instalacja i serwery
 Zainstaluj podpisany APK z GitHub Releases. Można skonfigurować wiele sieci: adres, port, nick, TLS/SSL, SASL i kanały do automatycznego dołączenia; serwery można ręcznie sortować. Nigdy nie publikuj haseł ani danych SASL.
 
-<!-- SCREENSHOT: konfiguracja serwera -->
+![konfiguracja serwera](../images/12_configurazione_server.jpg)
 
 ## Interfejs, kanały i rozmowy prywatne
 Panel boczny zawiera serwery, kanały i PVT. Wzmianki są liczone oddzielnie od zwykłych nieprzeczytanych wiadomości. **Monitorowani użytkownicy** są dostępni u góry, a **Ustawienia** pozostają na dole menu `…`. Kanały obsługują historię, autouzupełnianie i formatowanie mIRC. W PVT dostępne są bezpośrednie akcje **Wyślij** i **Ignoruj**.
 
-<!-- SCREENSHOT: panel -->
-<!-- SCREENSHOT: kanał -->
-<!-- SCREENSHOT: PVT -->
+![panel](../images/01_drawer_menu.jpg)
+![kanał](../images/02_chat_canale.jpg)
+![PVT](../images/03_chat_privata_pvt.jpg)
 
 ## WHOIS i WHOWAS
 WHOIS pokazuje informacje zwrócone przez serwer i odpowiednie akcje. WHOWAS jest prezentowany strukturalnie. Dostępne pola zależą od sieci IRC.
 
-<!-- SCREENSHOT: WHOIS -->
+![WHOIS](../images/04_whois.jpg)
 
 ## Tryby użytkownika i kanału
 Edytory pokazują stan i opis trybów oraz uwzględniają różnice pomiędzy rodzinami serwerów IRC. Tryby kontrolowane przez serwer/services są chronione; zmiany trybów kanału zależą od uprawnień.
 
-<!-- SCREENSHOT: tryby użytkownika -->
-<!-- SCREENSHOT: tryby kanału -->
+![tryby użytkownika](../images/06_modalita_utente.jpg)
+![tryby kanału](../images/07_modalita_canale.jpg)
 
 ## Bany i wyjątki
 Listy banów i wyjątków kanału są dostępne we wspólnym interfejsie i mogą być modyfikowane przy odpowiednich uprawnieniach.
 
-<!-- SCREENSHOT: bany/wyjątki -->
+![bany/wyjątki](../images/08_ban_eccezioni.jpg)
 
 ## MONITOR
 Na zgodnych sieciach TIARCA obsługuje IRC `MONITOR`. Ekran monitorowanych użytkowników zarządza listą i pokazuje znany stan online/offline.
 
-<!-- SCREENSHOT: monitorowani użytkownicy -->
+![monitorowani użytkownicy](../images/05_utenti_monitorati.jpg)
 
 ## Caller-ID +g i ACCEPT
 `+g` może ograniczać osoby mogące wysyłać prywatne wiadomości. TIARCA obsługuje numeric 718 i ACCEPT. Od 0.9.2 przy świadomym rozpoczęciu PVT `ACCEPT +nick` jest wykonywany automatycznie tylko wtedy, gdy `+g` jest rzeczywiście aktywny.
@@ -43,7 +43,7 @@ Na zgodnych sieciach TIARCA obsługuje IRC `MONITOR`. Ekran monitorowanych użyt
 ## Wyszukiwanie, historia, wzmianki i Ignore
 Wyszukiwanie przenosi do znalezionej wiadomości w kontekście chronologicznym. Wzmianki mają osobny licznik. Ignore filtruje niechcianych użytkowników i jest dostępne bezpośrednio w pasku PVT.
 
-<!-- SCREENSHOT: wyszukiwanie -->
+![wyszukiwanie](../images/09_ricerca_messaggi.jpg)
 
 ## Pliki i multimedia
 Obrazy, pliki, audio i wideo mogą być udostępniane przez tymczasowe linki wysyłane następnie przez IRC.
@@ -51,14 +51,14 @@ Obrazy, pliki, audio i wideo mogą być udostępniane przez tymczasowe linki wys
 ## Polecenia IRC i szybkie polecenia
 TIARCA bezpośrednio obsługuje m.in. `/whowas`, `/accept`, `/invite`, `/ison`, `/userhost`, `/motd`, `/version`, `/time`, `/admin`, `/info`, `/lusers`, `/links`, `/stats`, `/knock`, `/list`, `/names` i `/who`. Konfigurowalne szybkie polecenia obejmują `!yt`, `!wiki`, `!calc`, `!movie`, `!ora` i `!dizionario`.
 
-<!-- SCREENSHOT: szybkie polecenia -->
+![szybkie polecenia](../images/14_comandi_rapidi.jpg)
 
 ## Wygląd
 Dostępny jest jasny i ciemny motyw, personalizacja kolorów, czcionki czatu i formatu wiadomości, w tym opcjonalny zegar po prawej stronie.
 
-<!-- SCREENSHOT: interfejs -->
-<!-- SCREENSHOT: kolory -->
-<!-- SCREENSHOT: format wiadomości -->
+![interfejs](../images/10_impostazioni_interfaccia.jpg)
+![kolory](../images/13_personalizzazione_colori.jpg)
+![format wiadomości](../images/11_formato_messaggi.jpg)
 
 ## Aktualizacje i kopie zapasowe
 Opcjonalny moduł aktualizacji sprawdza oficjalne GitHub Releases. TIARCA obsługuje również szyfrowaną kopię Android/transfer urządzenia niezależnie od ręcznej kopii TIARCA.

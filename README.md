@@ -32,11 +32,12 @@ TIARCA keeps the speed and directness of classic IRC while adding a modern Andro
 
 ## Screenshots
 
-Screenshots are being prepared with privacy-safe demonstration data. They will be added progressively without delaying the documentation.
+The following screens use privacy-safe demonstration data.
 
-<!-- SCREENSHOT: main channel conversation (light/dark) -->
-<!-- SCREENSHOT: drawer and monitored users -->
-<!-- SCREENSHOT: WHOIS and private conversation -->
+![Channel conversation](docs/images/02_chat_canale.jpg)
+![Server, channel and conversation drawer](docs/images/01_drawer_menu.jpg)
+![WHOIS](docs/images/04_whois.jpg)
+![Interface settings](docs/images/10_impostazioni_interfaccia.jpg)
 
 ## Documentation / Wiki
 
