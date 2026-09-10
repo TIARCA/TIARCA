@@ -1,69 +1,69 @@
-TIARCA
-======
+# TIARCA
 
-TIARCA (*TIARCA Is Another Relay Chat App*) è un fork di [Revolution IRC](https://github.com/MCMrARM/revolution-irc), client IRC Android originariamente sviluppato da MrARM/MCMrARM.
+**TIARCA Is Another Relay Chat App** — a modern, actively maintained IRC client for Android, based on Revolution IRC and evolved as an independent GPLv3 project.
 
-TIARCA ne prosegue lo sviluppo come progetto indipendente, mantenendo la licenza GNU GPLv3 e introducendo nuove funzionalità, correzioni e aggiornamenti per le versioni moderne di Android. Il lavoro originale di Revolution IRC e le successive modifiche di TIARCA restano chiaramente distinti.
+TIARCA keeps the speed and directness of classic IRC while adding a modern Android interface, current Android compatibility, richer moderation and user tools, configurable appearance, MONITOR support, structured IRC information, search, mentions, quick commands and an integrated update flow.
 
-## Ultima release — TIARCA 0.9.2
+> **Current stable version: 0.9.2** · Android 9+ · Open source · GPLv3
 
-La release stabile corrente è **TIARCA 0.9.2**.
+[Download TIARCA 0.9.2](https://github.com/TIARCA/TIARCA/releases/download/v0.9.2/TIARCA-v0.9.2.apk) · [Release notes](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.2) · [Changelog](CHANGELOG.md) · [Documentation](docs/README.md)
 
-- [Scarica TIARCA 0.9.2 APK](https://github.com/TIARCA/TIARCA/releases/download/v0.9.2/TIARCA-v0.9.2.apk)
-- [Pagina della release 0.9.2](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.2)
-- [Novità e changelog completo](CHANGELOG.md)
+---
 
-La 0.9.2 migliora l'interfaccia dei PVT con i pulsanti rapidi **Invia** e **Ignora**, mantiene **Impostazioni** sempre in fondo al menu e completa la gestione automatica di `ACCEPT` quando la modalità utente `+g` è attiva. Include inoltre il nuovo accesso superiore agli **Utenti monitorati** e le correzioni della serie 0.9.1.8.
+## What TIARCA offers
 
-Questo repository contiene il codice sorgente di TIARCA. Non rappresenta una pubblicazione su F-Droid o Google Play; gli APK ufficiali vengono distribuiti tramite GitHub Releases.
+- Multiple IRC networks and servers, TLS/SSL and SASL authentication.
+- Channels and private conversations with persistent history and unread counters.
+- WHOIS and structured WHOWAS information with direct user actions.
+- IRC user modes and channel modes with descriptions and server-aware handling.
+- Ban lists and channel exceptions in a unified interface.
+- IRC `MONITOR` support with a dedicated monitored-users screen.
+- Caller-ID (`+g`) support, numeric 718 handling and automatic `ACCEPT` for private conversations initiated by the user while `+g` is active.
+- Message search with chronological/context navigation and a separate mentions counter.
+- Nick, channel and command autocomplete; mIRC formatting and colors.
+- Ignore management and fast actions directly from private conversations.
+- Sharing of images, files, audio and video through temporary links.
+- Configurable quick commands such as `!yt`, `!wiki`, `!calc`, `!movie`, `!ora` and `!dizionario`.
+- Extensive appearance customization: light/dark theme, app colors, chat font and message format.
+- Manual server/network ordering and configurable connection behavior.
+- Integrated update checker for official GitHub releases.
+- Android encrypted backup/device transfer support, separate from TIARCA manual backup.
+- Direct native IRC commands including `/whowas`, `/accept`, `/invite`, `/ison`, `/userhost`, `/motd`, `/version`, `/time`, `/admin`, `/info`, `/lusers`, `/links`, `/stats`, `/knock`, `/list`, `/names` and `/who`.
 
-## Caratteristiche aggiunte in TIARCA
+## Screenshots
 
-* gestione server-aware delle modalità IRC di canale e utente, con stato attivo, descrizioni dinamiche e protezione dei mode gestiti dal server/services;
-* strumenti di moderazione dal WHOIS e WHOWAS strutturato con copia rapida di nickname, ident, host e server;
-* gestione unificata di ban ed eccezioni di canale;
-* utenti monitorati tramite IRC MONITOR con stato persistente;
-* ricerca nei messaggi, menzioni, contatori non letti e navigazione contestuale nella cronologia;
-* riordino manuale dei server/network;
-* onboarding dei server con SASL semplificato, canali predefiniti modificabili e LIST usabile come selettore;
-* controllo aggiornamenti integrato con opt-in, verifica periodica settimanale e installazione assistita degli APK ufficiali GitHub;
-* backup Android cifrato e trasferimento dispositivo, mantenendo separato il backup manuale TIARCA;
-* condivisione di immagini, file, audio e video tramite link temporanei;
-* comandi rapidi configurabili, inclusi `!yt`, `!wiki`, `!calc`, `!movie`, `!ora` e `!dizionario`;
-* catalogo di network IRC, configurazione multiserver e numerose correzioni di compatibilità Android;
-* interfaccia disponibile in Italiano, English, Deutsch, Español, Français, Polski, Português (Brasil), Suomi e Română.
+Screenshots are being prepared with privacy-safe demonstration data. They will be added progressively without delaying the documentation.
 
-## Changelog
+<!-- SCREENSHOT: main channel conversation (light/dark) -->
+<!-- SCREENSHOT: drawer and monitored users -->
+<!-- SCREENSHOT: WHOIS and private conversation -->
 
-Consulta il [changelog completo](CHANGELOG.md) per lo storico delle modifiche di TIARCA.
+## Documentation / Wiki
 
-## Compilazione
+The detailed guide explains configuration and connection, channels, private chats, WHOIS/WHOWAS, user and channel modes, caller-ID `+g`, MONITOR, moderation, search, mentions, quick commands, appearance, updates and troubleshooting.
 
-Aprire il progetto con Android Studio e usare JDK 21 per Gradle. Il progetto richiede Android SDK 36; per una build di sviluppo eseguire:
+Documentation is available in every language currently supported by TIARCA:
+
+**[Italiano](docs/it/README.md)** · **[English](docs/en/README.md)** · **[Deutsch](docs/de/README.md)** · **[Español](docs/es/README.md)** · **[Français](docs/fr/README.md)** · **[Polski](docs/pl/README.md)** · **[Português (Brasil)](docs/pt-BR/README.md)** · **[Suomi](docs/fi/README.md)** · **[Română](docs/ro/README.md)**
+
+## Installation
+
+Download the signed APK from the latest GitHub Release. Android may ask you to allow installation from the browser or file manager used to open the APK. Official TIARCA APKs are distributed through this repository's **Releases** section.
+
+TIARCA is not currently distributed through Google Play or F-Droid.
+
+## Building from source
+
+Open the project in Android Studio. The project uses Android SDK 36; use JDK 21 for Gradle. A development build can be produced with:
 
 ```text
 gradlew :app:assembleDebug
 ```
 
-Le release pubbliche devono essere firmate con una chiave privata che non va mai inserita nel repository. Vedere `keystore.properties.example`.
+Public releases are signed with a private signing key that is never stored in the repository. See `keystore.properties.example`.
 
-## Licenza e attribuzioni
+## Project origin and license
 
-TIARCA è distribuita con licenza GPLv3, come il progetto di origine Revolution IRC. I relativi avvisi di copyright e le licenze delle dipendenze restano applicabili.
+TIARCA is a fork of [Revolution IRC](https://github.com/MCMrARM/revolution-irc), originally developed by MrARM/MCMrARM. TIARCA continues development independently while preserving the original copyright notices and the **GNU GPLv3** license.
 
-La funzione `!movie` usa TMDB; TIARCA include l’attribuzione richiesta: “This product uses the TMDB API but is not endorsed or certified by TMDB.”
-
----
-
-This client features a modern Material design as well as many other awesome features:
-
-* Stays in background properly, even on more recent Android versions
-* Store chat messages to be displayed after reconnecting to the server later
-* Nick/channel/command autocomplete
-* Ignore list
-* mIRC color formatting support
-* SSL certificate exception list
-* Command list to run after connecting
-* Customization: custom command aliases, notification rules, reconnection interval, chat font, message format, app colors
-
-...and much more!
+The `!movie` quick command uses TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB.
