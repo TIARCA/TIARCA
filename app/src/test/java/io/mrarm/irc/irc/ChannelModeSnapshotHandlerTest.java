@@ -13,6 +13,8 @@ import io.mrarm.chatlib.irc.MessagePrefix;
 import io.mrarm.chatlib.irc.handlers.ModeCommandHandler;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class ChannelModeSnapshotHandlerTest {
 
@@ -104,5 +106,39 @@ public class ChannelModeSnapshotHandlerTest {
         // Cleanup
         snapshotHandler.removeModeListener(listenerChan1);
         snapshotHandler.removeModeListener(listenerChan2);
+    }
+
+    @Test
+    public void testUserModeReplyIsCachedForImmediateCallerIdDecision() throws InvalidMessageException {
+        ChannelModeSnapshotHandler snapshotHandler = new ChannelModeSnapshotHandler(null);
+
+        snapshotHandler.handle(null, null, "221",
+                Arrays.asList("Marco", "+ig"), Collections.emptyMap());
+
+        assertTrue(snapshotHandler.isUserModeKnown('g'));
+        assertTrue(snapshotHandler.isUserModeActive('g'));
+        assertTrue(snapshotHandler.isUserModeActive('i'));
+    }
+
+    @Test
+    public void testUserModeReplyWithoutCallerIdCachesInactiveState() throws InvalidMessageException {
+        ChannelModeSnapshotHandler snapshotHandler = new ChannelModeSnapshotHandler(null);
+
+        snapshotHandler.handle(null, null, "221",
+                Arrays.asList("Marco", "+i"), Collections.emptyMap());
+
+        assertTrue(snapshotHandler.isUserModeKnown('g'));
+        assertFalse(snapshotHandler.isUserModeActive('g'));
+    }
+
+    @Test
+    public void testUserModeReplyFindsModeTextAfterExtraParameter() throws InvalidMessageException {
+        ChannelModeSnapshotHandler snapshotHandler = new ChannelModeSnapshotHandler(null);
+
+        snapshotHandler.handle(null, null, "221",
+                Arrays.asList("Marco", "Marco", "+ig"), Collections.emptyMap());
+
+        assertTrue(snapshotHandler.isUserModeKnown('g'));
+        assertTrue(snapshotHandler.isUserModeActive('g'));
     }
 }

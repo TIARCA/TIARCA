@@ -17,10 +17,6 @@ public final class CallerIdAcceptManager {
             return;
 
         IRCConnection irc = (IRCConnection) connection.getApiInstance();
-        String ownNick = irc.getServerConnectionData().getUserNick();
-        if (ownNick == null || ownNick.isEmpty())
-            return;
-
         CommandHandlerList handlers = irc.getServerConnectionData().getCommandHandlerList();
         ChannelModeSnapshotHandler handler = handlers.getHandler(ChannelModeSnapshotHandler.class);
         if (handler == null) {
@@ -31,14 +27,7 @@ public final class CallerIdAcceptManager {
             handlers.registerHandler(handler);
         }
 
-        final String nick = targetNick.trim();
-        final ChannelModeSnapshotHandler finalHandler = handler;
-        ChannelModeSnapshotHandler.Callback callback = snapshot -> {
-            if (snapshot.active.contains('g'))
-                irc.sendCommandRaw("ACCEPT +" + nick, null, null);
-        };
-        handler.requestUserModes(ownNick, callback);
-        irc.sendCommandRaw("MODE " + ownNick, null,
-                error -> finalHandler.cancelUserModes(callback));
+        if (handler.isUserModeActive('g'))
+            irc.sendCommandRaw("ACCEPT +" + targetNick.trim(), null, null);
     }
 }

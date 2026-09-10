@@ -33,6 +33,9 @@ public class ChannelModeSnapshotHandler implements CommandHandler {
     private Callback userCallback;
     private String requestedUserNick;
     private final List<ModeListener> modeListeners = new ArrayList<>();
+    private final Set<Character> activeUserModes = new HashSet<>();
+    private final Set<Character> knownUserModes = new HashSet<>();
+    private boolean hasFullUserModeSnapshot;
 
     public ChannelModeSnapshotHandler(CommandHandler delegate) {
         this.delegate = delegate;
@@ -76,6 +79,16 @@ public class ChannelModeSnapshotHandler implements CommandHandler {
         }
     }
 
+    /** Returns whether a mode is currently known to be active for our own IRC user. */
+    public synchronized boolean isUserModeActive(char mode) {
+        return activeUserModes.contains(mode);
+    }
+
+    /** Returns whether the session has enough state to decide this user mode without a query. */
+    public synchronized boolean isUserModeKnown(char mode) {
+        return hasFullUserModeSnapshot || knownUserModes.contains(mode);
+    }
+
     @Override public Object[] getHandledCommands() { return new Object[] { "MODE", 221, 324 }; }
 
     @Override
@@ -88,6 +101,7 @@ public class ChannelModeSnapshotHandler implements CommandHandler {
             return;
         }
         if (numeric != 324) {
+            updateCurrentUserModes(connection, params);
             notifyModeListeners(connection, sender, params);
             if (delegate != null) delegate.handle(connection, sender, command, params, tags);
             return;
@@ -124,17 +138,16 @@ public class ChannelModeSnapshotHandler implements CommandHandler {
 
     private void handleUserModeReply(List<String> params) throws InvalidMessageException {
         String nick = CommandHandler.getParamWithCheck(params, 0);
-        String text = CommandHandler.getParamWithCheck(params, 1);
-        Snapshot snapshot = new Snapshot();
-        boolean adding = true;
-        for (int i = 0; i < text.length(); i++) {
-            char mode = text.charAt(i);
-            if (mode == '+') { adding = true; continue; }
-            if (mode == '-') { adding = false; continue; }
-            if (adding) snapshot.active.add(mode); else snapshot.active.remove(mode);
-        }
+        String text = findModeText(params);
+        if (text == null)
+            return;
+        Snapshot snapshot = parseUserModes(text);
         Callback callback = null;
         synchronized (this) {
+            activeUserModes.clear();
+            activeUserModes.addAll(snapshot.active);
+            knownUserModes.clear();
+            hasFullUserModeSnapshot = true;
             if (userCallback != null && (requestedUserNick == null || requestedUserNick.equalsIgnoreCase(nick))) {
                 callback = userCallback;
                 userCallback = null;
@@ -142,6 +155,52 @@ public class ChannelModeSnapshotHandler implements CommandHandler {
             }
         }
         if (callback != null) callback.onModes(snapshot);
+    }
+
+    private void updateCurrentUserModes(ServerConnectionData connection, List<String> params) {
+        if (connection == null || params == null || params.size() < 2)
+            return;
+        String ownNick = connection.getUserNick();
+        if (ownNick == null || !ownNick.equalsIgnoreCase(params.get(0)))
+            return;
+        String text = params.get(1);
+        if (text == null || text.isEmpty())
+            return;
+        boolean adding = true;
+        synchronized (this) {
+            for (int i = 0; i < text.length(); i++) {
+                char mode = text.charAt(i);
+                if (mode == '+') { adding = true; continue; }
+                if (mode == '-') { adding = false; continue; }
+                if (!Character.isLetter(mode)) continue;
+                knownUserModes.add(mode);
+                if (adding) activeUserModes.add(mode); else activeUserModes.remove(mode);
+            }
+        }
+    }
+
+    private static Snapshot parseUserModes(String text) {
+        Snapshot snapshot = new Snapshot();
+        boolean adding = true;
+        for (int i = 0; i < text.length(); i++) {
+            char mode = text.charAt(i);
+            if (mode == '+') { adding = true; continue; }
+            if (mode == '-') { adding = false; continue; }
+            if (!Character.isLetter(mode)) continue;
+            if (adding) snapshot.active.add(mode); else snapshot.active.remove(mode);
+        }
+        return snapshot;
+    }
+
+    private static String findModeText(List<String> params) {
+        if (params == null) return null;
+        for (int i = 1; i < params.size(); i++) {
+            String value = params.get(i);
+            if (value != null && !value.isEmpty() &&
+                    (value.charAt(0) == '+' || value.charAt(0) == '-'))
+                return value;
+        }
+        return null;
     }
 
     private void notifyModeListeners(ServerConnectionData connection, MessagePrefix sender,
