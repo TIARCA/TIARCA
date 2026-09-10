@@ -1,5 +1,12 @@
 # TIARCA — Changelog
 
+## v0.9.2
+
+- Nei PVT aggiunti in barra superiore i pulsanti rapidi **Invia** e **Ignora**, riutilizzando le stesse azioni già disponibili nel pannello WHOIS.
+- La voce **Impostazioni** è ora sempre presente in fondo al menu `...` anche nelle schermate chat.
+- L'apertura volontaria di un PVT aggiunge automaticamente il nickname alla lista `ACCEPT` solo quando la modalità utente `+g` è realmente attiva.
+- **Utenti monitorati** è stato portato nella posizione superiore del drawer principale al posto della vecchia voce Cerca.
+
 ## v0.9.1.8c
 
 - Corretti i chip dell'editor **Formato del messaggio** nel tema scuro, rendendoli nuovamente distinguibili sullo sfondo nero.
