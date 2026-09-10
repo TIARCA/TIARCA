@@ -200,10 +200,12 @@ public final class UpdateManager {
                 .setMessage(text(activity,
                         "Vuoi che TIARCA controlli periodicamente la disponibilità di nuove versioni? " +
                                 "Il controllo viene effettuato su GitHub circa una volta alla settimana. " +
-                                "Nessun aggiornamento viene scaricato o installato senza una tua conferma.",
+                                "Nessun aggiornamento viene scaricato o installato senza una tua conferma. " +
+                                "Se TIARCA è stata installata da F-Droid, usare questo aggiornamento significa bypassare i controlli di F-Droid.",
                         "Would you like TIARCA to periodically check for new versions? " +
                                 "The check is performed on GitHub about once a week. " +
-                                "No update is downloaded or installed without your confirmation."))
+                                "No update is downloaded or installed without your confirmation. " +
+                                "If TIARCA was installed from F-Droid, using this updater bypasses F-Droid's checks."))
                 .setNegativeButton(text(activity, "No", "No"), (dialog, which) ->
                         prefs(activity).edit()
                                 .putBoolean(PREF_CHOICE_MADE, true)
@@ -269,9 +271,11 @@ public final class UpdateManager {
     private static void showUpdateAvailable(Activity activity, ReleaseInfo release) {
         String message = text(activity,
                 "Versione installata: " + BuildConfig.VERSION_NAME + "\n" +
-                        "Nuova versione: " + release.version,
+                        "Nuova versione: " + release.version + "\n\n" +
+                        "L'aggiornamento verrà scaricato da GitHub. Se TIARCA è stata installata da F-Droid, procedere significa bypassare i controlli di F-Droid.",
                 "Installed version: " + BuildConfig.VERSION_NAME + "\n" +
-                        "New version: " + release.version);
+                        "New version: " + release.version + "\n\n" +
+                        "The update will be downloaded from GitHub. If TIARCA was installed from F-Droid, continuing bypasses F-Droid's checks.");
         if (!TextUtils.isEmpty(release.notes)) {
             String notes = release.notes.length() > 3500
                     ? release.notes.substring(0, 3500) + "…" : release.notes;

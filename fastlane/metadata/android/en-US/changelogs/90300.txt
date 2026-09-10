@@ -1,0 +1,1 @@
+Channel topics can now be edited directly from the right drawer. The current topic is pre-filled and an explicit confirmation is required before sending the IRC TOPIC command.
