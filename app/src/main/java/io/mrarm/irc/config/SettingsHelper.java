@@ -102,6 +102,9 @@ public class SettingsHelper implements SharedPreferences.OnSharedPreferenceChang
         o = ChatSettings.getDefaultValue(key);
         if (o != null)
             return o;
+        o = EventDisplaySettings.getDefaultValue(key);
+        if (o != null)
+            return o;
         o = AutomatedSenderSettings.getDefaultValue(key);
         if (o != null)
             return o;

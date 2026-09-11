@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pref_title_monochrome_mode">Display MODE in black and white</string>
+    <string name="pref_summary_monochrome_mode">Use the neutral event color for MODE, with participants in bold</string>
+    <string name="pref_title_monochrome_kick">Display KICK in black and white</string>
+    <string name="pref_summary_monochrome_kick">Use the neutral event color for KICK, with participants in bold</string>
+    <string name="pref_title_monochrome_quit">Display QUIT in black and white</string>
+    <string name="pref_summary_monochrome_quit">Use the neutral event color for QUIT, with the participant in bold</string>
+    <string name="pref_title_monochrome_join_part">Display JOIN/PART in black and white</string>
+    <string name="pref_summary_monochrome_join_part">Use the neutral event color for JOIN and PART, with participants in bold</string>
+</resources>

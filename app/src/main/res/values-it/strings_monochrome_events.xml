@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pref_title_monochrome_mode">Visualizza MODE in bianco e nero</string>
+    <string name="pref_summary_monochrome_mode">Usa il colore neutro degli eventi per i MODE, con i partecipanti in grassetto</string>
+    <string name="pref_title_monochrome_kick">Visualizza KICK in bianco e nero</string>
+    <string name="pref_summary_monochrome_kick">Usa il colore neutro degli eventi per i KICK, con i partecipanti in grassetto</string>
+    <string name="pref_title_monochrome_quit">Visualizza QUIT in bianco e nero</string>
+    <string name="pref_summary_monochrome_quit">Usa il colore neutro degli eventi per i QUIT, con il partecipante in grassetto</string>
+    <string name="pref_title_monochrome_join_part">Visualizza JOIN/PART in bianco e nero</string>
+    <string name="pref_summary_monochrome_join_part">Usa il colore neutro degli eventi per JOIN e PART, con i partecipanti in grassetto</string>
+</resources>

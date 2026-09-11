@@ -33,7 +33,7 @@ import io.mrarm.irc.SettingsActivity;
 import io.mrarm.irc.ThemeEditorActivity;
 import io.mrarm.irc.ThemedActivity;
 import io.mrarm.irc.config.AppSettings;
-import io.mrarm.irc.config.AutomatedSenderSettings;
+import io.mrarm.irc.config.EventDisplaySettings;
 import io.mrarm.irc.config.ChatSettings;
 import io.mrarm.irc.config.SettingsHelper;
 import io.mrarm.irc.dialog.MenuBottomSheetDialog;
@@ -118,9 +118,18 @@ public class InterfaceSettingsFragment extends SettingsListFragment
         a.add(new CheckBoxSetting(getString(R.string.pref_title_autocorrect),
                 getString(R.string.pref_summary_autocorrect))
                 .linkSetting(prefs, ChatSettings.PREF_TEXT_AUTOCORRECT_ENABLED));
-        a.add(new CheckBoxSetting(getString(R.string.pref_title_monochrome_bots),
-                getString(R.string.pref_summary_monochrome_bots))
-                .linkSetting(prefs, AutomatedSenderSettings.PREF_MONOCHROME_BOTS));
+        a.add(new CheckBoxSetting(getString(R.string.pref_title_monochrome_mode),
+                getString(R.string.pref_summary_monochrome_mode))
+                .linkSetting(prefs, EventDisplaySettings.PREF_MONOCHROME_MODE));
+        a.add(new CheckBoxSetting(getString(R.string.pref_title_monochrome_kick),
+                getString(R.string.pref_summary_monochrome_kick))
+                .linkSetting(prefs, EventDisplaySettings.PREF_MONOCHROME_KICK));
+        a.add(new CheckBoxSetting(getString(R.string.pref_title_monochrome_quit),
+                getString(R.string.pref_summary_monochrome_quit))
+                .linkSetting(prefs, EventDisplaySettings.PREF_MONOCHROME_QUIT));
+        a.add(new CheckBoxSetting(getString(R.string.pref_title_monochrome_join_part),
+                getString(R.string.pref_summary_monochrome_join_part))
+                .linkSetting(prefs, EventDisplaySettings.PREF_MONOCHROME_JOIN_PART));
         a.add(new ListSetting(getString(R.string.pref_title_appbar_compact_mode),
                 getResources().getStringArray(R.array.pref_entries_appbar_compact_mode),
                 getResources().getStringArray(R.array.pref_entry_values_appbar_compact_mode))
