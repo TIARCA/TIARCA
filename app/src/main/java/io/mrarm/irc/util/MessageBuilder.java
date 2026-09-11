@@ -44,6 +44,7 @@ import io.mrarm.chatlib.dto.WhoisStatusMessageInfo;
 import io.mrarm.irc.MessageFormatSettingsActivity;
 import io.mrarm.irc.R;
 import io.mrarm.irc.config.AutomatedSenderSettings;
+import io.mrarm.irc.config.EventDisplaySettings;
 import io.mrarm.irc.config.MessageFormatSettings;
 import io.mrarm.irc.config.SettingsHelper;
 
@@ -317,17 +318,6 @@ public class MessageBuilder {
         return buildColoredMessage(nick, IRCColorUtils.getNickColor(mContext, nick), false);
     }
 
-    private CharSequence buildClickableBoldColoredNick(String nick,
-                                                       NickClickSpanFactory clickSpanFactory) {
-        CharSequence nickText = buildClickableColoredNick(nick, clickSpanFactory);
-        SpannableString boldNick = new SpannableString(nickText);
-        if (nick != null && !nick.isEmpty()) {
-            boldNick.setSpan(new StyleSpan(Typeface.BOLD), 0, nick.length(),
-                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        }
-        return boldNick;
-    }
-
     private CharSequence buildClickableColoredNick(String nick, NickClickSpanFactory clickSpanFactory) {
         CharSequence coloredNick = buildColoredNick(nick);
         if (clickSpanFactory == null || nick == null || nick.isEmpty())
@@ -392,30 +382,41 @@ public class MessageBuilder {
                 return processFormat(mActionMessageFormat, message.getDate(), message.getSender(),
                         LinkHelper.addLinks(IRCColorUtils.getFormattedString(mContext, message.getMessage())),
                         senderClickSpan);
-            case JOIN:
-                return processFormat(mEventMessageFormat, message.getDate(), null,
-                        SpannableStringHelper.getText(mContext, R.string.message_join,
-                                buildColoredNickWithHostname(message.getSender(), clickSpanFactory)));
-            case PART:
-                return processFormat(mEventMessageFormat, message.getDate(), null,
-                        SpannableStringHelper.getText(mContext,
-                                message.getMessage() == null ? R.string.message_part_no_message : R.string.message_part,
-                                buildColoredNickWithHostname(message.getSender(), clickSpanFactory),
-                                message.getMessage()));
+            case JOIN: {
+                CharSequence event = SpannableStringHelper.getText(mContext, R.string.message_join,
+                        buildColoredNickWithHostname(message.getSender(), clickSpanFactory));
+                if (isNeutralEventEnabled(EventDisplaySettings.PREF_MONOCHROME_JOIN_PART))
+                    event = makeEventNeutral(event, true);
+                return processFormat(mEventMessageFormat, message.getDate(), null, event);
+            }
+            case PART: {
+                CharSequence event = SpannableStringHelper.getText(mContext,
+                        message.getMessage() == null ? R.string.message_part_no_message : R.string.message_part,
+                        buildColoredNickWithHostname(message.getSender(), clickSpanFactory),
+                        message.getMessage());
+                if (isNeutralEventEnabled(EventDisplaySettings.PREF_MONOCHROME_JOIN_PART))
+                    event = makeEventNeutral(event, true);
+                return processFormat(mEventMessageFormat, message.getDate(), null, event);
+            }
             case KICK: {
                 String kickedNick = ((KickMessageInfo) message).getKickedNick();
-                return processFormat(mEventMessageFormat, message.getDate(), null,
-                        SpannableStringHelper.getText(mContext,
-                                R.string.message_kick,
-                                buildClickableColoredNick(senderNick, clickSpanFactory),
-                                buildClickableColoredNick(kickedNick, clickSpanFactory),
-                                message.getMessage()));
+                CharSequence event = SpannableStringHelper.getText(mContext,
+                        R.string.message_kick,
+                        buildClickableColoredNick(senderNick, clickSpanFactory),
+                        buildClickableColoredNick(kickedNick, clickSpanFactory),
+                        message.getMessage());
+                if (isNeutralEventEnabled(EventDisplaySettings.PREF_MONOCHROME_KICK))
+                    event = makeEventNeutral(event, true);
+                return processFormat(mEventMessageFormat, message.getDate(), null, event);
             }
-            case QUIT:
-                return processFormat(mEventMessageFormat, message.getDate(), null,
-                        SpannableStringHelper.getText(mContext, R.string.message_quit,
-                                buildColoredNickWithHostname(message.getSender(), clickSpanFactory),
-                                message.getMessage()));
+            case QUIT: {
+                CharSequence event = SpannableStringHelper.getText(mContext, R.string.message_quit,
+                        buildColoredNickWithHostname(message.getSender(), clickSpanFactory),
+                        message.getMessage());
+                if (isNeutralEventEnabled(EventDisplaySettings.PREF_MONOCHROME_QUIT))
+                    event = makeEventNeutral(event, true);
+                return processFormat(mEventMessageFormat, message.getDate(), null, event);
+            }
             case NICK_CHANGE: {
                 String newNick = ((NickChangeMessageInfo) message).getNewNick();
                 SpannableStringBuilder ssb = (SpannableStringBuilder)
@@ -425,10 +426,13 @@ public class MessageBuilder {
                 return processFormat(mEventMessageFormat, message.getDate(), null,
                         ssb);
             }
-            case MODE:
-                return processFormat(mEventMessageFormat, message.getDate(), null,
-                        makeModeEventNeutral(buildModeMessage(senderNick,
-                                ((ChannelModeMessageInfo) message).getEntries(), clickSpanFactory)));
+            case MODE: {
+                CharSequence event = buildModeMessage(senderNick,
+                        ((ChannelModeMessageInfo) message).getEntries(), clickSpanFactory);
+                if (isNeutralEventEnabled(EventDisplaySettings.PREF_MONOCHROME_MODE))
+                    event = makeEventNeutral(event, true);
+                return processFormat(mEventMessageFormat, message.getDate(), null, event);
+            }
             case TOPIC: {
                 if (message.getMessage() == null)
                     return processFormat(mEventMessageFormat, message.getDate(), null,
@@ -628,7 +632,7 @@ public class MessageBuilder {
                 if (entry.getValue().size() > 0)
                     appendDelim(setBuilder, SpannableStringHelper.getText(mContext,
                             R.string.message_mode_gave_to, buildNickModeList(entry.getValue()),
-                            buildClickableBoldColoredNick(entry.getKey(), clickSpanFactory)));
+                            buildClickableColoredNick(entry.getKey(), clickSpanFactory)));
             }
             if (setBuilder.length() > 0)
                 appendDelim(msg, SpannableStringHelper.getText(mContext, R.string.message_mode_gave, setBuilder));
@@ -639,24 +643,37 @@ public class MessageBuilder {
                 if (entry.getValue().size() > 0)
                     appendDelim(setBuilder, SpannableStringHelper.getText(mContext,
                             R.string.message_mode_removed_from, buildNickModeList(entry.getValue()),
-                            buildClickableBoldColoredNick(entry.getKey(), clickSpanFactory)));
+                            buildClickableColoredNick(entry.getKey(), clickSpanFactory)));
             }
             if (setBuilder.length() > 0)
                 appendDelim(msg, SpannableStringHelper.getText(mContext, R.string.message_mode_removed, setBuilder));
         }
         return SpannableStringHelper.getText(mContext, R.string.message_mode,
-                buildClickableBoldColoredNick(senderNick, clickSpanFactory), msg);
+                buildClickableColoredNick(senderNick, clickSpanFactory), msg);
     }
 
-    private CharSequence makeModeEventNeutral(CharSequence message) {
+    private boolean isNeutralEventEnabled(String preference) {
+        return DefaultPreferences.get(mContext).getBoolean(preference, false);
+    }
+
+    private CharSequence makeEventNeutral(CharSequence message, boolean boldParticipants) {
         SpannableStringBuilder neutral = new SpannableStringBuilder(message);
 
-        // MODE rows inherit the normal event foreground color for all text.
+        // Removing event-local foreground spans lets the normal event/status color show through.
         for (ForegroundColorSpan span : neutral.getSpans(0, neutral.length(),
                 ForegroundColorSpan.class)) {
             neutral.removeSpan(span);
         }
 
+        if (boldParticipants) {
+            for (ClickableSpan span : neutral.getSpans(0, neutral.length(), ClickableSpan.class)) {
+                int start = neutral.getSpanStart(span);
+                int end = neutral.getSpanEnd(span);
+                if (start >= 0 && end > start)
+                    neutral.setSpan(new StyleSpan(Typeface.BOLD), start, end,
+                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+        }
         return neutral;
     }
 
