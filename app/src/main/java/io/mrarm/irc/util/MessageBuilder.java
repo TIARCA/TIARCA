@@ -317,6 +317,17 @@ public class MessageBuilder {
         return buildColoredMessage(nick, IRCColorUtils.getNickColor(mContext, nick), false);
     }
 
+    private CharSequence buildClickableBoldColoredNick(String nick,
+                                                       NickClickSpanFactory clickSpanFactory) {
+        CharSequence nickText = buildClickableColoredNick(nick, clickSpanFactory);
+        SpannableString boldNick = new SpannableString(nickText);
+        if (nick != null && !nick.isEmpty()) {
+            boldNick.setSpan(new StyleSpan(Typeface.BOLD), 0, nick.length(),
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        return boldNick;
+    }
+
     private CharSequence buildClickableColoredNick(String nick, NickClickSpanFactory clickSpanFactory) {
         CharSequence coloredNick = buildColoredNick(nick);
         if (clickSpanFactory == null || nick == null || nick.isEmpty())
@@ -617,7 +628,7 @@ public class MessageBuilder {
                 if (entry.getValue().size() > 0)
                     appendDelim(setBuilder, SpannableStringHelper.getText(mContext,
                             R.string.message_mode_gave_to, buildNickModeList(entry.getValue()),
-                            buildClickableColoredNick(entry.getKey(), clickSpanFactory)));
+                            buildClickableBoldColoredNick(entry.getKey(), clickSpanFactory)));
             }
             if (setBuilder.length() > 0)
                 appendDelim(msg, SpannableStringHelper.getText(mContext, R.string.message_mode_gave, setBuilder));
@@ -628,13 +639,13 @@ public class MessageBuilder {
                 if (entry.getValue().size() > 0)
                     appendDelim(setBuilder, SpannableStringHelper.getText(mContext,
                             R.string.message_mode_removed_from, buildNickModeList(entry.getValue()),
-                            buildClickableColoredNick(entry.getKey(), clickSpanFactory)));
+                            buildClickableBoldColoredNick(entry.getKey(), clickSpanFactory)));
             }
             if (setBuilder.length() > 0)
                 appendDelim(msg, SpannableStringHelper.getText(mContext, R.string.message_mode_removed, setBuilder));
         }
         return SpannableStringHelper.getText(mContext, R.string.message_mode,
-                buildClickableColoredNick(senderNick, clickSpanFactory), msg);
+                buildClickableBoldColoredNick(senderNick, clickSpanFactory), msg);
     }
 
     private CharSequence makeModeEventNeutral(CharSequence message) {
@@ -646,15 +657,6 @@ public class MessageBuilder {
             neutral.removeSpan(span);
         }
 
-        // Actor and affected nicknames remain clickable and are emphasized in bold.
-        for (ClickableSpan span : neutral.getSpans(0, neutral.length(), ClickableSpan.class)) {
-            int start = neutral.getSpanStart(span);
-            int end = neutral.getSpanEnd(span);
-            if (start >= 0 && end > start) {
-                neutral.setSpan(new StyleSpan(Typeface.BOLD), start, end,
-                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            }
-        }
         return neutral;
     }
 
