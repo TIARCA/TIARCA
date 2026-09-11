@@ -187,7 +187,7 @@ public class UserBottomSheetDialog {
         mHistoricalData = true;
         mHost = result.host;
         mAccount = null;
-        setUser(result.nick, result.user, result.realName, true);
+        setUser(result.nick, result.user, result.realName, false);
         addEntry(R.string.operator_historical_data,
                 mContext.getString(R.string.operator_historical_data_desc));
         addEntry(R.string.user_hostname, result.host);
@@ -405,14 +405,14 @@ public class UserBottomSheetDialog {
         });
         menu.addItem(mContext.getString(R.string.operator_kickban), R.drawable.ic_delete,
                 hostAvailable, item -> {
-                    showKickDialog(true);
-                    return true;
-                });
+            showKickDialog(true);
+            return true;
+        });
         menu.addItem(mContext.getString(R.string.operator_kickban_ident), R.drawable.ic_delete,
                 true, item -> {
-                    showKickbanIdentDialog();
-                    return true;
-                });
+            showKickbanIdentDialog();
+            return true;
+        });
         menu.addItem(mContext.getString(R.string.operator_tban), R.drawable.ic_history,
                 hostAvailable, item -> {
                     showTbanDialog();
@@ -826,7 +826,9 @@ public class UserBottomSheetDialog {
     private void updateDialogStatusBarColor() {
         if (mDialog == null)
             return;
-        if (mAway)
+        if (mHistoricalData)
+            mDialog.setStatusBarColor(ContextCompat.getColor(mContext, R.color.userOfflineColorPrimaryDark));
+        else if (mAway)
             mDialog.setStatusBarColor(ContextCompat.getColor(mContext, R.color.userAwayColorPrimaryDark));
         else
             mDialog.setStatusBarColor(ContextCompat.getColor(mContext, R.color.colorPrimaryDark));
@@ -913,8 +915,11 @@ public class UserBottomSheetDialog {
         }
 
         public void bind() {
-            if (mAway) {
-                mName.setText(mContext.getString(R.string.user_title_away, mRealName));
+            if (mHistoricalData) {
+                mName.setText(mContext.getString(R.string.user_title_offline, mRealName));
+                mContainer.setBackgroundResource(R.color.userOfflineColorPrimary);
+            } else if (mAway) {
+                mName.setText(mContext.getString(R.string.user_title_away_tiarca, mRealName));
                 mContainer.setBackgroundResource(R.color.userAwayColorPrimary);
             } else {
                 mName.setText(UserBottomSheetDialog.this.mRealName);
