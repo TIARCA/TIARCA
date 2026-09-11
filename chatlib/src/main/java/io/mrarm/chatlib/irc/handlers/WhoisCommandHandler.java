@@ -19,6 +19,7 @@ public class WhoisCommandHandler extends RequestResponseCommandHandler<String, W
     public static final int RPL_ENDOFWHOIS = 318;
     public static final int RPL_WHOISCHANNELS = 319;
     public static final int RPL_WHOISACCOUNT = 330;
+    public static final int RPL_WHOISBOT = 335;
     public static final int RPL_WHOISSECURE = 671;
 
     public static final int ERR_NOSUCHNICK = 401;
@@ -40,8 +41,9 @@ public class WhoisCommandHandler extends RequestResponseCommandHandler<String, W
 
     @Override
     public Object[] getHandledCommands() {
-        return new Object[] { RPL_WHOISUSER, RPL_WHOISSERVER, RPL_WHOISOPERATOR, RPL_WHOISIDLE, RPL_ENDOFWHOIS,
-                RPL_WHOISCHANNELS, RPL_WHOISACCOUNT, RPL_WHOISSECURE };
+        return new Object[] { RPL_WHOISUSER, RPL_WHOISSERVER, RPL_WHOISOPERATOR,
+                RPL_WHOISIDLE, RPL_ENDOFWHOIS, RPL_WHOISCHANNELS, RPL_WHOISACCOUNT,
+                RPL_WHOISBOT, RPL_WHOISSECURE };
     }
 
     @Override
@@ -50,18 +52,21 @@ public class WhoisCommandHandler extends RequestResponseCommandHandler<String, W
     }
 
     @Override
-    public void handle(ServerConnectionData connection, MessagePrefix sender, String command, List<String> params,
-                       Map<String, String> tags) throws InvalidMessageException {
+    public void handle(ServerConnectionData connection, MessagePrefix sender, String command,
+                       List<String> params, Map<String, String> tags)
+            throws InvalidMessageException {
         int numeric = CommandHandler.toNumeric(command);
         String nick = CommandHandler.getParamWithCheck(params, 1).toLowerCase();
+        if (numeric == RPL_WHOISBOT) {
+            AutomatedSenderRegistry.rememberBot(connection, nick);
+            return;
+        }
         WhoisInfo.Builder builder = currentReply.get(nick);
         if (builder == null) {
             if (numeric == RPL_WHOISUSER) {
                 builder = new WhoisInfo.Builder();
                 currentReply.put(nick, builder);
             } else if (numeric == RPL_WHOISSERVER) {
-                // Numeric 312 is shared by WHOIS and WHOWAS. If there is no active WHOIS
-                // builder, give the WHOWAS collector first access to the server/time tuple.
                 OrphanServerReplyListener listener = orphanServerReplyListener;
                 if (listener != null)
                     listener.onOrphanServerReply(params);
@@ -86,8 +91,6 @@ public class WhoisCommandHandler extends RequestResponseCommandHandler<String, W
             }
         } else if (numeric == RPL_WHOISCHANNELS) {
             for (String channel : CommandHandler.getParamWithCheck(params, 2).split(" ")) {
-                // it should be acceptable to use a NickPrefixParser here to get the channel modes and then wrap it into
-                // a ChannelWithNickPrefixes
                 NickWithPrefix p = connection.getNickPrefixParser().parse(connection, channel);
                 builder.addChannel(new WhoisInfo.ChannelWithNickPrefixes(p.getNick(), p.getNickPrefixes()));
             }
@@ -97,7 +100,6 @@ public class WhoisCommandHandler extends RequestResponseCommandHandler<String, W
             builder.setSecure(true);
         } else if (numeric == RPL_ENDOFWHOIS) {
             currentReply.remove(nick);
-
             WhoisInfo whoisInfo = builder.build();
             onResponse(nick, whoisInfo);
             connection.getServerStatusData().addMessage(new WhoisStatusMessageInfo(
@@ -120,7 +122,8 @@ public class WhoisCommandHandler extends RequestResponseCommandHandler<String, W
     }
 
     @Override
-    public boolean onRequested(String i, Callback<WhoisInfo> callback, ErrorCallback<String> errorCallback) {
+    public boolean onRequested(String i, Callback<WhoisInfo> callback,
+                               ErrorCallback<String> errorCallback) {
         return super.onRequested(i.toLowerCase(), callback, errorCallback);
     }
 
@@ -129,5 +132,4 @@ public class WhoisCommandHandler extends RequestResponseCommandHandler<String, W
         if (builder != null)
             builder.setAway(message);
     }
-
 }
