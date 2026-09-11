@@ -2,8 +2,10 @@ package io.mrarm.irc.util;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.ColorUtils;
 import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.appcompat.content.res.AppCompatResources;
 import android.text.Spannable;
@@ -39,6 +41,7 @@ import io.mrarm.chatlib.dto.TopicWhoTimeMessageInfo;
 import io.mrarm.chatlib.dto.WhoisStatusMessageInfo;
 import io.mrarm.irc.MessageFormatSettingsActivity;
 import io.mrarm.irc.R;
+import io.mrarm.irc.config.AutomatedSenderSettings;
 import io.mrarm.irc.config.MessageFormatSettings;
 import io.mrarm.irc.config.SettingsHelper;
 
@@ -715,6 +718,16 @@ public class MessageBuilder {
     private CharSequence processFormat(CharSequence format, Date date, NickWithPrefix sender,
                                        int senderColor, CharSequence message,
                                        ClickableSpan senderClickSpan) {
+        if (sender instanceof MessageSenderInfo && ((MessageSenderInfo) sender).isAutomated() &&
+                DefaultPreferences.get(mContext).getBoolean(
+                        AutomatedSenderSettings.PREF_MONOCHROME_BOTS, false)) {
+            int background = StyledAttributesHelper.getColor(
+                    mContext, android.R.attr.colorBackground, Color.BLACK);
+            int monochrome = ColorUtils.calculateLuminance(background) < 0.5 ?
+                    Color.WHITE : Color.BLACK;
+            senderColor = monochrome;
+            message = buildColoredMessage(message, monochrome, true);
+        }
         SpannableStringBuilder builder = new SpannableStringBuilder(format);
         for (MetaChipSpan span : builder.getSpans(0, builder.length(), MetaChipSpan.class)) {
             CharSequence replacement = null;
