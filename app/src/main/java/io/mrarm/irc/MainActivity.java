@@ -552,12 +552,13 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
                     notificationManager.getUnreadMessageCount() > 0);
             menu.findItem(R.id.action_mark_mentions_read).setVisible(notificationManager != null &&
                     notificationManager.getMentionCount() > 0);
-            boolean operatorChannel = connected && current != null && !current.isEmpty() &&
+            boolean channelContext = connected && current != null && !current.isEmpty() &&
                     api.getServerConnectionData().getSupportList().getSupportedChannelTypes()
-                            .contains(current.charAt(0)) &&
+                            .contains(current.charAt(0));
+            boolean operatorChannel = channelContext &&
                     ChannelOperatorUtils.hasOperatorPrivileges(fragment.getConnectionInfo(),
                             current, false);
-            menu.findItem(R.id.action_channel_modes).setVisible(operatorChannel);
+            menu.findItem(R.id.action_channel_modes).setVisible(channelContext);
             menu.findItem(R.id.action_channel_bans).setVisible(operatorChannel);
         }
         return super.onPrepareOptionsMenu(menu) | hasChanges;
