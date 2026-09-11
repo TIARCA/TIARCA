@@ -311,6 +311,25 @@ public class MessageBuilder {
         return spannable;
     }
 
+    /**
+     * Makes a message truly monochrome while preserving non-colour spans such as clickable
+     * nicknames and links. Adding another ForegroundColorSpan is not sufficient here: Android
+     * applies higher-priority CharacterStyle spans first, so the lower-priority nested nickname,
+     * mode and IRC colour spans can overwrite it afterwards.
+     */
+    private CharSequence buildMonochromeMessage(CharSequence msg, int color) {
+        SpannableStringBuilder spannable = new SpannableStringBuilder(msg);
+        for (ForegroundColorSpan span : spannable.getSpans(
+                0, spannable.length(), ForegroundColorSpan.class)) {
+            spannable.removeSpan(span);
+        }
+        if (spannable.length() > 0) {
+            spannable.setSpan(new ForegroundColorSpan(color), 0, spannable.length(),
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        return new SpannableString(spannable);
+    }
+
     private CharSequence buildColoredNick(String nick) {
         return buildColoredMessage(nick, IRCColorUtils.getNickColor(mContext, nick), false);
     }
@@ -380,11 +399,11 @@ public class MessageBuilder {
                         LinkHelper.addLinks(IRCColorUtils.getFormattedString(mContext, message.getMessage())),
                         senderClickSpan);
             case JOIN:
-                return processFormat(mEventMessageFormat, message.getDate(), null,
+                return processFormat(mEventMessageFormat, message.getDate(), message.getSender(),
                         SpannableStringHelper.getText(mContext, R.string.message_join,
                                 buildColoredNickWithHostname(message.getSender(), clickSpanFactory)));
             case PART:
-                return processFormat(mEventMessageFormat, message.getDate(), null,
+                return processFormat(mEventMessageFormat, message.getDate(), message.getSender(),
                         SpannableStringHelper.getText(mContext,
                                 message.getMessage() == null ? R.string.message_part_no_message : R.string.message_part,
                                 buildColoredNickWithHostname(message.getSender(), clickSpanFactory),
@@ -399,7 +418,7 @@ public class MessageBuilder {
                                 message.getMessage()));
             }
             case QUIT:
-                return processFormat(mEventMessageFormat, message.getDate(), null,
+                return processFormat(mEventMessageFormat, message.getDate(), message.getSender(),
                         SpannableStringHelper.getText(mContext, R.string.message_quit,
                                 buildColoredNickWithHostname(message.getSender(), clickSpanFactory),
                                 message.getMessage()));
@@ -409,7 +428,7 @@ public class MessageBuilder {
                         SpannableStringHelper.getText(mContext, R.string.message_nick_change,
                                 buildClickableColoredNick(senderNick, clickSpanFactory),
                                 buildClickableColoredNick(newNick, clickSpanFactory));
-                return processFormat(mEventMessageFormat, message.getDate(), null,
+                return processFormat(mEventMessageFormat, message.getDate(), message.getSender(),
                         ssb);
             }
             case MODE:
@@ -418,7 +437,7 @@ public class MessageBuilder {
                                 clickSpanFactory));
             case TOPIC: {
                 if (message.getMessage() == null)
-                    return processFormat(mEventMessageFormat, message.getDate(), null,
+                    return processFormat(mEventMessageFormat, message.getDate(), message.getSender(),
                             SpannableStringHelper.getText(mContext, R.string.message_topic_none));
                 CharSequence topicText = buildColoredMessage(LinkHelper.addLinks(
                         IRCColorUtils.getFormattedString(mContext, message.getMessage())),
@@ -426,7 +445,7 @@ public class MessageBuilder {
                 if (message.getSender() == null)
                     return processFormat(mEventMessageFormat, message.getDate(), null,
                             SpannableStringHelper.getText(mContext, R.string.message_topic, topicText));
-                return processFormat(mEventMessageFormat, message.getDate(), null,
+                return processFormat(mEventMessageFormat, message.getDate(), message.getSender(),
                         SpannableStringHelper.getText(mContext, R.string.message_topic_by,
                                 topicText, buildClickableColoredNick(senderNick, clickSpanFactory)));
             }
@@ -435,7 +454,7 @@ public class MessageBuilder {
                 String topicSetOnStr = DateUtils.formatDateTime(mContext,
                         topicMessage.getSetOnDate().getTime(),
                         DateUtils.FORMAT_SHOW_DATE | DateUtils.FORMAT_SHOW_TIME);
-                return processFormat(mEventMessageFormat, message.getDate(), null,
+                return processFormat(mEventMessageFormat, message.getDate(), message.getSender(),
                         SpannableStringHelper.getText(mContext, R.string.message_topic_whotime,
                                 buildClickableColoredNick(topicMessage.getSetBy().getNick(), clickSpanFactory),
                                 topicSetOnStr));
@@ -726,7 +745,7 @@ public class MessageBuilder {
             int monochrome = ColorUtils.calculateLuminance(background) < 0.5 ?
                     Color.WHITE : Color.BLACK;
             senderColor = monochrome;
-            message = buildColoredMessage(message, monochrome, true);
+            message = buildMonochromeMessage(message, monochrome);
         }
         SpannableStringBuilder builder = new SpannableStringBuilder(format);
         for (MetaChipSpan span : builder.getSpans(0, builder.length(), MetaChipSpan.class)) {
