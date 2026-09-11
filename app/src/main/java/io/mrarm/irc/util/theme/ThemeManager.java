@@ -141,10 +141,33 @@ public class ThemeManager {
         }
     }
 
-    public void exportTheme(ThemeInfo theme, BufferedWriter writer) {
-        SettingsHelper.getGson().toJson(theme, writer);
+    public void exportTheme(ThemeInfo theme, OutputStream output) throws IOException {
+        ThemeAppearance.capture(context, theme);
+        saveTheme(theme);
+        InputStream font = null;
+        try {
+            font = ThemeAppearance.openFontForExport(context, theme);
+            ThemeArchive.write(theme, font,
+                    theme.chat == null ? null : theme.chat.fontAsset, output);
+        } finally {
+            if (font != null)
+                font.close();
+        }
     }
 
+    public void importTheme(InputStream input) throws IOException {
+        ThemeArchive.ImportedTheme imported = ThemeArchive.read(input);
+        ThemeInfo theme = imported.theme;
+        theme.baseThemeInfo = getBaseThemeOrFallback(theme.base);
+        saveTheme(theme);
+        if (imported.fontData != null) {
+            ThemeAppearance.storeImportedFont(context, theme, imported.fontData,
+                    imported.fontEntryName);
+            saveTheme(theme);
+        }
+    }
+
+    /** Legacy helper kept for callers/tests that still provide the historical JSON reader. */
     public void importTheme(BufferedReader reader) throws IOException {
         ThemeInfo theme = SettingsHelper.getGson().fromJson(reader, ThemeInfo.class);
         if (theme == null)
@@ -156,6 +179,7 @@ public class ThemeManager {
     public void deleteTheme(ThemeInfo theme) {
         customThemes.remove(theme.uuid);
         new File(themesDir, FILENAME_PREFIX + theme.uuid + FILENAME_SUFFIX).delete();
+        ThemeAppearance.deleteAssets(context, theme);
         if (currentCustomTheme == theme)
             setTheme(fallbackTheme);
     }
@@ -242,6 +266,23 @@ public class ThemeManager {
     }
 
     public void setTheme(ThemeInfo theme) {
+        if (theme == null)
+            return;
+        if (theme.formatVersion == null && theme.ui == null && theme.chat == null
+                && theme.messageLayout == null) {
+            ThemeAppearance.capture(context, theme);
+            try {
+                saveTheme(theme);
+            } catch (IOException e) {
+                Log.w("ThemeManager", "Failed to upgrade legacy theme", e);
+            }
+        }
+        suppressAppearanceSync = true;
+        try {
+            ThemeAppearance.apply(context, theme);
+        } finally {
+            suppressAppearanceSync = false;
+        }
         AppSettings.setTheme(PREF_THEME_CUSTOM_PREFIX + theme.uuid);
     }
 
