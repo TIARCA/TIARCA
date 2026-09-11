@@ -56,10 +56,6 @@ public class ThemeInfo {
 
     public static final String PROP_LIGHT_STATUS_BAR = "windowLightStatusBar";
 
-    /**
-     * Version 1 is the historical JSON-only format. Version 2 is the sectioned archive format.
-     * Boxed Integer is intentional: old themes have no version field at all.
-     */
     public Integer formatVersion;
 
     public transient UUID uuid;
@@ -72,7 +68,6 @@ public class ThemeInfo {
     public Map<String, Object> properties = new HashMap<>();
     public List<Integer> savedColors = new ArrayList<>();
 
-    /** Visual settings outside Android resource colors. New groups can be added independently. */
     public UiSection ui;
     public ChatSection chat;
     public MessageLayoutSection messageLayout;
@@ -109,11 +104,9 @@ public class ThemeInfo {
     }
 
     public static class ChatSection {
-        /** Preference value: default/serif/monospace or custom:<original filename>. */
         public String font;
         public Integer fontSize;
-
-        /** Archive-relative path, for example assets/font.ttf. */
+        public Boolean monochromeBots;
         public String fontAsset;
 
         public ChatSection() {
@@ -122,6 +115,7 @@ public class ThemeInfo {
         ChatSection(ChatSection other) {
             font = other.font;
             fontSize = other.fontSize;
+            monochromeBots = other.monochromeBots;
             fontAsset = other.fontAsset;
         }
     }
@@ -180,5 +174,4 @@ public class ThemeInfo {
             return ret;
         }
     }
-
 }
