@@ -71,7 +71,8 @@ public class CommandAliasManager {
         // Direct IRC protocol commands. These intentionally pass their arguments through to the
         // server: support and network-specific semantics remain authoritative on the IRC server.
         addNativeRawAlias("whowas", "<user> [count] [server]", "WHOWAS");
-        addNativeRawAlias("accept", "[+|-]<user> [users...]", "ACCEPT");
+        // ACCEPT requires every target to be explicitly added or removed (+nick / -nick).
+        addNativeRawAlias("accept", "<users...>", "ACCEPT");
         addNativeRawAlias("invite", "<user> [channel]", "INVITE");
         addNativeRawAlias("ison", "<users...>", "ISON");
         addNativeRawAlias("userhost", "<users...>", "USERHOST");
@@ -297,9 +298,19 @@ public class CommandAliasManager {
 
         public boolean checkSyntaxMatches(ServerConnectionData info, String[] args) {
             CommandAliasSyntaxParser parser = getSyntaxParser();
-            if (parser == null)
+            if (parser == null || !parser.matches(info, args, 1))
                 return false;
-            return parser.matches(info, args, 1);
+            if ("accept".equalsIgnoreCase(name)) {
+                if (args.length < 2)
+                    return false;
+                for (int i = 1; i < args.length; i++) {
+                    String target = args[i];
+                    if (target == null || target.length() < 2 ||
+                            (target.charAt(0) != '+' && target.charAt(0) != '-'))
+                        return false;
+                }
+            }
+            return true;
         }
 
         public static CommandAlias raw(String name, String syntax, String text) {
