@@ -30,12 +30,7 @@ public class MessagePrefix {
     }
 
     public MessageSenderInfo toSenderInfo(UUID userUUID, ChannelData channelData) {
-        ServerConnectionData connection = channelData == null ? null : channelData.getConnectionData();
-        boolean automated = connection != null &&
-                (AutomatedSenderRegistry.isBot(connection, getNick()) ||
-                        AutomatedSenderRegistry.isTrustedServiceIdentity(
-                                getNick(), getUser(), getHost()));
-        return toSenderInfo(userUUID, channelData, automated);
+        return toSenderInfo(userUUID, channelData, false);
     }
 
     public MessageSenderInfo toSenderInfo(UUID userUUID, ChannelData channelData,
