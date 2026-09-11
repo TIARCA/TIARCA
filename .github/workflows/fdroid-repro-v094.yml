@@ -95,6 +95,26 @@ jobs:
           apksigner verify --verbose official.apk
           echo 'PASS: official APK signature is valid and certificate fingerprint matches the expected TIARCA key.'
 
+      - name: Test 3 - second clean-room rebuild and byte-for-byte unsigned comparison
+        working-directory: source
+        env:
+          GRADLE_USER_HOME: ${{ runner.temp }}/gradle-v094-second
+        shell: bash
+        run: |
+          set -euo pipefail
+          git reset --hard v0.9.4
+          git clean -xfd
+          chmod +x gradlew
+          rm -f keystore.properties
+          ./gradlew --no-daemon --no-build-cache clean :app:assembleRelease
+          SECOND=$(find app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' | sort | head -n 1)
+          test -n "$SECOND"
+          cp "$SECOND" ../rebuilt-unsigned-second.apk
+          echo 'Second rebuilt unsigned APK:'
+          sha256sum ../rebuilt-unsigned-second.apk
+          cmp -s ../rebuilt-unsigned.apk ../rebuilt-unsigned-second.apk
+          echo 'PASS: two independent clean rebuilds produce byte-for-byte identical unsigned APKs.'
+
       - name: Test 4 - copy upstream signature onto rebuild and compare bytes
         shell: bash
         run: |
