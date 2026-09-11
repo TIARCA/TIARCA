@@ -118,12 +118,10 @@ public class SettingsActivity extends ThemedActivity {
             }));
             ret.add(new Item(R.string.pref_header_wiki, R.drawable.ic_info, (View v) ->
                     v.getContext().startActivity(new Intent(Intent.ACTION_VIEW,
-                            Uri.parse("https://github.com/TIARCA/TIARCA/wiki")))));
+                            Uri.parse("https://github.com/TIARCA/TIARCA/blob/main/docs/README.md")))));
             ret.add(new Item(R.string.pref_header_about, R.drawable.ic_info, (View v) ->
                     UpdateManager.showAboutDialog(requireActivity())));
             return ret;
         }
-
     }
-
 }
