@@ -87,6 +87,8 @@ public class ListSearchView extends FrameLayout {
             InputMethodManager manager = (InputMethodManager) getContext().getSystemService(
                     Context.INPUT_METHOD_SERVICE);
             manager.hideSoftInputFromWindow(mSearchText.getApplicationWindowToken(), 0);
+            if (mQueryListener != null)
+                mQueryListener.onQueryTextSubmit(mSearchText.getText().toString());
             return true;
         });
 
