@@ -33,23 +33,23 @@ public class NickCommandHandler extends RequestResponseCommandHandler<String, St
                        Map<String, String> tags)
             throws InvalidMessageException {
         if (sender == null) {
-            // Apparently some broken IRCd or bouncers can send us messages without a prefix. We assume those are meant
-            // to be processed as our client.
             sender = new MessagePrefix(connection.getUserNick());
         }
 
+        String oldNick = sender.getNick();
         String newNick = CommandHandler.getParamWithCheck(params, 0);
-        if (sender.getNick().equalsIgnoreCase(connection.getUserNick())) {
+        AutomatedSenderRegistry.renameBot(connection, oldNick, newNick);
+        if (oldNick.equalsIgnoreCase(connection.getUserNick())) {
             connection.setUserNick(newNick);
             onResponse(newNick, newNick);
         }
         try {
-            UserInfo userInfo = connection.getUserInfoApi().getUser(sender.getNick(), sender.getUser(),
+            UserInfo userInfo = connection.getUserInfoApi().getUser(oldNick, sender.getUser(),
                     sender.getHost(), null, null).get();
-            MessageSenderInfo senderInfo = new MessageSenderInfo(sender.getNick(), sender.getUser(), sender.getHost(),
-                    null, userInfo.getUUID());
-            connection.getUserInfoApi().setUserNick(userInfo.getUUID(),
-                    CommandHandler.getParamWithCheck(params, 0), null, null).get();
+            MessageSenderInfo senderInfo = new MessageSenderInfo(oldNick, sender.getUser(), sender.getHost(),
+                    null, userInfo.getUUID(), AutomatedSenderRegistry.isBot(connection, newNick) ||
+                    AutomatedSenderRegistry.isTrustedServiceIdentity(oldNick, sender.getUser(), sender.getHost()));
+            connection.getUserInfoApi().setUserNick(userInfo.getUUID(), newNick, null, null).get();
             for (String channel : userInfo.getChannels()) {
                 try {
                     ChannelData channelData = connection.getJoinedChannelData(channel);
@@ -78,5 +78,4 @@ public class NickCommandHandler extends RequestResponseCommandHandler<String, St
     public interface NickChangeCallback {
         void onNickChanged(String newNick);
     }
-
 }
