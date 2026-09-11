@@ -56,20 +56,38 @@ public class ThemeInfo {
 
     public static final String PROP_LIGHT_STATUS_BAR = "windowLightStatusBar";
 
+    /**
+     * Version 1 is the historical JSON-only format. Version 2 is the sectioned archive format.
+     * Boxed Integer is intentional: old themes have no version field at all.
+     */
+    public Integer formatVersion;
+
     public transient UUID uuid;
     public String name;
     public String base;
     public transient ThemeManager.ThemeResInfo baseThemeInfo;
+
     @JsonAdapter(ColorsAdapter.class)
     public Map<String, Integer> colors = new HashMap<>();
     public Map<String, Object> properties = new HashMap<>();
     public List<Integer> savedColors = new ArrayList<>();
 
+    /** Visual settings outside Android resource colors. New groups can be added independently. */
+    public UiSection ui;
+    public ChatSection chat;
+    public MessageLayoutSection messageLayout;
+
     public void copyFrom(ThemeInfo otherTheme) {
+        formatVersion = otherTheme.formatVersion;
         base = otherTheme.base;
         baseThemeInfo = otherTheme.baseThemeInfo;
         colors = new HashMap<>(otherTheme.colors);
         properties = new HashMap<>(otherTheme.properties);
+        savedColors = new ArrayList<>(otherTheme.savedColors);
+        ui = otherTheme.ui == null ? null : new UiSection(otherTheme.ui);
+        chat = otherTheme.chat == null ? null : new ChatSection(otherTheme.chat);
+        messageLayout = otherTheme.messageLayout == null ? null :
+                new MessageLayoutSection(otherTheme.messageLayout);
     }
 
     public Boolean getBool(String property) {
@@ -79,6 +97,63 @@ public class ThemeInfo {
         return (Boolean) o;
     }
 
+    public static class UiSection {
+        public String appBarCompactMode;
+
+        public UiSection() {
+        }
+
+        UiSection(UiSection other) {
+            appBarCompactMode = other.appBarCompactMode;
+        }
+    }
+
+    public static class ChatSection {
+        /** Preference value: default/serif/monospace or custom:<original filename>. */
+        public String font;
+        public Integer fontSize;
+
+        /** Archive-relative path, for example assets/font.ttf. */
+        public String fontAsset;
+
+        public ChatSection() {
+        }
+
+        ChatSection(ChatSection other) {
+            font = other.font;
+            fontSize = other.fontSize;
+            fontAsset = other.fontAsset;
+        }
+    }
+
+    public static class MessageLayoutSection {
+        public String normal;
+        public String mention;
+        public String action;
+        public String actionMention;
+        public String notice;
+        public String event;
+        public Boolean eventHostname;
+        public String timeFormat;
+        public Boolean timeFixedWidth;
+        public Boolean timeRight;
+
+        public MessageLayoutSection() {
+        }
+
+        MessageLayoutSection(MessageLayoutSection other) {
+            normal = other.normal;
+            mention = other.mention;
+            action = other.action;
+            actionMention = other.actionMention;
+            notice = other.notice;
+            event = other.event;
+            eventHostname = other.eventHostname;
+            timeFormat = other.timeFormat;
+            timeFixedWidth = other.timeFixedWidth;
+            timeRight = other.timeRight;
+        }
+    }
 
     public class ColorsAdapter extends TypeAdapter<Map<String, Integer>> {
 

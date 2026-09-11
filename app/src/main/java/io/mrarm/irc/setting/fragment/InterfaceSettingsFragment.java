@@ -19,8 +19,7 @@ import android.view.MenuInflater;
 import android.view.View;
 import android.widget.Toast;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Date;
 
@@ -238,8 +237,8 @@ public class InterfaceSettingsFragment extends SettingsListFragment
                     .openFileDescriptor(uri, "r")) {
                 if (desc == null)
                     throw new IOException("Unable to open theme");
-                try (BufferedReader re = new BufferedReader(new FileReader(desc.getFileDescriptor()))) {
-                ThemeManager.getInstance(getContext()).importTheme(re);
+                try (FileInputStream in = new FileInputStream(desc.getFileDescriptor())) {
+                    ThemeManager.getInstance(getContext()).importTheme(in);
                 }
             }
         } catch (IOException e) {

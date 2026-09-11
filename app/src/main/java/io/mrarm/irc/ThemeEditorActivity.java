@@ -143,9 +143,9 @@ public class ThemeEditorActivity extends ThemedActivity {
             try (ParcelFileDescriptor desc = getContentResolver().openFileDescriptor(uri, "w")) {
                 if (desc == null)
                     throw new IOException("Unable to open theme destination");
-                BufferedWriter wr = new BufferedWriter(new FileWriter(desc.getFileDescriptor()));
-                ThemeManager.getInstance(this).exportTheme(getThemeInfo(), wr);
-                wr.close();
+                try (FileOutputStream out = new FileOutputStream(desc.getFileDescriptor())) {
+                    ThemeManager.getInstance(this).exportTheme(getThemeInfo(), out);
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
