@@ -88,11 +88,14 @@ jobs:
         run: |
           set -euo pipefail
           apksigner verify --verbose --print-certs official.apk | tee signing-certificate.txt
-          grep -E 'Signer #1 certificate SHA-256 digest:' signing-certificate.txt
+          CERT_SHA256=$(sed -nE 's/^V2 Signer: certificate SHA-256 digest: ([0-9a-fA-F]+)$/\1/p' signing-certificate.txt | head -n 1)
+          test -n "$CERT_SHA256"
+          echo "Upstream certificate SHA-256: $CERT_SHA256"
+          test "$CERT_SHA256" = 'e2141ddf7765bfe99b0eb34cae636cefde0228aeeb1a100ddd8c9d6c8e7718a7'
           apksigner verify --verbose official.apk
-          echo 'PASS: official APK signature is valid and its SHA-256 certificate digest is recorded above.'
+          echo 'PASS: official APK signature is valid and certificate fingerprint matches the expected TIARCA key.'
 
-      - name: Test 4 preview - copy upstream signature onto rebuild and compare bytes
+      - name: Test 4 - copy upstream signature onto rebuild and compare bytes
         shell: bash
         run: |
           set -euo pipefail
