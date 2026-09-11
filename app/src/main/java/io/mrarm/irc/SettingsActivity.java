@@ -1,6 +1,7 @@
 package io.mrarm.irc;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
@@ -115,6 +116,9 @@ public class SettingsActivity extends ThemedActivity {
             ret.add(new Item(R.string.pref_header_backup, R.drawable.ic_settings_backup, (View v) -> {
                 v.getContext().startActivity(new Intent(v.getContext(), BackupActivity.class));
             }));
+            ret.add(new Item(R.string.pref_header_wiki, R.drawable.ic_info, (View v) ->
+                    v.getContext().startActivity(new Intent(Intent.ACTION_VIEW,
+                            Uri.parse("https://github.com/TIARCA/TIARCA/wiki")))));
             ret.add(new Item(R.string.pref_header_about, R.drawable.ic_info, (View v) ->
                     UpdateManager.showAboutDialog(requireActivity())));
             return ret;
