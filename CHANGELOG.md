@@ -1,5 +1,10 @@
 # TIARCA — Changelog
 
+## v0.9.6
+
+- Esclusi i metadati delle dipendenze dal blocco di firma dell'APK release, così il binario upstream può essere verificato da F-Droid.
+- Nessuna modifica alle funzionalità dell'app.
+
 ## v0.9.5
 
 - Rimossa l'abilitazione globale del traffico cleartext Android ereditata da Revolution IRC, eliminando il finding F-Droid `Cleartext Traffic Permitted` senza disabilitare IRC non-TLS.
