@@ -100,8 +100,8 @@ public final class UpdateManager {
 
         CheckBox automatic = new CheckBox(activity);
         automatic.setText(text(activity,
-                "Controlla automaticamente gli aggiornamenti",
-                "Check for updates automatically"));
+                "Controlla automaticamente",
+                "Check automatically"));
         automatic.setChecked(preferences.getBoolean(PREF_AUTOMATIC, false));
         updateRow.addView(automatic, new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
