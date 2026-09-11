@@ -9,6 +9,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.Signature;
 import android.net.Uri;
 import android.text.TextUtils;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -94,23 +95,24 @@ public final class UpdateManager {
         content.addView(body, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
-        LinearLayout updateRow = new LinearLayout(activity);
-        updateRow.setOrientation(LinearLayout.HORIZONTAL);
-        updateRow.setPadding(0, dp(activity, 14), 0, 0);
+        Button checkNow = new Button(activity);
+        checkNow.setText(text(activity, "Cerca aggiornamenti", "Check for updates"));
+        LinearLayout.LayoutParams checkNowParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        checkNowParams.gravity = Gravity.CENTER_HORIZONTAL;
+        checkNowParams.topMargin = dp(activity, 14);
+        content.addView(checkNow, checkNowParams);
 
         CheckBox automatic = new CheckBox(activity);
         automatic.setText(text(activity,
-                "Controlla automaticamente",
-                "Check automatically"));
+                "Controlla aggiornamenti",
+                "Check for updates automatically"));
+        automatic.setSingleLine(true);
         automatic.setChecked(preferences.getBoolean(PREF_AUTOMATIC, false));
-        updateRow.addView(automatic, new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-
-        Button checkNow = new Button(activity);
-        checkNow.setText(text(activity, "Cerca aggiornamenti", "Check for updates"));
-        updateRow.addView(checkNow, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-        content.addView(updateRow);
+        LinearLayout.LayoutParams automaticParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        automaticParams.topMargin = dp(activity, 4);
+        content.addView(automatic, automaticParams);
 
         TextView lastCheck = new TextView(activity);
         lastCheck.setPadding(0, dp(activity, 6), 0, 0);
