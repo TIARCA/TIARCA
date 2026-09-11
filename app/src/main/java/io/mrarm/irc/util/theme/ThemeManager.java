@@ -2,6 +2,7 @@ package io.mrarm.irc.util.theme;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.loader.ResourcesLoader;
 import android.content.res.loader.ResourcesProvider;
 import android.os.Build;
@@ -21,6 +22,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -32,6 +35,7 @@ import io.mrarm.irc.R;
 import io.mrarm.irc.config.AppSettings;
 import io.mrarm.irc.config.SettingsHelper;
 import io.mrarm.irc.util.IRCColorUtils;
+import io.mrarm.irc.util.DefaultPreferences;
 import io.mrarm.thememonkey.Theme;
 
 public class ThemeManager {
@@ -62,6 +66,8 @@ public class ThemeManager {
     private List<BaseTheme> baseThemeList = new ArrayList<>();
     private Map<UUID, ThemeInfo> customThemes = new HashMap<>();
     private boolean mNeedsApplyIrcColors = true;
+    private boolean suppressAppearanceSync;
+    private SharedPreferences.OnSharedPreferenceChangeListener appearancePreferenceListener;
 
     public ThemeManager(Context context) {
         this.context = context.getApplicationContext();
@@ -75,6 +81,20 @@ public class ThemeManager {
                 R.style.AppTheme, R.style.AppTheme_NoActionBar, R.style.AppTheme_IRCColors,
                 true));
         reloadThemes();
+
+        appearancePreferenceListener = (prefs, key) -> {
+            if (suppressAppearanceSync || currentCustomTheme == null
+                    || !ThemeAppearance.isVisualPreferenceKey(key))
+                return;
+            ThemeAppearance.capture(this.context, currentCustomTheme);
+            try {
+                saveTheme(currentCustomTheme);
+            } catch (IOException e) {
+                Log.w("ThemeManager", "Failed to sync visual theme settings", e);
+            }
+        };
+        DefaultPreferences.get(this.context)
+                .registerOnSharedPreferenceChangeListener(appearancePreferenceListener);
 
         SettingsHelper.changeEvent().listen(AppSettings.PREF_THEME, this::onThemeSettingChanged);
     }
