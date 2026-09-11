@@ -1,11 +1,13 @@
 package io.mrarm.irc.dialog;
 
 import android.content.Context;
+import android.widget.Toast;
 import androidx.annotation.NonNull;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import io.mrarm.chatlib.dto.WhoisInfo;
 import io.mrarm.irc.MainActivity;
 import io.mrarm.irc.R;
 import io.mrarm.irc.ServerConnectionInfo;
@@ -39,13 +41,26 @@ public class UserSearchDialog extends SearchDialog {
             cancel();
             return;
         }
-        openOnlineConversation(target);
-        cancel();
+        verifyAndOpenOnlineConversation(target);
     }
 
-    private void openOnlineConversation(String query) {
-        CallerIdAcceptManager.acceptOutgoingPrivateConversation(mConnection, query);
-        mConnection.registerPrivateConversation(query, () -> openConversation(query));
+    private void verifyAndOpenOnlineConversation(String query) {
+        if (mConnection == null || mConnection.getApiInstance() == null)
+            return;
+        mConnection.getApiInstance().sendWhois(query, (WhoisInfo info) -> {
+            String confirmedNick = info != null && info.getNick() != null ? info.getNick() : query;
+            CallerIdAcceptManager.acceptOutgoingPrivateConversation(mConnection, confirmedNick);
+            mConnection.registerPrivateConversation(confirmedNick, () -> {
+                openConversation(confirmedNick);
+                if (getOwnerActivity() != null)
+                    getOwnerActivity().runOnUiThread(this::cancel);
+            });
+        }, error -> {
+            if (getOwnerActivity() != null) {
+                getOwnerActivity().runOnUiThread(() -> Toast.makeText(getContext(),
+                        R.string.user_not_online, Toast.LENGTH_SHORT).show());
+            }
+        });
     }
 
     private void openConversation(String query) {
@@ -61,6 +76,8 @@ public class UserSearchDialog extends SearchDialog {
             mAdapter.setItems(null);
             return;
         }
+        // Suggestions intentionally stay local/known. A manually entered nickname is verified
+        // against the server on submit instead of being rejected because it is absent here.
         mConnection.getApiInstance().getUserInfoApi().findUsers(newText, (List<String> users) -> {
             List<CharSequence> suggestions = new ArrayList<>();
             for (String sug : users) {
@@ -69,5 +86,4 @@ public class UserSearchDialog extends SearchDialog {
             mAdapter.setItems(suggestions);
         }, null);
     }
-
 }

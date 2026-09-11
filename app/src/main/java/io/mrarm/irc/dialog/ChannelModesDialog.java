@@ -30,8 +30,9 @@ import io.mrarm.irc.R;
 import io.mrarm.irc.ServerConnectionInfo;
 import io.mrarm.irc.irc.ChannelModeSnapshotHandler;
 import io.mrarm.irc.irc.IrcModeRegistry;
+import io.mrarm.irc.util.ChannelOperatorUtils;
 
-/** Operator UI for current channel modes advertised by the IRC server. */
+/** Server-aware channel mode viewer/editor. */
 public final class ChannelModesDialog {
 
     private final Activity activity;
@@ -102,6 +103,7 @@ public final class ChannelModesDialog {
     private void showEditor(ChannelModeSnapshotHandler.Snapshot snapshot) {
         IRCConnection irc = (IRCConnection) connection.getApiInstance();
         modeRegistry = IrcModeRegistry.forConnection(activity, connection, irc);
+        boolean canEdit = ChannelOperatorUtils.hasOperatorPrivileges(connection, channel, true);
         ModeList flags = irc.getServerConnectionData().getSupportList().getSupportedFlagChannelModes();
         List<Character> modes = new ArrayList<>();
         for (Character mode : flags) modes.add(mode);
@@ -120,7 +122,7 @@ public final class ChannelModesDialog {
             CheckBox box = new CheckBox(activity);
             box.setText("+" + mode + " - " + description(mode));
             box.setChecked(snapshot.active.contains(mode));
-            if (!modeRegistry.isEditable(IrcModeRegistry.Target.CHANNEL, mode)) box.setEnabled(false);
+            box.setEnabled(canEdit && modeRegistry.isEditable(IrcModeRegistry.Target.CHANNEL, mode));
             boxes.put(mode, box);
             content.addView(box);
         }
@@ -128,9 +130,11 @@ public final class ChannelModesDialog {
         ValueControl key = null;
         ValueControl limit = null;
         if (supportsValueMode(irc, 'k'))
-            key = addValueControl(content, 'k', R.string.channel_mode_key, snapshot, InputType.TYPE_CLASS_TEXT);
+            key = addValueControl(content, 'k', R.string.channel_mode_key, snapshot,
+                    InputType.TYPE_CLASS_TEXT, canEdit);
         if (supportsValueMode(irc, 'l'))
-            limit = addValueControl(content, 'l', R.string.channel_mode_limit, snapshot, InputType.TYPE_CLASS_NUMBER);
+            limit = addValueControl(content, 'l', R.string.channel_mode_limit, snapshot,
+                    InputType.TYPE_CLASS_NUMBER, canEdit);
         if (modes.isEmpty() && key == null && limit == null) {
             TextView empty = new TextView(activity);
             empty.setText(R.string.channel_modes_none);
@@ -146,35 +150,42 @@ public final class ChannelModesDialog {
                 .setView(scroll)
                 .setNegativeButton(R.string.action_cancel, null)
                 .setPositiveButton(R.string.action_apply, null).create();
-        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            List<String> commands = new ArrayList<>();
-            List<String> summary = new ArrayList<>();
-            for (Map.Entry<Character, CheckBox> entry : boxes.entrySet()) {
-                if (!entry.getValue().isEnabled()) continue;
-                boolean before = snapshot.active.contains(entry.getKey());
-                boolean after = entry.getValue().isChecked();
-                if (before != after) {
-                    String change = (after ? "+" : "-") + entry.getKey();
-                    commands.add("MODE " + channel + " " + change);
-                    summary.add(change + "  " + description(entry.getKey()));
+        dialog.setOnShowListener(ignored -> {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(canEdit);
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                if (!canEdit)
+                    return;
+                List<String> commands = new ArrayList<>();
+                List<String> summary = new ArrayList<>();
+                for (Map.Entry<Character, CheckBox> entry : boxes.entrySet()) {
+                    if (!entry.getValue().isEnabled()) continue;
+                    boolean before = snapshot.active.contains(entry.getKey());
+                    boolean after = entry.getValue().isChecked();
+                    if (before != after) {
+                        String change = (after ? "+" : "-") + entry.getKey();
+                        commands.add("MODE " + channel + " " + change);
+                        summary.add(change + "  " + description(entry.getKey()));
+                    }
                 }
-            }
-            if (!collectValueChange(finalKey, snapshot, commands, summary) ||
-                    !collectValueChange(finalLimit, snapshot, commands, summary)) return;
-            if (commands.isEmpty()) {
-                Toast.makeText(activity, R.string.channel_modes_no_changes, Toast.LENGTH_SHORT).show();
-                dialog.dismiss(); return;
-            }
-            confirmAndApply(commands, summary, dialog);
-        }));
+                if (!collectValueChange(finalKey, snapshot, commands, summary) ||
+                        !collectValueChange(finalLimit, snapshot, commands, summary)) return;
+                if (commands.isEmpty()) {
+                    Toast.makeText(activity, R.string.channel_modes_no_changes, Toast.LENGTH_SHORT).show();
+                    dialog.dismiss(); return;
+                }
+                confirmAndApply(commands, summary, dialog);
+            });
+        });
         dialog.show();
     }
 
     private ValueControl addValueControl(LinearLayout parent, char mode, int label,
-                                         ChannelModeSnapshotHandler.Snapshot snapshot, int inputType) {
+                                         ChannelModeSnapshotHandler.Snapshot snapshot,
+                                         int inputType, boolean canEdit) {
         CheckBox enabled = new CheckBox(activity);
         enabled.setText("+" + mode + " - " + activity.getString(label));
         enabled.setChecked(snapshot.active.contains(mode));
+        enabled.setEnabled(canEdit && modeRegistry.isEditable(IrcModeRegistry.Target.CHANNEL, mode));
         EditText value = new EditText(activity);
         value.setSingleLine(true);
         value.setInputType(inputType);
@@ -182,7 +193,9 @@ public final class ChannelModesDialog {
         if (current != null && !"*".equals(current)) value.setText(current);
         value.setHint(mode == 'k' ? R.string.channel_mode_key_hint : R.string.channel_mode_limit_hint);
         value.setVisibility(enabled.isChecked() ? View.VISIBLE : View.GONE);
-        enabled.setOnCheckedChangeListener((button, checked) -> value.setVisibility(checked ? View.VISIBLE : View.GONE));
+        value.setEnabled(enabled.isEnabled());
+        enabled.setOnCheckedChangeListener((button, checked) ->
+                value.setVisibility(checked ? View.VISIBLE : View.GONE));
         parent.addView(enabled);
         parent.addView(value);
         return new ValueControl(mode, enabled, value);
@@ -190,7 +203,7 @@ public final class ChannelModesDialog {
 
     private boolean collectValueChange(ValueControl control, ChannelModeSnapshotHandler.Snapshot snapshot,
                                        List<String> commands, List<String> summary) {
-        if (control == null) return true;
+        if (control == null || !control.enabled.isEnabled()) return true;
         boolean before = snapshot.active.contains(control.mode);
         boolean after = control.enabled.isChecked();
         String oldValue = snapshot.values.get(control.mode);
