@@ -7,9 +7,12 @@
         android:title="@string/action_rename"
         app:showAsAction="never" />
 
+    <!-- Kept hidden so ThemeEditorActivity can retain the legacy handler without exposing
+         the action. Theme export now lives in Interface settings. -->
     <item
         android:id="@+id/action_export"
         android:title="@string/action_export"
+        android:visible="false"
         app:showAsAction="never" />
 
 </menu>

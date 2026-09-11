@@ -7,4 +7,9 @@
         android:title="@string/action_import_theme"
         app:showAsAction="never" />
 
+    <item
+        android:id="@+id/action_save_theme"
+        android:title="@string/action_save_theme"
+        app:showAsAction="never" />
+
 </menu>

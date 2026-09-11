@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pref_header_wiki">Wiki TIARCA</string>
+    <string name="action_save_theme">Salva tema</string>
+</resources>
