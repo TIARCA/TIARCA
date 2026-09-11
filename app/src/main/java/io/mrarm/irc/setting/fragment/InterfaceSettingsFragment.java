@@ -20,6 +20,7 @@ import android.view.View;
 import android.widget.Toast;
 
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Date;
 
@@ -56,6 +57,7 @@ public class InterfaceSettingsFragment extends SettingsListFragment
     private MessageInfo mSampleMessage;
     private ActivityResultLauncher<Intent> mThemeEditorLauncher;
     private ActivityResultLauncher<Intent> mImportThemeLauncher;
+    private ActivityResultLauncher<Intent> mExportThemeLauncher;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -67,6 +69,9 @@ public class InterfaceSettingsFragment extends SettingsListFragment
         mImportThemeLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(), result ->
                         importTheme(result.getData()));
+        mExportThemeLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(), result ->
+                        exportThemeTo(result.getData()));
         setHasOptionsMenu(true);
     }
 
@@ -248,6 +253,28 @@ public class InterfaceSettingsFragment extends SettingsListFragment
         recreateAdapter();
     }
 
+    private void exportThemeTo(Intent data) {
+        if (data == null || data.getData() == null)
+            return;
+        ThemeInfo theme = ThemeManager.getInstance(getContext()).getCurrentCustomTheme();
+        if (theme == null)
+            return;
+        try {
+            Uri uri = data.getData();
+            try (ParcelFileDescriptor desc = requireActivity().getContentResolver()
+                    .openFileDescriptor(uri, "w")) {
+                if (desc == null)
+                    throw new IOException("Unable to open theme destination");
+                try (FileOutputStream out = new FileOutputStream(desc.getFileDescriptor())) {
+                    ThemeManager.getInstance(getContext()).exportTheme(theme, out);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            Toast.makeText(getContext(), R.string.error_generic, Toast.LENGTH_SHORT).show();
+        }
+    }
+
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
@@ -257,6 +284,20 @@ public class InterfaceSettingsFragment extends SettingsListFragment
             intent.addCategory(Intent.CATEGORY_OPENABLE);
             intent.setType("*/*");
             mImportThemeLauncher.launch(intent);
+            return true;
+        });
+        MenuItem saveTheme = menu.findItem(R.id.action_save_theme);
+        ThemeInfo currentTheme = ThemeManager.getInstance(getContext()).getCurrentCustomTheme();
+        saveTheme.setEnabled(currentTheme != null);
+        saveTheme.setOnMenuItemClickListener((i) -> {
+            ThemeInfo theme = ThemeManager.getInstance(getContext()).getCurrentCustomTheme();
+            if (theme == null)
+                return true;
+            Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("application/x-mrarm-irc-theme");
+            intent.putExtra(Intent.EXTRA_TITLE, theme.name + ".irctheme");
+            mExportThemeLauncher.launch(intent);
             return true;
         });
     }
