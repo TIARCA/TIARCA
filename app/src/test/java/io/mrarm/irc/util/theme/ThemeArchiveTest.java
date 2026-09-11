@@ -27,6 +27,7 @@ public class ThemeArchiveTest {
         theme.chat = new ThemeInfo.ChatSection();
         theme.chat.font = "monospace";
         theme.chat.fontSize = 17;
+        theme.chat.monochromeBots = true;
 
         theme.messageLayout = new ThemeInfo.MessageLayoutSection();
         theme.messageLayout.timeFormat = "[HH:mm]";
@@ -49,6 +50,7 @@ public class ThemeArchiveTest {
         assertEquals("auto", imported.theme.ui.appBarCompactMode);
         assertEquals("monospace", imported.theme.chat.font);
         assertEquals(Integer.valueOf(17), imported.theme.chat.fontSize);
+        assertEquals(Boolean.TRUE, imported.theme.chat.monochromeBots);
         assertEquals("[HH:mm]", imported.theme.messageLayout.timeFormat);
         assertEquals(Boolean.TRUE, imported.theme.messageLayout.timeRight);
         assertNull(imported.fontData);

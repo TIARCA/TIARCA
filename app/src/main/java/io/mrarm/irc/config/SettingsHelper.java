@@ -102,25 +102,23 @@ public class SettingsHelper implements SharedPreferences.OnSharedPreferenceChang
         o = ChatSettings.getDefaultValue(key);
         if (o != null)
             return o;
+        o = AutomatedSenderSettings.getDefaultValue(key);
+        if (o != null)
+            return o;
         return null;
     }
-
 
     static long getLong(SharedPreferences prefs, String key, long def) {
         try {
             return prefs.getLong(key, def);
         } catch (Exception e) {
-            // We most likely got a ClassCastException and this situation happened after restoring
-            // from a backup, as in JSON we have no idea of differentiating longs from ints.
             return prefs.contains(key) ? prefs.getInt(key, 0) : def;
         }
     }
 
-
     public static ListenerHandle changeEvent() {
         return new ListenerHandle();
     }
-
 
     public interface SettingChangeCallback {
         void onSettingChanged(String name);
@@ -179,9 +177,7 @@ public class SettingsHelper implements SharedPreferences.OnSharedPreferenceChang
             listen(properties, (c) -> cb.run());
             return this;
         }
-
     }
-
 
     private static final HashMap<Class<?>, ClassCallbackInfo> sCallbacks = new HashMap<>();
     private static final WeakHashMap<Object, WeakReference<ListenerHandle>> sRegisteredListeners = new WeakHashMap<>();
@@ -279,7 +275,5 @@ public class SettingsHelper implements SharedPreferences.OnSharedPreferenceChang
         }
 
         private List<MethodInfo> methods = new ArrayList<>();
-
     }
-
 }

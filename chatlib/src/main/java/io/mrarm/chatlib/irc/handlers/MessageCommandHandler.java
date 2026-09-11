@@ -44,16 +44,17 @@ public class MessageCommandHandler implements CommandHandler {
     }
 
     @Override
-    public void handle(ServerConnectionData connection, MessagePrefix sender, String command, List<String> params,
-                       Map<String, String> tags)
+    public void handle(ServerConnectionData connection, MessagePrefix sender, String command,
+                       List<String> params, Map<String, String> tags)
             throws InvalidMessageException {
         try {
             MessageInfo.MessageType type = (command.equals("NOTICE") ? MessageInfo.MessageType.NOTICE :
                     MessageInfo.MessageType.NORMAL);
             UUID userUUID = null;
             if (sender != null)
-                userUUID = connection.getUserInfoApi().resolveUser(sender.getNick(), sender.getUser(), sender.getHost(),
-                        null, null).get();
+                userUUID = connection.getUserInfoApi().resolveUser(sender.getNick(), sender.getUser(),
+                        sender.getHost(), null, null).get();
+            boolean automated = isAutomatedSender(connection, sender, tags);
             String[] targetChannels = CommandHandler.getParamWithCheck(params, 0).split(",");
 
             String text = CommandHandler.getParamWithCheck(params, 1);
@@ -63,7 +64,9 @@ public class MessageCommandHandler implements CommandHandler {
             int ctcpE = text.lastIndexOf('\01');
             if (ctcpS != -1 && ctcpE != -1 && sender != null) {
                 for (String ctcpCommand : text.substring(ctcpS, ctcpE).split("\01"))
-                    processCtcp(connection, sender, userUUID, targetChannels, ctcpCommand.indexOf('\134') == -1 ? ctcpCommand : ctcpDequote(ctcpCommand), type == MessageInfo.MessageType.NOTICE, tags);
+                    processCtcp(connection, sender, userUUID, targetChannels,
+                            ctcpCommand.indexOf('\134') == -1 ? ctcpCommand : ctcpDequote(ctcpCommand),
+                            type == MessageInfo.MessageType.NOTICE, tags, automated);
                 if (ctcpS == 0 && ctcpE == text.length() - 1)
                     return;
                 text = text.substring(0, ctcpS) + text.substring(ctcpE + 1, text.length());
@@ -89,14 +92,31 @@ public class MessageCommandHandler implements CommandHandler {
                     if (channelData == null)
                         continue;
                 }
-                channelData.addMessage(new MessageInfo.Builder(sender.toSenderInfo(userUUID, channelData), text, type), tags);
+                channelData.addMessage(new MessageInfo.Builder(
+                        sender.toSenderInfo(userUUID, channelData, automated), text, type), tags);
             }
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private void processCtcp(ServerConnectionData connection, MessagePrefix sender, UUID userUUID, String[] targetChannels, String data, boolean notice, Map<String, String> tags) throws InterruptedException, ExecutionException, InvalidMessageException {
+    private boolean isAutomatedSender(ServerConnectionData connection, MessagePrefix sender,
+                                      Map<String, String> tags) {
+        if (sender == null)
+            return false;
+        boolean botTag = tags != null &&
+                (tags.containsKey("bot") || tags.containsKey("draft/bot"));
+        if (botTag)
+            AutomatedSenderRegistry.rememberBot(connection, sender.getNick());
+        return botTag || AutomatedSenderRegistry.isBot(connection, sender.getNick()) ||
+                AutomatedSenderRegistry.isTrustedServiceIdentity(
+                        sender.getNick(), sender.getUser(), sender.getHost());
+    }
+
+    private void processCtcp(ServerConnectionData connection, MessagePrefix sender, UUID userUUID,
+                             String[] targetChannels, String data, boolean notice,
+                             Map<String, String> tags, boolean automated)
+            throws InterruptedException, ExecutionException, InvalidMessageException {
         int iof = data.indexOf(' ');
         String command = iof == -1 ? data : data.substring(0, iof);
         String args = data.substring(iof + 1);
@@ -105,7 +125,9 @@ public class MessageCommandHandler implements CommandHandler {
                 ChannelData channelData = getChannelData(connection, sender, channel);
                 if (channelData == null)
                     continue;
-                channelData.addMessage(new MessageInfo.Builder(sender.toSenderInfo(userUUID, channelData), args, MessageInfo.MessageType.ME), tags);
+                channelData.addMessage(new MessageInfo.Builder(
+                        sender.toSenderInfo(userUUID, channelData, automated), args,
+                        MessageInfo.MessageType.ME), tags);
             }
         } else if (command.equals("PING") && !notice) {
             if (!rateLimitCtcpCommand() || args.length() > 32)
@@ -114,25 +136,29 @@ public class MessageCommandHandler implements CommandHandler {
                 if (args.charAt(i) < ' ')
                     return;
             }
-            connection.getServerStatusData().addMessage(new StatusMessageInfo(sender.getNick(), new Date(), StatusMessageInfo.MessageType.CTCP_PING, null));
+            connection.getServerStatusData().addMessage(new StatusMessageInfo(sender.getNick(),
+                    new Date(), StatusMessageInfo.MessageType.CTCP_PING, null));
             connection.getApi().sendNotice(sender.getNick(), "\01PING " + args + "\01", null, null);
         } else if (command.equals("VERSION") && !notice) {
             if (!rateLimitCtcpCommand())
                 return;
-            connection.getServerStatusData().addMessage(new StatusMessageInfo(sender.getNick(), new Date(), StatusMessageInfo.MessageType.CTCP_VERSION, null));
+            connection.getServerStatusData().addMessage(new StatusMessageInfo(sender.getNick(),
+                    new Date(), StatusMessageInfo.MessageType.CTCP_VERSION, null));
             connection.getApi().sendNotice(sender.getNick(), "\01VERSION " + ctcpVersionReply + "\01", null, null);
         } else if (command.equals("DCC")) {
             if (args.startsWith("RESUME ") && dccServerManager != null && rateLimitCtcpCommand()) {
                 args = args.substring(7);
                 int filenameLen = DCCUtils.getFilenameLength(args);
                 String filename = args.substring(0, filenameLen);
-                String[] otherArgs = args.substring(filenameLen + (filenameLen < args.length() && args.charAt(filenameLen) == ' ' ? 1 : 0)).split(" ");
+                String[] otherArgs = args.substring(filenameLen +
+                        (filenameLen < args.length() && args.charAt(filenameLen) == ' ' ? 1 : 0))
+                        .split(" ");
                 int port = -1;
                 long offset = -1;
                 try {
                     port = Integer.parseInt(otherArgs[0]);
                     offset = Long.parseLong(otherArgs[1]);
-                } catch (Exception ignored) { // NumberFormatException or NPE
+                } catch (Exception ignored) {
                     throw new InvalidMessageException("DCC RESUME: invalid numeric values");
                 }
                 if (offset < 0)
@@ -147,7 +173,9 @@ public class MessageCommandHandler implements CommandHandler {
                 args = args.substring(5);
                 int filenameLen = DCCUtils.getFilenameLength(args);
                 String filename = args.substring(0, filenameLen);
-                String[] otherArgs = args.substring(filenameLen + (filenameLen < args.length() && args.charAt(filenameLen) == ' ' ? 1 : 0)).split(" ");
+                String[] otherArgs = args.substring(filenameLen +
+                        (filenameLen < args.length() && args.charAt(filenameLen) == ' ' ? 1 : 0))
+                        .split(" ");
                 String ip = null;
                 int port = -1;
                 long size = -1;
@@ -158,25 +186,25 @@ public class MessageCommandHandler implements CommandHandler {
                     size = Long.parseLong(otherArgs[2]);
                     if (otherArgs.length > 3)
                         reverseId = Integer.parseInt(otherArgs[3]);
-                } catch (Exception ignored) { // NumberFormatException or NPE
+                } catch (Exception ignored) {
                     throw new InvalidMessageException("DCC RESUME: invalid numeric values");
                 }
-                if (otherArgs.length > 3 && port == 0) { // Reverse DCC request
+                if (otherArgs.length > 3 && port == 0) {
                     if (dccClientManager != null)
-                        dccClientManager.onFileOfferedUsingReverse(connection, sender, filename, size, reverseId);
+                        dccClientManager.onFileOfferedUsingReverse(connection, sender, filename,
+                                size, reverseId);
                     return;
                 }
-                if (otherArgs.length > 3) { // Reverse DCC response
-                    if (dccServerManager != null) // no need to rate limit, as we limit the count of uploads in that part of code anyways
-                        dccServerManager.handleReverseUploadResponse(connection, sender.getNick(), filename, reverseId,
-                                ip, port);
+                if (otherArgs.length > 3) {
+                    if (dccServerManager != null)
+                        dccServerManager.handleReverseUploadResponse(connection, sender.getNick(),
+                                filename, reverseId, ip, port);
                     return;
                 }
 
                 dccClientManager.onFileOffered(connection, sender, filename, ip, port, size);
             }
         }
-        // TODO: Implement other CTCP commands
     }
 
     private boolean rateLimitCtcpCommand() {
@@ -189,7 +217,8 @@ public class MessageCommandHandler implements CommandHandler {
         return (++ctcpSecondReplyCount <= 3);
     }
 
-    private ChannelData getChannelData(ServerConnectionData connection, MessagePrefix sender, String channel) {
+    private ChannelData getChannelData(ServerConnectionData connection, MessagePrefix sender,
+                                       String channel) {
         boolean isDirectMessage = (channel.equalsIgnoreCase(connection.getUserNick()) ||
                 channel.equalsIgnoreCase(sender.getNick()));
         if (isDirectMessage)
@@ -209,8 +238,6 @@ public class MessageCommandHandler implements CommandHandler {
             return null;
         }
     }
-
-    // http://www.irchelp.org/protocol/ctcpspec.html
 
     private String lowDequote(String text) {
         int len = text.length();
@@ -257,5 +284,4 @@ public class MessageCommandHandler implements CommandHandler {
         }
         return outpBuilder.toString();
     }
-
 }
