@@ -59,6 +59,8 @@ public class InterfaceSettingsFragment extends SettingsListFragment
     private ActivityResultLauncher<Intent> mThemeEditorLauncher;
     private ActivityResultLauncher<Intent> mImportThemeLauncher;
     private ActivityResultLauncher<Intent> mExportThemeLauncher;
+    private ThemeInfo mPendingExportTheme;
+    private boolean mPendingExportThemeIsTemporary;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -133,7 +135,6 @@ public class InterfaceSettingsFragment extends SettingsListFragment
                 getString(R.string.message_example_message), MessageInfo.MessageType.NORMAL);
         return a;
     }
-
 
     @Override
     public void onStart() {
@@ -230,9 +231,7 @@ public class InterfaceSettingsFragment extends SettingsListFragment
         super.onResume();
         mMessageFormatItem.setDescription(MessageBuilder.getInstance(getActivity())
                 .buildMessage(mSampleMessage));
-
     }
-
 
     private void importTheme(Intent data) {
         if (data == null || data.getData() == null)
@@ -254,12 +253,44 @@ public class InterfaceSettingsFragment extends SettingsListFragment
         recreateAdapter();
     }
 
+    private ThemeInfo prepareThemeForExport() {
+        ThemeManager themeManager = ThemeManager.getInstance(getContext());
+        ThemeInfo currentCustomTheme = themeManager.getCurrentCustomTheme();
+        if (currentCustomTheme != null) {
+            mPendingExportThemeIsTemporary = false;
+            return currentCustomTheme;
+        }
+
+        ThemeManager.ThemeResInfo currentTheme = themeManager.getCurrentTheme();
+        if (!(currentTheme instanceof ThemeManager.BaseTheme))
+            currentTheme = themeManager.getFallbackTheme();
+        ThemeManager.BaseTheme baseTheme = (ThemeManager.BaseTheme) currentTheme;
+
+        ThemeInfo exportTheme = new ThemeInfo();
+        exportTheme.base = baseTheme.getId();
+        exportTheme.baseThemeInfo = baseTheme;
+        exportTheme.name = getString(baseTheme.getNameResId());
+        try {
+            themeManager.saveTheme(exportTheme);
+            mPendingExportThemeIsTemporary = true;
+            return exportTheme;
+        } catch (IOException e) {
+            Log.w("InterfaceSettings", "Failed to prepare base theme export", e);
+            return null;
+        }
+    }
+
     private void exportThemeTo(Intent data) {
-        if (data == null || data.getData() == null)
+        ThemeInfo theme = mPendingExportTheme;
+        boolean temporary = mPendingExportThemeIsTemporary;
+        mPendingExportTheme = null;
+        mPendingExportThemeIsTemporary = false;
+
+        if (data == null || data.getData() == null || theme == null) {
+            if (temporary && theme != null)
+                ThemeManager.getInstance(getContext()).deleteTheme(theme);
             return;
-        ThemeInfo theme = ThemeManager.getInstance(getContext()).getCurrentCustomTheme();
-        if (theme == null)
-            return;
+        }
         try {
             Uri uri = data.getData();
             try (ParcelFileDescriptor desc = requireActivity().getContentResolver()
@@ -273,6 +304,9 @@ public class InterfaceSettingsFragment extends SettingsListFragment
         } catch (IOException e) {
             e.printStackTrace();
             Toast.makeText(getContext(), R.string.error_generic, Toast.LENGTH_SHORT).show();
+        } finally {
+            if (temporary)
+                ThemeManager.getInstance(getContext()).deleteTheme(theme);
         }
     }
 
@@ -288,12 +322,14 @@ public class InterfaceSettingsFragment extends SettingsListFragment
             return true;
         });
         MenuItem saveTheme = menu.findItem(R.id.action_save_theme);
-        ThemeInfo currentTheme = ThemeManager.getInstance(getContext()).getCurrentCustomTheme();
-        saveTheme.setEnabled(currentTheme != null);
+        saveTheme.setEnabled(true);
         saveTheme.setOnMenuItemClickListener((i) -> {
-            ThemeInfo theme = ThemeManager.getInstance(getContext()).getCurrentCustomTheme();
-            if (theme == null)
+            ThemeInfo theme = prepareThemeForExport();
+            if (theme == null) {
+                Toast.makeText(getContext(), R.string.error_generic, Toast.LENGTH_SHORT).show();
                 return true;
+            }
+            mPendingExportTheme = theme;
             Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
             intent.addCategory(Intent.CATEGORY_OPENABLE);
             intent.setType("application/x-mrarm-irc-theme");
@@ -327,9 +363,6 @@ public class InterfaceSettingsFragment extends SettingsListFragment
                     ThemeManager.getInstance(null).setTheme(linkedBaseTheme);
                 if (linkedCustomTheme != null)
                     ThemeManager.getInstance(null).setTheme(linkedCustomTheme);
-                // Recreate only after the new preference has been stored. The old listener
-                // recreated the Activity while the radio group was still changing, before the
-                // selected theme could be applied reliably.
                 if ((linkedBaseTheme != null || linkedCustomTheme != null) &&
                         fragment != null && fragment.getActivity() != null)
                     fragment.getActivity().recreate();
@@ -403,7 +436,6 @@ public class InterfaceSettingsFragment extends SettingsListFragment
                 super.onClick(v);
             }
 
-
             @Override
             public boolean onLongClick(View v) {
                 ThemeOptionSetting themeEntry = (ThemeOptionSetting) getEntry();
@@ -441,7 +473,5 @@ public class InterfaceSettingsFragment extends SettingsListFragment
                 return true;
             }
         }
-
     }
-
 }
