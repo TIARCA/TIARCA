@@ -238,8 +238,8 @@ public class InterfaceSettingsFragment extends SettingsListFragment
                     .openFileDescriptor(uri, "r")) {
                 if (desc == null)
                     throw new IOException("Unable to open theme");
-                try (BufferedReader re = new BufferedReader(new FileReader(desc.getFileDescriptor()))) {
-                ThemeManager.getInstance(getContext()).importTheme(re);
+                try (FileInputStream in = new FileInputStream(desc.getFileDescriptor())) {
+                    ThemeManager.getInstance(getContext()).importTheme(in);
                 }
             }
         } catch (IOException e) {
