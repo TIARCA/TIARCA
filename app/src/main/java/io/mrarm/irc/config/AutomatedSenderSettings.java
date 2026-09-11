@@ -7,4 +7,10 @@ public final class AutomatedSenderSettings {
 
     private AutomatedSenderSettings() {
     }
+
+    public static Object getDefaultValue(String key) {
+        if (PREF_MONOCHROME_BOTS.equals(key))
+            return false;
+        return null;
+    }
 }
