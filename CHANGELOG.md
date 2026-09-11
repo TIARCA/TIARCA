@@ -1,5 +1,11 @@
 # TIARCA — Changelog
 
+## v0.9.5
+
+- Rimossa l'abilitazione globale del traffico cleartext Android ereditata da Revolution IRC, eliminando il finding F-Droid `Cleartext Traffic Permitted` senza disabilitare IRC non-TLS.
+- Aggiunti test di regressione che verificano l'assenza del flag globale e il funzionamento della registrazione IRC non-TLS tramite socket TCP raw.
+- Confermata la riproducibilità della build con doppia compilazione release indipendente e confronto byte-per-byte.
+
 ## v0.9.4
 
 - Preparata TIARCA per la distribuzione tramite F-Droid con metadata upstream, icona, screenshot e changelog dedicati.
