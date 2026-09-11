@@ -1,8 +1,10 @@
-# Guida completa a TIARCA 0.9.3
+# Guida completa a TIARCA 0.9.5
 
 [← Indice lingue](../README.md)
 
 TIARCA è un client IRC per Android pensato sia per l'uso quotidiano sia per chi vuole accedere alle funzioni IRC più avanzate senza rinunciare a un'interfaccia moderna.
+
+Questa guida descrive la versione stabile 0.9.5 e le funzioni già presenti nei build di sviluppo successivi. Quando una funzione dipende dal server IRC, dalla sua implementazione o dai privilegi dell'utente, viene indicato esplicitamente.
 
 ## 1. Installazione e primo avvio
 
@@ -68,6 +70,8 @@ TIARCA supporta il comando IRC `MONITOR` sulle reti che lo implementano. La sche
 
 Sulle reti compatibili, `+g` limita chi può inviarti messaggi privati. TIARCA gestisce il numeric 718 e offre l'azione ACCEPT per autorizzare un utente. Dalla 0.9.2, se sei effettivamente in `+g` e sei tu ad avviare il PVT, l'utente viene aggiunto automaticamente alla accept list. Se `+g` non è attivo, l'apertura del PVT non aggiunge inutilmente il nickname alla lista.
 
+La sintassi manuale prevista è normalmente `/accept +nickname` per aggiungere e `/accept -nickname` per rimuovere; la disponibilità concreta dipende dall'IRCd.
+
 ## 12. Ricerca, cronologia e menzioni
 
 La ricerca individua messaggi nella cronologia e consente di raggiungere il risultato nel suo contesto temporale. Le menzioni hanno un contatore separato dai normali non letti, così i messaggi che richiedono attenzione non vengono confusi con l'attività generale dei canali.
@@ -90,9 +94,22 @@ I **Comandi rapidi** sono scorciatoie configurabili che trasformano parole di at
 
 ![comandi rapidi](../images/14_comandi_rapidi.jpg)
 
-## 16. Aspetto e formato dei messaggi
+## 16. Aspetto, temi e formato dei messaggi
 
-TIARCA offre tema chiaro e scuro e un'ampia personalizzazione dei colori dell'app. Puoi intervenire anche sul font della chat e sul formato dei messaggi, compresa la visualizzazione opzionale dell'orario sul lato destro. Le preferenze consentono di adattare l'interfaccia senza cambiare il protocollo IRC sottostante.
+TIARCA offre tema chiaro e scuro e un'ampia personalizzazione dei colori dell'app. Puoi intervenire anche sul font della chat, sulla dimensione del testo, sulla barra superiore e sul formato dei messaggi, compresa la visualizzazione opzionale dell'orario sul lato destro.
+
+I build di sviluppo successivi alla 0.9.5 introducono **irctheme v2**, un formato a sezioni pensato per rendere portabile l'intero aspetto dell'app. Un file `.irctheme` v2 può includere:
+
+- tema base e colori;
+- proprietà visive dell'interfaccia;
+- font e dimensione del testo;
+- formato dei messaggi normali, mention, action `/me`, notice ed eventi;
+- formato e posizione del timestamp;
+- eventuale font personalizzato incorporato come asset.
+
+Il file `.irctheme` v2 è un contenitore versionato con `theme.json` e, quando necessario, una cartella `assets/`. I vecchi temi JSON v1 restano importabili. Le sezioni sconosciute vengono ignorate dai lettori meno recenti, così nuove opzioni grafiche potranno essere aggiunte senza rompere i temi esistenti.
+
+In **Impostazioni → Interfaccia** trovi **Importa tema** e **Salva tema**. Salva tema esporta l'aspetto attualmente selezionato, inclusi i temi base e le impostazioni visive associate.
 
 ![impostazioni interfaccia](../images/10_impostazioni_interfaccia.jpg)
 ![personalizzazione colori](../images/13_personalizzazione_colori.jpg)
@@ -100,7 +117,9 @@ TIARCA offre tema chiaro e scuro e un'ampia personalizzazione dei colori dell'ap
 
 ## 17. Aggiornamenti
 
-Il controllo aggiornamenti integrato è opt-in e può verificare periodicamente la presenza di nuove release ufficiali. L'installazione è assistita, mentre gli APK ufficiali restano pubblicati su GitHub Releases. Verifica sempre che il download provenga dal repository TIARCA.
+Il controllo aggiornamenti integrato è opt-in e può verificare periodicamente la presenza di nuove release ufficiali. Nella schermata **Informazioni su TIARCA** puoi avviare manualmente **Cerca aggiornamenti**, abilitare o disabilitare il controllo automatico e vedere data e ora dell'ultimo controllo riuscito.
+
+L'installazione è assistita, mentre gli APK ufficiali restano pubblicati su GitHub Releases. Verifica sempre che il download provenga dal repository TIARCA.
 
 ## 18. Backup e trasferimento dispositivo
 
