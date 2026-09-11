@@ -11,6 +11,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import io.mrarm.irc.config.AutomatedSenderSettings;
 import io.mrarm.irc.config.ChatSettings;
 import io.mrarm.irc.config.MessageFormatSettings;
 import io.mrarm.irc.config.RightClockSettings;
@@ -38,6 +39,8 @@ final class ThemeAppearance {
         ThemeInfo.ChatSection chat = new ThemeInfo.ChatSection();
         chat.font = getStringPreference(prefs, ChatSettings.PREF_FONT);
         chat.fontSize = getIntPreference(prefs, ChatSettings.PREF_FONT_SIZE);
+        chat.monochromeBots = prefs.getBoolean(
+                AutomatedSenderSettings.PREF_MONOCHROME_BOTS, false);
         theme.chat = chat;
 
         if (ListWithCustomSetting.isPrefCustomValue(chat.font)) {
@@ -52,7 +55,6 @@ final class ThemeAppearance {
                     try {
                         copyFile(source, getThemeAssetFile(context, theme, chat.fontAsset));
                     } catch (IOException ignored) {
-                        // Export can still use the active preference file directly.
                     }
                 }
             }
@@ -84,6 +86,9 @@ final class ThemeAppearance {
         if (theme.chat != null) {
             if (theme.chat.fontSize != null)
                 editor.putInt(ChatSettings.PREF_FONT_SIZE, theme.chat.fontSize);
+            if (theme.chat.monochromeBots != null)
+                editor.putBoolean(AutomatedSenderSettings.PREF_MONOCHROME_BOTS,
+                        theme.chat.monochromeBots);
             if (theme.chat.font != null) {
                 if (ListWithCustomSetting.isPrefCustomValue(theme.chat.font)) {
                     if (restoreCustomFont(context, theme))
@@ -163,6 +168,7 @@ final class ThemeAppearance {
         return ChatSettings.PREF_FONT.equals(key)
                 || ChatSettings.PREF_FONT_SIZE.equals(key)
                 || ChatSettings.PREF_APPBAR_COMPACT_MODE.equals(key)
+                || AutomatedSenderSettings.PREF_MONOCHROME_BOTS.equals(key)
                 || MessageFormatSettings.PREF_MESSAGE_FORMAT.equals(key)
                 || MessageFormatSettings.PREF_MESSAGE_FORMAT_MENTION.equals(key)
                 || MessageFormatSettings.PREF_MESSAGE_FORMAT_ACTION.equals(key)
