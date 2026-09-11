@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="user_title_away_tiarca">%1$s (away)</string>
+    <string name="user_title_offline">%1$s (offline)</string>
+    <string name="user_not_online">The user is not online</string>
+</resources>
