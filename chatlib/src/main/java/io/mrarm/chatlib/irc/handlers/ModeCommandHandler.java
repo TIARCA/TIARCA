@@ -31,13 +31,7 @@ public class ModeCommandHandler implements CommandHandler {
             boolean isChannelTarget = connection.getSupportList().getSupportedChannelTypes().contains(target.charAt(0));
             if (isChannelTarget) {
                 ChannelData channelData = connection.getJoinedChannelData(target);
-                boolean automated = sender != null && (
-                        (tags != null && (tags.containsKey("bot") || tags.containsKey("draft/bot"))) ||
-                        AutomatedSenderRegistry.isBot(connection, sender.getNick()) ||
-                        AutomatedSenderRegistry.isTrustedServiceIdentity(
-                                sender.getNick(), sender.getUser(), sender.getHost()));
-                MessageSenderInfo senderInfo = sender != null ?
-                        sender.toSenderInfo(userUUID, channelData, automated) : null;
+                MessageSenderInfo senderInfo = sender != null ? sender.toSenderInfo(userUUID, channelData) : null;
                 handleChannelModes(connection, senderInfo, channelData, params, tags);
             } else {
                 // TODO: user modes

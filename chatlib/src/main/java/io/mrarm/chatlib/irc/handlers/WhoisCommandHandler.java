@@ -76,14 +76,8 @@ public class WhoisCommandHandler extends RequestResponseCommandHandler<String, W
             }
         }
         if (numeric == RPL_WHOISUSER) {
-            String user = CommandHandler.getParamWithCheck(params, 2);
-            String host = CommandHandler.getParamWithCheck(params, 3);
-            builder.setUserInfo(nick, user, host, CommandHandler.getParamOrNull(params, 5));
-            // Some networks expose service pseudoclients through their services ident/host but
-            // do not send RPL_WHOISBOT (335). Remember that trusted identity so later MODE/KICK
-            // messages with a short or incomplete prefix can still be rendered as automated.
-            if (AutomatedSenderRegistry.isTrustedServiceIdentity(nick, user, host))
-                AutomatedSenderRegistry.rememberBot(connection, nick);
+            builder.setUserInfo(nick, CommandHandler.getParamWithCheck(params, 2),
+                    CommandHandler.getParamWithCheck(params, 3), CommandHandler.getParamOrNull(params, 5));
         } else if (numeric == RPL_WHOISSERVER) {
             builder.setServerInfo(CommandHandler.getParamWithCheck(params, 2),
                     CommandHandler.getParamWithCheck(params, 3));
