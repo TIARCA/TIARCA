@@ -8,6 +8,7 @@ import java.util.concurrent.ExecutionException;
 import io.mrarm.chatlib.NoSuchChannelException;
 import io.mrarm.chatlib.dto.KickMessageInfo;
 import io.mrarm.chatlib.dto.MessageSenderInfo;
+import io.mrarm.chatlib.irc.AutomatedSenderRegistry;
 import io.mrarm.chatlib.irc.ChannelData;
 import io.mrarm.chatlib.irc.CommandHandler;
 import io.mrarm.chatlib.irc.InvalidMessageException;
@@ -40,8 +41,13 @@ public class KickCommandHandler implements CommandHandler {
             UUID senderUUID = connection.getUserInfoApi().resolveUser(sender.getNick(), sender.getUser(),
                     sender.getHost(), null, null).get();
             UUID kickedUUID = connection.getUserInfoApi().resolveUser(kicked, null, null, null, null).get();
+            boolean automated = (tags != null &&
+                    (tags.containsKey("bot") || tags.containsKey("draft/bot"))) ||
+                    AutomatedSenderRegistry.isBot(connection, sender.getNick()) ||
+                    AutomatedSenderRegistry.isTrustedServiceIdentity(
+                            sender.getNick(), sender.getUser(), sender.getHost());
             MessageSenderInfo senderInfo = new MessageSenderInfo(sender.getNick(), sender.getUser(), sender.getHost(),
-                    null, senderUUID);
+                    null, senderUUID, automated);
             String message = CommandHandler.getParamOrNull(params, 2);
 
             ChannelData channelData = connection.getJoinedChannelData(channel);
