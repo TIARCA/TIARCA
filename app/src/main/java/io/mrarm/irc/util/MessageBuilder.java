@@ -391,7 +391,7 @@ public class MessageBuilder {
                                 message.getMessage()));
             case KICK: {
                 String kickedNick = ((KickMessageInfo) message).getKickedNick();
-                return processFormat(mEventMessageFormat, message.getDate(), null,
+                return processFormat(mEventMessageFormat, message.getDate(), message.getSender(),
                         SpannableStringHelper.getText(mContext,
                                 R.string.message_kick,
                                 buildClickableColoredNick(senderNick, clickSpanFactory),
@@ -413,7 +413,7 @@ public class MessageBuilder {
                         ssb);
             }
             case MODE:
-                return processFormat(mEventMessageFormat, message.getDate(), null,
+                return processFormat(mEventMessageFormat, message.getDate(), message.getSender(),
                         buildModeMessage(senderNick, ((ChannelModeMessageInfo) message).getEntries(),
                                 clickSpanFactory));
             case TOPIC: {
