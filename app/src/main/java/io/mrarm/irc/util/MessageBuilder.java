@@ -3,6 +3,7 @@ package io.mrarm.irc.util;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.ColorUtils;
@@ -14,6 +15,7 @@ import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.format.DateUtils;
 import android.text.style.ForegroundColorSpan;
+import android.text.style.StyleSpan;
 import android.text.style.ClickableSpan;
 
 import com.google.gson.JsonArray;
@@ -414,8 +416,8 @@ public class MessageBuilder {
             }
             case MODE:
                 return processFormat(mEventMessageFormat, message.getDate(), null,
-                        buildModeMessage(senderNick, ((ChannelModeMessageInfo) message).getEntries(),
-                                clickSpanFactory));
+                        makeModeEventNeutral(buildModeMessage(senderNick,
+                                ((ChannelModeMessageInfo) message).getEntries(), clickSpanFactory)));
             case TOPIC: {
                 if (message.getMessage() == null)
                     return processFormat(mEventMessageFormat, message.getDate(), null,
@@ -633,6 +635,27 @@ public class MessageBuilder {
         }
         return SpannableStringHelper.getText(mContext, R.string.message_mode,
                 buildClickableColoredNick(senderNick, clickSpanFactory), msg);
+    }
+
+    private CharSequence makeModeEventNeutral(CharSequence message) {
+        SpannableStringBuilder neutral = new SpannableStringBuilder(message);
+
+        // MODE rows inherit the normal event foreground color for all text.
+        for (ForegroundColorSpan span : neutral.getSpans(0, neutral.length(),
+                ForegroundColorSpan.class)) {
+            neutral.removeSpan(span);
+        }
+
+        // Actor and affected nicknames remain clickable and are emphasized in bold.
+        for (ClickableSpan span : neutral.getSpans(0, neutral.length(), ClickableSpan.class)) {
+            int start = neutral.getSpanStart(span);
+            int end = neutral.getSpanEnd(span);
+            if (start >= 0 && end > start) {
+                neutral.setSpan(new StyleSpan(Typeface.BOLD), start, end,
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+        }
+        return neutral;
     }
 
     private ClickableSpan getNickClickSpan(String nick, NickClickSpanFactory clickSpanFactory) {
