@@ -10,6 +10,8 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.mrarm.chatlib.irc.ServerConnectionData;
+
 public class CommandAliasManagerNativeCommandsTest {
     private static final Map<String, String> EXPECTED = new HashMap<>();
     private static final Map<String, String[]> VALID = new HashMap<>();
@@ -56,6 +58,7 @@ public class CommandAliasManagerNativeCommandsTest {
         Map<String, CommandAliasManager.CommandAlias> aliases = new HashMap<>();
         for (CommandAliasManager.CommandAlias alias : CommandAliasManager.getDefaultAliases())
             aliases.put(alias.name, alias);
+        ServerConnectionData connectionData = new ServerConnectionData();
 
         for (Map.Entry<String, String> expected : EXPECTED.entrySet()) {
             CommandAliasManager.CommandAlias alias = aliases.get(expected.getKey());
@@ -64,7 +67,7 @@ public class CommandAliasManagerNativeCommandsTest {
             assertEquals(expected.getValue() + " ${args}", alias.text);
             assertNotNull("Invalid syntax parser for /" + expected.getKey(), alias.getSyntaxParser());
             assertTrue("Valid example rejected for /" + expected.getKey(),
-                    alias.checkSyntaxMatches(null, VALID.get(expected.getKey())));
+                    alias.checkSyntaxMatches(connectionData, VALID.get(expected.getKey())));
         }
     }
 
@@ -78,11 +81,12 @@ public class CommandAliasManagerNativeCommandsTest {
             }
         }
         assertNotNull(accept);
-        assertTrue(accept.checkSyntaxMatches(null, new String[] { "accept", "+nick" }));
-        assertTrue(accept.checkSyntaxMatches(null, new String[] { "accept", "-nick" }));
-        assertTrue(accept.checkSyntaxMatches(null,
+        ServerConnectionData connectionData = new ServerConnectionData();
+        assertTrue(accept.checkSyntaxMatches(connectionData, new String[] { "accept", "+nick" }));
+        assertTrue(accept.checkSyntaxMatches(connectionData, new String[] { "accept", "-nick" }));
+        assertTrue(accept.checkSyntaxMatches(connectionData,
                 new String[] { "accept", "+nick", "-other" }));
-        assertFalse(accept.checkSyntaxMatches(null, new String[] { "accept", "nick" }));
-        assertFalse(accept.checkSyntaxMatches(null, new String[] { "accept" }));
+        assertFalse(accept.checkSyntaxMatches(connectionData, new String[] { "accept", "nick" }));
+        assertFalse(accept.checkSyntaxMatches(connectionData, new String[] { "accept" }));
     }
 }
