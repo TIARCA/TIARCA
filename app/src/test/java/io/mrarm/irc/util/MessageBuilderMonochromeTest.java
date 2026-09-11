@@ -3,6 +3,7 @@ package io.mrarm.irc.util;
 import android.content.Context;
 import android.graphics.Color;
 import android.text.Spanned;
+import android.text.TextPaint;
 import android.text.style.ForegroundColorSpan;
 
 import androidx.core.graphics.ColorUtils;
@@ -49,7 +50,7 @@ public class MessageBuilderMonochromeTest {
     }
 
     @Test
-    public void automatedModeEventStripsAllNestedForegroundColors() {
+    public void automatedModeEventRendersMonochromeAfterAllForegroundSpans() {
         List<ChannelModeMessageInfo.Entry> entries = new ArrayList<>();
         entries.add(new ChannelModeMessageInfo.Entry(
                 ChannelModeMessageInfo.EntryType.NICK_FLAG, 'v', "TargetUser", false));
@@ -75,15 +76,19 @@ public class MessageBuilderMonochromeTest {
         int expected = ColorUtils.calculateLuminance(background) < 0.5
                 ? Color.WHITE : Color.BLACK;
 
-        assertEquals(expected, onlyForegroundColorAt(rendered, botIndex));
-        assertEquals(expected, onlyForegroundColorAt(rendered, voiceIndex));
-        assertEquals(expected, onlyForegroundColorAt(rendered, targetIndex));
+        assertEquals(expected, effectiveForegroundColorAt(rendered, botIndex));
+        assertEquals(expected, effectiveForegroundColorAt(rendered, voiceIndex));
+        assertEquals(expected, effectiveForegroundColorAt(rendered, targetIndex));
     }
 
-    private int onlyForegroundColorAt(Spanned text, int index) {
+    /** Mirrors the order Android TextLine uses for CharacterStyle spans at this character. */
+    private int effectiveForegroundColorAt(Spanned text, int index) {
         ForegroundColorSpan[] spans = text.getSpans(
                 index, index + 1, ForegroundColorSpan.class);
-        assertEquals("Nested colour spans must be removed in monochrome bot rows", 1, spans.length);
-        return spans[0].getForegroundColor();
+        assertTrue("Expected at least one foreground span", spans.length > 0);
+        TextPaint paint = new TextPaint();
+        for (ForegroundColorSpan span : spans)
+            span.updateDrawState(paint);
+        return paint.getColor();
     }
 }
