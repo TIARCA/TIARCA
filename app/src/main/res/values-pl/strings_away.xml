@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_away">Nieobecny</string>
+    <string name="away_dialog_enable">Nieobecny</string>
+    <string name="away_dialog_message">Wiadomość nieobecności</string>
+    <string name="away_dialog_nickname">Pseudonim podczas nieobecności</string>
+    <string name="pref_title_default_away_message">Domyślna wiadomość nieobecności</string>
+    <string name="pref_value_default_away_message">Nieobecny</string>
+    <string name="pref_title_away_nick_enabled">Zmieniaj pseudonim podczas nieobecności</string>
+    <string name="pref_title_away_nick_suffix">Przyrostek pseudonimu podczas nieobecności</string>
+    <string name="away_status_with_message">Nieobecny — %1$s · Dotknij, aby wrócić</string>
+    <string name="away_status">Nieobecny · Dotknij, aby wrócić</string>
+</resources>
