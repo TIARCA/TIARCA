@@ -34,6 +34,7 @@ import io.mrarm.irc.ServerConnectionInfo;
 import io.mrarm.irc.dialog.UserBottomSheetDialog;
 import io.mrarm.irc.dialog.NicknameContextMenu;
 import io.mrarm.irc.dialog.MenuBottomSheetDialog;
+import io.mrarm.irc.irc.CallerIdAcceptManager;
 import io.mrarm.irc.irc.CallerIdStatusMessageInfo;
 import io.mrarm.irc.irc.WhowasStatusMessageInfo;
 import io.mrarm.irc.view.WhowasRecordView;
@@ -192,6 +193,7 @@ public class ServerStatusMessagesAdapter extends RecyclerView.Adapter<RecyclerVi
         if (!matcher.find())
             return built;
         final String nick = matcher.group(1);
+        CallerIdAcceptManager.noteAccepted(mConnection, nick, true);
         String rendered = built.toString();
         int start = rendered.indexOf(nick);
         if (start < 0)
@@ -233,10 +235,7 @@ public class ServerStatusMessagesAdapter extends RecyclerView.Adapter<RecyclerVi
         text.setSpan(new ClickableSpan() {
             @Override
             public void onClick(@NonNull View widget) {
-                if (!(mConnection.getApiInstance() instanceof IRCConnection))
-                    return;
-                ((IRCConnection) mConnection.getApiInstance()).sendCommandRaw(
-                        "ACCEPT +" + message.getNick(), null, null);
+                CallerIdAcceptManager.setAccepted(mConnection, message.getNick(), true);
             }
 
             @Override
