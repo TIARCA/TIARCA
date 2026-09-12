@@ -4,5 +4,6 @@
     <string name="action_change_nickname">Zmień nick</string>
     <string name="callerid_accept_add">Zezwól na wiadomości prywatne (+)</string>
     <string name="callerid_accept_remove">Zablokuj wiadomości prywatne (-)</string>
-    <string name="callerid_remove_confirm">Czy na pewno chcesz zamknąć rozmowę z %1$s?</string>
+    <string name="callerid_remove_confirm">Czy chcesz usunąć %1$s z listy ACCEPT?</string>
+    <string name="callerid_accept_remove_action">Usuń</string>
 </resources>
