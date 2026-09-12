@@ -40,13 +40,19 @@ public class MenuChatStructureTest {
     }
 
     private static void assertImmediatelyOrdered(String xml, String first, String second) {
-        int firstIndex = xml.indexOf(first);
-        int secondIndex = xml.indexOf(second);
-        assertTrue(first + " is missing", firstIndex >= 0);
-        assertTrue(second + " is missing", secondIndex > firstIndex);
-        String between = xml.substring(firstIndex + first.length(), secondIndex);
+        int firstId = xml.indexOf(first);
+        int secondId = xml.indexOf(second);
+        assertTrue(first + " is missing", firstId >= 0);
+        assertTrue(second + " is missing", secondId > firstId);
+
+        int firstEnd = xml.indexOf("/>", firstId);
+        int secondStart = xml.lastIndexOf("<item", secondId);
+        assertTrue(first + " item is malformed", firstEnd > firstId);
+        assertTrue(second + " item is malformed", secondStart > firstEnd);
+
+        String betweenItems = xml.substring(firstEnd + 2, secondStart);
         assertTrue(first + " must be immediately before " + second,
-                !between.contains("<item"));
+                !betweenItems.contains("<item"));
     }
 
     private static String readMenu() throws IOException {
