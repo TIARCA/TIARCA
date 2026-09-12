@@ -5,6 +5,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import io.mrarm.chatlib.irc.CommandHandler;
 import io.mrarm.chatlib.irc.CommandHandlerList;
@@ -15,6 +17,11 @@ import io.mrarm.irc.ServerConnectionInfo;
 /** Handles caller-ID (+g) ACCEPT state for private conversations. */
 public final class CallerIdAcceptManager {
 
+    private static final Pattern ACCEPT_ADDED = Pattern.compile(
+            "^([^\\s:]+)\\s+is now on your accept list(?:\\.|$)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern ACCEPT_REMOVED = Pattern.compile(
+            "^([^\\s:]+)\\s+is no longer on your accept list(?:\\.|$)",
+            Pattern.CASE_INSENSITIVE);
     private static final Map<IRCConnection, Set<String>> ACCEPTED = new WeakHashMap<>();
 
     private CallerIdAcceptManager() { }
@@ -37,12 +44,12 @@ public final class CallerIdAcceptManager {
         return accepted != null && accepted.contains(normalizeNick(targetNick));
     }
 
+    /** Sends an ACCEPT change; local state is updated only after a server confirmation. */
     public static void setAccepted(ServerConnectionInfo connection, String targetNick, boolean accepted) {
         IRCConnection irc = getIrc(connection);
         if (irc == null || targetNick == null || targetNick.trim().isEmpty())
             return;
         String nick = targetNick.trim();
-        noteAccepted(connection, nick, accepted);
         irc.sendCommandRaw("ACCEPT " + (accepted ? "+" : "-") + nick, null, null);
     }
 
@@ -63,22 +70,37 @@ public final class CallerIdAcceptManager {
             users.remove(nick);
     }
 
-    /** Keeps the toolbar state in sync with explicit /accept commands sent by TIARCA. */
-    public static void observeRawCommand(ServerConnectionInfo connection, String rawCommand) {
-        if (rawCommand == null)
-            return;
-        String trimmed = rawCommand.trim();
-        if (trimmed.length() < 6 || !trimmed.regionMatches(true, 0, "ACCEPT", 0, 6))
-            return;
-        String args = trimmed.substring(6).trim();
-        if (args.isEmpty() || "*".equals(args))
-            return;
-        for (String token : args.split("[\\s,]+")) {
-            if (token.length() < 2)
-                continue;
-            char sign = token.charAt(0);
-            if (sign == '+' || sign == '-')
-                noteAccepted(connection, token.substring(1), sign == '+');
+    /**
+     * Applies the authoritative InspIRCd ACCEPT success notices to the session state.
+     * Returns true when the notice was recognized as an ACCEPT-list confirmation.
+     */
+    public static boolean observeServerNotice(ServerConnectionInfo connection, String rawMessage) {
+        AcceptNotice notice = parseAcceptNotice(rawMessage);
+        if (notice == null)
+            return false;
+        noteAccepted(connection, notice.nick, notice.accepted);
+        return true;
+    }
+
+    static AcceptNotice parseAcceptNotice(String rawMessage) {
+        if (rawMessage == null)
+            return null;
+        Matcher added = ACCEPT_ADDED.matcher(rawMessage.trim());
+        if (added.find())
+            return new AcceptNotice(added.group(1), true);
+        Matcher removed = ACCEPT_REMOVED.matcher(rawMessage.trim());
+        if (removed.find())
+            return new AcceptNotice(removed.group(1), false);
+        return null;
+    }
+
+    static final class AcceptNotice {
+        final String nick;
+        final boolean accepted;
+
+        AcceptNotice(String nick, boolean accepted) {
+            this.nick = nick;
+            this.accepted = accepted;
         }
     }
 
