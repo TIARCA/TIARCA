@@ -4,5 +4,6 @@
     <string name="action_change_nickname">Schimbă porecla</string>
     <string name="callerid_accept_add">Permite mesaje private (+)</string>
     <string name="callerid_accept_remove">Blochează mesajele private (-)</string>
-    <string name="callerid_remove_confirm">Sigur vrei să închizi conversația cu %1$s?</string>
+    <string name="callerid_remove_confirm">Vrei să elimini %1$s din lista ACCEPT?</string>
+    <string name="callerid_accept_remove_action">Elimină</string>
 </resources>
