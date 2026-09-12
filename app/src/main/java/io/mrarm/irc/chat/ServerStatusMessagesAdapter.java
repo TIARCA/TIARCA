@@ -178,6 +178,10 @@ public class ServerStatusMessagesAdapter extends RecyclerView.Adapter<RecyclerVi
                         buildCallerIdMessage(context, (CallerIdStatusMessageInfo) message)));
                 return;
             }
+            boolean acceptStateChanged = CallerIdAcceptManager.observeServerNotice(
+                    mConnection, message.getMessage());
+            if (acceptStateChanged && context instanceof MainActivity)
+                ((MainActivity) context).invalidateOptionsMenu();
             CharSequence built = MessageBuilder.getInstance(context).buildStatusMessage(message,
                     createServiceClickSpan(message));
             built = addAcceptConfirmationNickLink(built, message.getMessage());
@@ -193,7 +197,6 @@ public class ServerStatusMessagesAdapter extends RecyclerView.Adapter<RecyclerVi
         if (!matcher.find())
             return built;
         final String nick = matcher.group(1);
-        CallerIdAcceptManager.noteAccepted(mConnection, nick, true);
         String rendered = built.toString();
         int start = rendered.indexOf(nick);
         if (start < 0)
