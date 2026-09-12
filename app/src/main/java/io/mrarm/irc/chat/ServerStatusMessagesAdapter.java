@@ -178,9 +178,9 @@ public class ServerStatusMessagesAdapter extends RecyclerView.Adapter<RecyclerVi
                         buildCallerIdMessage(context, (CallerIdStatusMessageInfo) message)));
                 return;
             }
-            boolean acceptStateChanged = CallerIdAcceptManager.observeServerNotice(
-                    mConnection, message.getMessage());
-            if (acceptStateChanged && context instanceof MainActivity)
+            boolean acceptConfirmation = CallerIdAcceptManager.isAcceptServerNotice(
+                    message.getMessage());
+            if (acceptConfirmation && context instanceof MainActivity)
                 ((MainActivity) context).invalidateOptionsMenu();
             CharSequence built = MessageBuilder.getInstance(context).buildStatusMessage(message,
                     createServiceClickSpan(message));
