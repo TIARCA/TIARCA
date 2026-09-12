@@ -82,6 +82,11 @@ public final class CallerIdAcceptManager {
         return true;
     }
 
+    /** Returns whether a status line has the form of an ACCEPT success confirmation. */
+    public static boolean isAcceptServerNotice(String rawMessage) {
+        return parseAcceptNotice(rawMessage) != null;
+    }
+
     static AcceptNotice parseAcceptNotice(String rawMessage) {
         if (rawMessage == null)
             return null;
