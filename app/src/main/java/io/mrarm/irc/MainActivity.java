@@ -542,6 +542,7 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
             menu.findItem(R.id.action_send_media).setVisible(connected && inDirectChat &&
                     SharingSettings.hasAnySendOption(this));
             menu.findItem(R.id.action_direct_ignore).setVisible(inDirectChat);
+            menu.findItem(R.id.action_close_private_conversation).setVisible(inDirectChat);
             menu.findItem(R.id.action_direct_whois).setVisible(connected && inDirectChat);
             MenuItem acceptToggle = menu.findItem(R.id.action_callerid_accept_toggle);
             boolean showAcceptToggle = connected && inDirectChat &&
@@ -675,6 +676,22 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
             ChatFragment fragment = (ChatFragment) getCurrentFragment();
             io.mrarm.irc.dialog.IgnoreUserDialog.show(this, fragment.getConnectionInfo(),
                     fragment.getCurrentChannel(), null, null);
+        } else if (id == R.id.action_close_private_conversation) {
+            ChatFragment fragment = (ChatFragment) getCurrentFragment();
+            String nick = fragment.getCurrentChannel();
+            if (nick != null && !nick.isEmpty()) {
+                new AlertDialog.Builder(this)
+                        .setTitle(R.string.action_close_direct)
+                        .setMessage(getString(R.string.close_private_conversation_confirm, nick))
+                        .setNegativeButton(R.string.action_cancel, null)
+                        .setPositiveButton(R.string.action_close, (d, which) -> {
+                            ServerConnectionInfo connection = fragment.getConnectionInfo();
+                            connection.closePrivateConversation(nick,
+                                    AppSettings.getDefaultPartMessage());
+                            fragment.selectTabToLeftAfterClose();
+                        })
+                        .show();
+            }
         } else if (id == R.id.action_callerid_accept_toggle) {
             ChatFragment fragment = (ChatFragment) getCurrentFragment();
             String nick = fragment.getCurrentChannel();
