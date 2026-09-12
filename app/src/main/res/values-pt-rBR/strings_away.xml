@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_away">Ausente</string>
+    <string name="away_dialog_enable">Ausente</string>
+    <string name="away_dialog_message">Mensagem de ausência</string>
+    <string name="away_dialog_nickname">Apelido de ausência</string>
+    <string name="pref_title_default_away_message">Mensagem de ausência padrão</string>
+    <string name="pref_value_default_away_message">Ausente</string>
+    <string name="pref_title_away_nick_enabled">Alterar apelido enquanto estiver ausente</string>
+    <string name="pref_title_away_nick_suffix">Sufixo do apelido de ausência</string>
+    <string name="away_status_with_message">Ausente — %1$s · Toque para voltar</string>
+    <string name="away_status">Ausente · Toque para voltar</string>
+</resources>
