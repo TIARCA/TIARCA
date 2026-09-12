@@ -12,7 +12,12 @@ import android.text.style.UnderlineSpan;
 import com.google.gson.JsonObject;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.annotation.Config;
 
+@RunWith(RobolectricTestRunner.class)
+@Config(sdk = 33)
 public class SpannableStringHelperTest {
 
     @Test
