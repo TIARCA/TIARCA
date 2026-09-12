@@ -1,5 +1,15 @@
 # TIARCA — Changelog
 
+## v0.9.7
+
+- Ridisegnata la schermata **Formato del messaggio** con anteprima live, preset più comprensibili per messaggi ed eventi, scelta del colore del nickname, toggle grassetto/corsivo/sottolineato e accesso separato all'editor avanzato.
+- Corretta la persistenza della formattazione: gli span di stile e colore vengono conservati correttamente, gli span equivalenti adiacenti vengono uniti e la sottolineatura viene serializzata/ripristinata senza andare persa.
+- Aggiunti avatar opzionali in chat: iniziali colorate come fallback per i nickname e, quando abilitato, avatar account SimosNap dove disponibili.
+- Gli avatar sono ora interattivi come i nickname: tap per aprire dettagli utente/WHOIS e pressione prolungata per il normale menu contestuale del nickname.
+- Corretta la gestione asincrona degli avatar nelle righe RecyclerView, separando il tag interno della richiesta immagine dal nickname associato alla vista per evitare associazioni errate durante il riciclo.
+- Aggiunta una visualizzazione **bianco e nero opzionale** per gli eventi di canale MODE, KICK, QUIT e JOIN/PART: colore evento neutro e nickname coinvolti evidenziati in grassetto.
+- Aggiunti test di regressione per merge degli span e round-trip della sottolineatura; il test viene eseguito con Robolectric.
+
 ## v0.9.6
 
 - Esclusi i metadati delle dipendenze dal blocco di firma dell'APK release, così il binario upstream può essere verificato da F-Droid.
