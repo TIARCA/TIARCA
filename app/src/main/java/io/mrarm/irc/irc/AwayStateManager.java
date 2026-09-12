@@ -153,11 +153,30 @@ public final class AwayStateManager implements ServerConnectionInfo.InfoChangeLi
             pendingNicknameAway = null;
         }
 
+        syncOwnUserAwayState(newAway);
         if (newAway && shouldUseAwayNick)
             applyAwayNickname();
         else if (shouldRestoreNick)
             restoreNickname();
         notifyListeners();
+    }
+
+    /** Reuses the existing user-away model so our own nick is dimmed in channel member lists too. */
+    private void syncOwnUserAwayState(boolean newAway) {
+        ServerConnectionInfo connection = connectionRef.get();
+        if (connection == null || !(connection.getApiInstance() instanceof IRCConnection))
+            return;
+        ServerConnectionData data = ((IRCConnection) connection.getApiInstance())
+                .getServerConnectionData();
+        String nick = data.getUserNick();
+        if (nick == null || nick.isEmpty())
+            return;
+        try {
+            data.setUserAway(nick, data.getUserUser(), data.getUserHost(), newAway,
+                    newAway ? getAwayMessage() : null);
+        } catch (RuntimeException ignored) {
+            // The connection may confirm AWAY before the local user has been resolved in NAMES.
+        }
     }
 
     private void applyAwayNickname() {
