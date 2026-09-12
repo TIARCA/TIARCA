@@ -145,6 +145,7 @@
     <string name="action_message_user">Enviar mensagem ao usuário</string>
     <string name="action_part_channel">Sair do canal</string>
     <string name="action_close_direct">Fechar conversa</string>
+    <string name="close_private_conversation_confirm">Tem certeza de que deseja fechar a conversa com %1$s?</string>
     <string name="action_clear_all">Limpar tudo</string>
     <string name="action_reset">Redefinir</string>
     <string name="action_exit">Sair</string>

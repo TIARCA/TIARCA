@@ -39,6 +39,28 @@ public class MenuChatStructureTest {
                 item.contains("app:showAsAction=\"always\""));
     }
 
+    @Test
+    public void pvtToolbarActionsInExactOrder() throws IOException {
+        String xml = readMenu();
+        assertImmediatelyOrdered(xml, "@+id/action_send_media", "@+id/action_callerid_accept_toggle");
+        assertImmediatelyOrdered(xml, "@+id/action_callerid_accept_toggle", "@+id/action_direct_ignore");
+        assertImmediatelyOrdered(xml, "@+id/action_direct_ignore", "@+id/action_close_private_conversation");
+    }
+
+    @Test
+    public void closePrivateConversationIsToolbarActionHiddenByDefault() throws IOException {
+        String xml = readMenu();
+        int start = xml.indexOf("@+id/action_close_private_conversation");
+        assertTrue("Close private conversation action is missing", start >= 0);
+        int end = xml.indexOf("/>", start);
+        assertTrue("Close private conversation item is malformed", end > start);
+        String item = xml.substring(start, end);
+        assertTrue("Close private conversation must be hidden until PVT is active",
+                item.contains("android:visible=\"false\""));
+        assertTrue("Close private conversation must be a toolbar action",
+                item.contains("app:showAsAction=\"always\""));
+    }
+
     private static void assertImmediatelyOrdered(String xml, String first, String second) {
         int firstId = xml.indexOf(first);
         int secondId = xml.indexOf(second);
