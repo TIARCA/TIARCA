@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_away">Away</string>
+    <string name="away_dialog_enable">Away</string>
+    <string name="away_dialog_message">Away message</string>
+    <string name="away_dialog_nickname">Away nickname</string>
+    <string name="pref_title_default_away_message">Default away message</string>
+    <string name="pref_value_default_away_message">Away</string>
+    <string name="pref_title_away_nick_enabled">Change nickname while away</string>
+    <string name="pref_title_away_nick_suffix">Away nickname suffix</string>
+    <string name="away_status_with_message">Away — %1$s · Tap to come back</string>
+    <string name="away_status">Away · Tap to come back</string>
+</resources>
