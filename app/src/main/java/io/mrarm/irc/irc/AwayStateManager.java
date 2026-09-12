@@ -26,6 +26,7 @@ public final class AwayStateManager implements ServerConnectionInfo.InfoChangeLi
         void onAwayStateChanged(AwayStateManager manager);
     }
 
+    private static final long NICK_REQUEST_TIMEOUT_MS = 10_000L;
     private static final WeakHashMap<ServerConnectionInfo, AwayStateManager> INSTANCES =
             new WeakHashMap<>();
 
@@ -170,17 +171,19 @@ public final class AwayStateManager implements ServerConnectionInfo.InfoChangeLi
         if (currentNick == null || currentNick.isEmpty() || suffix.isEmpty())
             return;
 
+        String target;
         synchronized (this) {
             if (awayNickApplied || pendingNickTarget != null)
                 return;
-            String target = currentNick + suffix;
+            target = currentNick + suffix;
             if (target.equalsIgnoreCase(currentNick))
                 return;
             nickBeforeAway = currentNick;
             pendingNickTarget = target;
             pendingNickRestore = false;
-            irc.sendCommandRaw("NICK " + target, null, null);
         }
+        irc.sendCommandRaw("NICK " + target, null, null);
+        scheduleNickRequestTimeout(target, false);
     }
 
     private void restoreNickname() {
@@ -188,6 +191,7 @@ public final class AwayStateManager implements ServerConnectionInfo.InfoChangeLi
         if (connection == null || !(connection.getApiInstance() instanceof IRCConnection))
             return;
         IRCConnection irc = (IRCConnection) connection.getApiInstance();
+        String target;
         synchronized (this) {
             if (!awayNickApplied || nickBeforeAway == null || nickBeforeAway.isEmpty() ||
                     pendingNickTarget != null)
@@ -197,10 +201,34 @@ public final class AwayStateManager implements ServerConnectionInfo.InfoChangeLi
                 clearAwayNickTrackingLocked();
                 return;
             }
-            pendingNickTarget = nickBeforeAway;
+            target = nickBeforeAway;
+            pendingNickTarget = target;
             pendingNickRestore = true;
-            irc.sendCommandRaw("NICK " + nickBeforeAway, null, null);
         }
+        irc.sendCommandRaw("NICK " + target, null, null);
+        scheduleNickRequestTimeout(target, true);
+    }
+
+    /**
+     * Nick validation remains server-authoritative. If a network rejects the requested suffix or
+     * restore nickname, release the pending state so a later attempt is not permanently blocked.
+     */
+    private void scheduleNickRequestTimeout(String target, boolean restoring) {
+        mainHandler.postDelayed(() -> {
+            boolean changed = false;
+            synchronized (AwayStateManager.this) {
+                if (pendingNickTarget == null || !pendingNickTarget.equalsIgnoreCase(target) ||
+                        pendingNickRestore != restoring)
+                    return;
+                pendingNickTarget = null;
+                pendingNickRestore = false;
+                if (!restoring && !awayNickApplied)
+                    nickBeforeAway = null;
+                changed = true;
+            }
+            if (changed)
+                notifyListeners();
+        }, NICK_REQUEST_TIMEOUT_MS);
     }
 
     private void onNickChanged(String oldNick, String newNick) {
