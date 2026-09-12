@@ -19,6 +19,8 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import io.mrarm.irc.R;
+
 /** Loads the public Simosnap account avatars without adding an image-loading dependency. */
 public final class SimosnapAvatarLoader {
 
@@ -52,7 +54,7 @@ public final class SimosnapAvatarLoader {
             return;
         }
         String url = (large ? LARGE_BASE : SMALL_BASE) + hash + ".png";
-        view.setTag(url);
+        view.setTag(R.id.tag_simosnap_avatar_url, url);
         view.setImageDrawable(null);
         view.setVisibility(View.GONE);
         Bitmap cached = CACHE.get(url);
@@ -84,7 +86,7 @@ public final class SimosnapAvatarLoader {
     }
 
     public static void clear(ImageView view, Callback callback) {
-        view.setTag(null);
+        view.setTag(R.id.tag_simosnap_avatar_url, null);
         view.setImageDrawable(null);
         view.setVisibility(View.GONE);
         if (callback != null)
@@ -93,7 +95,7 @@ public final class SimosnapAvatarLoader {
 
     private static void showIfCurrent(ImageView view, String url, Bitmap bitmap,
                                       Callback callback) {
-        if (!url.equals(view.getTag()))
+        if (!url.equals(view.getTag(R.id.tag_simosnap_avatar_url)))
             return;
         if (bitmap != null) {
             view.setImageBitmap(bitmap);

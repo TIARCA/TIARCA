@@ -358,6 +358,20 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             mDefaultLayoutParams = v.getLayoutParams();
             mText = v.findViewById(R.id.chat_message);
             mAvatar = v.findViewById(R.id.chat_message_avatar);
+            mAvatar.setOnClickListener(view -> {
+                Object tag = view.getTag();
+                if (tag instanceof String)
+                    showUserDetails(view, (String) tag);
+            });
+            mAvatar.setOnLongClickListener(view -> {
+                Object tag = view.getTag();
+                if (tag instanceof String) {
+                    NicknameContextMenu.show(view.getContext(), mFragment.getConnectionInfo(),
+                            (String) tag, mFragment.getChannelName());
+                    return true;
+                }
+                return false;
+            });
             mText.setOnLongClickListener((View view) -> {
                 if (mSelectListener != null)
                     mSelectListener.startLongPressSelect();
@@ -372,13 +386,7 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             return new LongClickableSpan() {
                 @Override
                 public void onClick(@NonNull View widget) {
-                    UserBottomSheetDialog dialog = new UserBottomSheetDialog(widget.getContext());
-                    dialog.setConnection(mFragment.getConnectionInfo());
-                    dialog.setSourceChannel(mFragment.getChannelName());
-                    dialog.requestData(nick, mFragment.getConnectionInfo().getApiInstance());
-                    Dialog shownDialog = dialog.show();
-                    if (mFragment.getActivity() instanceof MainActivity)
-                        ((MainActivity) mFragment.getActivity()).setFragmentDialog(shownDialog);
+                    showUserDetails(widget, nick);
                 }
 
                 @Override
@@ -394,6 +402,16 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                     ds.setUnderlineText(false);
                 }
             };
+        }
+
+        private void showUserDetails(View source, String nick) {
+            UserBottomSheetDialog dialog = new UserBottomSheetDialog(source.getContext());
+            dialog.setConnection(mFragment.getConnectionInfo());
+            dialog.setSourceChannel(mFragment.getChannelName());
+            dialog.requestData(nick, mFragment.getConnectionInfo().getApiInstance());
+            Dialog shownDialog = dialog.show();
+            if (mFragment.getActivity() instanceof MainActivity)
+                ((MainActivity) mFragment.getActivity()).setFragmentDialog(shownDialog);
         }
 
         public void bind(MessageItem item) {
@@ -431,9 +449,13 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                     message.getType() == MessageInfo.MessageType.ME ||
                     message.getType() == MessageInfo.MessageType.NOTICE;
             if (!formats.getMessageAvatars() || !userMessage || nick == null || nick.isEmpty()) {
+                mAvatar.setTag(null);
                 SimosnapAvatarLoader.clear(mAvatar, null);
                 return;
             }
+            mAvatar.setTag(nick);
+            // Cancel any in-flight image request from a recycled row before showing the fallback.
+            SimosnapAvatarLoader.clear(mAvatar, null);
             InitialAvatarDrawable fallback = new InitialAvatarDrawable(nick,
                     IRCColorUtils.getNickColor(mText.getContext(), nick));
             mAvatar.setImageDrawable(fallback);
