@@ -1,6 +1,7 @@
 package io.mrarm.irc.irc;
 
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.view.View;
 
 import androidx.core.view.ActionProvider;
@@ -40,21 +41,36 @@ public final class AwayActionProvider extends ActionProvider {
     @Override
     public boolean onPerformDefaultAction() {
         ServerConnectionInfo connection = getServerStatusConnection();
-        if (connection == null || !connection.isConnected())
+        MainActivity activity = findMainActivity(context);
+        if (connection == null || activity == null || !connection.isConnected())
             return false;
-        AwayDialog.show(context, connection);
+        AwayDialog.show(activity, connection);
         return true;
     }
 
     private ServerConnectionInfo getServerStatusConnection() {
-        if (!(context instanceof MainActivity))
+        MainActivity activity = findMainActivity(context);
+        if (activity == null)
             return null;
-        Fragment current = ((MainActivity) context).getCurrentFragment();
+        Fragment current = activity.getCurrentFragment();
         if (!(current instanceof ChatFragment))
             return null;
         ChatFragment chat = (ChatFragment) current;
         if (chat.getCurrentChannel() != null)
             return null;
         return chat.getConnectionInfo();
+    }
+
+    private static MainActivity findMainActivity(Context context) {
+        Context current = context;
+        while (current instanceof ContextWrapper) {
+            if (current instanceof MainActivity)
+                return (MainActivity) current;
+            Context base = ((ContextWrapper) current).getBaseContext();
+            if (base == current)
+                break;
+            current = base;
+        }
+        return current instanceof MainActivity ? (MainActivity) current : null;
     }
 }
