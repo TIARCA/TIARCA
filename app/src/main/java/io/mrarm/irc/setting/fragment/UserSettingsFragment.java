@@ -37,6 +37,17 @@ public class UserSettingsFragment extends SettingsListFragment implements NamedS
         a.add(new EditTextSetting(getString(R.string.pref_title_default_realname), null,
                 getString(R.string.value_not_set))
                 .linkSetting(prefs, AppSettings.PREF_DEFAULT_REALNAME));
+        a.add(new EditTextSetting(getString(R.string.pref_title_default_away_message), null,
+                getString(R.string.pref_value_default_away_message))
+                .linkSetting(prefs, AppSettings.PREF_DEFAULT_AWAY_MESSAGE));
+        CheckBoxSetting awayNick = new CheckBoxSetting(
+                getString(R.string.pref_title_away_nick_enabled), AppSettings.isAwayNickEnabled())
+                .linkPreference(prefs, AppSettings.PREF_AWAY_NICK_ENABLED);
+        a.add(awayNick);
+        a.add(new EditTextSetting(getString(R.string.pref_title_away_nick_suffix), null,
+                AppSettings.getAwayNickSuffix())
+                .linkSetting(prefs, AppSettings.PREF_AWAY_NICK_SUFFIX)
+                .requires(awayNick));
         a.add(new EditTextSetting(getString(R.string.pref_title_default_quit_message),
                 null, getString(R.string.pref_value_default_quit_message))
                 .linkSetting(prefs, AppSettings.PREF_DEFAULT_QUIT_MESSAGE));
