@@ -37,6 +37,15 @@ public final class ServiceMessageCommandHandler implements CommandHandler {
         String nick = prefix == null ? null : prefix.getNick();
         boolean direct = target != null && target.equalsIgnoreCase(data.getUserNick());
         boolean ctcp = text != null && text.length() > 1 && text.charAt(0) == '\u0001';
+
+        // InspIRCd confirms successful ACCEPT add/remove operations using server NOTICEs.
+        // Observe those before normal message routing so ACCEPT state does not depend on
+        // which server-status view is currently visible.
+        boolean serverNotice = "NOTICE".equalsIgnoreCase(command) && direct && !ctcp &&
+                prefix != null && prefix.getUser() == null && prefix.getHost() == null;
+        if (serverNotice)
+            CallerIdAcceptManager.observeServerNotice(connection, text);
+
         if (direct && !ctcp && !connection.hasOpenConversation(nick) &&
                 connection.isTrustedService(nick, prefix.getUser(), prefix.getHost())) {
             connection.rememberServiceNick(nick);
