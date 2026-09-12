@@ -489,6 +489,30 @@
 
     <string name="message_format_add_chip">Add format chip</string>
     <string name="message_format_sender_color">Nick color</string>
+    <string name="message_format_preview_title">Preview</string>
+    <string name="message_format_message_layout">Message layout</string>
+    <string name="message_format_event_layout">Channel event layout</string>
+    <string name="message_format_nickname_style">Nickname style</string>
+    <string name="message_format_bold">Bold</string>
+    <string name="message_format_italic">Italic</string>
+    <string name="message_format_underline">Underline</string>
+    <string name="message_format_advanced">Advanced format editor</string>
+    <string name="message_format_avatars">Show avatars</string>
+    <string name="message_format_custom_avatars">Show custom avatars, when available</string>
+    <string-array name="message_layout_presets">
+        <item>Keep current/custom</item>
+        <item>Classic, one line</item>
+        <item>Compact, two lines</item>
+        <item>IRC style &lt;nick&gt;</item>
+    </string-array>
+    <string-array name="message_sender_colors">
+        <item>Keep current/custom</item><item>Automatic for each nickname</item><item>Normal text colour</item>
+    </string-array>
+    <string-array name="event_layout_presets">
+        <item>Keep current/custom</item>
+        <item>Compact, one line</item>
+        <item>Two lines</item>
+    </string-array>
 
     <string name="message_example_sender">sender-nick</string>
     <string name="message_example_message">This is an example message.</string>
