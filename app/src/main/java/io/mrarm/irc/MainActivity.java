@@ -705,7 +705,7 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
                     new AlertDialog.Builder(this)
                             .setMessage(getString(R.string.callerid_remove_confirm, nick))
                             .setNegativeButton(R.string.action_cancel, null)
-                            .setPositiveButton(R.string.action_ok, (d, which) -> {
+                            .setPositiveButton(R.string.callerid_accept_remove_action, (d, which) -> {
                                 CallerIdAcceptManager.setAccepted(
                                         fragment.getConnectionInfo(), nick, false);
                                 invalidateOptionsMenu();
