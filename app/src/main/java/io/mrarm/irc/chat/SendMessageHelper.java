@@ -9,6 +9,7 @@ import io.mrarm.chatlib.irc.IRCConnection;
 import io.mrarm.irc.R;
 import io.mrarm.irc.ServerConnectionInfo;
 import io.mrarm.irc.config.CommandAliasManager;
+import io.mrarm.irc.irc.CallerIdAcceptManager;
 import io.mrarm.irc.util.IRCColorUtils;
 import io.mrarm.irc.util.SimpleTextVariableList;
 
@@ -44,6 +45,7 @@ public class SendMessageHelper {
                 if (result != null) {
                     if (result.mode == CommandAliasManager.CommandAlias.MODE_RAW) {
                         cb.onRawCommandExecuted(text, result.text);
+                        CallerIdAcceptManager.observeRawCommand(connection, result.text);
                         conn.sendCommandRaw(result.text, null, null);
                     } else if (result.mode == CommandAliasManager.CommandAlias.MODE_MESSAGE) {
                         if (result.channel == null)
