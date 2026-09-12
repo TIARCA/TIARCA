@@ -4,5 +4,6 @@
     <string name="action_change_nickname">Nickname ändern</string>
     <string name="callerid_accept_add">Private Nachrichten erlauben (+)</string>
     <string name="callerid_accept_remove">Private Nachrichten sperren (-)</string>
-    <string name="callerid_remove_confirm">Möchtest du die Unterhaltung mit %1$s wirklich schließen?</string>
+    <string name="callerid_remove_confirm">Möchtest du %1$s aus deiner ACCEPT-Liste entfernen?</string>
+    <string name="callerid_accept_remove_action">Entfernen</string>
 </resources>

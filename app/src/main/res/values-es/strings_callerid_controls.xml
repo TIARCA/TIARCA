@@ -4,5 +4,6 @@
     <string name="action_change_nickname">Cambiar apodo</string>
     <string name="callerid_accept_add">Permitir mensajes privados (+)</string>
     <string name="callerid_accept_remove">Bloquear mensajes privados (-)</string>
-    <string name="callerid_remove_confirm">¿Seguro que quieres cerrar la conversación con %1$s?</string>
+    <string name="callerid_remove_confirm">¿Quieres eliminar a %1$s de tu lista ACCEPT?</string>
+    <string name="callerid_accept_remove_action">Eliminar</string>
 </resources>
