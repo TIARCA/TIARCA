@@ -14,24 +14,15 @@ import static org.junit.Assert.assertTrue;
 public class MenuChatStructureTest {
 
     @Test
-    public void serverNicknameChangePrecedesUserModes() throws IOException {
+    public void serverNicknameChangeImmediatelyPrecedesUserModes() throws IOException {
         String xml = readMenu();
-        assertOrdered(xml, "@+id/action_change_nickname", "@+id/action_user_modes");
+        assertImmediatelyOrdered(xml, "@+id/action_change_nickname", "@+id/action_user_modes");
     }
 
     @Test
     public void settingsImmediatelyPrecedesDisconnect() throws IOException {
         String xml = readMenu();
-        String settings = "@+id/action_settings";
-        String disconnect = "@+id/action_disconnect";
-        int settingsIndex = xml.indexOf(settings);
-        int disconnectIndex = xml.indexOf(disconnect);
-        assertTrue("Settings item is missing", settingsIndex >= 0);
-        assertTrue("Disconnect item is missing", disconnectIndex > settingsIndex);
-
-        String between = xml.substring(settingsIndex + settings.length(), disconnectIndex);
-        assertTrue("Settings must be immediately before Disconnect",
-                !between.contains("<item"));
+        assertImmediatelyOrdered(xml, "@+id/action_settings", "@+id/action_disconnect");
     }
 
     @Test
@@ -48,12 +39,14 @@ public class MenuChatStructureTest {
                 item.contains("app:showAsAction=\"always\""));
     }
 
-    private static void assertOrdered(String xml, String first, String second) {
+    private static void assertImmediatelyOrdered(String xml, String first, String second) {
         int firstIndex = xml.indexOf(first);
         int secondIndex = xml.indexOf(second);
         assertTrue(first + " is missing", firstIndex >= 0);
-        assertTrue(second + " is missing", secondIndex >= 0);
-        assertTrue(first + " must appear before " + second, firstIndex < secondIndex);
+        assertTrue(second + " is missing", secondIndex > firstIndex);
+        String between = xml.substring(firstIndex + first.length(), secondIndex);
+        assertTrue(first + " must be immediately before " + second,
+                !between.contains("<item"));
     }
 
     private static String readMenu() throws IOException {
