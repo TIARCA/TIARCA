@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_change">Vaihda</string>
+    <string name="action_change_nickname">Vaihda nimimerkki</string>
+    <string name="callerid_accept_add">Salli yksityisviestit (+)</string>
+    <string name="callerid_accept_remove">Estä yksityisviestit (-)</string>
+    <string name="callerid_remove_confirm">Haluatko varmasti sulkea keskustelun käyttäjän %1$s kanssa?</string>
+</resources>
