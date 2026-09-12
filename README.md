@@ -4,19 +4,22 @@
 
 TIARCA keeps the speed and directness of classic IRC while adding a modern Android interface, current Android compatibility, richer moderation and user tools, configurable appearance, MONITOR support, structured IRC information, search, mentions, quick commands and an integrated update flow.
 
-> **Current stable version: 0.9.6** · Android 9+ · Open source · GPLv3
+> **Current stable version: 0.9.7** · Android 9+ · Open source · GPLv3
 
-[Download TIARCA 0.9.6](https://github.com/TIARCA/TIARCA/releases/download/v0.9.6/TIARCA-v0.9.6.apk) · [Release notes](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.6) · [Changelog](CHANGELOG.md) · [Documentation](docs/README.md)
+[Download TIARCA 0.9.7](https://github.com/TIARCA/TIARCA/releases/download/v0.9.7/TIARCA-v0.9.7.apk) · [Release notes](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.7) · [Changelog](CHANGELOG.md) · [Documentation](docs/README.md)
 
 ---
 
-## What's new in 0.9.6
+## What's new in 0.9.7
 
-- Excluded Android dependency metadata from the signed release APK so the upstream binary can be verified against an F-Droid build.
-- Kept the application behavior unchanged: 0.9.6 is a release-engineering update focused on F-Droid reproducibility.
-- Builds on the 0.9.5 F-Droid hardening work, which removed the inherited global cleartext-traffic opt-in while preserving non-TLS IRC over raw TCP sockets and added regression coverage.
+- Redesigned **Message format** with a live preview, ready-to-use layouts, nickname color/style controls and the advanced editor still available when needed.
+- Fixed message-format persistence so bold/italic/underline and nickname colors survive editing and reload correctly; equivalent adjacent spans are merged instead of accumulating.
+- Added optional chat avatars: colored initials for every nickname and, when enabled, SimosNap account avatars where available.
+- Avatar interaction now matches nickname interaction: tap opens user details/WHOIS and long press opens the normal nickname action menu.
+- Added opt-in monochrome rendering for MODE, KICK, QUIT and JOIN/PART channel events, using the neutral event color while keeping the involved nicknames emphasized in bold.
+- Fixed avatar image bookkeeping for recycled chat rows so an asynchronous image request cannot overwrite the nickname associated with the view.
 
-See the full [0.9.6 release notes](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.6) and [changelog](CHANGELOG.md).
+See the full [0.9.7 release notes](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.7) and [changelog](CHANGELOG.md).
 
 ## What TIARCA offers
 
@@ -33,7 +36,7 @@ See the full [0.9.6 release notes](https://github.com/TIARCA/TIARCA/releases/tag
 - Ignore management and fast actions directly from private conversations.
 - Sharing of images, files, audio and video through temporary links.
 - Configurable quick commands such as `!yt`, `!wiki`, `!calc`, `!movie`, `!ora` and `!dizionario`.
-- Extensive appearance customization: light/dark theme, app colors, chat font and message format.
+- Extensive appearance customization: light/dark theme, app colors, chat font, simplified/advanced message formatting, optional channel-event monochrome rendering and optional chat avatars.
 - Manual server/network ordering and configurable connection behavior.
 - Integrated update checker for official GitHub releases.
 - Android encrypted backup/device transfer support, separate from TIARCA manual backup.
@@ -60,7 +63,7 @@ Documentation is available in every language currently supported by TIARCA:
 
 Download the signed APK from the latest GitHub Release. Android may ask you to allow installation from the browser or file manager used to open the APK. Official TIARCA APKs are distributed through this repository's **Releases** section.
 
-TIARCA is not distributed through Google Play. Version 0.9.6 is the current stable release. TIARCA is under review for inclusion in the official F-Droid repository; the 0.9.5 and 0.9.6 release-engineering changes specifically target F-Droid policy compliance and reproducible verification. Availability on F-Droid still depends on completion of the F-Droid review and build process.
+TIARCA is not distributed through Google Play. Version 0.9.7 is the current stable release. TIARCA is under review for inclusion in the official F-Droid repository; recent release-engineering work targets F-Droid policy compliance and reproducible verification. Availability on F-Droid still depends on completion of the F-Droid review and build process.
 
 ## Building from source
 
