@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_away">Poissa</string>
+    <string name="away_dialog_enable">Poissa</string>
+    <string name="away_dialog_message">Poissaoloviesti</string>
+    <string name="away_dialog_nickname">Poissaolon lempinimi</string>
+    <string name="pref_title_default_away_message">Oletuspoissaoloviesti</string>
+    <string name="pref_value_default_away_message">Poissa</string>
+    <string name="pref_title_away_nick_enabled">Vaihda lempinimi poissaolon ajaksi</string>
+    <string name="pref_title_away_nick_suffix">Poissaolon lempinimen pääte</string>
+    <string name="away_status_with_message">Poissa — %1$s · Palaa napauttamalla</string>
+    <string name="away_status">Poissa · Palaa napauttamalla</string>
+</resources>
