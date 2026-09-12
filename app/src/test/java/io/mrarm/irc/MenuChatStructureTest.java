@@ -14,9 +14,24 @@ import static org.junit.Assert.assertTrue;
 public class MenuChatStructureTest {
 
     @Test
-    public void serverNicknameChangeImmediatelyPrecedesUserModes() throws IOException {
+    public void serverAwaySitsBetweenNicknameChangeAndUserModes() throws IOException {
         String xml = readMenu();
-        assertImmediatelyOrdered(xml, "@+id/action_change_nickname", "@+id/action_user_modes");
+        assertImmediatelyOrdered(xml, "@+id/action_change_nickname", "@+id/action_away");
+        assertImmediatelyOrdered(xml, "@+id/action_away", "@+id/action_user_modes");
+    }
+
+    @Test
+    public void serverAwayUsesScopedActionProvider() throws IOException {
+        String xml = readMenu();
+        int start = xml.indexOf("@+id/action_away");
+        assertTrue("Away action is missing", start >= 0);
+        int end = xml.indexOf("/>", start);
+        assertTrue("Away action item is malformed", end > start);
+        String item = xml.substring(start, end);
+        assertTrue("Away must stay in the overflow menu",
+                item.contains("app:showAsAction=\"never\""));
+        assertTrue("Away must use the server-status visibility provider",
+                item.contains("io.mrarm.irc.irc.AwayActionProvider"));
     }
 
     @Test

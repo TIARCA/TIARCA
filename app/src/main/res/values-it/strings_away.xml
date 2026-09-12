@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_away">Away</string>
+    <string name="away_dialog_enable">Away</string>
+    <string name="away_dialog_message">Messaggio di away</string>
+    <string name="away_dialog_nickname">Nickname away</string>
+    <string name="pref_title_default_away_message">Messaggio di away predefinito</string>
+    <string name="pref_value_default_away_message">Away</string>
+    <string name="pref_title_away_nick_enabled">Cambia nickname quando sei away</string>
+    <string name="pref_title_away_nick_suffix">Suffisso nickname away</string>
+    <string name="away_status_with_message">Away — %1$s · Tocca per tornare disponibile</string>
+    <string name="away_status">Away · Tocca per tornare disponibile</string>
+</resources>

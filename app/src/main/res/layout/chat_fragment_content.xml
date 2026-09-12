@@ -13,10 +13,27 @@
         android:background="?attr/colorBackgroundFloating"
         android:elevation="4dp">
 
+        <io.mrarm.irc.view.AwayStatusView
+            android:id="@+id/away_status_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingLeft="16dp"
+            android:paddingStart="16dp"
+            android:paddingRight="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:textAppearance="@style/TextAppearance.AppCompat.Body1"
+            android:gravity="center_vertical"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackground" />
+
         <RelativeLayout
             android:id="@+id/send_main_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_below="@id/away_status_bar"
             android:paddingTop="8dp"
             android:paddingBottom="8dp">
 
