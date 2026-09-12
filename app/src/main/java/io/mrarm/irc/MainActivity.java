@@ -42,6 +42,7 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Toast;
+import android.widget.EditText;
 
 import java.io.File;
 import java.io.IOException;
@@ -52,6 +53,7 @@ import java.util.UUID;
 
 import io.mrarm.chatlib.ChatApi;
 import io.mrarm.chatlib.dto.NickWithPrefix;
+import io.mrarm.chatlib.irc.IRCConnection;
 import io.mrarm.chatlib.irc.ServerConnectionApi;
 import io.mrarm.chatlib.irc.dcc.DCCServer;
 import io.mrarm.chatlib.irc.dcc.DCCUtils;
@@ -68,6 +70,7 @@ import io.mrarm.irc.dialog.UserModesDialog;
 import io.mrarm.irc.dialog.SimosnapSendMenu;
 import io.mrarm.irc.dialog.UserBottomSheetDialog;
 import io.mrarm.irc.dialog.VoiceRecorderDialog;
+import io.mrarm.irc.irc.CallerIdAcceptManager;
 import io.mrarm.irc.drawer.DrawerHelper;
 import io.mrarm.irc.upload.SimosnapUploader;
 import io.mrarm.irc.util.ChannelOperatorUtils;
@@ -540,9 +543,22 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
                     SharingSettings.hasAnySendOption(this));
             menu.findItem(R.id.action_direct_ignore).setVisible(inDirectChat);
             menu.findItem(R.id.action_direct_whois).setVisible(connected && inDirectChat);
+            MenuItem acceptToggle = menu.findItem(R.id.action_callerid_accept_toggle);
+            boolean showAcceptToggle = connected && inDirectChat &&
+                    CallerIdAcceptManager.isCallerIdActive(fragment.getConnectionInfo());
+            acceptToggle.setVisible(showAcceptToggle);
+            if (showAcceptToggle) {
+                boolean accepted = CallerIdAcceptManager.isAccepted(fragment.getConnectionInfo(),
+                        fragment.getCurrentChannel());
+                acceptToggle.setIcon(accepted ? R.drawable.ic_remove_circle_outline :
+                        R.drawable.ic_add_circle_outline);
+                acceptToggle.setTitle(accepted ? R.string.callerid_accept_remove :
+                        R.string.callerid_accept_add);
+            }
             String current = fragment.getCurrentChannel();
             menu.findItem(R.id.action_list_channels).setVisible(connected && current == null);
             menu.findItem(R.id.action_whowas).setVisible(connected && current == null);
+            menu.findItem(R.id.action_change_nickname).setVisible(connected && current == null);
             menu.findItem(R.id.action_user_modes).setVisible(connected && current == null);
             ChannelNotificationManager notificationManager = current == null ? null :
                     fragment.getConnectionInfo().getNotificationManager()
@@ -572,6 +588,35 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
         } else if (id == R.id.action_whowas) {
             ChatFragment fragment = (ChatFragment) getCurrentFragment();
             WhowasQueryDialog.show(this, fragment.getConnectionInfo());
+        } else if (id == R.id.action_change_nickname) {
+            ChatFragment fragment = (ChatFragment) getCurrentFragment();
+            ServerConnectionInfo connection = fragment.getConnectionInfo();
+            String currentNick = ((ServerConnectionApi) connection.getApiInstance())
+                    .getServerConnectionData().getUserNick();
+            EditText input = new EditText(this);
+            input.setSingleLine(true);
+            input.setText(currentNick == null ? "" : currentNick);
+            input.setSelection(input.length());
+            AlertDialog dialog = new AlertDialog.Builder(this)
+                    .setTitle(R.string.action_change_nickname)
+                    .setView(input)
+                    .setNegativeButton(R.string.action_cancel, null)
+                    .setPositiveButton(R.string.action_change, null)
+                    .create();
+            dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                    .setOnClickListener(v -> {
+                        String nick = input.getText().toString().trim();
+                        if (nick.isEmpty() || (currentNick != null &&
+                                nick.equalsIgnoreCase(currentNick)))
+                            return;
+                        ((IRCConnection) connection.getApiInstance()).sendCommandRaw(
+                                "NICK " + nick, null, null);
+                        dialog.dismiss();
+                    }));
+            dialog.getWindow().setSoftInputMode(
+                    WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+            dialog.show();
+            setFragmentDialog(dialog);
         } else if (id == R.id.action_user_modes) {
             ChatFragment fragment = (ChatFragment) getCurrentFragment();
             new UserModesDialog(this, fragment.getConnectionInfo()).show();
@@ -630,6 +675,27 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
             ChatFragment fragment = (ChatFragment) getCurrentFragment();
             io.mrarm.irc.dialog.IgnoreUserDialog.show(this, fragment.getConnectionInfo(),
                     fragment.getCurrentChannel(), null, null);
+        } else if (id == R.id.action_callerid_accept_toggle) {
+            ChatFragment fragment = (ChatFragment) getCurrentFragment();
+            String nick = fragment.getCurrentChannel();
+            if (nick != null && !nick.isEmpty()) {
+                boolean accepted = CallerIdAcceptManager.isAccepted(
+                        fragment.getConnectionInfo(), nick);
+                if (!accepted) {
+                    CallerIdAcceptManager.setAccepted(fragment.getConnectionInfo(), nick, true);
+                    invalidateOptionsMenu();
+                } else {
+                    new AlertDialog.Builder(this)
+                            .setMessage(getString(R.string.callerid_remove_confirm, nick))
+                            .setNegativeButton(R.string.action_cancel, null)
+                            .setPositiveButton(R.string.action_ok, (d, which) -> {
+                                CallerIdAcceptManager.setAccepted(
+                                        fragment.getConnectionInfo(), nick, false);
+                                invalidateOptionsMenu();
+                            })
+                            .show();
+                }
+            }
         } else if (id == R.id.action_direct_whois) {
             ChatFragment fragment = (ChatFragment) getCurrentFragment();
             String nick = fragment.getCurrentChannel();

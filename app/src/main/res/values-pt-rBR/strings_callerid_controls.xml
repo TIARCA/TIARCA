@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_change">Alterar</string>
+    <string name="action_change_nickname">Alterar apelido</string>
+    <string name="callerid_accept_add">Permitir mensagens privadas (+)</string>
+    <string name="callerid_accept_remove">Bloquear mensagens privadas (-)</string>
+    <string name="callerid_remove_confirm">Tem certeza de que deseja encerrar a conversa com %1$s?</string>
+</resources>
