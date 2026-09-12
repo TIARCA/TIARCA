@@ -75,6 +75,8 @@ public class MessageBuilder {
     private CharSequence mNoticeMessageFormat;
     private CharSequence mEventMessageFormat;
     private boolean mEventMessageShowHostname = false;
+    private boolean mMessageAvatars;
+    private boolean mMessageCustomAvatars;
 
     public static SpannableString buildDefaultMessageFormat(Context context) {
         return MessageFormatSettingsActivity.buildPresetMessageFormat(context, 0, false, false);
@@ -186,6 +188,8 @@ public class MessageBuilder {
         if (mEventMessageFormat == null)
             mEventMessageFormat = buildDefaultEventMessageFormat(context);
         mEventMessageShowHostname = mgr.getBoolean(MessageFormatSettings.PREF_MESSAGE_FORMAT_EVENT_HOSTNAME, mEventMessageShowHostname);
+        mMessageAvatars = mgr.getBoolean(MessageFormatSettings.PREF_MESSAGE_AVATARS, false);
+        mMessageCustomAvatars = mgr.getBoolean(MessageFormatSettings.PREF_MESSAGE_CUSTOM_AVATARS, false);
     }
 
     public void saveFormats() {
@@ -199,6 +203,8 @@ public class MessageBuilder {
         mgr.putString(MessageFormatSettings.PREF_MESSAGE_FORMAT_NOTICE, SettingsHelper.getGson().toJson(spannableToJson(mNoticeMessageFormat)));
         mgr.putString(MessageFormatSettings.PREF_MESSAGE_FORMAT_EVENT, SettingsHelper.getGson().toJson(spannableToJson(mEventMessageFormat)));
         mgr.putBoolean(MessageFormatSettings.PREF_MESSAGE_FORMAT_EVENT_HOSTNAME, mEventMessageShowHostname);
+        mgr.putBoolean(MessageFormatSettings.PREF_MESSAGE_AVATARS, mMessageAvatars);
+        mgr.putBoolean(MessageFormatSettings.PREF_MESSAGE_CUSTOM_AVATARS, mMessageCustomAvatars);
         mgr.apply();
     }
 
@@ -285,6 +291,14 @@ public class MessageBuilder {
     public void setEventMessageShowHostname(boolean enabled) {
         mEventMessageShowHostname = enabled;
     }
+
+    public boolean getMessageAvatars() { return mMessageAvatars; }
+
+    public void setMessageAvatars(boolean enabled) { mMessageAvatars = enabled; }
+
+    public boolean getMessageCustomAvatars() { return mMessageCustomAvatars; }
+
+    public void setMessageCustomAvatars(boolean enabled) { mMessageCustomAvatars = enabled; }
 
     public CharSequence createTimestamp(Date date, boolean addDefaultColorSpan) {
         String ds = getMessageTimeFormat().format(date);

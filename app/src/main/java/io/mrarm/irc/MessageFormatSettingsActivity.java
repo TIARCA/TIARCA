@@ -15,6 +15,7 @@ import android.text.Spanned;
 import android.text.style.CharacterStyle;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
+import android.text.style.UnderlineSpan;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -26,6 +27,7 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Spinner;
 
 import java.util.Calendar;
 import java.util.Date;
@@ -60,6 +62,7 @@ public class MessageFormatSettingsActivity extends ThemedActivity {
     private TextView mMessageFormatEventExample;
     private CheckBox mMessageFormatEventHostname;
     private TextFormatBar mTextFormatBar;
+    private TextView mMessageFormatPreview;
 
     private MessageSenderInfo mTestSender;
     private MessageInfo mSampleMessage;
@@ -74,6 +77,8 @@ public class MessageFormatSettingsActivity extends ThemedActivity {
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         mMessageBuilder = new MessageBuilder(this);
+
+        setupSimpleControls();
 
         mTextFormatBar = findViewById(R.id.format_bar);
         mTextFormatBar.setVisibility(View.GONE);
@@ -237,6 +242,181 @@ public class MessageFormatSettingsActivity extends ThemedActivity {
         mMessageFormatActionMentionExample.setText(mMessageBuilder.buildMessageWithMention(mSampleActionMessage));
         mMessageFormatNoticeExample.setText(mMessageBuilder.buildMessage(mSampleNoticeMessage));
         mMessageFormatEventExample.setText(mMessageBuilder.buildMessage(mSampleEventMessage));
+        if (mMessageFormatPreview != null) {
+            android.text.SpannableStringBuilder preview = new android.text.SpannableStringBuilder();
+            preview.append(mMessageBuilder.buildMessage(mSampleMessage)).append('\n')
+                    .append(mMessageBuilder.buildMessage(mSampleEventMessage));
+            mMessageFormatPreview.setText(preview);
+        }
+    }
+
+    private void setupSimpleControls() {
+        mMessageFormatPreview = findViewById(R.id.message_format_preview);
+        Spinner messageLayout = findViewById(R.id.message_layout_spinner);
+        Spinner eventLayout = findViewById(R.id.event_layout_spinner);
+        Spinner senderColor = findViewById(R.id.sender_color_spinner);
+        CheckBox bold = findViewById(R.id.sender_bold);
+        CheckBox italic = findViewById(R.id.sender_italic);
+        CheckBox underline = findViewById(R.id.sender_underline);
+        CheckBox avatars = findViewById(R.id.message_avatars);
+        CheckBox customAvatars = findViewById(R.id.message_custom_avatars);
+        CheckBox advanced = findViewById(R.id.advanced_toggle);
+        View advancedContainer = findViewById(R.id.advanced_container);
+
+        bold.setChecked(hasSenderSpan(mMessageBuilder.getMessageFormat(), StyleSpan.class,
+                Typeface.BOLD));
+        italic.setChecked(hasSenderSpan(mMessageBuilder.getMessageFormat(), StyleSpan.class,
+                Typeface.ITALIC));
+        underline.setChecked(hasSenderSpan(mMessageBuilder.getMessageFormat(),
+                UnderlineSpan.class, 0));
+        avatars.setChecked(mMessageBuilder.getMessageAvatars());
+        customAvatars.setChecked(mMessageBuilder.getMessageCustomAvatars());
+        customAvatars.setEnabled(avatars.isChecked());
+
+        bold.setOnCheckedChangeListener((button, checked) ->
+                setSenderStyle(StyleSpan.class, Typeface.BOLD, checked));
+        italic.setOnCheckedChangeListener((button, checked) ->
+                setSenderStyle(StyleSpan.class, Typeface.ITALIC, checked));
+        underline.setOnCheckedChangeListener((button, checked) ->
+                setSenderStyle(UnderlineSpan.class, 0, checked));
+        avatars.setOnCheckedChangeListener((button, checked) -> {
+            mMessageBuilder.setMessageAvatars(checked);
+            customAvatars.setEnabled(checked);
+        });
+        customAvatars.setOnCheckedChangeListener((button, checked) ->
+                mMessageBuilder.setMessageCustomAvatars(checked));
+        advanced.setOnCheckedChangeListener((button, checked) ->
+                advancedContainer.setVisibility(checked ? View.VISIBLE : View.GONE));
+
+        senderColor.setSelection(0, false);
+        senderColor.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override public void onNothingSelected(AdapterView<?> parent) { }
+            @Override public void onItemSelected(AdapterView<?> parent, View view,
+                                                 int position, long id) {
+                if (position == 0) return;
+                boolean automatic = position == 1;
+                mMessageBuilder.setMessageFormat(updateSenderColor(mMessageBuilder.getMessageFormat(), automatic));
+                mMessageBuilder.setMentionMessageFormat(updateSenderColor(mMessageBuilder.getMentionMessageFormat(), automatic));
+                mMessageBuilder.setActionMessageFormat(updateSenderColor(mMessageBuilder.getActionMessageFormat(), automatic));
+                mMessageBuilder.setActionMentionMessageFormat(updateSenderColor(mMessageBuilder.getActionMentionMessageFormat(), automatic));
+                mMessageBuilder.setNoticeMessageFormat(updateSenderColor(mMessageBuilder.getNoticeMessageFormat(), automatic));
+                syncAdvancedEditors();
+                refreshExamples();
+            }
+        });
+
+        messageLayout.setSelection(0, false);
+        messageLayout.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override public void onNothingSelected(AdapterView<?> parent) { }
+            @Override public void onItemSelected(AdapterView<?> parent, View view,
+                                                 int position, long id) {
+                if (position == 0) return;
+                int preset = position == 3 ? 1 : position == 2 ? 2 : 0;
+                mMessageBuilder.setMessageFormat(buildPresetMessageFormat(
+                        MessageFormatSettingsActivity.this, preset, false, preset == 1));
+                mMessageBuilder.setMentionMessageFormat(buildPresetMessageFormat(
+                        MessageFormatSettingsActivity.this, preset, true, preset == 1));
+                mMessageBuilder.setMessageFormat(updateSenderStyle(mMessageBuilder.getMessageFormat(),
+                        StyleSpan.class, Typeface.BOLD, bold.isChecked()));
+                mMessageBuilder.setMentionMessageFormat(updateSenderStyle(mMessageBuilder.getMentionMessageFormat(),
+                        StyleSpan.class, Typeface.BOLD, bold.isChecked()));
+                mMessageBuilder.setMessageFormat(updateSenderStyle(mMessageBuilder.getMessageFormat(),
+                        StyleSpan.class, Typeface.ITALIC, italic.isChecked()));
+                mMessageBuilder.setMentionMessageFormat(updateSenderStyle(mMessageBuilder.getMentionMessageFormat(),
+                        StyleSpan.class, Typeface.ITALIC, italic.isChecked()));
+                mMessageBuilder.setMessageFormat(updateSenderStyle(mMessageBuilder.getMessageFormat(),
+                        UnderlineSpan.class, 0, underline.isChecked()));
+                mMessageBuilder.setMentionMessageFormat(updateSenderStyle(mMessageBuilder.getMentionMessageFormat(),
+                        UnderlineSpan.class, 0, underline.isChecked()));
+                if (senderColor.getSelectedItemPosition() == 2) {
+                    mMessageBuilder.setMessageFormat(updateSenderColor(mMessageBuilder.getMessageFormat(), false));
+                    mMessageBuilder.setMentionMessageFormat(updateSenderColor(mMessageBuilder.getMentionMessageFormat(), false));
+                }
+                syncAdvancedEditors();
+                refreshExamples();
+            }
+        });
+        eventLayout.setSelection(0, false);
+        eventLayout.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override public void onNothingSelected(AdapterView<?> parent) { }
+            @Override public void onItemSelected(AdapterView<?> parent, View view,
+                                                 int position, long id) {
+                if (position == 0) return;
+                mMessageBuilder.setEventMessageFormat(buildEventPresetMessageFormat(
+                        MessageFormatSettingsActivity.this, position == 2 ? 2 : 1));
+                syncAdvancedEditors();
+                refreshExamples();
+            }
+        });
+    }
+
+    private void syncAdvancedEditors() {
+        if (mMessageFormatNormal == null) return;
+        mMessageFormatNormal.setText(mMessageBuilder.getMessageFormat());
+        mMessageFormatNormalMention.setText(mMessageBuilder.getMentionMessageFormat());
+        mMessageFormatEvent.setText(mMessageBuilder.getEventMessageFormat());
+    }
+
+    private boolean hasSenderSpan(CharSequence format, Class<?> spanClass, int style) {
+        if (!(format instanceof Spanned)) return false;
+        Spanned spanned = (Spanned) format;
+        for (MessageBuilder.MetaChipSpan chip : spanned.getSpans(0, spanned.length(),
+                MessageBuilder.MetaChipSpan.class)) {
+            if (chip.getType() != MessageBuilder.MetaChipSpan.TYPE_SENDER) continue;
+            for (Object span : spanned.getSpans(spanned.getSpanStart(chip),
+                    spanned.getSpanEnd(chip), spanClass)) {
+                if (!(span instanceof StyleSpan) || ((StyleSpan) span).getStyle() == style)
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    private CharSequence updateSenderStyle(CharSequence source, Class<?> spanClass,
+                                           int style, boolean enabled) {
+        SpannableString result = new SpannableString(source);
+        for (MessageBuilder.MetaChipSpan chip : result.getSpans(0, result.length(),
+                MessageBuilder.MetaChipSpan.class)) {
+            if (chip.getType() != MessageBuilder.MetaChipSpan.TYPE_SENDER) continue;
+            int start = result.getSpanStart(chip);
+            int end = result.getSpanEnd(chip);
+            for (Object span : result.getSpans(start, end, spanClass)) {
+                if (!(span instanceof StyleSpan) || ((StyleSpan) span).getStyle() == style)
+                    result.removeSpan(span);
+            }
+            if (enabled)
+                result.setSpan(spanClass == UnderlineSpan.class ? new UnderlineSpan() :
+                                new StyleSpan(style), start, end, MessageBuilder.FORMAT_SPAN_FLAGS);
+        }
+        return result;
+    }
+
+    private CharSequence updateSenderColor(CharSequence source, boolean automatic) {
+        SpannableString result = new SpannableString(source);
+        for (MessageBuilder.MetaChipSpan chip : result.getSpans(0, result.length(),
+                MessageBuilder.MetaChipSpan.class)) {
+            if (chip.getType() != MessageBuilder.MetaChipSpan.TYPE_SENDER) continue;
+            int start = result.getSpanStart(chip);
+            int end = result.getSpanEnd(chip);
+            for (ForegroundColorSpan span : result.getSpans(start, end,
+                    ForegroundColorSpan.class))
+                result.removeSpan(span);
+            if (automatic)
+                result.setSpan(new MessageBuilder.MetaForegroundColorSpan(this,
+                                MessageBuilder.MetaForegroundColorSpan.COLOR_SENDER),
+                        start, end, MessageBuilder.FORMAT_SPAN_FLAGS);
+        }
+        return result;
+    }
+
+    private void setSenderStyle(Class<?> spanClass, int style, boolean enabled) {
+        mMessageBuilder.setMessageFormat(updateSenderStyle(mMessageBuilder.getMessageFormat(), spanClass, style, enabled));
+        mMessageBuilder.setMentionMessageFormat(updateSenderStyle(mMessageBuilder.getMentionMessageFormat(), spanClass, style, enabled));
+        mMessageBuilder.setActionMessageFormat(updateSenderStyle(mMessageBuilder.getActionMessageFormat(), spanClass, style, enabled));
+        mMessageBuilder.setActionMentionMessageFormat(updateSenderStyle(mMessageBuilder.getActionMentionMessageFormat(), spanClass, style, enabled));
+        mMessageBuilder.setNoticeMessageFormat(updateSenderStyle(mMessageBuilder.getNoticeMessageFormat(), spanClass, style, enabled));
+        syncAdvancedEditors();
+        refreshExamples();
     }
 
     public void save() {
@@ -250,6 +430,8 @@ public class MessageFormatSettingsActivity extends ThemedActivity {
         global.setNoticeMessageFormat(mMessageBuilder.getNoticeMessageFormat());
         global.setEventMessageFormat(mMessageBuilder.getEventMessageFormat());
         global.setEventMessageShowHostname(mMessageBuilder.getEventMessageShowHostname());
+        global.setMessageAvatars(mMessageBuilder.getMessageAvatars());
+        global.setMessageCustomAvatars(mMessageBuilder.getMessageCustomAvatars());
         global.saveFormats();
     }
 
@@ -267,9 +449,10 @@ public class MessageFormatSettingsActivity extends ThemedActivity {
     private CharSequence prepareFormat(Spannable s) {
         SpannableString ret = new SpannableString(s.toString());
         for (Object span : s.getSpans(0, s.length(), CharacterStyle.class)) {
-            if ((ret.getSpanFlags(span) & Spannable.SPAN_COMPOSING) != 0)
+            int flags = s.getSpanFlags(span);
+            if ((flags & Spannable.SPAN_COMPOSING) != 0)
                 continue;
-            ret.setSpan(span, s.getSpanStart(span), s.getSpanEnd(span), s.getSpanFlags(span) & Spanned.SPAN_PRIORITY);
+            ret.setSpan(span, s.getSpanStart(span), s.getSpanEnd(span), flags);
         }
         return ret;
     }
@@ -287,6 +470,19 @@ public class MessageFormatSettingsActivity extends ThemedActivity {
     }
 
     public static SpannableString buildPresetMessageFormat(Context context, int preset, boolean mention, boolean prefix) {
+        if (preset == 2) {
+            SpannableString spannable = new SpannableString("\0 \0:\n\0");
+            spannable.setSpan(new MessageBuilder.MetaForegroundColorSpan(context, MessageBuilder.MetaForegroundColorSpan.COLOR_TIMESTAMP), 0, 1, MessageBuilder.FORMAT_SPAN_FLAGS);
+            spannable.setSpan(new MessageBuilder.MetaForegroundColorSpan(context, MessageBuilder.MetaForegroundColorSpan.COLOR_SENDER), 2, 3, MessageBuilder.FORMAT_SPAN_FLAGS);
+            spannable.setSpan(new MessageBuilder.MetaChipSpan(context, MessageBuilder.MetaChipSpan.TYPE_TIME), 0, 1, MessageBuilder.FORMAT_SPAN_FLAGS);
+            spannable.setSpan(new MessageBuilder.MetaChipSpan(context, MessageBuilder.MetaChipSpan.TYPE_SENDER), 2, 3, MessageBuilder.FORMAT_SPAN_FLAGS);
+            spannable.setSpan(new MessageBuilder.MetaChipSpan(context, MessageBuilder.MetaChipSpan.TYPE_MESSAGE), 5, 6, MessageBuilder.FORMAT_SPAN_FLAGS);
+            if (mention) {
+                spannable.setSpan(new StyleSpan(Typeface.BOLD), 2, 3, MessageBuilder.FORMAT_SPAN_FLAGS);
+                spannable.setSpan(new MessageBuilder.MetaForegroundColorSpan(context, MessageBuilder.MetaForegroundColorSpan.COLOR_SENDER), 5, 6, MessageBuilder.FORMAT_SPAN_FLAGS);
+            }
+            return spannable;
+        }
         if (preset == 0) {
             SpannableString spannable = new SpannableString("\0 |" + (prefix ? "\0" : "") + "\0: \0");
             spannable.setSpan(new MessageBuilder.MetaForegroundColorSpan(context, MessageBuilder.MetaForegroundColorSpan.COLOR_TIMESTAMP), 0, 1, MessageBuilder.FORMAT_SPAN_FLAGS);
@@ -372,6 +568,14 @@ public class MessageFormatSettingsActivity extends ThemedActivity {
     }
 
     public static SpannableString buildEventPresetMessageFormat(Context context, int preset) {
+        if (preset == 2) {
+            SpannableString spannable = new SpannableString("\0\n\0");
+            spannable.setSpan(new MessageBuilder.MetaForegroundColorSpan(context, MessageBuilder.MetaForegroundColorSpan.COLOR_TIMESTAMP), 0, 1, MessageBuilder.FORMAT_SPAN_FLAGS);
+            spannable.setSpan(new MessageBuilder.MetaForegroundColorSpan(context, MessageBuilder.MetaForegroundColorSpan.COLOR_STATUS), 2, 3, MessageBuilder.FORMAT_SPAN_FLAGS);
+            spannable.setSpan(new MessageBuilder.MetaChipSpan(context, MessageBuilder.MetaChipSpan.TYPE_TIME), 0, 1, MessageBuilder.FORMAT_SPAN_FLAGS);
+            spannable.setSpan(new MessageBuilder.MetaChipSpan(context, MessageBuilder.MetaChipSpan.TYPE_MESSAGE), 2, 3, MessageBuilder.FORMAT_SPAN_FLAGS);
+            return spannable;
+        }
         if (preset == 0 || preset == 1) {
             SpannableString spannable = new SpannableString("\0 |* \0");
             spannable.setSpan(new MessageBuilder.MetaForegroundColorSpan(context, MessageBuilder.MetaForegroundColorSpan.COLOR_TIMESTAMP), 0, 1, MessageBuilder.FORMAT_SPAN_FLAGS);

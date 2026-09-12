@@ -11,5 +11,7 @@ public class MessageFormatSettings {
     public static final String PREF_MESSAGE_FORMAT_EVENT_HOSTNAME = "message_format_event_hostname";
     public static final String PREF_MESSAGE_TIME_FORMAT = "message_time_format";
     public static final String PREF_MESSAGE_TIME_FIXED_WIDTH = "message_time_fixed_width";
+    public static final String PREF_MESSAGE_AVATARS = "message_avatars";
+    public static final String PREF_MESSAGE_CUSTOM_AVATARS = "message_custom_avatars";
 
 }

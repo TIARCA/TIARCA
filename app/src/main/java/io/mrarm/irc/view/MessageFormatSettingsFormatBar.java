@@ -33,17 +33,19 @@ public class MessageFormatSettingsFormatBar extends TextFormatBar {
             ret.setSelectedColor(selectedColor);
             ret.setNeutralButton(R.string.message_format_sender_color,
                     (DialogInterface dialog, int which) -> {
+                        removeSpan(ForegroundColorSpan.class);
                         setSpan(new MessageBuilder.MetaForegroundColorSpan(getContext(),
                                 MessageBuilder.MetaForegroundColorSpan.COLOR_SENDER));
                     });
             ret.setOnColorChangeListener((ColorListPickerDialog d, int newColorIndex, int color) -> {
                 removeSpan(ForegroundColorSpan.class);
-                if (color == IRCColorUtils.getStatusTextColor(getContext()))
+                if (color == IRCColorUtils.getStatusTextColor(getContext())) {
                     setSpan(new MessageBuilder.MetaForegroundColorSpan(getContext(), MessageBuilder.MetaForegroundColorSpan.COLOR_STATUS));
-                if (color == IRCColorUtils.getTimestampTextColor(getContext()))
+                } else if (color == IRCColorUtils.getTimestampTextColor(getContext())) {
                     setSpan(new MessageBuilder.MetaForegroundColorSpan(getContext(), MessageBuilder.MetaForegroundColorSpan.COLOR_TIMESTAMP));
-                else
+                } else {
                     setSpan(new ForegroundColorSpan(color));
+                }
                 d.cancel();
             });
         }

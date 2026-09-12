@@ -9,6 +9,7 @@ import android.text.Spanned;
 import android.text.style.BackgroundColorSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
+import android.text.style.UnderlineSpan;
 
 import com.google.gson.JsonObject;
 
@@ -17,6 +18,7 @@ public class SpannableStringHelper {
     public static final String SPAN_TYPE_FOREGROUND = "foreground";
     public static final String SPAN_TYPE_BACKGROUND = "background";
     public static final String SPAN_TYPE_STYLE = "style";
+    public static final String SPAN_TYPE_UNDERLINE = "underline";
 
     public static CharSequence format(CharSequence seq, Object... args) {
         int nextArgIdx = 0;
@@ -85,6 +87,8 @@ public class SpannableStringHelper {
             return new BackgroundColorSpan(((BackgroundColorSpan) span).getBackgroundColor());
         if (span instanceof StyleSpan)
             return new StyleSpan(((StyleSpan) span).getStyle());
+        if (span instanceof UnderlineSpan)
+            return new UnderlineSpan();
         return null;
     }
 
@@ -97,6 +101,8 @@ public class SpannableStringHelper {
                     ((BackgroundColorSpan) span2).getBackgroundColor();
         if (span instanceof StyleSpan && span2 instanceof StyleSpan)
             return ((StyleSpan) span).getStyle() == ((StyleSpan) span2).getStyle();
+        if (span instanceof UnderlineSpan && span2 instanceof UnderlineSpan)
+            return true;
         return true;
     }
 
@@ -111,6 +117,8 @@ public class SpannableStringHelper {
         } else if (span instanceof StyleSpan) {
             ret.addProperty("type", SPAN_TYPE_STYLE);
             ret.addProperty("style", ((StyleSpan) span).getStyle());
+        } else if (span instanceof UnderlineSpan) {
+            ret.addProperty("type", SPAN_TYPE_UNDERLINE);
         } else {
             return null;
         }
@@ -125,6 +133,8 @@ public class SpannableStringHelper {
             return new BackgroundColorSpan(obj.get("color").getAsNumber().intValue());
         if (type.equals(SPAN_TYPE_STYLE))
             return new StyleSpan(obj.get("style").getAsNumber().intValue());
+        if (type.equals(SPAN_TYPE_UNDERLINE))
+            return new UnderlineSpan();
         return null;
     }
 
@@ -165,7 +175,8 @@ public class SpannableStringHelper {
     }
 
     public static void setAndMergeSpans(Spannable text, Object what, int start, int end, int flags) {
-        Object[] spans = text.getSpans(Math.max(start - 1, 0), Math.min(end + 1, 0), what.getClass());
+        Object[] spans = text.getSpans(Math.max(start - 1, 0),
+                Math.min(end + 1, text.length()), what.getClass());
         for (Object span : spans) {
             if (!areSpansEqual(span, what))
                 continue;

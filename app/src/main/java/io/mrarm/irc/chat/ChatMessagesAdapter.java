@@ -16,6 +16,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.app.Dialog;
 import android.widget.TextView;
+import android.widget.ImageView;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -34,6 +35,10 @@ import io.mrarm.irc.dialog.NicknameContextMenu;
 import io.mrarm.irc.util.LongClickableSpan;
 import io.mrarm.irc.util.SelectableLinkMovementMethod;
 import io.mrarm.irc.util.StyledAttributesHelper;
+import io.mrarm.irc.util.IRCColorUtils;
+import io.mrarm.irc.util.InitialAvatarDrawable;
+import io.mrarm.irc.util.SimosnapAvatarLoader;
+import io.mrarm.irc.util.SimosnapAvatarManager;
 
 public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
         implements ChatSelectTouchListener.AdapterInterface {
@@ -68,6 +73,9 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         attributes.recycle();
         setMessages(messages, messageIds);
         setHasStableIds(true);
+        if (MessageBuilder.getInstance(fragment.getContext()).getMessageCustomAvatars())
+            SimosnapAvatarManager.requestChannelAccounts(fragment.getConnectionInfo(),
+                    fragment.getChannelName(), this::notifyDataSetChanged);
     }
 
     public void setNewMessagesStart(MessageId start) {
@@ -342,12 +350,14 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     public class MessageHolder extends RecyclerView.ViewHolder {
 
         private TextView mText;
+        private ImageView mAvatar;
         private ViewGroup.LayoutParams mDefaultLayoutParams;
 
         public MessageHolder(View v) {
             super(v);
             mDefaultLayoutParams = v.getLayoutParams();
             mText = v.findViewById(R.id.chat_message);
+            mAvatar = v.findViewById(R.id.chat_message_avatar);
             mText.setOnLongClickListener((View view) -> {
                 if (mSelectListener != null)
                     mSelectListener.startLongPressSelect();
@@ -393,6 +403,7 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             else if (itemView.getLayoutParams() != mDefaultLayoutParams)
                 itemView.setLayoutParams(mDefaultLayoutParams);
             MessageInfo message = item.mMessage;
+            bindAvatar(message);
             if (mTypeface != null)
                 mText.setTypeface(mTypeface);
             if (mFontSize != -1)
@@ -411,6 +422,30 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                 if (position != RecyclerView.NO_POSITION)
                     mSelectListener.applySelectionTo(itemView, position);
             }
+        }
+
+        private void bindAvatar(MessageInfo message) {
+            MessageBuilder formats = MessageBuilder.getInstance(mText.getContext());
+            String nick = message.getSender() == null ? null : message.getSender().getNick();
+            boolean userMessage = message.getType() == MessageInfo.MessageType.NORMAL ||
+                    message.getType() == MessageInfo.MessageType.ME ||
+                    message.getType() == MessageInfo.MessageType.NOTICE;
+            if (!formats.getMessageAvatars() || !userMessage || nick == null || nick.isEmpty()) {
+                SimosnapAvatarLoader.clear(mAvatar, null);
+                return;
+            }
+            InitialAvatarDrawable fallback = new InitialAvatarDrawable(nick,
+                    IRCColorUtils.getNickColor(mText.getContext(), nick));
+            mAvatar.setImageDrawable(fallback);
+            mAvatar.setVisibility(View.VISIBLE);
+            if (!formats.getMessageCustomAvatars()) return;
+            String account = SimosnapAvatarManager.getAccount(mFragment.getConnectionInfo(), nick);
+            SimosnapAvatarLoader.load(mAvatar, account, false, loaded -> {
+                if (!loaded) {
+                    mAvatar.setImageDrawable(fallback);
+                    mAvatar.setVisibility(View.VISIBLE);
+                }
+            });
         }
 
     }

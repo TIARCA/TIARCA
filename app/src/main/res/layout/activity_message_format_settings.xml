@@ -25,6 +25,99 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
+            <TextView
+                style="@style/MessageFormatSettingsExampleText"
+                android:text="@string/message_format_preview_title"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/message_format_preview"
+                style="@style/MessageFormatSettingsExampleText"
+                android:paddingTop="8dp"
+                android:paddingBottom="12dp" />
+
+            <TextView
+                style="@style/MessageFormatSettingsExampleText"
+                android:text="@string/message_format_message_layout"
+                android:textStyle="bold" />
+
+            <Spinner
+                android:id="@+id/message_layout_spinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/activity_horizontal_margin_s4"
+                android:layout_marginRight="@dimen/activity_horizontal_margin_s4"
+                android:entries="@array/message_layout_presets" />
+
+            <TextView
+                style="@style/MessageFormatSettingsExampleText"
+                android:text="@string/message_format_nickname_style"
+                android:textStyle="bold" />
+
+            <Spinner
+                android:id="@+id/sender_color_spinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/activity_horizontal_margin_s4"
+                android:layout_marginRight="@dimen/activity_horizontal_margin_s4"
+                android:entries="@array/message_sender_colors" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingLeft="@dimen/activity_horizontal_margin_s4"
+                android:paddingRight="@dimen/activity_horizontal_margin_s4">
+
+                <CheckBox android:id="@+id/sender_bold" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/message_format_bold" />
+                <CheckBox android:id="@+id/sender_italic" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/message_format_italic" />
+                <CheckBox android:id="@+id/sender_underline" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/message_format_underline" />
+            </LinearLayout>
+
+            <CheckBox
+                android:id="@+id/message_avatars"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/activity_horizontal_margin_s4"
+                android:layout_marginRight="@dimen/activity_horizontal_margin_s4"
+                android:text="@string/message_format_avatars" />
+
+            <CheckBox
+                android:id="@+id/message_custom_avatars"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/activity_horizontal_margin_s4"
+                android:layout_marginRight="@dimen/activity_horizontal_margin_s4"
+                android:text="@string/message_format_custom_avatars" />
+
+            <TextView
+                style="@style/MessageFormatSettingsExampleText"
+                android:text="@string/message_format_event_layout"
+                android:textStyle="bold" />
+
+            <Spinner
+                android:id="@+id/event_layout_spinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/activity_horizontal_margin_s4"
+                android:layout_marginRight="@dimen/activity_horizontal_margin_s4"
+                android:entries="@array/event_layout_presets" />
+
+            <CheckBox
+                android:id="@+id/advanced_toggle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/activity_horizontal_margin_s4"
+                android:layout_marginRight="@dimen/activity_horizontal_margin_s4"
+                android:text="@string/message_format_advanced" />
+
+            <LinearLayout
+                android:id="@+id/advanced_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/date_format_ctr"
                 style="@style/MessageFormatSettingsTextInputLayout"
@@ -201,6 +294,8 @@
                 android:layout_marginTop="8dp" />
 
             <View style="@style/MessageFormatSettingsDivider" />
+
+            </LinearLayout>
 
         </LinearLayout>
 
