@@ -12,6 +12,9 @@ AppSettings:
       separator: io.mrarm.irc.view.ChipsEditText.SEPARATOR
     - spec: String defaultUser
     - spec: String defaultRealname
+    - spec: String defaultAwayMessage = getContext().getString(R.string.pref_value_default_away_message)
+    - spec: boolean awayNickEnabled = false
+    - spec: String awayNickSuffix = "_away"
     - spec: String defaultQuitMessage = getContext().getString(R.string.pref_value_default_quit_message)
     - spec: String defaultPartMessage = getContext().getString(R.string.pref_value_default_part_message)
 
