@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_change">Schimbă</string>
+    <string name="action_change_nickname">Schimbă porecla</string>
+    <string name="callerid_accept_add">Permite mesaje private (+)</string>
+    <string name="callerid_accept_remove">Blochează mesajele private (-)</string>
+    <string name="callerid_remove_confirm">Sigur vrei să închizi conversația cu %1$s?</string>
+</resources>
