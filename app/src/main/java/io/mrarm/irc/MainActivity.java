@@ -53,6 +53,7 @@ import java.util.UUID;
 
 import io.mrarm.chatlib.ChatApi;
 import io.mrarm.chatlib.dto.NickWithPrefix;
+import io.mrarm.chatlib.irc.IRCConnection;
 import io.mrarm.chatlib.irc.ServerConnectionApi;
 import io.mrarm.chatlib.irc.dcc.DCCServer;
 import io.mrarm.chatlib.irc.dcc.DCCUtils;
