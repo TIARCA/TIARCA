@@ -12,13 +12,6 @@ TIARCA keeps the speed and directness of classic IRC while adding a modern Andro
 
 ## What's new in 0.9.7
 
-- Redesigned **Message format** with a live preview, ready-to-use layouts, nickname color/style controls and the advanced editor still available when needed.
-- Fixed message-format persistence so bold/italic/underline and nickname colors survive editing and reload correctly; equivalent adjacent spans are merged instead of accumulating.
-- Added optional chat avatars: colored initials for every nickname and, when enabled, SimosNap account avatars where available.
-- Avatar interaction now matches nickname interaction: tap opens user details/WHOIS and long press opens the normal nickname action menu.
-- Added opt-in monochrome rendering for MODE, KICK, QUIT and JOIN/PART channel events, using the neutral event color while keeping the involved nicknames emphasized in bold.
-- Fixed avatar image bookkeeping for recycled chat rows so an asynchronous image request cannot overwrite the nickname associated with the view.
-
 See the full [0.9.7 release notes](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.7) and [changelog](CHANGELOG.md).
 
 ## What TIARCA offers

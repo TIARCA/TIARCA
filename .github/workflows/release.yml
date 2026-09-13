@@ -55,6 +55,9 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "publish_release=$PUBLISH_RELEASE" >> "$GITHUB_OUTPUT"
 
+      - name: Verify release home is synchronized
+        run: python3 tools/sync_release_home.py --check
+
   verify-reproducible:
     needs: prepare-release
     if: needs.prepare-release.outputs.publish_release == 'true'
