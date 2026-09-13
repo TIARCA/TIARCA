@@ -2,4 +2,6 @@
 <resources>
     <string name="pref_header_wiki">TIARCA Wiki</string>
     <string name="action_save_theme">Save theme</string>
+    <string name="action_import_preset">Import preset</string>
+    <string name="action_save_preset">Save preset</string>
 </resources>
