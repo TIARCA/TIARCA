@@ -15,7 +15,6 @@ import io.mrarm.irc.config.ChatSettings;
 import io.mrarm.irc.config.EventDisplaySettings;
 import io.mrarm.irc.config.MessageFormatSettings;
 import io.mrarm.irc.config.RightClockSettings;
-import io.mrarm.irc.util.AppLocaleManager;
 import io.mrarm.irc.util.DefaultPreferences;
 import io.mrarm.irc.util.MessageBuilder;
 
@@ -236,8 +235,7 @@ public final class AppearancePresetManager {
     }
 
     public static boolean isPresetVisualPreference(String key) {
-        if (AppLocaleManager.PREF_APP_LANGUAGE.equals(key)
-                || PREF_APPEARANCE_PRESET.equals(key)
+        if (PREF_APPEARANCE_PRESET.equals(key)
                 || ChatSettings.PREF_GLOBAL_FONT_ENABLED.equals(key)
                 || ChatSettings.PREF_TEXT_AUTOCORRECT_ENABLED.equals(key)
                 || ChatSettings.PREF_SEND_BOX_ALWAYS_MULTILINE.equals(key))
