@@ -37,5 +37,16 @@ public class SelfAwayCommandHandlerTest {
                 AwayStateManager.sanitizeMessage("  A cena\r\nNICK bad  "));
         assertEquals("_away", AwayStateManager.sanitizeSuffix("  _away  "));
         assertEquals("", AwayStateManager.sanitizeSuffix("_ away"));
+        assertEquals("mimancaunvenerdi_AFK",
+                AwayStateManager.sanitizeNickname("  mimancaunvenerdi_AFK  "));
+        assertEquals("", AwayStateManager.sanitizeNickname("nick with spaces"));
+        assertEquals("", AwayStateManager.sanitizeNickname("nick\r\nNICK bad"));
+    }
+
+    @Test
+    public void awayNicknameSuggestionUsesConfiguredSuffix() {
+        assertEquals("mimancaunvenerdi_AFK",
+                AwayStateManager.buildAwayNickname("mimancaunvenerdi", "_AFK"));
+        assertEquals("", AwayStateManager.buildAwayNickname("mimancaunvenerdi", "_ AFK"));
     }
 }

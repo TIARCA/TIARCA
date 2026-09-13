@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="message_format_editor_time">Aika</string>
+    <string name="message_format_editor_normal">Normaali viesti</string>
+    <string name="message_format_editor_mention">Viesti maininnalla</string>
+    <string name="message_format_editor_action">Toiminto (/me)</string>
+    <string name="message_format_editor_action_mention">Toiminto (/me) maininnalla</string>
+    <string name="message_format_editor_notice">NOTICE</string>
+    <string name="message_format_editor_event">Tapahtuma (join/leave/etc.)</string>
+    <string name="away_dialog_nickname_value">Lempinimi poissaolon aikana</string>
+</resources>
