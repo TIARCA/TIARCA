@@ -96,11 +96,11 @@ I **Comandi rapidi** sono scorciatoie configurabili che trasformano parole di at
 
 ## 16. Aspetto, temi, preset e formato dei messaggi
 
-TIARCA distingue il **Tema**, che definisce la base chiara/scura, i colori e le risorse grafiche, dal **Preset grafico**, che descrive una configurazione più ampia dell'aspetto della chat. Le impostazioni di **Interfaccia** permettono inoltre di scegliere lingua, font, dimensione del testo, applicazione del font all'intera app, autocorrezione, modalità compatta della barra superiore, opzioni monocromatiche, campo di scrittura e formato dei messaggi.
+TIARCA distingue il **Tema**, che definisce la base chiara/scura, i colori e le risorse grafiche, dal **Preset grafico**, che descrive una configurazione più ampia dell'aspetto della chat. Le impostazioni di **Interfaccia** permettono inoltre di scegliere font, dimensione del testo, applicazione del font all'intera app, autocorrezione, modalità compatta della barra superiore, opzioni monocromatiche, campo di scrittura e formato dei messaggi. La **lingua dell'app resta separata** e non viene inclusa nei preset.
 
-Il comando **Salva preset** crea un file `.ircpreset` che rende portabile l'intera configurazione persistente presente in **Impostazioni → Interfaccia** e nel sottomenu **Formato del messaggio**. Il preset può includere:
+Il comando **Salva preset** crea un file `.ircpreset` che rende portabile la configurazione persistente di **Impostazioni → Interfaccia** e del sottomenu **Formato del messaggio**, con l'esclusione della lingua. Il preset può includere:
 
-- lingua dell'app e identità del preset grafico selezionato;
+- identità del preset grafico selezionato;
 - tema base, colori e proprietà grafiche personalizzate;
 - font, dimensione del testo e opzione per usare lo stesso font in tutta l'app;
 - autocorrezione e campo di scrittura sempre multilinea;
