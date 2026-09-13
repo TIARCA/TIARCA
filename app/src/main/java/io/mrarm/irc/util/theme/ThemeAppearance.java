@@ -102,13 +102,11 @@ final class ThemeAppearance {
     static void apply(Context context, ThemeInfo theme) {
         SharedPreferences prefs = DefaultPreferences.get(context);
         SharedPreferences.Editor editor = prefs.edit();
+        String appearancePreset = theme.ui == null ? null : theme.ui.appearancePreset;
 
         if (theme.ui != null) {
             if (theme.ui.language != null)
                 editor.putString(AppLocaleManager.PREF_APP_LANGUAGE, theme.ui.language);
-            if (theme.ui.appearancePreset != null)
-                editor.putString(AppearancePresetManager.PREF_APPEARANCE_PRESET,
-                        theme.ui.appearancePreset);
             if (theme.ui.appBarCompactMode != null)
                 editor.putString(ChatSettings.PREF_APPBAR_COMPACT_MODE,
                         theme.ui.appBarCompactMode);
@@ -184,6 +182,10 @@ final class ThemeAppearance {
             if (layout.timeRight != null)
                 RightClockSettings.setEnabled(context, layout.timeRight);
         }
+
+        if (appearancePreset != null)
+            prefs.edit().putString(AppearancePresetManager.PREF_APPEARANCE_PRESET,
+                    appearancePreset).apply();
     }
 
     static InputStream openFontForExport(Context context, ThemeInfo theme) throws IOException {
