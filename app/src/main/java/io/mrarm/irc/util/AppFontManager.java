@@ -1,5 +1,6 @@
 package io.mrarm.irc.util;
 
+import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.view.View;
 import android.view.ViewGroup;
@@ -42,7 +43,18 @@ public final class AppFontManager {
     }
 
     static boolean isMonospace(Typeface typeface) {
-        return typeface != null
-                && (typeface == Typeface.MONOSPACE || typeface.equals(Typeface.MONOSPACE));
+        if (typeface == null)
+            return false;
+        if (typeface == Typeface.MONOSPACE || typeface.equals(Typeface.MONOSPACE))
+            return true;
+
+        // Styling a Typeface (for example MONOSPACE + BOLD) creates a distinct Typeface object.
+        // Measuring glyph advances also covers those variants and imported monospace fonts.
+        Paint paint = new Paint();
+        paint.setTypeface(typeface);
+        float narrow = paint.measureText("i");
+        float wide = paint.measureText("W");
+        float digit = paint.measureText("0");
+        return Math.abs(narrow - wide) < 0.01f && Math.abs(narrow - digit) < 0.01f;
     }
 }
