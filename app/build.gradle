@@ -13,8 +13,8 @@ android {
         applicationId "io.tiarca.irc"
         minSdkVersion 28
         targetSdkVersion 36
-        versionCode 90700
-        versionName "0.9.7"
+        versionCode 90800
+        versionName "0.9.8"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary true
