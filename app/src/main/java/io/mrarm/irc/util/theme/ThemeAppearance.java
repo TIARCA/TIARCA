@@ -18,7 +18,6 @@ import io.mrarm.irc.config.MessageFormatSettings;
 import io.mrarm.irc.config.RightClockSettings;
 import io.mrarm.irc.config.SettingsHelper;
 import io.mrarm.irc.setting.ListWithCustomSetting;
-import io.mrarm.irc.util.AppLocaleManager;
 import io.mrarm.irc.util.DefaultPreferences;
 import io.mrarm.irc.util.MessageBuilder;
 
@@ -35,7 +34,6 @@ final class ThemeAppearance {
         theme.formatVersion = ThemeArchive.FORMAT_VERSION;
 
         ThemeInfo.UiSection ui = new ThemeInfo.UiSection();
-        ui.language = AppLocaleManager.getLanguage(prefs);
         ui.appearancePreset = prefs.getString(
                 AppearancePresetManager.PREF_APPEARANCE_PRESET,
                 AppearancePreset.CUSTOM.getId());
@@ -104,13 +102,9 @@ final class ThemeAppearance {
         SharedPreferences.Editor editor = prefs.edit();
         String appearancePreset = theme.ui == null ? null : theme.ui.appearancePreset;
 
-        if (theme.ui != null) {
-            if (theme.ui.language != null)
-                editor.putString(AppLocaleManager.PREF_APP_LANGUAGE, theme.ui.language);
-            if (theme.ui.appBarCompactMode != null)
-                editor.putString(ChatSettings.PREF_APPBAR_COMPACT_MODE,
-                        theme.ui.appBarCompactMode);
-        }
+        if (theme.ui != null && theme.ui.appBarCompactMode != null)
+            editor.putString(ChatSettings.PREF_APPBAR_COMPACT_MODE,
+                    theme.ui.appBarCompactMode);
 
         if (theme.chat != null) {
             if (theme.chat.fontSize != null)
@@ -155,9 +149,6 @@ final class ThemeAppearance {
             }
         }
         editor.apply();
-
-        if (theme.ui != null && theme.ui.language != null)
-            AppLocaleManager.applyLanguage(theme.ui.language);
 
         ThemeInfo.MessageLayoutSection layout = theme.messageLayout;
         if (layout != null) {
@@ -228,8 +219,7 @@ final class ThemeAppearance {
     }
 
     static boolean isVisualPreferenceKey(String key) {
-        return AppLocaleManager.PREF_APP_LANGUAGE.equals(key)
-                || AppearancePresetManager.PREF_APPEARANCE_PRESET.equals(key)
+        return AppearancePresetManager.PREF_APPEARANCE_PRESET.equals(key)
                 || ChatSettings.PREF_FONT.equals(key)
                 || ChatSettings.PREF_FONT_SIZE.equals(key)
                 || ChatSettings.PREF_GLOBAL_FONT_ENABLED.equals(key)
