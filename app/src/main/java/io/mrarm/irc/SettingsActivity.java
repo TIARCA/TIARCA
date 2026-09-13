@@ -1,6 +1,7 @@
 package io.mrarm.irc;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import androidx.fragment.app.Fragment;
@@ -12,6 +13,7 @@ import android.view.View;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.mrarm.irc.config.InterfaceSettingsRefreshState;
 import io.mrarm.irc.setting.SettingsCategoriesFragment;
 import io.mrarm.irc.setting.fragment.CommandSettingsFragment;
 import io.mrarm.irc.setting.fragment.InterfaceSettingsFragment;
@@ -24,15 +26,30 @@ import io.mrarm.irc.setting.fragment.StorageSettingsFragment;
 import io.mrarm.irc.setting.fragment.SharingSettingsFragment;
 import io.mrarm.irc.setting.fragment.UserSettingsFragment;
 import io.mrarm.irc.setup.BackupActivity;
+import io.mrarm.irc.util.DefaultPreferences;
 import io.mrarm.irc.util.SimpleCounter;
 
 public class SettingsActivity extends ThemedActivity {
 
+    private static final String STATE_INTERFACE_SETTINGS_CHANGED =
+            "interface_settings_changed";
+
     private SimpleCounter mRequestCodeCounter = new SimpleCounter(1);
+    private SharedPreferences mInterfacePreferences;
+    private boolean mInterfaceSettingsChanged;
+
+    private final SharedPreferences.OnSharedPreferenceChangeListener mInterfacePreferenceListener =
+            (preferences, key) -> {
+                if (InterfaceSettingsRefreshState.isRefreshRelevantPreference(key))
+                    mInterfaceSettingsChanged = true;
+            };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (savedInstanceState != null)
+            mInterfaceSettingsChanged = savedInstanceState.getBoolean(
+                    STATE_INTERFACE_SETTINGS_CHANGED, false);
         setContentView(R.layout.activity_settings);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         // A compact AppCompat action bar reserves one line of layout height.  On Android
@@ -49,6 +66,15 @@ public class SettingsActivity extends ThemedActivity {
                                                       Bundle savedInstanceState) {
                         if (fragment.getId() == R.id.content_frame)
                             updateTitle();
+                        if (fragment instanceof InterfaceSettingsFragment)
+                            beginInterfaceSettingsTracking();
+                    }
+
+                    @Override
+                    public void onFragmentViewDestroyed(FragmentManager fragmentManager,
+                                                        Fragment fragment) {
+                        if (fragment instanceof InterfaceSettingsFragment)
+                            endInterfaceSettingsTracking(fragment.isRemoving());
                     }
                 }, false);
         getSupportFragmentManager().addOnBackStackChangedListener(() -> {
@@ -59,6 +85,39 @@ public class SettingsActivity extends ThemedActivity {
                     .replace(R.id.content_frame, CategoriesFragment.newInstance())
                     .commit();
         }
+    }
+
+    private void beginInterfaceSettingsTracking() {
+        if (mInterfacePreferences != null)
+            mInterfacePreferences.unregisterOnSharedPreferenceChangeListener(
+                    mInterfacePreferenceListener);
+        mInterfacePreferences = DefaultPreferences.get(this);
+        mInterfacePreferences.registerOnSharedPreferenceChangeListener(
+                mInterfacePreferenceListener);
+    }
+
+    private void endInterfaceSettingsTracking(boolean leavingInterface) {
+        if (mInterfacePreferences != null) {
+            mInterfacePreferences.unregisterOnSharedPreferenceChangeListener(
+                    mInterfacePreferenceListener);
+            mInterfacePreferences = null;
+        }
+        if (leavingInterface && mInterfaceSettingsChanged) {
+            InterfaceSettingsRefreshState.markRefreshPending();
+            mInterfaceSettingsChanged = false;
+        }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        outState.putBoolean(STATE_INTERFACE_SETTINGS_CHANGED, mInterfaceSettingsChanged);
+        super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    protected void onDestroy() {
+        endInterfaceSettingsTracking(false);
+        super.onDestroy();
     }
 
     public SimpleCounter getRequestCodeCounter() {
