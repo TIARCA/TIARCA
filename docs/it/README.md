@@ -94,22 +94,25 @@ I **Comandi rapidi** sono scorciatoie configurabili che trasformano parole di at
 
 ![comandi rapidi](../images/14_comandi_rapidi.jpg)
 
-## 16. Aspetto, temi e formato dei messaggi
+## 16. Aspetto, temi, preset e formato dei messaggi
 
-TIARCA offre tema chiaro e scuro e un'ampia personalizzazione dei colori dell'app. Puoi intervenire anche sul font della chat, sulla dimensione del testo, sulla barra superiore e sul formato dei messaggi, compresa la visualizzazione opzionale dell'orario sul lato destro.
+TIARCA distingue il **Tema**, che definisce la base chiara/scura, i colori e le risorse grafiche, dal **Preset grafico**, che descrive una configurazione più ampia dell'aspetto della chat. Le impostazioni di **Interfaccia** permettono inoltre di scegliere font, dimensione del testo, applicazione del font all'intera app, autocorrezione, modalità compatta della barra superiore, opzioni monocromatiche, campo di scrittura e formato dei messaggi. La **lingua dell'app resta separata** e non viene inclusa nei preset.
 
-I build di sviluppo successivi alla 0.9.5 introducono **irctheme v2**, un formato a sezioni pensato per rendere portabile l'intero aspetto dell'app. Un file `.irctheme` v2 può includere:
+Il comando **Salva preset** crea un file `.ircpreset` che rende portabile la configurazione persistente di **Impostazioni → Interfaccia** e del sottomenu **Formato del messaggio**, con l'esclusione della lingua. Il preset può includere:
 
-- tema base e colori;
-- proprietà visive dell'interfaccia;
-- font e dimensione del testo;
-- formato dei messaggi normali, mention, action `/me`, notice ed eventi;
-- formato e posizione del timestamp;
+- identità del preset grafico selezionato;
+- tema base, colori e proprietà grafiche personalizzate;
+- font, dimensione del testo e opzione per usare lo stesso font in tutta l'app;
+- autocorrezione e campo di scrittura sempre multilinea;
+- modalità compatta della barra superiore;
+- avatar e opzioni monocromatiche per bot ed eventi;
+- formato dei messaggi normali, mention, action `/me`, notice ed eventi, compresi gli stili incorporati;
+- formato, larghezza fissa e posizione del timestamp;
 - eventuale font personalizzato incorporato come asset.
 
-Il file `.irctheme` v2 è un contenitore versionato con `theme.json` e, quando necessario, una cartella `assets/`. I vecchi temi JSON v1 restano importabili. Le sezioni sconosciute vengono ignorate dai lettori meno recenti, così nuove opzioni grafiche potranno essere aggiunte senza rompere i temi esistenti.
+Il file `.ircpreset` è un contenitore versionato con `theme.json` e, quando necessario, una cartella `assets/`. Per compatibilità, TIARCA continua a importare anche i precedenti file `.irctheme` v2 e i vecchi temi JSON v1; i campi mancanti nei formati precedenti vengono semplicemente lasciati invariati.
 
-In **Impostazioni → Interfaccia** trovi **Importa tema** e **Salva tema**. Salva tema esporta l'aspetto attualmente selezionato, inclusi i temi base e le impostazioni visive associate.
+In **Impostazioni → Interfaccia** trovi quindi **Importa preset** e **Salva preset**. I controlli dell'editor che rappresentano soltanto uno stato temporaneo della schermata e non una preferenza dell'app non vengono inclusi nel file.
 
 ![impostazioni interfaccia](../images/10_impostazioni_interfaccia.jpg)
 ![personalizzazione colori](../images/13_personalizzazione_colori.jpg)

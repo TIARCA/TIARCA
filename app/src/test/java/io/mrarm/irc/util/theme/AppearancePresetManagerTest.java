@@ -130,6 +130,19 @@ public class AppearancePresetManagerTest {
     }
 
     @Test
+    public void portableInterfaceOptionsDoNotDirtyGraphicPreset() {
+        manager.applyPreset(AppearancePreset.IRC_DARK);
+
+        preferences.edit()
+                .putBoolean(ChatSettings.PREF_GLOBAL_FONT_ENABLED, true)
+                .putBoolean(ChatSettings.PREF_TEXT_AUTOCORRECT_ENABLED, false)
+                .putBoolean(ChatSettings.PREF_SEND_BOX_ALWAYS_MULTILINE, true)
+                .commit();
+
+        assertEquals(AppearancePreset.IRC_DARK, manager.getCurrentPreset());
+    }
+
+    @Test
     public void applyingPresetDoesNotDirtyItself() {
         manager.applyPreset(AppearancePreset.TERMINAL);
 

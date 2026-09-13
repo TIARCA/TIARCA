@@ -22,11 +22,15 @@ public class ThemeArchiveTest {
         theme.colors.put(ThemeInfo.COLOR_PRIMARY, 0xFF112233);
 
         theme.ui = new ThemeInfo.UiSection();
+        theme.ui.appearancePreset = AppearancePreset.COLOR_BLIND.getId();
         theme.ui.appBarCompactMode = "auto";
 
         theme.chat = new ThemeInfo.ChatSection();
         theme.chat.font = "monospace";
         theme.chat.fontSize = 17;
+        theme.chat.globalFontEnabled = true;
+        theme.chat.textAutocorrectEnabled = false;
+        theme.chat.sendBoxAlwaysMultiline = true;
         theme.chat.monochromeBots = true;
 
         theme.messageLayout = new ThemeInfo.MessageLayoutSection();
@@ -47,9 +51,14 @@ public class ThemeArchiveTest {
         assertEquals(Integer.valueOf(2), imported.theme.formatVersion);
         assertEquals("Portable", imported.theme.name);
         assertEquals("default_dark", imported.theme.base);
+        assertEquals(AppearancePreset.COLOR_BLIND.getId(),
+                imported.theme.ui.appearancePreset);
         assertEquals("auto", imported.theme.ui.appBarCompactMode);
         assertEquals("monospace", imported.theme.chat.font);
         assertEquals(Integer.valueOf(17), imported.theme.chat.fontSize);
+        assertEquals(Boolean.TRUE, imported.theme.chat.globalFontEnabled);
+        assertEquals(Boolean.FALSE, imported.theme.chat.textAutocorrectEnabled);
+        assertEquals(Boolean.TRUE, imported.theme.chat.sendBoxAlwaysMultiline);
         assertEquals(Boolean.TRUE, imported.theme.chat.monochromeBots);
         assertEquals("[HH:mm]", imported.theme.messageLayout.timeFormat);
         assertEquals(Boolean.TRUE, imported.theme.messageLayout.timeRight);

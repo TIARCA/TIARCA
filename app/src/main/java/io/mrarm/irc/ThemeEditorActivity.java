@@ -15,6 +15,7 @@ import io.mrarm.irc.setting.fragment.theme.ChatThemeSettings;
 import io.mrarm.irc.setting.fragment.theme.CommonThemeSettings;
 import io.mrarm.irc.setup.BackupProgressActivity;
 import io.mrarm.irc.util.AppCompatViewFactory;
+import io.mrarm.irc.util.theme.ThemeArchive;
 import io.mrarm.irc.util.theme.ThemeInfo;
 import io.mrarm.irc.util.theme.ThemeManager;
 import io.mrarm.irc.util.theme.live.LiveThemeManager;
@@ -128,8 +129,9 @@ public class ThemeEditorActivity extends ThemedActivity {
         } else if (item.getItemId() == R.id.action_export) {
             Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
             intent.addCategory(Intent.CATEGORY_OPENABLE);
-            intent.setType("application/x-mrarm-irc-theme");
-            intent.putExtra(Intent.EXTRA_TITLE, getThemeInfo().name + ".irctheme");
+            intent.setType(ThemeArchive.MIME_TYPE);
+            intent.putExtra(Intent.EXTRA_TITLE,
+                    getThemeInfo().name + ThemeArchive.FILE_EXTENSION);
             mExportThemeLauncher.launch(intent);
         }
         return super.onOptionsItemSelected(item);

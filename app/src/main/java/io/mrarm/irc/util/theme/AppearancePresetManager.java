@@ -235,6 +235,11 @@ public final class AppearancePresetManager {
     }
 
     public static boolean isPresetVisualPreference(String key) {
+        if (PREF_APPEARANCE_PRESET.equals(key)
+                || ChatSettings.PREF_GLOBAL_FONT_ENABLED.equals(key)
+                || ChatSettings.PREF_TEXT_AUTOCORRECT_ENABLED.equals(key)
+                || ChatSettings.PREF_SEND_BOX_ALWAYS_MULTILINE.equals(key))
+            return false;
         return AppSettings.PREF_THEME.equals(key) || ThemeAppearance.isVisualPreferenceKey(key);
     }
 

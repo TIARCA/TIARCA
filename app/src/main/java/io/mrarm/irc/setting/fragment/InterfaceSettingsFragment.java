@@ -51,6 +51,7 @@ import io.mrarm.irc.util.EntryRecyclerViewAdapter;
 import io.mrarm.irc.util.AppLocaleManager;
 import io.mrarm.irc.util.MessageBuilder;
 import io.mrarm.irc.util.StyledAttributesHelper;
+import io.mrarm.irc.util.theme.ThemeArchive;
 import io.mrarm.irc.util.theme.ThemeInfo;
 import io.mrarm.irc.util.theme.ThemeManager;
 import io.mrarm.irc.util.theme.AppearancePreset;
@@ -394,8 +395,8 @@ public class InterfaceSettingsFragment extends SettingsListFragment
             mPendingExportTheme = theme;
             Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
             intent.addCategory(Intent.CATEGORY_OPENABLE);
-            intent.setType("application/x-mrarm-irc-theme");
-            intent.putExtra(Intent.EXTRA_TITLE, theme.name + ".irctheme");
+            intent.setType(ThemeArchive.MIME_TYPE);
+            intent.putExtra(Intent.EXTRA_TITLE, theme.name + ThemeArchive.FILE_EXTENSION);
             mExportThemeLauncher.launch(intent);
             return true;
         });

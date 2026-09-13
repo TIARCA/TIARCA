@@ -21,7 +21,7 @@ import io.mrarm.irc.setting.ListWithCustomSetting;
 import io.mrarm.irc.util.DefaultPreferences;
 import io.mrarm.irc.util.MessageBuilder;
 
-/** Bridges sectioned irctheme data and the visual preferences used by the app. */
+/** Bridges sectioned portable-preset data and the interface preferences used by the app. */
 final class ThemeAppearance {
 
     private static final String ASSET_DIR = "assets";
@@ -34,12 +34,21 @@ final class ThemeAppearance {
         theme.formatVersion = ThemeArchive.FORMAT_VERSION;
 
         ThemeInfo.UiSection ui = new ThemeInfo.UiSection();
+        ui.appearancePreset = prefs.getString(
+                AppearancePresetManager.PREF_APPEARANCE_PRESET,
+                AppearancePreset.CUSTOM.getId());
         ui.appBarCompactMode = getStringPreference(prefs, ChatSettings.PREF_APPBAR_COMPACT_MODE);
         theme.ui = ui;
 
         ThemeInfo.ChatSection chat = new ThemeInfo.ChatSection();
         chat.font = getStringPreference(prefs, ChatSettings.PREF_FONT);
         chat.fontSize = getIntPreference(prefs, ChatSettings.PREF_FONT_SIZE);
+        chat.globalFontEnabled = getBooleanPreference(
+                prefs, ChatSettings.PREF_GLOBAL_FONT_ENABLED);
+        chat.textAutocorrectEnabled = getBooleanPreference(
+                prefs, ChatSettings.PREF_TEXT_AUTOCORRECT_ENABLED);
+        chat.sendBoxAlwaysMultiline = getBooleanPreference(
+                prefs, ChatSettings.PREF_SEND_BOX_ALWAYS_MULTILINE);
         chat.monochromeBots = prefs.getBoolean(
                 AutomatedSenderSettings.PREF_MONOCHROME_BOTS, false);
         chat.messageAvatars = prefs.getBoolean(
@@ -91,6 +100,7 @@ final class ThemeAppearance {
     static void apply(Context context, ThemeInfo theme) {
         SharedPreferences prefs = DefaultPreferences.get(context);
         SharedPreferences.Editor editor = prefs.edit();
+        String appearancePreset = theme.ui == null ? null : theme.ui.appearancePreset;
 
         if (theme.ui != null && theme.ui.appBarCompactMode != null)
             editor.putString(ChatSettings.PREF_APPBAR_COMPACT_MODE,
@@ -99,6 +109,15 @@ final class ThemeAppearance {
         if (theme.chat != null) {
             if (theme.chat.fontSize != null)
                 editor.putInt(ChatSettings.PREF_FONT_SIZE, theme.chat.fontSize);
+            if (theme.chat.globalFontEnabled != null)
+                editor.putBoolean(ChatSettings.PREF_GLOBAL_FONT_ENABLED,
+                        theme.chat.globalFontEnabled);
+            if (theme.chat.textAutocorrectEnabled != null)
+                editor.putBoolean(ChatSettings.PREF_TEXT_AUTOCORRECT_ENABLED,
+                        theme.chat.textAutocorrectEnabled);
+            if (theme.chat.sendBoxAlwaysMultiline != null)
+                editor.putBoolean(ChatSettings.PREF_SEND_BOX_ALWAYS_MULTILINE,
+                        theme.chat.sendBoxAlwaysMultiline);
             if (theme.chat.monochromeBots != null)
                 editor.putBoolean(AutomatedSenderSettings.PREF_MONOCHROME_BOTS,
                         theme.chat.monochromeBots);
@@ -154,6 +173,10 @@ final class ThemeAppearance {
             if (layout.timeRight != null)
                 RightClockSettings.setEnabled(context, layout.timeRight);
         }
+
+        if (appearancePreset != null)
+            prefs.edit().putString(AppearancePresetManager.PREF_APPEARANCE_PRESET,
+                    appearancePreset).apply();
     }
 
     static InputStream openFontForExport(Context context, ThemeInfo theme) throws IOException {
@@ -196,9 +219,13 @@ final class ThemeAppearance {
     }
 
     static boolean isVisualPreferenceKey(String key) {
-        return ChatSettings.PREF_FONT.equals(key)
+        return AppearancePresetManager.PREF_APPEARANCE_PRESET.equals(key)
+                || ChatSettings.PREF_FONT.equals(key)
                 || ChatSettings.PREF_FONT_SIZE.equals(key)
+                || ChatSettings.PREF_GLOBAL_FONT_ENABLED.equals(key)
+                || ChatSettings.PREF_TEXT_AUTOCORRECT_ENABLED.equals(key)
                 || ChatSettings.PREF_APPBAR_COMPACT_MODE.equals(key)
+                || ChatSettings.PREF_SEND_BOX_ALWAYS_MULTILINE.equals(key)
                 || AutomatedSenderSettings.PREF_MONOCHROME_BOTS.equals(key)
                 || EventDisplaySettings.PREF_MONOCHROME_MODE.equals(key)
                 || EventDisplaySettings.PREF_MONOCHROME_KICK.equals(key)
@@ -268,6 +295,12 @@ final class ThemeAppearance {
         Object defaultValue = SettingsHelper.getDefaultValue(key);
         int fallback = defaultValue instanceof Integer ? (Integer) defaultValue : -1;
         return prefs.getInt(key, fallback);
+    }
+
+    private static Boolean getBooleanPreference(SharedPreferences prefs, String key) {
+        Object defaultValue = SettingsHelper.getDefaultValue(key);
+        boolean fallback = defaultValue instanceof Boolean && (Boolean) defaultValue;
+        return prefs.getBoolean(key, fallback);
     }
 
     private static String extensionOf(String name) {
