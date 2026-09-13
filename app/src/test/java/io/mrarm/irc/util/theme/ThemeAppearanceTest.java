@@ -36,7 +36,7 @@ public class ThemeAppearanceTest {
     }
 
     @Test
-    public void captureAndApplyPreserveInterfacePreferences() {
+    public void captureAndApplyPreservePresetPreferencesButNotLanguage() {
         preferences.edit()
                 .putString(AppLocaleManager.PREF_APP_LANGUAGE, "it")
                 .putString(AppearancePresetManager.PREF_APPEARANCE_PRESET,
@@ -52,7 +52,6 @@ public class ThemeAppearanceTest {
         ThemeInfo theme = new ThemeInfo();
         ThemeAppearance.capture(context, theme);
 
-        assertEquals("it", theme.ui.language);
         assertEquals(AppearancePreset.COLOR_BLIND.getId(), theme.ui.appearancePreset);
         assertEquals("always", theme.ui.appBarCompactMode);
         assertEquals("monospace", theme.chat.font);
@@ -61,10 +60,12 @@ public class ThemeAppearanceTest {
         assertEquals(Boolean.FALSE, theme.chat.textAutocorrectEnabled);
         assertEquals(Boolean.TRUE, theme.chat.sendBoxAlwaysMultiline);
 
-        preferences.edit().clear().commit();
+        preferences.edit().clear()
+                .putString(AppLocaleManager.PREF_APP_LANGUAGE, "en")
+                .commit();
         ThemeAppearance.apply(context, theme);
 
-        assertEquals("it", preferences.getString(AppLocaleManager.PREF_APP_LANGUAGE, null));
+        assertEquals("en", preferences.getString(AppLocaleManager.PREF_APP_LANGUAGE, null));
         assertEquals(AppearancePreset.COLOR_BLIND.getId(), preferences.getString(
                 AppearancePresetManager.PREF_APPEARANCE_PRESET, null));
         assertEquals("always", preferences.getString(ChatSettings.PREF_APPBAR_COMPACT_MODE, null));
