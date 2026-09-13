@@ -27,6 +27,7 @@ public final class InterfaceSettingsRefreshState {
         return AppSettings.PREF_THEME.equals(key)
                 || ChatSettings.PREF_FONT.equals(key)
                 || ChatSettings.PREF_FONT_SIZE.equals(key)
+                || ChatSettings.PREF_GLOBAL_FONT_ENABLED.equals(key)
                 || ChatSettings.PREF_TEXT_AUTOCORRECT_ENABLED.equals(key)
                 || ChatSettings.PREF_APPBAR_COMPACT_MODE.equals(key)
                 || ChatSettings.PREF_SEND_BOX_ALWAYS_MULTILINE.equals(key)

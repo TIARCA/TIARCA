@@ -17,9 +17,10 @@ public class AppCompatViewFactory implements LayoutInflater.Factory2 {
     @Override
     public View onCreateView(View parent, String name, Context context, AttributeSet attrs) {
         View view = mActivity.onCreateView(name, context, attrs);
-        if (view != null)
-            return view;
-        return mActivity.getDelegate().createView(parent, name, context, attrs);
+        if (view == null)
+            view = mActivity.getDelegate().createView(parent, name, context, attrs);
+        AppFontManager.applyToView(view);
+        return view;
     }
 
     @Override

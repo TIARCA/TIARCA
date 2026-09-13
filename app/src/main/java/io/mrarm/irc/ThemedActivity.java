@@ -13,6 +13,8 @@ import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
+import io.mrarm.irc.util.AppCompatViewFactory;
+import io.mrarm.irc.util.AppFontManager;
 import io.mrarm.irc.util.theme.ThemeManager;
 
 public class ThemedActivity extends AppCompatActivity implements ThemeManager.ThemeChangeListener {
@@ -22,6 +24,8 @@ public class ThemedActivity extends AppCompatActivity implements ThemeManager.Th
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        if (getLayoutInflater().getFactory2() == null)
+            getLayoutInflater().setFactory2(new AppCompatViewFactory(this));
         ThemeManager helper = ThemeManager.getInstance(this);
         helper.addThemeChangeListener(this);
         mDarkMode = AppCompatDelegate.getDefaultNightMode();
@@ -31,6 +35,7 @@ public class ThemedActivity extends AppCompatActivity implements ThemeManager.Th
     @Override
     protected void onPostCreate(Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
+        AppFontManager.applyToHierarchy(getWindow().getDecorView());
         if (!(this instanceof MainActivity))
             return;
 

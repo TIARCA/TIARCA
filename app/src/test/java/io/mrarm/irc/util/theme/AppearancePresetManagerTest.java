@@ -97,14 +97,14 @@ public class AppearancePresetManagerTest {
     }
 
     @Test
-    public void colorBlindUsesAtkinsonAt18SpAndRedundantMentionStyle() {
+    public void colorBlindUsesAtkinsonAt16SpAndRedundantMentionStyle() {
         manager.applyPreset(AppearancePreset.COLOR_BLIND);
 
         assertEquals("high_contrast_light",
                 preferences.getString(AppSettings.PREF_THEME, null));
         assertEquals(AppearancePresetManager.FONT_ATKINSON_HYPERLEGIBLE_NEXT,
                 preferences.getString(ChatSettings.PREF_FONT, null));
-        assertEquals(18, preferences.getInt(ChatSettings.PREF_FONT_SIZE, -1));
+        assertEquals(16, preferences.getInt(ChatSettings.PREF_FONT_SIZE, -1));
         assertNotNull(ResourcesCompat.getFont(context, R.font.atkinson_hyperlegible_next));
         assertHasPrefixChip(MessageBuilder.getInstance(context).getMessageFormat());
         Spanned mention = (Spanned) MessageBuilder.getInstance(context)

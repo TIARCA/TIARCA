@@ -12,6 +12,7 @@ import android.os.ParcelFileDescriptor;
 import android.provider.OpenableColumns;
 import androidx.appcompat.app.AlertDialog;
 import android.view.View;
+import android.widget.CheckBox;
 import android.widget.Toast;
 
 import java.io.File;
@@ -20,6 +21,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 import io.mrarm.irc.R;
+import io.mrarm.irc.config.ChatSettings;
+import io.mrarm.irc.util.DefaultPreferences;
 
 public class ListWithCustomSetting extends ListSetting implements
         SettingsListAdapter.ActivityResultCallback {
@@ -233,7 +236,8 @@ public class ListWithCustomSetting extends ListSetting implements
                         R.string.value_custom_specific, entry.getCustomValue());
             entriesWithCustom[entriesWithCustom.length - 1] = v.getContext().getString(
                     R.string.value_custom);
-            new AlertDialog.Builder(v.getContext())
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(v.getContext())
                     .setTitle(entry.mName)
                     .setSingleChoiceItems(entriesWithCustom,
                             custom ? entries.length : entry.getSelectedOption(),
@@ -244,9 +248,22 @@ public class ListWithCustomSetting extends ListSetting implements
                                     openCustomValueDialog();
                                 }
                                 dialog.dismiss();
-                            })
-                    .show();
+                            });
 
+            if (entry.mCustomValueType == TYPE_FONT) {
+                CheckBox globalFont = new CheckBox(v.getContext());
+                globalFont.setText(R.string.pref_title_global_font);
+                globalFont.setChecked(ChatSettings.isGlobalFontEnabled());
+                int padding = Math.round(16 * v.getResources().getDisplayMetrics().density);
+                globalFont.setPadding(padding, 0, padding, 0);
+                globalFont.setOnCheckedChangeListener((buttonView, checked) ->
+                        DefaultPreferences.get(v.getContext()).edit()
+                                .putBoolean(ChatSettings.PREF_GLOBAL_FONT_ENABLED, checked)
+                                .apply());
+                builder.setView(globalFont);
+            }
+
+            builder.show();
         }
 
     }

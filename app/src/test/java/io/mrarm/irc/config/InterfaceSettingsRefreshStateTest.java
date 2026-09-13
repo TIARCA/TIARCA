@@ -34,6 +34,8 @@ public class InterfaceSettingsRefreshStateTest {
         assertTrue(InterfaceSettingsRefreshState.isRefreshRelevantPreference(
                 ChatSettings.PREF_FONT_SIZE));
         assertTrue(InterfaceSettingsRefreshState.isRefreshRelevantPreference(
+                ChatSettings.PREF_GLOBAL_FONT_ENABLED));
+        assertTrue(InterfaceSettingsRefreshState.isRefreshRelevantPreference(
                 MessageFormatSettings.PREF_MESSAGE_FORMAT));
         assertTrue(InterfaceSettingsRefreshState.isRefreshRelevantPreference(
                 MessageFormatSettings.PREF_MESSAGE_AVATARS));

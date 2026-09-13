@@ -51,6 +51,7 @@ ChatSettings:
     - spec: String font = "default"
       getter: getFontString
     - spec: int fontSize = 12
+    - spec: boolean globalFontEnabled = false
     - spec: boolean textAutocorrectEnabled = true
       pref: chat_text_autocorrect
 
