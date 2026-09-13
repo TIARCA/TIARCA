@@ -153,7 +153,7 @@ public final class AppearancePresetManager {
 
         String font = terminal ? "monospace" : colorBlind
                 ? FONT_ATKINSON_HYPERLEGIBLE_NEXT : "default";
-        int fontSize = colorBlind ? 18 : graphic ? 14 : terminal ? 14 : 12;
+        int fontSize = colorBlind ? 16 : graphic ? 14 : terminal ? 14 : 12;
         boolean avatars = graphic || colorBlind;
         boolean monochrome = terminal || colorBlind;
 
