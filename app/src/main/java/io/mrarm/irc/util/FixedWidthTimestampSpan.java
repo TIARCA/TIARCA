@@ -29,7 +29,7 @@ public class FixedWidthTimestampSpan extends ReplacementSpan {
         char ld = '0';
         for (int i = MEASURE_NUMBER_CHARS.length() - 1; i >= 0; --i) {
             if (mNumberWidths[i] > mw) {
-                mNumberWidths[i] = mw;
+                mw = mNumberWidths[i];
                 ld = MEASURE_NUMBER_CHARS.charAt(i);
             }
         }
