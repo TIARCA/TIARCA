@@ -17,15 +17,19 @@ import java.util.zip.ZipOutputStream;
 import io.mrarm.irc.config.SettingsHelper;
 
 /**
- * irctheme v2 container.
+ * Portable interface-preset container.
  *
- * v1 themes were plain JSON files. v2 keeps the .irctheme extension but stores a ZIP archive
- * containing theme.json and optional visual assets. Unknown future entries are ignored, so new
- * sections/assets can be added without breaking older v2 readers.
+ * Historical v1 themes were plain JSON files and v2 introduced a ZIP container under the
+ * .irctheme extension. New exports use .ircpreset because the archive now represents the full
+ * Interface configuration, while keeping theme.json and the v2 payload shape for backward
+ * compatibility. Older .irctheme files remain readable.
  */
 public final class ThemeArchive {
 
     public static final int FORMAT_VERSION = 2;
+    public static final String FILE_EXTENSION = ".ircpreset";
+    public static final String LEGACY_FILE_EXTENSION = ".irctheme";
+    public static final String MIME_TYPE = "application/x-tiarca-preset";
     public static final String THEME_JSON_ENTRY = "theme.json";
     public static final String ASSET_PREFIX = "assets/";
 
