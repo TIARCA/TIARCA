@@ -138,8 +138,11 @@ public final class AppearancePresetManager {
                 themeId = "default_dark";
                 break;
         }
-        ThemeManager manager = ThemeManager.getInstance(context);
-        manager.setTheme(manager.getBaseThemeOrFallback(themeId));
+        // Write the same preference used by ThemeManager. This also keeps preset
+        // application independent from the lifecycle of ThemeManager's singleton
+        // (notably during tests), while its existing preference listener still
+        // performs the normal live theme update in the application.
+        preferences.edit().putString(AppSettings.PREF_THEME, themeId).apply();
     }
 
     private void applySimplePreferences(AppearancePreset preset) {
