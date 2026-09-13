@@ -191,6 +191,8 @@ public class ThemeManager {
                     imported.fontEntryName);
             saveTheme(theme);
         }
+        // Importing a preset is an apply operation: restore its interface snapshot immediately.
+        setTheme(theme);
     }
 
     /** Legacy helper kept for callers/tests that still provide the historical JSON reader. */
