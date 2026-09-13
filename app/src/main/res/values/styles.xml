@@ -230,8 +230,8 @@
         <item name="android:colorBackground">#FF000000</item>
         <item name="android:windowBackground">#FF000000</item>
         <item name="colorBackgroundFloating">#FF071007</item>
-        <item name="android:textColorPrimary">#FF39FF14</item>
-        <item name="android:textColorSecondary">#FFA5D6A7</item>
+        <item name="android:textColorPrimary">@color/preset_terminal_text_primary</item>
+        <item name="android:textColorSecondary">@color/preset_terminal_text_secondary</item>
         <item name="iconColor">#FF39FF14</item>
         <item name="iconColorOpaque">#FF39FF14</item>
         <item name="actionBarTextColorPrimary">#FF39FF14</item>
@@ -286,8 +286,8 @@
         <item name="android:colorBackground">#FFFFFFFF</item>
         <item name="android:windowBackground">#FFFFFFFF</item>
         <item name="colorBackgroundFloating">#FFFFFFFF</item>
-        <item name="android:textColorPrimary">#FF000000</item>
-        <item name="android:textColorSecondary">#FF303030</item>
+        <item name="android:textColorPrimary">@color/preset_high_contrast_text_primary</item>
+        <item name="android:textColorSecondary">@color/preset_high_contrast_text_secondary</item>
         <item name="iconColor">#FF000000</item>
         <item name="iconColorOpaque">#FF000000</item>
         <item name="android:windowLightStatusBar">false</item>

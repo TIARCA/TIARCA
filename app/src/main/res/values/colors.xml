@@ -9,6 +9,13 @@
     <color name="colorAccent">#FF4081</color>
     <color name="appThemeTextColorSecondary">@color/abc_secondary_text_material_light</color>
 
+    <!-- Preset text colors are resources (not inline literals) because Material NavigationView
+         resolves textColorPrimary/textColorSecondary as ColorStateList resources. -->
+    <color name="preset_terminal_text_primary">#FF39FF14</color>
+    <color name="preset_terminal_text_secondary">#FFA5D6A7</color>
+    <color name="preset_high_contrast_text_primary">#FF000000</color>
+    <color name="preset_high_contrast_text_secondary">#FF303030</color>
+
     <color name="appBackground">@color/background_material_light</color>
     <color name="appBackgroundFloating">@color/background_floating_material_light</color>
 
