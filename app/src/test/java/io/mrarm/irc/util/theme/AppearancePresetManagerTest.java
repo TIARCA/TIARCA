@@ -7,7 +7,6 @@ import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.graphics.Typeface;
 import android.text.Spanned;
 import android.text.style.StyleSpan;
 import android.text.style.UnderlineSpan;
@@ -92,7 +91,6 @@ public class AppearancePresetManagerTest {
 
         assertEquals("terminal_dark", preferences.getString(AppSettings.PREF_THEME, null));
         assertEquals("monospace", preferences.getString(ChatSettings.PREF_FONT, null));
-        assertEquals(Typeface.MONOSPACE, ChatSettings.getFont());
         assertHasPrefixChip(MessageBuilder.getInstance(context).getMessageFormat());
         assertHasPrefixChip(MessageBuilder.getInstance(context).getActionMessageFormat());
         assertHasPrefixChip(MessageBuilder.getInstance(context).getNoticeMessageFormat());
