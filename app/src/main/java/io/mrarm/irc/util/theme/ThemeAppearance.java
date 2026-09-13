@@ -13,6 +13,7 @@ import java.io.InputStream;
 
 import io.mrarm.irc.config.AutomatedSenderSettings;
 import io.mrarm.irc.config.ChatSettings;
+import io.mrarm.irc.config.EventDisplaySettings;
 import io.mrarm.irc.config.MessageFormatSettings;
 import io.mrarm.irc.config.RightClockSettings;
 import io.mrarm.irc.config.SettingsHelper;
@@ -41,6 +42,18 @@ final class ThemeAppearance {
         chat.fontSize = getIntPreference(prefs, ChatSettings.PREF_FONT_SIZE);
         chat.monochromeBots = prefs.getBoolean(
                 AutomatedSenderSettings.PREF_MONOCHROME_BOTS, false);
+        chat.messageAvatars = prefs.getBoolean(
+                MessageFormatSettings.PREF_MESSAGE_AVATARS, false);
+        chat.customAvatars = prefs.getBoolean(
+                MessageFormatSettings.PREF_MESSAGE_CUSTOM_AVATARS, false);
+        chat.monochromeModeEvents = prefs.getBoolean(
+                EventDisplaySettings.PREF_MONOCHROME_MODE, false);
+        chat.monochromeKickEvents = prefs.getBoolean(
+                EventDisplaySettings.PREF_MONOCHROME_KICK, false);
+        chat.monochromeQuitEvents = prefs.getBoolean(
+                EventDisplaySettings.PREF_MONOCHROME_QUIT, false);
+        chat.monochromeJoinPartEvents = prefs.getBoolean(
+                EventDisplaySettings.PREF_MONOCHROME_JOIN_PART, false);
         theme.chat = chat;
 
         if (ListWithCustomSetting.isPrefCustomValue(chat.font)) {
@@ -89,6 +102,24 @@ final class ThemeAppearance {
             if (theme.chat.monochromeBots != null)
                 editor.putBoolean(AutomatedSenderSettings.PREF_MONOCHROME_BOTS,
                         theme.chat.monochromeBots);
+            if (theme.chat.messageAvatars != null)
+                editor.putBoolean(MessageFormatSettings.PREF_MESSAGE_AVATARS,
+                        theme.chat.messageAvatars);
+            if (theme.chat.customAvatars != null)
+                editor.putBoolean(MessageFormatSettings.PREF_MESSAGE_CUSTOM_AVATARS,
+                        theme.chat.customAvatars);
+            if (theme.chat.monochromeModeEvents != null)
+                editor.putBoolean(EventDisplaySettings.PREF_MONOCHROME_MODE,
+                        theme.chat.monochromeModeEvents);
+            if (theme.chat.monochromeKickEvents != null)
+                editor.putBoolean(EventDisplaySettings.PREF_MONOCHROME_KICK,
+                        theme.chat.monochromeKickEvents);
+            if (theme.chat.monochromeQuitEvents != null)
+                editor.putBoolean(EventDisplaySettings.PREF_MONOCHROME_QUIT,
+                        theme.chat.monochromeQuitEvents);
+            if (theme.chat.monochromeJoinPartEvents != null)
+                editor.putBoolean(EventDisplaySettings.PREF_MONOCHROME_JOIN_PART,
+                        theme.chat.monochromeJoinPartEvents);
             if (theme.chat.font != null) {
                 if (ListWithCustomSetting.isPrefCustomValue(theme.chat.font)) {
                     if (restoreCustomFont(context, theme))
@@ -169,6 +200,10 @@ final class ThemeAppearance {
                 || ChatSettings.PREF_FONT_SIZE.equals(key)
                 || ChatSettings.PREF_APPBAR_COMPACT_MODE.equals(key)
                 || AutomatedSenderSettings.PREF_MONOCHROME_BOTS.equals(key)
+                || EventDisplaySettings.PREF_MONOCHROME_MODE.equals(key)
+                || EventDisplaySettings.PREF_MONOCHROME_KICK.equals(key)
+                || EventDisplaySettings.PREF_MONOCHROME_QUIT.equals(key)
+                || EventDisplaySettings.PREF_MONOCHROME_JOIN_PART.equals(key)
                 || MessageFormatSettings.PREF_MESSAGE_FORMAT.equals(key)
                 || MessageFormatSettings.PREF_MESSAGE_FORMAT_MENTION.equals(key)
                 || MessageFormatSettings.PREF_MESSAGE_FORMAT_ACTION.equals(key)
@@ -178,6 +213,8 @@ final class ThemeAppearance {
                 || MessageFormatSettings.PREF_MESSAGE_FORMAT_EVENT_HOSTNAME.equals(key)
                 || MessageFormatSettings.PREF_MESSAGE_TIME_FORMAT.equals(key)
                 || MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH.equals(key)
+                || MessageFormatSettings.PREF_MESSAGE_AVATARS.equals(key)
+                || MessageFormatSettings.PREF_MESSAGE_CUSTOM_AVATARS.equals(key)
                 || RightClockSettings.PREF_MESSAGE_TIME_RIGHT.equals(key);
     }
 

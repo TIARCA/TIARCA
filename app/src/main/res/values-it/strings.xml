@@ -445,6 +445,7 @@
         <item>Predefinito (Sans)</item>
         <item>Serif</item>
         <item>Monospazio</item>
+        <item>Atkinson Hyperlegible Next</item>
     </string-array>
     <string name="font_size_sample_text">Questo è un testo di esempio per riflettere come apparirà la dimensione del carattere nella chat. Puoi modificarlo utilizzando il dispositivo di scorrimento qui sotto.</string>
 
@@ -527,6 +528,18 @@
     </string-array>
 
     <!-- Theme settings -->
+
+    <string name="pref_header_appearance_preset">Preset grafico</string>
+    <string name="appearance_preset_summary">Applica un aspetto completo alla chat. Se modifichi una delle impostazioni visive, lo stato diventa Personalizzato.</string>
+    <string name="appearance_preset_irc_light">IRC chiaro</string>
+    <string name="appearance_preset_irc_dark">IRC scuro</string>
+    <string name="appearance_preset_graphic_light">Grafico chiaro</string>
+    <string name="appearance_preset_graphic_dark">Grafico scuro</string>
+    <string name="appearance_preset_terminal">Terminale</string>
+    <string name="appearance_preset_color_blind">Daltonismo</string>
+    <string name="appearance_preset_custom">Personalizzato</string>
+    <string name="theme_terminal">Terminale</string>
+    <string name="theme_high_contrast">Alto contrasto</string>
 
     <string name="pref_header_theme">Tema</string>
 

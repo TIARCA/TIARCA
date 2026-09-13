@@ -434,6 +434,7 @@
         <item>Oletus (Sans)</item>
         <item>Serif</item>
         <item>Monospace</item>
+        <item>Atkinson Hyperlegible Next</item>
     </string-array>
     <string name="font_size_sample_text">Tämä on esimerkkiteksti, joka kertoo, miltä fonttikoko näyttää chatissa. Voit muuttaa sitä alla olevan liukusäätimen avulla.</string>
 
@@ -492,6 +493,18 @@
     </string-array>
 
     <!-- Theme settings -->
+
+    <string name="pref_header_appearance_preset">Ulkoasuesiasetus</string>
+    <string name="appearance_preset_summary">Ottaa käyttöön chatin täydellisen ulkoasun. Visuaalisen asetuksen muuttaminen vaihtaa tilaksi Mukautettu.</string>
+    <string name="appearance_preset_irc_light">Vaalea IRC</string>
+    <string name="appearance_preset_irc_dark">Tumma IRC</string>
+    <string name="appearance_preset_graphic_light">Vaalea graafinen</string>
+    <string name="appearance_preset_graphic_dark">Tumma graafinen</string>
+    <string name="appearance_preset_terminal">Pääte</string>
+    <string name="appearance_preset_color_blind">Värisokeus</string>
+    <string name="appearance_preset_custom">Mukautettu</string>
+    <string name="theme_terminal">Pääte</string>
+    <string name="theme_high_contrast">Suuri kontrasti</string>
 
     <string name="pref_header_theme">teema</string>
 

@@ -12,6 +12,7 @@ import java.util.List;
 import io.mrarm.irc.config.InterfaceSettingsRefreshState;
 import io.mrarm.irc.config.SettingsHelper;
 import io.mrarm.irc.util.AppLocaleManager;
+import io.mrarm.irc.util.theme.AppearancePresetManager;
 
 public class IRCApplication extends Application implements Application.ActivityLifecycleCallbacks {
 
@@ -29,6 +30,7 @@ public class IRCApplication extends Application implements Application.ActivityL
         clearSessionRestoreAfterIntentionalExit();
         AppLocaleManager.applyStoredLanguage(this);
         migrateDefaultThemeForV18();
+        AppearancePresetManager.getInstance(this);
         NotificationManager.createDefaultChannels(this);
         DirectShareManager.initialize(this);
         registerActivityLifecycleCallbacks(this);

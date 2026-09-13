@@ -17,6 +17,7 @@
         <item>default</item>
         <item>serif</item>
         <item>monospace</item>
+        <item>atkinson_hyperlegible_next</item>
     </string-array>
     <string-array name="pref_entry_values_appbar_compact_mode">
         <item>never</item>

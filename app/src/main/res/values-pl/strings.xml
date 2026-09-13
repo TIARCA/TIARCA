@@ -466,6 +466,7 @@
         <item>Domyślny (bez)</item>
         <item>Szeryf</item>
         <item>Monoprzestrzeń</item>
+        <item>Atkinson Hyperlegible Next</item>
     </string-array>
     <string name="font_size_sample_text">To jest przykładowy tekst pokazujący, jak rozmiar czcionki będzie wyglądał na czacie. Możesz to zmienić za pomocą poniższego suwaka.</string>
 
@@ -524,6 +525,18 @@
     </string-array>
 
     <!-- Theme settings -->
+
+    <string name="pref_header_appearance_preset">Ustawienie graficzne</string>
+    <string name="appearance_preset_summary">Stosuje pełny wygląd czatu. Zmiana ustawienia wizualnego przełącza stan na Niestandardowy.</string>
+    <string name="appearance_preset_irc_light">IRC jasny</string>
+    <string name="appearance_preset_irc_dark">IRC ciemny</string>
+    <string name="appearance_preset_graphic_light">Graficzny jasny</string>
+    <string name="appearance_preset_graphic_dark">Graficzny ciemny</string>
+    <string name="appearance_preset_terminal">Terminal</string>
+    <string name="appearance_preset_color_blind">Daltonizm</string>
+    <string name="appearance_preset_custom">Niestandardowy</string>
+    <string name="theme_terminal">Terminal</string>
+    <string name="theme_high_contrast">Wysoki kontrast</string>
 
     <string name="pref_header_theme">Wiadomości</string>
 

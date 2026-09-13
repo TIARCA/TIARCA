@@ -80,6 +80,12 @@ public class ThemeManager {
         addBaseTheme(new BaseTheme("default_dark", R.string.theme_default_dark,
                 R.style.AppTheme, R.style.AppTheme_NoActionBar, R.style.AppTheme_IRCColors,
                 true));
+        addBaseTheme(new BaseTheme("terminal_dark", R.string.theme_terminal,
+                R.style.AppTheme_Terminal, R.style.AppTheme_Terminal_NoActionBar,
+                R.style.AppTheme_Terminal_IRCColors, true));
+        addBaseTheme(new BaseTheme("high_contrast_light", R.string.theme_high_contrast,
+                R.style.AppTheme_HighContrast, R.style.AppTheme_HighContrast_NoActionBar,
+                R.style.AppTheme_HighContrast_IRCColors, false));
         reloadThemes();
 
         appearancePreferenceListener = (prefs, key) -> {

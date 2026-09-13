@@ -434,6 +434,7 @@
         <item>Standard (ohne)</item>
         <item>Serif</item>
         <item>Monospace</item>
+        <item>Atkinson Hyperlegible Next</item>
     </string-array>
     <string name="font_size_sample_text">Dies ist ein Beispieltext, der zeigen soll, wie die Schriftgröße im Chat aussehen wird. Sie können es mit dem Schieberegler unten ändern.</string>
 
@@ -492,6 +493,18 @@
     </string-array>
 
     <!-- Theme settings -->
+
+    <string name="pref_header_appearance_preset">Grafische Voreinstellung</string>
+    <string name="appearance_preset_summary">Wendet ein vollständiges Chat-Erscheinungsbild an. Wird eine visuelle Einstellung geändert, wechselt der Status zu Benutzerdefiniert.</string>
+    <string name="appearance_preset_irc_light">IRC hell</string>
+    <string name="appearance_preset_irc_dark">IRC dunkel</string>
+    <string name="appearance_preset_graphic_light">Grafisch hell</string>
+    <string name="appearance_preset_graphic_dark">Grafisch dunkel</string>
+    <string name="appearance_preset_terminal">Terminal</string>
+    <string name="appearance_preset_color_blind">Farbenblindheit</string>
+    <string name="appearance_preset_custom">Benutzerdefiniert</string>
+    <string name="theme_terminal">Terminal</string>
+    <string name="theme_high_contrast">Hoher Kontrast</string>
 
     <string name="pref_header_theme">-Thema</string>
 

@@ -222,4 +222,114 @@
         <item name="android:windowMinWidthMajor">16dp</item>
     </style>
 
+    <!-- Near-black, single-hue base used by the Terminal appearance preset. -->
+    <style name="AppTheme.Terminal" parent="AppTheme">
+        <item name="colorPrimary">#FF003B00</item>
+        <item name="colorPrimaryDark">#FF001B00</item>
+        <item name="colorAccent">#FF39FF14</item>
+        <item name="android:colorBackground">#FF000000</item>
+        <item name="android:windowBackground">#FF000000</item>
+        <item name="colorBackgroundFloating">#FF071007</item>
+        <item name="android:textColorPrimary">#FF39FF14</item>
+        <item name="android:textColorSecondary">#FFA5D6A7</item>
+        <item name="iconColor">#FF39FF14</item>
+        <item name="iconColorOpaque">#FF39FF14</item>
+        <item name="actionBarTextColorPrimary">#FF39FF14</item>
+        <item name="actionBarTextColorSecondary">#FFA5D6A7</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="ircColors">@style/AppTheme.Terminal.IRCColors</item>
+    </style>
+
+    <style name="AppTheme.Terminal.NoActionBar" parent="AppTheme.Terminal">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">@android:color/black</item>
+        <item name="windowActionModeOverlay">true</item>
+    </style>
+
+    <style name="AppTheme.Terminal.IRCColors" parent="AppTheme.IRCColors">
+        <item name="colorBlack">#FF39FF14</item>
+        <item name="colorWhite">#FF39FF14</item>
+        <item name="colorBlue">#FF39FF14</item>
+        <item name="colorGreen">#FF39FF14</item>
+        <item name="colorLightRed">#FF39FF14</item>
+        <item name="colorBrown">#FF39FF14</item>
+        <item name="colorPurple">#FF39FF14</item>
+        <item name="colorOrange">#FF39FF14</item>
+        <item name="colorYellow">#FF39FF14</item>
+        <item name="colorLightGreen">#FF39FF14</item>
+        <item name="colorCyan">#FF39FF14</item>
+        <item name="colorLightCyan">#FF39FF14</item>
+        <item name="colorLightBlue">#FF39FF14</item>
+        <item name="colorPink">#FF39FF14</item>
+        <item name="colorGray">#FFA5D6A7</item>
+        <item name="colorLightGray">#FFA5D6A7</item>
+        <item name="colorTimestamp">#FF7CBF7C</item>
+        <item name="colorStatusText">#FFA5D6A7</item>
+        <item name="colorDisconnected">#FF39FF14</item>
+        <item name="colorSenderFallbackColor">#FF39FF14</item>
+        <item name="colorTopic">#FF39FF14</item>
+        <item name="colorMemberOwner">#FF39FF14</item>
+        <item name="colorMemberAdmin">#FF39FF14</item>
+        <item name="colorMemberOp">#FF39FF14</item>
+        <item name="colorMemberHalfOp">#FF39FF14</item>
+        <item name="colorMemberVoice">#FF39FF14</item>
+        <item name="colorMemberNormal">#FF39FF14</item>
+    </style>
+
+    <!-- Light high-contrast base; roles also remain identifiable by IRC prefixes and text style. -->
+    <style name="AppTheme.HighContrast" parent="AppTheme">
+        <item name="colorPrimary">#FF003B73</item>
+        <item name="colorPrimaryDark">#FF00284F</item>
+        <item name="colorAccent">#FFA64B00</item>
+        <item name="android:colorBackground">#FFFFFFFF</item>
+        <item name="android:windowBackground">#FFFFFFFF</item>
+        <item name="colorBackgroundFloating">#FFFFFFFF</item>
+        <item name="android:textColorPrimary">#FF000000</item>
+        <item name="android:textColorSecondary">#FF303030</item>
+        <item name="iconColor">#FF000000</item>
+        <item name="iconColorOpaque">#FF000000</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="ircColors">@style/AppTheme.HighContrast.IRCColors</item>
+    </style>
+
+    <style name="AppTheme.HighContrast.NoActionBar" parent="AppTheme.HighContrast">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">#FF00284F</item>
+        <item name="windowActionModeOverlay">true</item>
+    </style>
+
+    <style name="AppTheme.HighContrast.IRCColors" parent="AppTheme.IRCColors">
+        <item name="colorBlack">#FF000000</item>
+        <item name="colorWhite">#FFFFFFFF</item>
+        <item name="colorBlue">#FF005A8D</item>
+        <item name="colorGreen">#FF006B5F</item>
+        <item name="colorLightRed">#FFA63D20</item>
+        <item name="colorBrown">#FF6B3E26</item>
+        <item name="colorPurple">#FF6B3D8E</item>
+        <item name="colorOrange">#FFA64B00</item>
+        <item name="colorYellow">#FF765F00</item>
+        <item name="colorLightGreen">#FF006B5F</item>
+        <item name="colorCyan">#FF006878</item>
+        <item name="colorLightCyan">#FF006878</item>
+        <item name="colorLightBlue">#FF005A8D</item>
+        <item name="colorPink">#FF8A3564</item>
+        <item name="colorGray">#FF4A4A4A</item>
+        <item name="colorLightGray">#FF5E5E5E</item>
+        <item name="colorTimestamp">#FF303030</item>
+        <item name="colorStatusText">#FF202020</item>
+        <item name="colorDisconnected">#FF7A2E00</item>
+        <item name="colorSenderFallbackColor">#FF005A8D</item>
+        <item name="colorTopic">#FF000000</item>
+        <item name="colorMemberOwner">#FFA64B00</item>
+        <item name="colorMemberAdmin">#FF6B3D8E</item>
+        <item name="colorMemberOp">#FF005A8D</item>
+        <item name="colorMemberHalfOp">#FF006878</item>
+        <item name="colorMemberVoice">#FF6B3E26</item>
+        <item name="colorMemberNormal">#FF000000</item>
+    </style>
+
 </resources>
