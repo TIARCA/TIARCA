@@ -22,7 +22,6 @@ public class ThemeArchiveTest {
         theme.colors.put(ThemeInfo.COLOR_PRIMARY, 0xFF112233);
 
         theme.ui = new ThemeInfo.UiSection();
-        theme.ui.language = "it";
         theme.ui.appearancePreset = AppearancePreset.COLOR_BLIND.getId();
         theme.ui.appBarCompactMode = "auto";
 
@@ -52,7 +51,6 @@ public class ThemeArchiveTest {
         assertEquals(Integer.valueOf(2), imported.theme.formatVersion);
         assertEquals("Portable", imported.theme.name);
         assertEquals("default_dark", imported.theme.base);
-        assertEquals("it", imported.theme.ui.language);
         assertEquals(AppearancePreset.COLOR_BLIND.getId(),
                 imported.theme.ui.appearancePreset);
         assertEquals("auto", imported.theme.ui.appBarCompactMode);
