@@ -28,6 +28,7 @@ import io.mrarm.irc.config.MessageFormatSettings;
 import io.mrarm.irc.config.QuickCommandSettings;
 import io.mrarm.irc.config.RightClockSettings;
 import io.mrarm.irc.config.SettingsHelper;
+import io.mrarm.irc.util.AppLocaleManager;
 import io.mrarm.irc.util.DefaultPreferences;
 import io.mrarm.irc.util.MessageBuilder;
 
@@ -125,6 +126,20 @@ public class AppearancePresetManagerTest {
     public void nonVisualChangeLeavesPresetSelected() {
         manager.applyPreset(AppearancePreset.IRC_DARK);
         preferences.edit().putBoolean(QuickCommandSettings.PREF_ENABLED, false).commit();
+
+        assertEquals(AppearancePreset.IRC_DARK, manager.getCurrentPreset());
+    }
+
+    @Test
+    public void portableInterfaceOptionsDoNotDirtyGraphicPreset() {
+        manager.applyPreset(AppearancePreset.IRC_DARK);
+
+        preferences.edit()
+                .putString(AppLocaleManager.PREF_APP_LANGUAGE, "it")
+                .putBoolean(ChatSettings.PREF_GLOBAL_FONT_ENABLED, true)
+                .putBoolean(ChatSettings.PREF_TEXT_AUTOCORRECT_ENABLED, false)
+                .putBoolean(ChatSettings.PREF_SEND_BOX_ALWAYS_MULTILINE, true)
+                .commit();
 
         assertEquals(AppearancePreset.IRC_DARK, manager.getCurrentPreset());
     }
