@@ -93,7 +93,6 @@ public class ThemeInfo {
     }
 
     public static class UiSection {
-        public String language;
         public String appearancePreset;
         public String appBarCompactMode;
 
@@ -101,7 +100,6 @@ public class ThemeInfo {
         }
 
         UiSection(UiSection other) {
-            language = other.language;
             appearancePreset = other.appearancePreset;
             appBarCompactMode = other.appBarCompactMode;
         }
