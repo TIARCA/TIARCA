@@ -9,6 +9,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.mrarm.irc.config.InterfaceSettingsRefreshState;
 import io.mrarm.irc.config.SettingsHelper;
 import io.mrarm.irc.util.AppLocaleManager;
 
@@ -110,8 +111,20 @@ public class IRCApplication extends Application implements Application.ActivityL
 
     @Override
     public void onActivityResumed(Activity activity) {
-        if (activity instanceof MainActivity)
+        if (activity instanceof MainActivity) {
+            // Interface settings are edited in a separate Activity while MainActivity remains
+            // paused underneath it. Recreate only after the user has actually left the Interface
+            // section and only when a relevant preference changed, so every already-instantiated
+            // chat tab is rebound from the persisted settings in one pass.
+            if (InterfaceSettingsRefreshState.consumeRefreshPending()) {
+                MainActivity mainActivity = (MainActivity) activity;
+                // Theme changes already schedule their own recreation in ThemedActivity.onStart().
+                if (!mainActivity.hasThemeChanged())
+                    mainActivity.recreate();
+                return;
+            }
             UpdateManager.maybePromptAndCheck(activity);
+        }
     }
 
     @Override
