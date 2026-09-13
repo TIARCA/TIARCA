@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="message_format_editor_time">Ora</string>
+    <string name="message_format_editor_normal">Mesaj normal</string>
+    <string name="message_format_editor_mention">Mesaj cu mențiune</string>
+    <string name="message_format_editor_action">Acțiune (/me)</string>
+    <string name="message_format_editor_action_mention">Acțiune (/me) cu mențiune</string>
+    <string name="message_format_editor_notice">NOTICE</string>
+    <string name="message_format_editor_event">Eveniment (join/leave/etc.)</string>
+    <string name="away_dialog_nickname_value">Poreclă în timpul absenței</string>
+</resources>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="message_format_editor_time">Zeit</string>
+    <string name="message_format_editor_normal">Normale Nachricht</string>
+    <string name="message_format_editor_mention">Nachricht mit Erwähnung</string>
+    <string name="message_format_editor_action">Aktion (/me)</string>
+    <string name="message_format_editor_action_mention">Aktion (/me) mit Erwähnung</string>
+    <string name="message_format_editor_notice">NOTICE</string>
+    <string name="message_format_editor_event">Ereignis (join/leave/etc.)</string>
+    <string name="away_dialog_nickname_value">Nickname während Away</string>
+</resources>

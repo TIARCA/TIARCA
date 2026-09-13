@@ -121,7 +121,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/date_format_ctr"
                 style="@style/MessageFormatSettingsTextInputLayout"
-                android:hint="@string/message_format_date">
+                android:hint="@string/message_format_editor_time">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/date_format"
@@ -156,7 +156,7 @@
 
             <com.google.android.material.textfield.TextInputLayout
                 style="@style/MessageFormatSettingsTextInputLayout"
-                android:hint="@string/message_format_normal">
+                android:hint="@string/message_format_editor_normal">
 
                 <io.mrarm.irc.view.FormattableEditText
                     android:id="@+id/message_format_normal"
@@ -178,7 +178,7 @@
 
             <com.google.android.material.textfield.TextInputLayout
                 style="@style/MessageFormatSettingsTextInputLayout"
-                android:hint="@string/message_format_normal_mention">
+                android:hint="@string/message_format_editor_mention">
 
                 <io.mrarm.irc.view.FormattableEditText
                     android:id="@+id/message_format_normal_mention"
@@ -200,7 +200,7 @@
 
             <com.google.android.material.textfield.TextInputLayout
                 style="@style/MessageFormatSettingsTextInputLayout"
-                android:hint="@string/message_format_action">
+                android:hint="@string/message_format_editor_action">
 
                 <io.mrarm.irc.view.FormattableEditText
                     android:id="@+id/message_format_action"
@@ -222,7 +222,7 @@
 
             <com.google.android.material.textfield.TextInputLayout
                 style="@style/MessageFormatSettingsTextInputLayout"
-                android:hint="@string/message_format_action_mention">
+                android:hint="@string/message_format_editor_action_mention">
 
                 <io.mrarm.irc.view.FormattableEditText
                     android:id="@+id/message_format_action_mention"
@@ -244,7 +244,7 @@
 
             <com.google.android.material.textfield.TextInputLayout
                 style="@style/MessageFormatSettingsTextInputLayout"
-                android:hint="@string/message_format_notice">
+                android:hint="@string/message_format_editor_notice">
 
                 <io.mrarm.irc.view.FormattableEditText
                     android:id="@+id/message_format_notice"
@@ -266,7 +266,7 @@
 
             <com.google.android.material.textfield.TextInputLayout
                 style="@style/MessageFormatSettingsTextInputLayout"
-                android:hint="@string/message_format_event">
+                android:hint="@string/message_format_editor_event">
 
                 <io.mrarm.irc.view.FormattableEditText
                     android:id="@+id/message_format_event"

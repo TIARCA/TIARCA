@@ -49,6 +49,7 @@ public final class AwayStateManager implements ServerConnectionInfo.InfoChangeLi
     private String awayMessage;
     private String pendingAwayMessage;
     private Boolean pendingNicknameAway;
+    private String pendingAwayNickname;
 
     private boolean awayNickApplied;
     private String nickBeforeAway;
@@ -91,6 +92,18 @@ public final class AwayStateManager implements ServerConnectionInfo.InfoChangeLi
         return awayNickApplied;
     }
 
+    /** Nickname shown in the Away dialog before a nickname-away request is sent. */
+    public String getSuggestedAwayNickname() {
+        ServerConnectionInfo connection = connectionRef.get();
+        if (connection == null || connection.getApiInstance() == null)
+            return "";
+        synchronized (this) {
+            if (awayNickApplied && awayNickCurrent != null && !awayNickCurrent.isEmpty())
+                return awayNickCurrent;
+        }
+        return buildAwayNickname(connection.getUserNick(), AppSettings.getAwayNickSuffix());
+    }
+
     public void addListener(Listener listener) {
         synchronized (listeners) {
             if (!listeners.contains(listener))
@@ -104,8 +117,14 @@ public final class AwayStateManager implements ServerConnectionInfo.InfoChangeLi
         }
     }
 
-    /** Sends AWAY/UNAWAY without changing visible state until 306/305 arrives. */
+    /** Keeps the old call path used by the status bar and other simple AWAY actions. */
     public boolean requestAway(boolean enable, String message, boolean useAwayNickname) {
+        return requestAway(enable, message, useAwayNickname, null);
+    }
+
+    /** Sends AWAY/UNAWAY without changing visible state until 306/305 arrives. */
+    public boolean requestAway(boolean enable, String message, boolean useAwayNickname,
+                               String requestedAwayNickname) {
         attachIfNeeded();
         ServerConnectionInfo connection = connectionRef.get();
         if (connection == null || !connection.isConnected() ||
@@ -119,15 +138,19 @@ public final class AwayStateManager implements ServerConnectionInfo.InfoChangeLi
                 normalized = sanitizeMessage(AppSettings.getDefaultAwayMessage());
             if (normalized.isEmpty())
                 normalized = "Away";
+            String normalizedNickname = useAwayNickname
+                    ? sanitizeNickname(requestedAwayNickname) : null;
             synchronized (this) {
                 pendingAwayMessage = normalized;
                 pendingNicknameAway = useAwayNickname;
+                pendingAwayNickname = normalizedNickname;
             }
             irc.sendCommandRaw("AWAY :" + normalized, null, null);
         } else {
             synchronized (this) {
                 pendingAwayMessage = null;
                 pendingNicknameAway = false;
+                pendingAwayNickname = null;
             }
             irc.sendCommandRaw("AWAY", null, null);
         }
@@ -137,6 +160,7 @@ public final class AwayStateManager implements ServerConnectionInfo.InfoChangeLi
     private void onServerAwayState(boolean newAway) {
         boolean shouldUseAwayNick = false;
         boolean shouldRestoreNick = false;
+        String requestedAwayNickname = null;
         synchronized (this) {
             away = newAway;
             if (newAway) {
@@ -144,6 +168,7 @@ public final class AwayStateManager implements ServerConnectionInfo.InfoChangeLi
                     awayMessage = pendingAwayMessage;
                 shouldUseAwayNick = pendingNicknameAway != null
                         ? pendingNicknameAway : awayNickApplied;
+                requestedAwayNickname = pendingAwayNickname;
                 shouldRestoreNick = !shouldUseAwayNick && awayNickApplied;
             } else {
                 awayMessage = null;
@@ -151,11 +176,12 @@ public final class AwayStateManager implements ServerConnectionInfo.InfoChangeLi
             }
             pendingAwayMessage = null;
             pendingNicknameAway = null;
+            pendingAwayNickname = null;
         }
 
         syncOwnUserAwayState(newAway);
         if (newAway && shouldUseAwayNick)
-            applyAwayNickname();
+            applyAwayNickname(requestedAwayNickname);
         else if (shouldRestoreNick)
             restoreNickname();
         notifyListeners();
@@ -179,25 +205,27 @@ public final class AwayStateManager implements ServerConnectionInfo.InfoChangeLi
         }
     }
 
-    private void applyAwayNickname() {
+    private void applyAwayNickname(String requestedNickname) {
         ServerConnectionInfo connection = connectionRef.get();
         if (connection == null || !(connection.getApiInstance() instanceof IRCConnection))
             return;
         IRCConnection irc = (IRCConnection) connection.getApiInstance();
         ServerConnectionData data = irc.getServerConnectionData();
         String currentNick = data.getUserNick();
-        String suffix = sanitizeSuffix(AppSettings.getAwayNickSuffix());
-        if (currentNick == null || currentNick.isEmpty() || suffix.isEmpty())
+        if (currentNick == null || currentNick.isEmpty())
             return;
 
-        String target;
+        String target = sanitizeNickname(requestedNickname);
+        if (target.isEmpty())
+            target = buildAwayNickname(currentNick, AppSettings.getAwayNickSuffix());
+        if (target.isEmpty() || target.equalsIgnoreCase(currentNick))
+            return;
+
         synchronized (this) {
-            if (awayNickApplied || pendingNickTarget != null)
+            if (pendingNickTarget != null)
                 return;
-            target = currentNick + suffix;
-            if (target.equalsIgnoreCase(currentNick))
-                return;
-            nickBeforeAway = currentNick;
+            if (!awayNickApplied)
+                nickBeforeAway = currentNick;
             pendingNickTarget = target;
             pendingNickRestore = false;
         }
@@ -301,6 +329,7 @@ public final class AwayStateManager implements ServerConnectionInfo.InfoChangeLi
             awayMessage = null;
             pendingAwayMessage = null;
             pendingNicknameAway = null;
+            pendingAwayNickname = null;
             clearAwayNickTrackingLocked();
         }
         if (changed)
@@ -333,5 +362,24 @@ public final class AwayStateManager implements ServerConnectionInfo.InfoChangeLi
                 return "";
         }
         return suffix;
+    }
+
+    static String sanitizeNickname(String value) {
+        if (value == null || value.indexOf('\r') >= 0 || value.indexOf('\n') >= 0)
+            return "";
+        String nick = value.trim();
+        for (int i = 0; i < nick.length(); i++) {
+            if (Character.isWhitespace(nick.charAt(i)))
+                return "";
+        }
+        return nick;
+    }
+
+    static String buildAwayNickname(String currentNick, String suffix) {
+        String nick = sanitizeNickname(currentNick);
+        String cleanSuffix = sanitizeSuffix(suffix);
+        if (nick.isEmpty() || cleanSuffix.isEmpty())
+            return "";
+        return nick + cleanSuffix;
     }
 }

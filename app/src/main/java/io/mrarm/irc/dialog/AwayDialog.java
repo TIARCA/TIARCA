@@ -61,13 +61,23 @@ public final class AwayDialog {
         root.addView(nicknameAway, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
+        EditText nicknameInput = new EditText(context);
+        nicknameInput.setSingleLine(true);
+        nicknameInput.setHint(R.string.away_dialog_nickname_value);
+        nicknameInput.setText(manager.getSuggestedAwayNickname());
+        nicknameInput.setSelection(nicknameInput.length());
+        root.addView(nicknameInput, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
         Runnable updateEnabled = () -> {
             boolean enabled = awaySwitch.isChecked();
             messageLabel.setEnabled(enabled);
             messageInput.setEnabled(enabled);
             nicknameAway.setEnabled(enabled);
+            nicknameInput.setEnabled(enabled && nicknameAway.isChecked());
         };
         awaySwitch.setOnCheckedChangeListener((button, checked) -> updateEnabled.run());
+        nicknameAway.setOnCheckedChangeListener((button, checked) -> updateEnabled.run());
         updateEnabled.run();
 
         new AlertDialog.Builder(context)
@@ -76,7 +86,8 @@ public final class AwayDialog {
                 .setNegativeButton(R.string.action_cancel, null)
                 .setPositiveButton(R.string.action_ok, (dialog, which) ->
                         manager.requestAway(awaySwitch.isChecked(),
-                                messageInput.getText().toString(), nicknameAway.isChecked()))
+                                messageInput.getText().toString(), nicknameAway.isChecked(),
+                                nicknameInput.getText().toString()))
                 .show();
     }
 
