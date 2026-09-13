@@ -434,6 +434,7 @@
         <item>Par défaut (Sans)</item>
         <item>Serif</item>
         <item>Monospace</item>
+        <item>Atkinson Hyperlegible Next</item>
     </string-array>
     <string name="font_size_sample_text">Ceci est un exemple de texte pour refléter l\'apparence de la taille de la police dans le chat. Vous pouvez le modifier à l\'aide du curseur ci-dessous.</string>
 
@@ -492,6 +493,18 @@
     </string-array>
 
     <!-- Theme settings -->
+
+    <string name="pref_header_appearance_preset">Préréglage graphique</string>
+    <string name="appearance_preset_summary">Applique une apparence complète au chat. Toute modification visuelle fait passer l’état à Personnalisé.</string>
+    <string name="appearance_preset_irc_light">IRC clair</string>
+    <string name="appearance_preset_irc_dark">IRC sombre</string>
+    <string name="appearance_preset_graphic_light">Graphique clair</string>
+    <string name="appearance_preset_graphic_dark">Graphique sombre</string>
+    <string name="appearance_preset_terminal">Terminal</string>
+    <string name="appearance_preset_color_blind">Daltonisme</string>
+    <string name="appearance_preset_custom">Personnalisé</string>
+    <string name="theme_terminal">Terminal</string>
+    <string name="theme_high_contrast">Contraste élevé</string>
 
     <string name="pref_header_theme">Thème de base</string>
 

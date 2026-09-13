@@ -521,21 +521,34 @@ public class MessageFormatSettingsActivity extends ThemedActivity {
     }
 
     public static SpannableString buildActionPresetMessageFormat(Context context, int preset, boolean mention) {
+        return buildActionPresetMessageFormat(context, preset, mention, false);
+    }
+
+    public static SpannableString buildActionPresetMessageFormat(Context context, int preset,
+                                                                  boolean mention,
+                                                                  boolean prefix) {
         if (preset == 0 || preset == 1) {
-            SpannableString spannable = new SpannableString("\0 |* \0 \0");
+            SpannableString spannable = new SpannableString("\0 |* "
+                    + (prefix ? "\0" : "") + "\0 \0");
             spannable.setSpan(new MessageBuilder.MetaForegroundColorSpan(context, MessageBuilder.MetaForegroundColorSpan.COLOR_TIMESTAMP), 0, 1, MessageBuilder.FORMAT_SPAN_FLAGS);
             if (preset == 0)
-                spannable.setSpan(new StyleSpan(Typeface.ITALIC), 3, 8, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                spannable.setSpan(new StyleSpan(Typeface.ITALIC), 3,
+                        prefix ? 9 : 8, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
             spannable.setSpan(new MessageBuilder.MetaChipSpan(context, MessageBuilder.MetaChipSpan.TYPE_TIME), 0, 1, MessageBuilder.FORMAT_SPAN_FLAGS);
-            spannable.setSpan(new MessageBuilder.MetaChipSpan(context, MessageBuilder.MetaChipSpan.TYPE_SENDER), 5, 6, MessageBuilder.FORMAT_SPAN_FLAGS);
-            spannable.setSpan(new MessageBuilder.MetaChipSpan(context, MessageBuilder.MetaChipSpan.TYPE_MESSAGE),  7, 8, MessageBuilder.FORMAT_SPAN_FLAGS);
+            if (prefix)
+                spannable.setSpan(new MessageBuilder.MetaChipSpan(context,
+                        MessageBuilder.MetaChipSpan.TYPE_SENDER_PREFIX), 5, 6,
+                        MessageBuilder.FORMAT_SPAN_FLAGS);
+            spannable.setSpan(new MessageBuilder.MetaChipSpan(context, MessageBuilder.MetaChipSpan.TYPE_SENDER), prefix ? 6 : 5, prefix ? 7 : 6, MessageBuilder.FORMAT_SPAN_FLAGS);
+            spannable.setSpan(new MessageBuilder.MetaChipSpan(context, MessageBuilder.MetaChipSpan.TYPE_MESSAGE), prefix ? 8 : 7, prefix ? 9 : 8, MessageBuilder.FORMAT_SPAN_FLAGS);
             spannable.setSpan(new MessageBuilder.MetaChipSpan(context, MessageBuilder.MetaChipSpan.TYPE_WRAP_ANCHOR), 2, 3, MessageBuilder.FORMAT_SPAN_FLAGS);
             if (mention) {
-                spannable.setSpan(new StyleSpan(Typeface.BOLD), 5, 6, MessageBuilder.FORMAT_SPAN_FLAGS);
-                spannable.setSpan(new MessageBuilder.MetaForegroundColorSpan(context, MessageBuilder.MetaForegroundColorSpan.COLOR_SENDER),  3, 8, MessageBuilder.FORMAT_SPAN_FLAGS);
+                spannable.setSpan(new StyleSpan(Typeface.BOLD), prefix ? 6 : 5,
+                        prefix ? 7 : 6, MessageBuilder.FORMAT_SPAN_FLAGS);
+                spannable.setSpan(new MessageBuilder.MetaForegroundColorSpan(context, MessageBuilder.MetaForegroundColorSpan.COLOR_SENDER), 3, prefix ? 9 : 8, MessageBuilder.FORMAT_SPAN_FLAGS);
             } else {
                 spannable.setSpan(new MessageBuilder.MetaForegroundColorSpan(context, MessageBuilder.MetaForegroundColorSpan.COLOR_STATUS), 3, 4, MessageBuilder.FORMAT_SPAN_FLAGS);
-                spannable.setSpan(new MessageBuilder.MetaForegroundColorSpan(context, MessageBuilder.MetaForegroundColorSpan.COLOR_SENDER), 5, 6, MessageBuilder.FORMAT_SPAN_FLAGS);
+                spannable.setSpan(new MessageBuilder.MetaForegroundColorSpan(context, MessageBuilder.MetaForegroundColorSpan.COLOR_SENDER), 5, prefix ? 7 : 6, MessageBuilder.FORMAT_SPAN_FLAGS);
             }
             return spannable;
         }
@@ -543,24 +556,39 @@ public class MessageFormatSettingsActivity extends ThemedActivity {
     }
 
     public static SpannableString buildNoticePresetMessageFormat(Context context, int preset) {
+        return buildNoticePresetMessageFormat(context, preset, false);
+    }
+
+    public static SpannableString buildNoticePresetMessageFormat(Context context, int preset,
+                                                                  boolean prefix) {
         if (preset == 0) {
-            SpannableString spannable = new SpannableString("\0 |\0: \0");
+            SpannableString spannable = new SpannableString("\0 |"
+                    + (prefix ? "\0" : "") + "\0: \0");
             spannable.setSpan(new MessageBuilder.MetaForegroundColorSpan(context, MessageBuilder.MetaForegroundColorSpan.COLOR_TIMESTAMP), 0, 1, MessageBuilder.FORMAT_SPAN_FLAGS);
-            spannable.setSpan(new MessageBuilder.MetaForegroundColorSpan(context, MessageBuilder.MetaForegroundColorSpan.COLOR_SENDER), 3, 7, MessageBuilder.FORMAT_SPAN_FLAGS);
+            spannable.setSpan(new MessageBuilder.MetaForegroundColorSpan(context, MessageBuilder.MetaForegroundColorSpan.COLOR_SENDER), 3, prefix ? 8 : 7, MessageBuilder.FORMAT_SPAN_FLAGS);
             spannable.setSpan(new MessageBuilder.MetaChipSpan(context, MessageBuilder.MetaChipSpan.TYPE_TIME), 0, 1, MessageBuilder.FORMAT_SPAN_FLAGS);
-            spannable.setSpan(new MessageBuilder.MetaChipSpan(context, MessageBuilder.MetaChipSpan.TYPE_SENDER), 3, 4, MessageBuilder.FORMAT_SPAN_FLAGS);
-            spannable.setSpan(new MessageBuilder.MetaChipSpan(context, MessageBuilder.MetaChipSpan.TYPE_MESSAGE), 6, 7, MessageBuilder.FORMAT_SPAN_FLAGS);
-            spannable.setSpan(new StyleSpan(Typeface.BOLD), 3, 7, MessageBuilder.FORMAT_SPAN_FLAGS);
+            if (prefix)
+                spannable.setSpan(new MessageBuilder.MetaChipSpan(context,
+                        MessageBuilder.MetaChipSpan.TYPE_SENDER_PREFIX), 3, 4,
+                        MessageBuilder.FORMAT_SPAN_FLAGS);
+            spannable.setSpan(new MessageBuilder.MetaChipSpan(context, MessageBuilder.MetaChipSpan.TYPE_SENDER), prefix ? 4 : 3, prefix ? 5 : 4, MessageBuilder.FORMAT_SPAN_FLAGS);
+            spannable.setSpan(new MessageBuilder.MetaChipSpan(context, MessageBuilder.MetaChipSpan.TYPE_MESSAGE), prefix ? 7 : 6, prefix ? 8 : 7, MessageBuilder.FORMAT_SPAN_FLAGS);
+            spannable.setSpan(new StyleSpan(Typeface.BOLD), 3, prefix ? 8 : 7, MessageBuilder.FORMAT_SPAN_FLAGS);
             spannable.setSpan(new MessageBuilder.MetaChipSpan(context, MessageBuilder.MetaChipSpan.TYPE_WRAP_ANCHOR), 2, 3, MessageBuilder.FORMAT_SPAN_FLAGS);
             return spannable;
         }
         if (preset == 1) {
-            SpannableString spannable = new SpannableString("\0 |-\0- \0");
+            SpannableString spannable = new SpannableString("\0 |-"
+                    + (prefix ? "\0" : "") + "\0- \0");
             spannable.setSpan(new MessageBuilder.MetaForegroundColorSpan(context, MessageBuilder.MetaForegroundColorSpan.COLOR_TIMESTAMP), 0, 1, MessageBuilder.FORMAT_SPAN_FLAGS);
-            spannable.setSpan(new MessageBuilder.MetaForegroundColorSpan(context, MessageBuilder.MetaForegroundColorSpan.COLOR_SENDER), 3, 6, MessageBuilder.FORMAT_SPAN_FLAGS);
+            spannable.setSpan(new MessageBuilder.MetaForegroundColorSpan(context, MessageBuilder.MetaForegroundColorSpan.COLOR_SENDER), 3, prefix ? 7 : 6, MessageBuilder.FORMAT_SPAN_FLAGS);
             spannable.setSpan(new MessageBuilder.MetaChipSpan(context, MessageBuilder.MetaChipSpan.TYPE_TIME), 0, 1, MessageBuilder.FORMAT_SPAN_FLAGS);
-            spannable.setSpan(new MessageBuilder.MetaChipSpan(context, MessageBuilder.MetaChipSpan.TYPE_SENDER), 4, 5, MessageBuilder.FORMAT_SPAN_FLAGS);
-            spannable.setSpan(new MessageBuilder.MetaChipSpan(context, MessageBuilder.MetaChipSpan.TYPE_MESSAGE),  7, 8, MessageBuilder.FORMAT_SPAN_FLAGS);
+            if (prefix)
+                spannable.setSpan(new MessageBuilder.MetaChipSpan(context,
+                        MessageBuilder.MetaChipSpan.TYPE_SENDER_PREFIX), 4, 5,
+                        MessageBuilder.FORMAT_SPAN_FLAGS);
+            spannable.setSpan(new MessageBuilder.MetaChipSpan(context, MessageBuilder.MetaChipSpan.TYPE_SENDER), prefix ? 5 : 4, prefix ? 6 : 5, MessageBuilder.FORMAT_SPAN_FLAGS);
+            spannable.setSpan(new MessageBuilder.MetaChipSpan(context, MessageBuilder.MetaChipSpan.TYPE_MESSAGE), prefix ? 8 : 7, prefix ? 9 : 8, MessageBuilder.FORMAT_SPAN_FLAGS);
             spannable.setSpan(new MessageBuilder.MetaChipSpan(context, MessageBuilder.MetaChipSpan.TYPE_WRAP_ANCHOR), 2, 3, MessageBuilder.FORMAT_SPAN_FLAGS);
             return spannable;
         }

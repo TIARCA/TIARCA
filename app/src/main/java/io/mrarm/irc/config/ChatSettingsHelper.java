@@ -2,9 +2,13 @@ package io.mrarm.irc.config;
 
 import android.graphics.Typeface;
 
+import androidx.core.content.res.ResourcesCompat;
+
 import java.io.File;
 
 import io.mrarm.irc.setting.ListWithCustomSetting;
+import io.mrarm.irc.R;
+import io.mrarm.irc.util.theme.AppearancePresetManager;
 
 public class ChatSettingsHelper {
 
@@ -27,8 +31,17 @@ public class ChatSettingsHelper {
             return Typeface.MONOSPACE;
         else if (font.equals("serif"))
             return Typeface.SERIF;
+        else if (font.equals(AppearancePresetManager.FONT_ATKINSON_HYPERLEGIBLE_NEXT)) {
+            Typeface bundled = ResourcesCompat.getFont(SettingsHelper.getContext(),
+                    R.font.atkinson_hyperlegible_next);
+            if (bundled != null) {
+                sCachedFont = bundled;
+                return sCachedFont;
+            }
+        }
         else
             return Typeface.DEFAULT;
+        return Typeface.DEFAULT;
     }
 
     static {

@@ -23,7 +23,9 @@ import android.widget.Toast;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import io.mrarm.chatlib.dto.MessageInfo;
 import io.mrarm.chatlib.dto.MessageSenderInfo;
@@ -51,6 +53,8 @@ import io.mrarm.irc.util.MessageBuilder;
 import io.mrarm.irc.util.StyledAttributesHelper;
 import io.mrarm.irc.util.theme.ThemeInfo;
 import io.mrarm.irc.util.theme.ThemeManager;
+import io.mrarm.irc.util.theme.AppearancePreset;
+import io.mrarm.irc.util.theme.AppearancePresetManager;
 
 public class InterfaceSettingsFragment extends SettingsListFragment
         implements NamedSettingsFragment {
@@ -62,6 +66,13 @@ public class InterfaceSettingsFragment extends SettingsListFragment
     private ActivityResultLauncher<Intent> mExportThemeLauncher;
     private ThemeInfo mPendingExportTheme;
     private boolean mPendingExportThemeIsTemporary;
+    private final List<PresetOptionSetting> mPresetOptions = new ArrayList<>();
+    private SharedPreferences mPresetPreferences;
+    private final SharedPreferences.OnSharedPreferenceChangeListener mPresetListener =
+            (preferences, key) -> {
+                if (AppearancePresetManager.PREF_APPEARANCE_PRESET.equals(key))
+                    updatePresetSelection();
+            };
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -98,6 +109,8 @@ public class InterfaceSettingsFragment extends SettingsListFragment
                 .addListener((EntryRecyclerViewAdapter.Entry entry) ->
                         AppLocaleManager.applyLanguage(
                                 ((ListSetting) entry).getSelectedOptionValue())));
+        a.add(new SettingsHeader(getString(R.string.pref_header_appearance_preset)));
+        createPresetList(a);
         a.add(new SettingsHeader(getString(R.string.pref_header_theme)));
         createThemeList(a);
         a.add(new ClickableSetting(getString(R.string.theme_create_new), null)
@@ -152,9 +165,45 @@ public class InterfaceSettingsFragment extends SettingsListFragment
     @Override
     public void onStart() {
         super.onStart();
+        mPresetPreferences = DefaultPreferences.get(requireContext());
+        mPresetPreferences.registerOnSharedPreferenceChangeListener(mPresetListener);
+        updatePresetSelection();
         if (((ThemedActivity) getActivity()).hasThemeChanged()) {
             getActivity().recreate();
         }
+    }
+
+    @Override
+    public void onStop() {
+        if (mPresetPreferences != null) {
+            mPresetPreferences.unregisterOnSharedPreferenceChangeListener(mPresetListener);
+            mPresetPreferences = null;
+        }
+        super.onStop();
+    }
+
+    private void createPresetList(SettingsListAdapter adapter) {
+        mPresetOptions.clear();
+        RadioButtonSetting.Group group = new RadioButtonSetting.Group();
+        AppearancePresetManager manager = AppearancePresetManager.getInstance(requireContext());
+        for (AppearancePreset preset : AppearancePreset.values()) {
+            PresetOptionSetting option = new PresetOptionSetting(
+                    getString(preset.getNameResId()), group);
+            option.linkPreset(this, manager, preset);
+            if (!preset.isApplicable())
+                option.setEnabled(false);
+            mPresetOptions.add(option);
+            adapter.add(option);
+        }
+    }
+
+    private void updatePresetSelection() {
+        if (getContext() == null)
+            return;
+        AppearancePreset current = AppearancePresetManager.getInstance(requireContext())
+                .getCurrentPreset();
+        for (PresetOptionSetting option : mPresetOptions)
+            option.setChecked(option.linkedPreset == current);
     }
 
     private int[] getBaseThemeColors(int resId) {
@@ -485,6 +534,39 @@ public class InterfaceSettingsFragment extends SettingsListFragment
                 menu.show();
                 return true;
             }
+        }
+    }
+
+    private static final class PresetOptionSetting extends RadioButtonSetting {
+
+        private InterfaceSettingsFragment fragment;
+        private AppearancePresetManager manager;
+        private AppearancePreset linkedPreset;
+
+        PresetOptionSetting(String name, Group group) {
+            super(name, group);
+        }
+
+        PresetOptionSetting linkPreset(InterfaceSettingsFragment fragment,
+                                       AppearancePresetManager manager,
+                                       AppearancePreset preset) {
+            this.fragment = fragment;
+            this.manager = manager;
+            setChecked(manager.getCurrentPreset() == preset);
+            linkedPreset = preset;
+            return this;
+        }
+
+        @Override
+        public void setChecked(boolean checked) {
+            boolean apply = checked && !isChecked() && linkedPreset != null
+                    && linkedPreset.isApplicable();
+            super.setChecked(checked);
+            if (!apply)
+                return;
+            manager.applyPreset(linkedPreset);
+            if (fragment.getActivity() != null)
+                fragment.getActivity().recreate();
         }
     }
 }

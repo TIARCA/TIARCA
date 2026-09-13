@@ -107,6 +107,12 @@ public class ThemeInfo {
         public String font;
         public Integer fontSize;
         public Boolean monochromeBots;
+        public Boolean messageAvatars;
+        public Boolean customAvatars;
+        public Boolean monochromeModeEvents;
+        public Boolean monochromeKickEvents;
+        public Boolean monochromeQuitEvents;
+        public Boolean monochromeJoinPartEvents;
         public String fontAsset;
 
         public ChatSection() {
@@ -116,6 +122,12 @@ public class ThemeInfo {
             font = other.font;
             fontSize = other.fontSize;
             monochromeBots = other.monochromeBots;
+            messageAvatars = other.messageAvatars;
+            customAvatars = other.customAvatars;
+            monochromeModeEvents = other.monochromeModeEvents;
+            monochromeKickEvents = other.monochromeKickEvents;
+            monochromeQuitEvents = other.monochromeQuitEvents;
+            monochromeJoinPartEvents = other.monochromeJoinPartEvents;
             fontAsset = other.fontAsset;
         }
     }

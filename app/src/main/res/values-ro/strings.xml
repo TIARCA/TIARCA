@@ -450,6 +450,7 @@
         <item>Implicit (Sans)</item>
         <item>Serif</item>
         <item>Monospațiu</item>
+        <item>Atkinson Hyperlegible Next</item>
     </string-array>
     <string name="font_size_sample_text">Acesta este un exemplu de text pentru a reflecta modul în care va arăta dimensiunea fontului în chat. Îl puteți schimba folosind glisorul de mai jos.</string>
 
@@ -508,6 +509,18 @@
     </string-array>
 
     <!-- Theme settings -->
+
+    <string name="pref_header_appearance_preset">Preset grafic</string>
+    <string name="appearance_preset_summary">Aplică un aspect complet chatului. Modificarea unei setări vizuale schimbă starea în Personalizat.</string>
+    <string name="appearance_preset_irc_light">IRC luminos</string>
+    <string name="appearance_preset_irc_dark">IRC întunecat</string>
+    <string name="appearance_preset_graphic_light">Grafic luminos</string>
+    <string name="appearance_preset_graphic_dark">Grafic întunecat</string>
+    <string name="appearance_preset_terminal">Terminal</string>
+    <string name="appearance_preset_color_blind">Daltonism</string>
+    <string name="appearance_preset_custom">Personalizat</string>
+    <string name="theme_terminal">Terminal</string>
+    <string name="theme_high_contrast">Contrast ridicat</string>
 
     <string name="pref_header_theme">Modul</string>
 

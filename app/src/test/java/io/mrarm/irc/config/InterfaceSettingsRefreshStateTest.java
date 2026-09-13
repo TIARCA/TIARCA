@@ -18,6 +18,16 @@ public class InterfaceSettingsRefreshStateTest {
     }
 
     @Test
+    public void repeatedVisualChangesStillProduceOnePendingRefresh() {
+        InterfaceSettingsRefreshState.markRefreshPending();
+        InterfaceSettingsRefreshState.markRefreshPending();
+        InterfaceSettingsRefreshState.markRefreshPending();
+
+        assertTrue(InterfaceSettingsRefreshState.consumeRefreshPending());
+        assertFalse(InterfaceSettingsRefreshState.consumeRefreshPending());
+    }
+
+    @Test
     public void fontAndMessageAppearancePreferencesRequireRefresh() {
         assertTrue(InterfaceSettingsRefreshState.isRefreshRelevantPreference(
                 ChatSettings.PREF_FONT));
