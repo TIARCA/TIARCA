@@ -1,0 +1,87 @@
+name: Temporary publish TIARCA 0.9.8
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/publish-0.9.8.yml"
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_SHA: 59969f4d0f260ce5b7253b83c9a840c842e29a18
+      VERSION: 0.9.8
+      VERSION_CODE: "90800"
+      TAG: v0.9.8
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Verify exact release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --tags origin
+          git cat-file -e "${SOURCE_SHA}^{commit}"
+          ACTUAL_VERSION=$(git show "${SOURCE_SHA}:app/build.gradle" | sed -nE 's/^[[:space:]]*versionName[[:space:]]+"([^"]+)".*/\1/p' | head -n 1)
+          ACTUAL_CODE=$(git show "${SOURCE_SHA}:app/build.gradle" | sed -nE 's/^[[:space:]]*versionCode[[:space:]]+([0-9]+).*/\1/p' | head -n 1)
+          test "$ACTUAL_VERSION" = "$VERSION"
+          test "$ACTUAL_CODE" = "$VERSION_CODE"
+          git show "${SOURCE_SHA}:CHANGELOG.md" | grep -Fx "## v${VERSION}" >/dev/null
+
+      - name: Create or verify official tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --tags origin
+          if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+            TARGET=$(git rev-list -n 1 "$TAG")
+            test "$TARGET" = "$SOURCE_SHA"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "$TAG" "$SOURCE_SHA" -m "TIARCA ${TAG}"
+            git push origin "refs/tags/${TAG}"
+          fi
+
+      - name: Dispatch permanent release workflow on tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5; do
+            if gh workflow run release.yml --ref "$TAG"; then
+              echo "Release workflow dispatched for $TAG"
+              exit 0
+            fi
+            echo "Dispatch attempt $attempt failed; retrying..." >&2
+            sleep 5
+          done
+          echo "Unable to dispatch release workflow for $TAG" >&2
+          exit 1
+
+      - name: Cleanup temporary publisher
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          git reset --hard
+          git clean -fdx
+          git fetch origin main
+          git checkout -B cleanup origin/main
+          if [[ -f .github/workflows/publish-0.9.8.yml ]]; then
+            git rm .github/workflows/publish-0.9.8.yml
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "chore: remove temporary 0.9.8 release trigger"
+            git push origin HEAD:main
+          fi
