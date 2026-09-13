@@ -28,6 +28,9 @@ jobs:
       - name: Audit translation resources
         run: python tools/translation_structure_audit.py
 
+      - name: Verify release home is synchronized
+        run: python tools/sync_release_home.py --check
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
