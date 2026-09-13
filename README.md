@@ -4,15 +4,15 @@
 
 TIARCA keeps the speed and directness of classic IRC while adding a modern Android interface, current Android compatibility, richer moderation and user tools, configurable appearance, MONITOR support, structured IRC information, search, mentions, quick commands and an integrated update flow.
 
-> **Current stable version: 0.9.7** · Android 9+ · Open source · GPLv3
+> **Current stable version: 0.9.8** · Android 9+ · Open source · GPLv3
 
-[Download TIARCA 0.9.7](https://github.com/TIARCA/TIARCA/releases/download/v0.9.7/TIARCA-v0.9.7.apk) · [Release notes](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.7) · [Changelog](CHANGELOG.md) · [Documentation](docs/README.md)
+[Download TIARCA 0.9.8](https://github.com/TIARCA/TIARCA/releases/download/v0.9.8/TIARCA-v0.9.8.apk) · [Release notes](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.8) · [Changelog](CHANGELOG.md) · [Documentation](docs/README.md)
 
 ---
 
-## What's new in 0.9.7
+## What's new in 0.9.8
 
-See the full [0.9.7 release notes](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.7) and [changelog](CHANGELOG.md).
+See the full [0.9.8 release notes](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.8) and [changelog](CHANGELOG.md).
 
 ## What TIARCA offers
 
@@ -56,7 +56,7 @@ Documentation is available in every language currently supported by TIARCA:
 
 Download the signed APK from the latest GitHub Release. Android may ask you to allow installation from the browser or file manager used to open the APK. Official TIARCA APKs are distributed through this repository's **Releases** section.
 
-TIARCA is not distributed through Google Play. Version 0.9.7 is the current stable release. TIARCA is under review for inclusion in the official F-Droid repository; recent release-engineering work targets F-Droid policy compliance and reproducible verification. Availability on F-Droid still depends on completion of the F-Droid review and build process.
+TIARCA is not distributed through Google Play. Version 0.9.8 is the current stable release. TIARCA is under review for inclusion in the official F-Droid repository; recent release-engineering work targets F-Droid policy compliance and reproducible verification. Availability on F-Droid still depends on completion of the F-Droid review and build process.
 
 ## Building from source
 
