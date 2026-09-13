@@ -1,5 +1,19 @@
 # TIARCA — Changelog
 
+## v0.9.8
+
+- Aggiunto nei PVT il controllo rapido della lista `ACCEPT` per le reti con caller-ID/modalità utente `+g`: il pulsante `+/-` compare solo quando il proprio `+g` è attivo, invia `ACCEPT +nick` / `ACCEPT -nick` e riflette lo stato confermato dal server anziché assumere localmente l'esito del comando.
+- Ridisegnata la toolbar dei PVT nell'ordine **Invia → ACCEPT +/- → Ignora → Chiudi → …**; le icone seguono ora automaticamente il tema chiaro/scuro, Ignore usa il simbolo di divieto e la nuova azione **Chiudi conversazione** usa la X con conferma esplicita prima di chiudere la query privata.
+- Chiarito il dialog di rimozione dalla lista ACCEPT: l'azione `-` chiede ora esplicitamente di rimuovere il nickname dalla lista ACCEPT, senza confondersi con la chiusura della conversazione.
+- Aggiunta nella scheda Server la voce **Cambia nickname**, immediatamente sopra **Modalità utente**, con nickname corrente precompilato e invio del normale comando IRC `NICK`; **Impostazioni** è stata posizionata immediatamente sopra **Disconnetti** nel menu overflow.
+- Aggiunta una gestione manuale completa del proprio stato **AWAY** dalla scheda Server: messaggio personalizzabile, stato aggiornato solo dopo le conferme IRC `305/306` e barra persistente sopra il campo messaggi per mostrare lo stato away e tornare rapidamente disponibile.
+- Aggiunte in **Impostazioni → Informazioni sull'utente** le preferenze per il messaggio away predefinito e per il nickname away opzionale con suffisso configurabile; nel dialog Away il nickname proposto è modificabile per la singola sessione e viene precompilato con nickname corrente + suffisso, lasciando al server la validazione del comando `NICK` e ripristinando il nick precedente solo quando il cambio era stato applicato da TIARCA.
+- Integrato lo stato AWAY locale con il modello utenti già esistente, così anche il proprio nickname può riflettere correttamente lo stato away nelle viste che già distinguono gli utenti assenti.
+- Semplificate le etichette dell'**Editor avanzato** del formato messaggi eliminando ripetizioni inutili di “message/format”; `NOTICE`, `/me` e `join/leave/etc.` restano termini IRC non tradotti e la precedente traduzione italiana errata di NOTICE è stata corretta.
+- Aggiornate le nuove stringhe nelle lingue mantenute e aggiunti test di regressione per struttura dei menu, stato ACCEPT e conferme AWAY.
+- Consolidata la verifica delle **build riproducibili** direttamente nel workflow Release: il controllo viene eseguito per i tag ufficiali e blocca la pubblicazione se due build release indipendenti non risultano identiche; rimossi i vecchi workflow standalone ormai ridondanti.
+- Aggiunto il controllo automatico di sincronizzazione della home del repository con `versionName` e CHANGELOG, eseguito sia dalla CI sia dalla preparazione Release per evitare README/versioni non allineati.
+
 ## v0.9.7
 
 - Ridisegnata la schermata **Formato del messaggio** con anteprima live, preset più comprensibili per messaggi ed eventi, scelta del colore del nickname, toggle grassetto/corsivo/sottolineato e accesso separato all'editor avanzato.
