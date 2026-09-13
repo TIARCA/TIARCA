@@ -93,12 +93,16 @@ public class ThemeInfo {
     }
 
     public static class UiSection {
+        public String language;
+        public String appearancePreset;
         public String appBarCompactMode;
 
         public UiSection() {
         }
 
         UiSection(UiSection other) {
+            language = other.language;
+            appearancePreset = other.appearancePreset;
             appBarCompactMode = other.appBarCompactMode;
         }
     }
@@ -106,6 +110,9 @@ public class ThemeInfo {
     public static class ChatSection {
         public String font;
         public Integer fontSize;
+        public Boolean globalFontEnabled;
+        public Boolean textAutocorrectEnabled;
+        public Boolean sendBoxAlwaysMultiline;
         public Boolean monochromeBots;
         public Boolean messageAvatars;
         public Boolean customAvatars;
@@ -121,6 +128,9 @@ public class ThemeInfo {
         ChatSection(ChatSection other) {
             font = other.font;
             fontSize = other.fontSize;
+            globalFontEnabled = other.globalFontEnabled;
+            textAutocorrectEnabled = other.textAutocorrectEnabled;
+            sendBoxAlwaysMultiline = other.sendBoxAlwaysMultiline;
             monochromeBots = other.monochromeBots;
             messageAvatars = other.messageAvatars;
             customAvatars = other.customAvatars;
