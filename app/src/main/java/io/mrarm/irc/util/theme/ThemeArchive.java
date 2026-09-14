@@ -28,8 +28,8 @@ import io.mrarm.irc.config.SettingsHelper;
 /** Portable interface-preset container. */
 public final class ThemeArchive {
 
-    /** v3 adds a generic named-asset manifest and deterministic migration support. */
-    public static final int FORMAT_VERSION = 3;
+    /** v4 adds portable chat-background configuration on top of the v3 generic asset manifest. */
+    public static final int FORMAT_VERSION = 4;
     public static final String FILE_EXTENSION = ".ircpreset";
     public static final String LEGACY_FILE_EXTENSION = ".irctheme";
     public static final String MIME_TYPE = "application/x-tiarca-preset";
@@ -45,7 +45,7 @@ public final class ThemeArchive {
     }
 
     /**
-     * Writes a v3 preset. Asset streams are keyed by their archive path (for example
+     * Writes a portable preset. Asset streams are keyed by their archive path (for example
      * {@code assets/font.ttf}); only paths declared by the preset manifest are emitted.
      */
     public static void write(ThemeInfo theme, Map<String, InputStream> assetStreams,
