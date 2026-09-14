@@ -44,7 +44,6 @@ public final class InterfaceSettingsRefreshState {
                 || MessageFormatSettings.PREF_MESSAGE_FORMAT_EVENT.equals(key)
                 || MessageFormatSettings.PREF_MESSAGE_FORMAT_EVENT_HOSTNAME.equals(key)
                 || MessageFormatSettings.PREF_MESSAGE_TIME_FORMAT.equals(key)
-                || MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH.equals(key)
                 || MessageFormatSettings.PREF_MESSAGE_AVATARS.equals(key)
                 || MessageFormatSettings.PREF_MESSAGE_CUSTOM_AVATARS.equals(key)
                 || RightClockSettings.PREF_MESSAGE_TIME_RIGHT.equals(key);

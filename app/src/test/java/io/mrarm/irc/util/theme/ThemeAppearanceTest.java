@@ -16,6 +16,7 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
 import io.mrarm.irc.config.ChatSettings;
+import io.mrarm.irc.config.MessageFormatSettings;
 import io.mrarm.irc.config.SettingsHelper;
 import io.mrarm.irc.util.AppLocaleManager;
 import io.mrarm.irc.util.DefaultPreferences;
@@ -74,5 +75,23 @@ public class ThemeAppearanceTest {
         assertTrue(preferences.getBoolean(ChatSettings.PREF_GLOBAL_FONT_ENABLED, false));
         assertFalse(preferences.getBoolean(ChatSettings.PREF_TEXT_AUTOCORRECT_ENABLED, true));
         assertTrue(preferences.getBoolean(ChatSettings.PREF_SEND_BOX_ALWAYS_MULTILINE, false));
+    }
+
+    @Test
+    public void fixedWidthFieldIsLegacyCompatibilityOnly() {
+        AppearancePresetManager manager = new AppearancePresetManager(context);
+        try {
+            ThemeInfo theme = new ThemeInfo();
+            ThemeAppearance.capture(context, theme);
+
+            assertEquals(Boolean.TRUE, theme.messageLayout.timeFixedWidth);
+
+            theme.messageLayout.timeFixedWidth = false;
+            ThemeAppearance.apply(context, theme);
+
+            assertFalse(preferences.contains(MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH));
+        } finally {
+            manager.closeForTests();
+        }
     }
 }
