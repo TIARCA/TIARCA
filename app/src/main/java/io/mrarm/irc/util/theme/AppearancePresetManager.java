@@ -11,6 +11,7 @@ import android.text.style.UnderlineSpan;
 import io.mrarm.irc.MessageFormatSettingsActivity;
 import io.mrarm.irc.config.AppSettings;
 import io.mrarm.irc.config.AutomatedSenderSettings;
+import io.mrarm.irc.config.ChatBackgroundSettings;
 import io.mrarm.irc.config.ChatSettings;
 import io.mrarm.irc.config.EventDisplaySettings;
 import io.mrarm.irc.config.MessageFormatSettings;
@@ -40,8 +41,6 @@ public final class AppearancePresetManager {
     private final SharedPreferences.OnSharedPreferenceChangeListener preferenceListener =
             (preferences, key) -> {
                 if (MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH.equals(key)) {
-                    // Some legacy code paths still serialize this key. Keep it tombstoned so it
-                    // can no longer become persistent user state while those callers are phased out.
                     if (preferences.contains(key))
                         preferences.edit().remove(key).apply();
                     return;
@@ -63,9 +62,6 @@ public final class AppearancePresetManager {
     }
 
     private void migrateLegacyFixedWidthPreference() {
-        // Left-clock width is renderer-owned since the dedicated clock column was introduced.
-        // Removing the old user preference makes historical false values harmless while keeping
-        // the legacy key available to older source code during the compatibility window.
         if (preferences.contains(MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH))
             preferences.edit().remove(MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH).apply();
     }
@@ -82,6 +78,9 @@ public final class AppearancePresetManager {
                 ChatSettings.PREF_FONT,
                 ChatSettings.PREF_FONT_SIZE,
                 ChatSettings.PREF_APPBAR_COMPACT_MODE,
+                ChatBackgroundSettings.PREF_TYPE,
+                ChatBackgroundSettings.PREF_COLOR,
+                ChatBackgroundSettings.PREF_SCALE,
                 EventDisplaySettings.PREF_MONOCHROME_MODE,
                 EventDisplaySettings.PREF_MONOCHROME_KICK,
                 EventDisplaySettings.PREF_MONOCHROME_QUIT,
@@ -153,10 +152,6 @@ public final class AppearancePresetManager {
                 themeId = "default_dark";
                 break;
         }
-        // Write the same preference used by ThemeManager. This also keeps preset
-        // application independent from the lifecycle of ThemeManager's singleton
-        // (notably during tests), while its existing preference listener still
-        // performs the normal live theme update in the application.
         preferences.edit().putString(AppSettings.PREF_THEME, themeId).apply();
     }
 
@@ -185,6 +180,7 @@ public final class AppearancePresetManager {
                 .putBoolean(MessageFormatSettings.PREF_MESSAGE_CUSTOM_AVATARS, avatars)
                 .putBoolean(RightClockSettings.PREF_MESSAGE_TIME_RIGHT, graphic)
                 .apply();
+        ChatBackgroundSettings.resetToThemeDefault(context);
     }
 
     private void applyMessageFormats(AppearancePreset preset) {
@@ -208,8 +204,6 @@ public final class AppearancePresetManager {
         CharSequence notice = MessageFormatSettingsActivity.buildNoticePresetMessageFormat(
                 context, terminal ? 1 : 0, prefix);
 
-        // Every built-in appearance preset starts with bold nicknames. Terminal and the
-        // high-legibility preset retain their existing redundant underline for mentions.
         normal = addSenderStyle(normal, true, false);
         mention = addSenderStyle(mention, true, underlineMentions);
         action = addSenderStyle(action, true, false);

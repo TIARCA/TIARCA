@@ -16,6 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import io.mrarm.irc.config.AutomatedSenderSettings;
+import io.mrarm.irc.config.ChatBackgroundSettings;
 import io.mrarm.irc.config.ChatSettings;
 import io.mrarm.irc.config.EventDisplaySettings;
 import io.mrarm.irc.config.MessageFormatSettings;
@@ -29,6 +30,7 @@ import io.mrarm.irc.util.MessageBuilder;
 final class ThemeAppearance {
 
     private static final String ASSET_DIR = "assets";
+    private static final String BACKGROUND_ASSET_PATH = ThemeArchive.ASSET_PREFIX + "background";
 
     private ThemeAppearance() {
     }
@@ -69,6 +71,10 @@ final class ThemeAppearance {
                 EventDisplaySettings.PREF_MONOCHROME_QUIT, false);
         chat.monochromeJoinPartEvents = prefs.getBoolean(
                 EventDisplaySettings.PREF_MONOCHROME_JOIN_PART, false);
+        chat.backgroundType = ChatBackgroundSettings.getType(context);
+        chat.backgroundScale = ChatBackgroundSettings.getScale(context);
+        chat.backgroundColor = ChatBackgroundSettings.hasCustomColor(context)
+                ? prefs.getInt(ChatBackgroundSettings.PREF_COLOR, 0) : null;
         theme.chat = chat;
 
         theme.assets.remove(ThemeInfo.ASSET_FONT);
@@ -88,6 +94,22 @@ final class ThemeAppearance {
                     }
                 }
             }
+        }
+
+        theme.assets.remove(ThemeInfo.ASSET_CHAT_BACKGROUND);
+        if (ChatBackgroundSettings.TYPE_IMAGE.equals(chat.backgroundType)
+                && ChatBackgroundSettings.hasImage(context)) {
+            theme.assets.put(ThemeInfo.ASSET_CHAT_BACKGROUND, BACKGROUND_ASSET_PATH);
+            if (theme.uuid != null) {
+                try {
+                    copyFile(ChatBackgroundSettings.getImageFile(context),
+                            getThemeAssetFile(context, theme, BACKGROUND_ASSET_PATH));
+                } catch (IOException ignored) {
+                }
+            }
+        } else if (ChatBackgroundSettings.TYPE_IMAGE.equals(chat.backgroundType)) {
+            // Never serialize an image mode without an actual image asset.
+            chat.backgroundType = ChatBackgroundSettings.TYPE_COLOR;
         }
 
         MessageBuilder builder = MessageBuilder.getInstance(context);
@@ -153,6 +175,14 @@ final class ThemeAppearance {
             if (theme.chat.monochromeJoinPartEvents != null)
                 editor.putBoolean(EventDisplaySettings.PREF_MONOCHROME_JOIN_PART,
                         theme.chat.monochromeJoinPartEvents);
+            if (theme.chat.backgroundType != null)
+                editor.putString(ChatBackgroundSettings.PREF_TYPE, theme.chat.backgroundType);
+            if (theme.chat.backgroundColor != null)
+                editor.putInt(ChatBackgroundSettings.PREF_COLOR, theme.chat.backgroundColor);
+            else
+                editor.remove(ChatBackgroundSettings.PREF_COLOR);
+            if (theme.chat.backgroundScale != null)
+                editor.putString(ChatBackgroundSettings.PREF_SCALE, theme.chat.backgroundScale);
             if (theme.chat.font != null) {
                 if (ListWithCustomSetting.isPrefCustomValue(theme.chat.font)) {
                     if (restoreCustomFont(context, theme))
@@ -165,6 +195,7 @@ final class ThemeAppearance {
             }
         }
         editor.apply();
+        restoreBackground(context, theme);
 
         ThemeInfo.MessageLayoutSection layout = theme.messageLayout;
         if (layout != null) {
@@ -214,6 +245,12 @@ final class ThemeAppearance {
                 File active = ListWithCustomSetting.getCustomFile(
                         context, ChatSettings.PREF_FONT, name);
                 if (active != null && active.isFile())
+                    source = active;
+            }
+            if (source == null && theme.assets != null
+                    && path.equals(theme.assets.get(ThemeInfo.ASSET_CHAT_BACKGROUND))) {
+                File active = ChatBackgroundSettings.getImageFile(context);
+                if (active.isFile())
                     source = active;
             }
             if (source != null)
@@ -283,6 +320,10 @@ final class ThemeAppearance {
                 || ChatSettings.PREF_TEXT_AUTOCORRECT_ENABLED.equals(key)
                 || ChatSettings.PREF_APPBAR_COMPACT_MODE.equals(key)
                 || ChatSettings.PREF_SEND_BOX_ALWAYS_MULTILINE.equals(key)
+                || ChatBackgroundSettings.PREF_TYPE.equals(key)
+                || ChatBackgroundSettings.PREF_COLOR.equals(key)
+                || ChatBackgroundSettings.PREF_SCALE.equals(key)
+                || ChatBackgroundSettings.PREF_IMAGE_REVISION.equals(key)
                 || AutomatedSenderSettings.PREF_MONOCHROME_BOTS.equals(key)
                 || EventDisplaySettings.PREF_MONOCHROME_MODE.equals(key)
                 || EventDisplaySettings.PREF_MONOCHROME_KICK.equals(key)
@@ -299,6 +340,32 @@ final class ThemeAppearance {
                 || MessageFormatSettings.PREF_MESSAGE_AVATARS.equals(key)
                 || MessageFormatSettings.PREF_MESSAGE_CUSTOM_AVATARS.equals(key)
                 || RightClockSettings.PREF_MESSAGE_TIME_RIGHT.equals(key);
+    }
+
+    private static void restoreBackground(Context context, ThemeInfo theme) {
+        if (theme.chat == null
+                || !ChatBackgroundSettings.TYPE_IMAGE.equals(theme.chat.backgroundType)) {
+            File active = ChatBackgroundSettings.getImageFile(context);
+            if (active.exists())
+                active.delete();
+            return;
+        }
+        String path = theme.assets == null ? null
+                : theme.assets.get(ThemeInfo.ASSET_CHAT_BACKGROUND);
+        if (path == null || theme.uuid == null) {
+            DefaultPreferences.get(context).edit()
+                    .putString(ChatBackgroundSettings.PREF_TYPE,
+                            ChatBackgroundSettings.TYPE_COLOR).apply();
+            return;
+        }
+        try {
+            File source = getThemeAssetFile(context, theme, path);
+            ChatBackgroundSettings.restoreImage(context, source);
+        } catch (IOException ignored) {
+            DefaultPreferences.get(context).edit()
+                    .putString(ChatBackgroundSettings.PREF_TYPE,
+                            ChatBackgroundSettings.TYPE_COLOR).apply();
+        }
     }
 
     private static boolean restoreCustomFont(Context context, ThemeInfo theme) {

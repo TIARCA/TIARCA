@@ -58,6 +58,8 @@ public class ThemeInfo {
 
     /** Stable logical asset id used by current and legacy font handling. */
     public static final String ASSET_FONT = "font";
+    /** Stable logical asset id for the optional chat background image. */
+    public static final String ASSET_CHAT_BACKGROUND = "chatBackground";
 
     public Integer formatVersion;
 
@@ -130,6 +132,12 @@ public class ThemeInfo {
         public Boolean monochromeKickEvents;
         public Boolean monochromeQuitEvents;
         public Boolean monochromeJoinPartEvents;
+        /** `color` or `image`. */
+        public String backgroundType;
+        /** Null means use the theme's normal background color. */
+        public Integer backgroundColor;
+        /** `fill`, `fit` or `stretch`. */
+        public String backgroundScale;
         /** Legacy direct asset path retained so v2/older readers can still import custom fonts. */
         public String fontAsset;
 
@@ -149,6 +157,9 @@ public class ThemeInfo {
             monochromeKickEvents = other.monochromeKickEvents;
             monochromeQuitEvents = other.monochromeQuitEvents;
             monochromeJoinPartEvents = other.monochromeJoinPartEvents;
+            backgroundType = other.backgroundType;
+            backgroundColor = other.backgroundColor;
+            backgroundScale = other.backgroundScale;
             fontAsset = other.fontAsset;
         }
     }

@@ -16,6 +16,7 @@ import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
+import io.mrarm.irc.config.ChatBackgroundSettings;
 import io.mrarm.irc.config.SettingsHelper;
 
 @RunWith(RobolectricTestRunner.class)
@@ -52,6 +53,9 @@ public class ThemePresetMigratorTest {
         assertEquals(Boolean.FALSE, theme.chat.monochromeBots);
         assertEquals(Boolean.FALSE, theme.chat.messageAvatars);
         assertEquals(Boolean.FALSE, theme.chat.customAvatars);
+        assertEquals(ChatBackgroundSettings.TYPE_COLOR, theme.chat.backgroundType);
+        assertNull(theme.chat.backgroundColor);
+        assertEquals(ChatBackgroundSettings.SCALE_FILL, theme.chat.backgroundScale);
         assertNotNull(theme.messageLayout.normal);
         assertNotNull(theme.messageLayout.mention);
         assertNotNull(theme.messageLayout.action);
@@ -85,16 +89,48 @@ public class ThemePresetMigratorTest {
 
         assertTrue(ThemePresetMigrator.migrate(context, theme));
 
-        assertEquals(Integer.valueOf(3), theme.formatVersion);
+        assertEquals(Integer.valueOf(4), theme.formatVersion);
         assertEquals(AppearancePreset.GRAPHIC_LIGHT.getId(), theme.ui.appearancePreset);
         assertEquals("always", theme.ui.appBarCompactMode);
         assertEquals("monospace", theme.chat.font);
         assertEquals(Integer.valueOf(17), theme.chat.fontSize);
         assertEquals(Boolean.TRUE, theme.chat.globalFontEnabled);
         assertEquals(Boolean.TRUE, theme.chat.textAutocorrectEnabled);
+        assertEquals(ChatBackgroundSettings.TYPE_COLOR, theme.chat.backgroundType);
+        assertNull(theme.chat.backgroundColor);
+        assertEquals(ChatBackgroundSettings.SCALE_FILL, theme.chat.backgroundScale);
         assertEquals("[HH:mm]", theme.messageLayout.timeFormat);
         assertEquals(Boolean.TRUE, theme.messageLayout.timeRight);
         assertNotNull(theme.messageLayout.normal);
+    }
+
+    @Test
+    public void v3PresetGetsThemeColorBackgroundDefaults() {
+        ThemeInfo theme = new ThemeInfo();
+        theme.formatVersion = 3;
+        theme.chat = new ThemeInfo.ChatSection();
+
+        assertTrue(ThemePresetMigrator.migrate(context, theme));
+
+        assertEquals(Integer.valueOf(4), theme.formatVersion);
+        assertEquals(ChatBackgroundSettings.TYPE_COLOR, theme.chat.backgroundType);
+        assertNull(theme.chat.backgroundColor);
+        assertEquals(ChatBackgroundSettings.SCALE_FILL, theme.chat.backgroundScale);
+        assertFalse(theme.assets.containsKey(ThemeInfo.ASSET_CHAT_BACKGROUND));
+    }
+
+    @Test
+    public void imageModeWithoutDeclaredAssetFallsBackToColor() {
+        ThemeInfo theme = new ThemeInfo();
+        theme.formatVersion = 4;
+        theme.chat = new ThemeInfo.ChatSection();
+        theme.chat.backgroundType = ChatBackgroundSettings.TYPE_IMAGE;
+        theme.chat.backgroundScale = ChatBackgroundSettings.SCALE_FIT;
+
+        assertTrue(ThemePresetMigrator.migrate(context, theme));
+
+        assertEquals(ChatBackgroundSettings.TYPE_COLOR, theme.chat.backgroundType);
+        assertEquals(ChatBackgroundSettings.SCALE_FIT, theme.chat.backgroundScale);
     }
 
     @Test

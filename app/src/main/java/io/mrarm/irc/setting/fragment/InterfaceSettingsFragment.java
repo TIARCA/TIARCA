@@ -39,6 +39,7 @@ import io.mrarm.irc.config.EventDisplaySettings;
 import io.mrarm.irc.config.ChatSettings;
 import io.mrarm.irc.config.SettingsHelper;
 import io.mrarm.irc.dialog.MenuBottomSheetDialog;
+import io.mrarm.irc.setting.ChatBackgroundSetting;
 import io.mrarm.irc.setting.CheckBoxSetting;
 import io.mrarm.irc.setting.ClickableSetting;
 import io.mrarm.irc.setting.FontSizeSetting;
@@ -129,6 +130,7 @@ public class InterfaceSettingsFragment extends SettingsListFragment
                 .linkSetting(prefs, ChatSettings.PREF_FONT));
         a.add(new FontSizeSetting(getString(R.string.pref_title_font_size))
                 .linkSetting(prefs, ChatSettings.PREF_FONT_SIZE));
+        a.add(new ChatBackgroundSetting(a, getString(R.string.pref_title_chat_background)));
         a.add(new CheckBoxSetting(getString(R.string.pref_title_autocorrect),
                 getString(R.string.pref_summary_autocorrect))
                 .linkSetting(prefs, ChatSettings.PREF_TEXT_AUTOCORRECT_ENABLED));
