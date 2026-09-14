@@ -7,6 +7,7 @@ import android.text.style.ForegroundColorSpan;
 import android.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -64,6 +65,22 @@ public class RightClockMessageTextViewTest {
     }
 
     @Test
+    public void leftClockUsesOneRenderedSpaceBetweenColumns() {
+        LinearLayout row = inflateRow();
+        TextView left = row.findViewById(R.id.chat_message_time_left);
+        ImageView avatar = row.findViewById(R.id.chat_message_avatar);
+        RightClockMessageTextView message = row.findViewById(R.id.chat_message);
+
+        message.setText(message("13:25", "Nick: hello"));
+
+        int expectedSpace = Math.max(1, Math.round(left.getPaint().measureText(" ")));
+        assertEquals(expectedSpace, message.getPaddingStart());
+        ViewGroup.MarginLayoutParams avatarParams =
+                (ViewGroup.MarginLayoutParams) avatar.getLayoutParams();
+        assertEquals(expectedSpace, avatarParams.getMarginStart());
+    }
+
+    @Test
     public void leftTimestampColumnKeepsEqualWidthAcrossDifferentDigits() {
         LinearLayout row = inflateRow();
         TextView left = row.findViewById(R.id.chat_message_time_left);
@@ -84,6 +101,7 @@ public class RightClockMessageTextViewTest {
         TextView left = row.findViewById(R.id.chat_message_time_left);
         RightClockMessageTextView message = row.findViewById(R.id.chat_message);
         TextView right = row.findViewById(R.id.chat_message_time);
+        int originalPaddingStart = message.getPaddingStart();
 
         RightClockSettings.setEnabled(mContext, true);
         message.setText(message("[06:58.20]", "Nick: hello"));
@@ -92,6 +110,7 @@ public class RightClockMessageTextViewTest {
         assertEquals(View.VISIBLE, right.getVisibility());
         assertEquals("[06:58.20]", right.getText().toString());
         assertEquals("Nick: hello", message.getText().toString());
+        assertEquals(originalPaddingStart, message.getPaddingStart());
     }
 
     private LinearLayout inflateRow() {

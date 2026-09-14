@@ -87,11 +87,12 @@ public class AppearancePresetManagerTest {
     }
 
     @Test
-    public void terminalUsesSystemMonospaceAndVisiblePrefixes() {
+    public void terminalUsesCompactSystemMonospaceAndVisiblePrefixes() {
         manager.applyPreset(AppearancePreset.TERMINAL);
 
         assertEquals("terminal_dark", preferences.getString(AppSettings.PREF_THEME, null));
         assertEquals("monospace", preferences.getString(ChatSettings.PREF_FONT, null));
+        assertEquals(10, preferences.getInt(ChatSettings.PREF_FONT_SIZE, -1));
         assertHasPrefixChip(MessageBuilder.getInstance(context).getMessageFormat());
         assertHasPrefixChip(MessageBuilder.getInstance(context).getActionMessageFormat());
         assertHasPrefixChip(MessageBuilder.getInstance(context).getNoticeMessageFormat());
@@ -106,6 +107,8 @@ public class AppearancePresetManagerTest {
         assertEquals(AppearancePresetManager.FONT_ATKINSON_HYPERLEGIBLE_NEXT,
                 preferences.getString(ChatSettings.PREF_FONT, null));
         assertEquals(16, preferences.getInt(ChatSettings.PREF_FONT_SIZE, -1));
+        assertEquals("HH:mm", MessageBuilder.getInstance(context)
+                .getMessageTimeFormat().toPattern());
         assertNotNull(ResourcesCompat.getFont(context, R.font.atkinson_hyperlegible_next));
         assertHasPrefixChip(MessageBuilder.getInstance(context).getMessageFormat());
         Spanned mention = (Spanned) MessageBuilder.getInstance(context)

@@ -9,6 +9,7 @@ import android.text.Spanned;
 import android.text.style.ForegroundColorSpan;
 import android.util.AttributeSet;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.appcompat.widget.AppCompatTextView;
@@ -35,6 +36,8 @@ public class RightClockMessageTextView extends AppCompatTextView
     private BufferType mLastBufferType = BufferType.NORMAL;
     private boolean mInitialized;
     private boolean mApplying;
+    private int mDefaultMessagePaddingStart = -1;
+    private int mDefaultAvatarMarginStart = -1;
 
     public RightClockMessageTextView(Context context) {
         super(context);
@@ -95,12 +98,14 @@ public class RightClockMessageTextView extends AppCompatTextView
             hideClock(rightClock);
 
             if (source == null) {
+                restoreDefaultSpacing();
                 super.setText(null, type);
                 return;
             }
 
             TimestampRange range = findTimestampRange(source);
             if (range == null) {
+                restoreDefaultSpacing();
                 super.setText(source, type);
                 return;
             }
@@ -118,6 +123,7 @@ public class RightClockMessageTextView extends AppCompatTextView
             boolean showAtRight = RightClockSettings.isEnabled(getContext());
             TextView clock = showAtRight ? rightClock : leftClock;
             if (clock == null) {
+                restoreDefaultSpacing();
                 super.setText(source, type);
                 return;
             }
@@ -125,6 +131,7 @@ public class RightClockMessageTextView extends AppCompatTextView
             CharSequence cleanTimestamp = trimTimestamp(timestamp);
             copyTextStyle(clock);
             clock.setText(cleanTimestamp);
+            updateInterItemSpacing(showAtRight, clock);
             if (showAtRight) {
                 clock.setMinWidth(0);
             } else {
@@ -145,6 +152,51 @@ public class RightClockMessageTextView extends AppCompatTextView
         }
     }
 
+    private void updateInterItemSpacing(boolean showAtRight, TextView clock) {
+        rememberDefaultSpacing();
+        if (showAtRight) {
+            restoreDefaultSpacing();
+            return;
+        }
+
+        int singleSpace = Math.max(1, Math.round(clock.getPaint().measureText(" ")));
+        setPaddingRelative(singleSpace, getPaddingTop(), getPaddingEnd(), getPaddingBottom());
+
+        View avatar = findSiblingView(R.id.chat_message_avatar);
+        if (avatar != null && avatar.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
+            ViewGroup.MarginLayoutParams params =
+                    (ViewGroup.MarginLayoutParams) avatar.getLayoutParams();
+            params.setMarginStart(singleSpace);
+            avatar.setLayoutParams(params);
+        }
+    }
+
+    private void rememberDefaultSpacing() {
+        if (mDefaultMessagePaddingStart < 0)
+            mDefaultMessagePaddingStart = getPaddingStart();
+        View avatar = findSiblingView(R.id.chat_message_avatar);
+        if (mDefaultAvatarMarginStart < 0 && avatar != null
+                && avatar.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
+            mDefaultAvatarMarginStart =
+                    ((ViewGroup.MarginLayoutParams) avatar.getLayoutParams()).getMarginStart();
+        }
+    }
+
+    private void restoreDefaultSpacing() {
+        rememberDefaultSpacing();
+        if (mDefaultMessagePaddingStart >= 0)
+            setPaddingRelative(mDefaultMessagePaddingStart, getPaddingTop(), getPaddingEnd(),
+                    getPaddingBottom());
+        View avatar = findSiblingView(R.id.chat_message_avatar);
+        if (mDefaultAvatarMarginStart >= 0 && avatar != null
+                && avatar.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
+            ViewGroup.MarginLayoutParams params =
+                    (ViewGroup.MarginLayoutParams) avatar.getLayoutParams();
+            params.setMarginStart(mDefaultAvatarMarginStart);
+            avatar.setLayoutParams(params);
+        }
+    }
+
     private void copyTextStyle(TextView clock) {
         clock.setTypeface(getTypeface());
         clock.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, getTextSize());
@@ -156,6 +208,11 @@ public class RightClockMessageTextView extends AppCompatTextView
     }
 
     private TextView findClockView(int id) {
+        View view = findSiblingView(id);
+        return view instanceof TextView ? (TextView) view : null;
+    }
+
+    private View findSiblingView(int id) {
         if (getParent() instanceof View)
             return ((View) getParent()).findViewById(id);
         return null;
