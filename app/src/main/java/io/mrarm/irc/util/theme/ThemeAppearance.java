@@ -73,6 +73,10 @@ final class ThemeAppearance {
                 EventDisplaySettings.PREF_MONOCHROME_JOIN_PART, false);
         chat.backgroundType = ChatBackgroundSettings.getType(context);
         chat.backgroundScale = ChatBackgroundSettings.getScale(context);
+        chat.backgroundZoom = ChatBackgroundSettings.getZoom(context);
+        chat.backgroundFocusX = ChatBackgroundSettings.getFocusX(context);
+        chat.backgroundFocusY = ChatBackgroundSettings.getFocusY(context);
+        chat.backgroundOpacity = ChatBackgroundSettings.getOpacity(context);
         chat.backgroundColor = ChatBackgroundSettings.hasCustomColor(context)
                 ? prefs.getInt(ChatBackgroundSettings.PREF_COLOR, 0) : null;
         theme.chat = chat;
@@ -183,6 +187,14 @@ final class ThemeAppearance {
                 editor.remove(ChatBackgroundSettings.PREF_COLOR);
             if (theme.chat.backgroundScale != null)
                 editor.putString(ChatBackgroundSettings.PREF_SCALE, theme.chat.backgroundScale);
+            if (theme.chat.backgroundZoom != null)
+                editor.putFloat(ChatBackgroundSettings.PREF_ZOOM, theme.chat.backgroundZoom);
+            if (theme.chat.backgroundFocusX != null)
+                editor.putFloat(ChatBackgroundSettings.PREF_FOCUS_X, theme.chat.backgroundFocusX);
+            if (theme.chat.backgroundFocusY != null)
+                editor.putFloat(ChatBackgroundSettings.PREF_FOCUS_Y, theme.chat.backgroundFocusY);
+            if (theme.chat.backgroundOpacity != null)
+                editor.putInt(ChatBackgroundSettings.PREF_OPACITY, theme.chat.backgroundOpacity);
             if (theme.chat.font != null) {
                 if (ListWithCustomSetting.isPrefCustomValue(theme.chat.font)) {
                     if (restoreCustomFont(context, theme))
@@ -323,6 +335,10 @@ final class ThemeAppearance {
                 || ChatBackgroundSettings.PREF_TYPE.equals(key)
                 || ChatBackgroundSettings.PREF_COLOR.equals(key)
                 || ChatBackgroundSettings.PREF_SCALE.equals(key)
+                || ChatBackgroundSettings.PREF_ZOOM.equals(key)
+                || ChatBackgroundSettings.PREF_FOCUS_X.equals(key)
+                || ChatBackgroundSettings.PREF_FOCUS_Y.equals(key)
+                || ChatBackgroundSettings.PREF_OPACITY.equals(key)
                 || ChatBackgroundSettings.PREF_IMAGE_REVISION.equals(key)
                 || AutomatedSenderSettings.PREF_MONOCHROME_BOTS.equals(key)
                 || EventDisplaySettings.PREF_MONOCHROME_MODE.equals(key)
