@@ -323,6 +323,7 @@ final class ThemeAppearance {
                 || ChatBackgroundSettings.PREF_TYPE.equals(key)
                 || ChatBackgroundSettings.PREF_COLOR.equals(key)
                 || ChatBackgroundSettings.PREF_SCALE.equals(key)
+                || ChatBackgroundSettings.PREF_IMAGE_REVISION.equals(key)
                 || AutomatedSenderSettings.PREF_MONOCHROME_BOTS.equals(key)
                 || EventDisplaySettings.PREF_MONOCHROME_MODE.equals(key)
                 || EventDisplaySettings.PREF_MONOCHROME_KICK.equals(key)
