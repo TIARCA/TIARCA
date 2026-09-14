@@ -10,7 +10,6 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatImageView;
 import androidx.core.content.ContextCompat;
 
-import io.mrarm.irc.R;
 import io.mrarm.irc.config.ChatBackgroundSettings;
 import io.mrarm.irc.util.DefaultPreferences;
 
@@ -117,7 +116,7 @@ public class ChatBackgroundView extends AppCompatImageView
 
     private int resolveThemeBackgroundColor() {
         TypedValue value = new TypedValue();
-        if (!getContext().getTheme().resolveAttribute(R.attr.colorBackground, value, true))
+        if (!getContext().getTheme().resolveAttribute(android.R.attr.colorBackground, value, true))
             return 0x00000000;
         if (value.type >= TypedValue.TYPE_FIRST_COLOR_INT
                 && value.type <= TypedValue.TYPE_LAST_COLOR_INT)
