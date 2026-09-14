@@ -149,6 +149,10 @@ public class ThemeManager {
         theme.uuid = uuid;
         theme.baseThemeInfo = getBaseThemeOrFallback(theme.base);
         customThemes.put(uuid, theme);
+        if (ThemePresetMigrator.migrate(context, theme)) {
+            theme.baseThemeInfo = getBaseThemeOrFallback(theme.base);
+            saveTheme(theme);
+        }
         return theme;
     }
 
@@ -170,27 +174,22 @@ public class ThemeManager {
     public void exportTheme(ThemeInfo theme, OutputStream output) throws IOException {
         ThemeAppearance.capture(context, theme);
         saveTheme(theme);
-        InputStream font = null;
+        Map<String, InputStream> assets = ThemeAppearance.openAssetsForExport(context, theme);
         try {
-            font = ThemeAppearance.openFontForExport(context, theme);
-            ThemeArchive.write(theme, font,
-                    theme.chat == null ? null : theme.chat.fontAsset, output);
+            ThemeArchive.write(theme, assets, output);
         } finally {
-            if (font != null)
-                font.close();
+            closeAssetStreams(assets);
         }
     }
 
     public void importTheme(InputStream input) throws IOException {
         ThemeArchive.ImportedTheme imported = ThemeArchive.read(input);
         ThemeInfo theme = imported.theme;
+        ThemePresetMigrator.migrate(context, theme);
         theme.baseThemeInfo = getBaseThemeOrFallback(theme.base);
         saveTheme(theme);
-        if (imported.fontData != null) {
-            ThemeAppearance.storeImportedFont(context, theme, imported.fontData,
-                    imported.fontEntryName);
-            saveTheme(theme);
-        }
+        ThemeAppearance.storeImportedAssets(context, theme, imported.assets);
+        saveTheme(theme);
         // Importing a preset is an apply operation: restore its interface snapshot immediately.
         setTheme(theme);
     }
@@ -200,6 +199,7 @@ public class ThemeManager {
         ThemeInfo theme = SettingsHelper.getGson().fromJson(reader, ThemeInfo.class);
         if (theme == null)
             throw new IOException("Empty file");
+        ThemePresetMigrator.migrate(context, theme);
         theme.baseThemeInfo = getBaseThemeOrFallback(theme.base);
         saveTheme(theme);
     }
@@ -296,13 +296,12 @@ public class ThemeManager {
     public void setTheme(ThemeInfo theme) {
         if (theme == null)
             return;
-        if (theme.formatVersion == null && theme.ui == null && theme.chat == null
-                && theme.messageLayout == null) {
-            ThemeAppearance.capture(context, theme);
+        if (ThemePresetMigrator.migrate(context, theme)) {
+            theme.baseThemeInfo = getBaseThemeOrFallback(theme.base);
             try {
                 saveTheme(theme);
             } catch (IOException e) {
-                Log.w("ThemeManager", "Failed to upgrade legacy theme", e);
+                Log.w("ThemeManager", "Failed to migrate legacy preset", e);
             }
         }
         suppressAppearanceSync = true;
@@ -401,6 +400,19 @@ public class ThemeManager {
             return currentTheme.getThemeResId();
         else
             return appThemeId;
+    }
+
+    private static void closeAssetStreams(Map<String, InputStream> assets) {
+        if (assets == null)
+            return;
+        for (InputStream stream : assets.values()) {
+            if (stream == null)
+                continue;
+            try {
+                stream.close();
+            } catch (IOException ignored) {
+            }
+        }
     }
 
 
