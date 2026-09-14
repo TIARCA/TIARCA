@@ -9,10 +9,12 @@ import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.provider.OpenableColumns;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -122,9 +124,9 @@ public class InterfaceSettingsFragment extends SettingsListFragment
                                 ((ListSetting) entry).getSelectedOptionValue())));
         a.add(new SettingsHeader(getString(R.string.pref_header_appearance_preset)));
         createPresetList(a);
-        a.add(new SettingsHeader(getString(R.string.pref_header_theme)));
+        a.add(new SettingsHeader(getString(R.string.pref_header_colors)));
         createThemeList(a);
-        a.add(new ClickableSetting(getString(R.string.theme_create_new), null)
+        a.add(new ClickableSetting(getString(R.string.color_set_create_new), null)
                 .setOnClickListener((View v) -> {
                     ThemeInfo newTheme = createNewTheme();
                     ThemeManager.getInstance(getContext()).setTheme(newTheme);
@@ -364,12 +366,12 @@ public class InterfaceSettingsFragment extends SettingsListFragment
             }
             ThemeInfo imported = UserPresetStore.findImportedTheme(manager, before);
             if (imported != null) {
-                if (imported.name == null || imported.name.trim().isEmpty()) {
-                    String fallback = UserPresetStore.nameFromFile(displayName);
-                    if (fallback != null) {
-                        imported.name = fallback;
-                        manager.saveTheme(imported);
-                    }
+                String fileName = UserPresetStore.nameFromFile(displayName);
+                boolean useFileName = UserPresetStore.isLegacyThemeFile(displayName)
+                        || imported.name == null || imported.name.trim().isEmpty();
+                if (useFileName && fileName != null) {
+                    imported.name = fileName;
+                    manager.saveTheme(imported);
                 }
                 UserPresetStore.mark(requireContext(), imported);
             }
@@ -716,6 +718,52 @@ public class InterfaceSettingsFragment extends SettingsListFragment
                 ThemeInfo theme = entry.linkedTheme;
                 if (theme == null || entry.fragment == null)
                     return false;
+
+                MenuBottomSheetDialog menu = new MenuBottomSheetDialog(v.getContext());
+                menu.addItem(R.string.action_rename, R.drawable.ic_edit,
+                        (MenuBottomSheetDialog.Item i) -> {
+                            showRenameDialog(v, entry, theme);
+                            return true;
+                        });
+                menu.addItem(R.string.action_delete, R.drawable.ic_delete,
+                        (MenuBottomSheetDialog.Item i) -> {
+                            showDeleteDialog(v, entry, theme);
+                            return true;
+                        });
+                menu.show();
+                return true;
+            }
+
+            private void showRenameDialog(View v, UserPresetOptionSetting entry, ThemeInfo theme) {
+                View content = LayoutInflater.from(v.getContext())
+                        .inflate(R.layout.dialog_edit_text, null);
+                EditText text = content.findViewById(R.id.edit_text);
+                text.setText(theme.name == null ? "" : theme.name);
+                text.setSelectAllOnFocus(true);
+                new AlertDialog.Builder(v.getContext())
+                        .setTitle(R.string.action_rename)
+                        .setView(content)
+                        .setNegativeButton(R.string.action_cancel, null)
+                        .setPositiveButton(R.string.action_ok, (dialog, which) -> {
+                            String newName = text.getText().toString().trim();
+                            if (newName.isEmpty())
+                                return;
+                            theme.name = newName;
+                            try {
+                                entry.manager.saveTheme(theme);
+                            } catch (IOException e) {
+                                Log.w("InterfaceSettings", "Failed to rename imported preset");
+                                Toast.makeText(v.getContext(), R.string.error_generic,
+                                        Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+                            if (entry.fragment.getActivity() != null)
+                                entry.fragment.getActivity().recreate();
+                        })
+                        .show();
+            }
+
+            private void showDeleteDialog(View v, UserPresetOptionSetting entry, ThemeInfo theme) {
                 String name = theme.name == null ? "" : theme.name;
                 new AlertDialog.Builder(v.getContext())
                         .setTitle(R.string.action_delete)
@@ -728,7 +776,6 @@ public class InterfaceSettingsFragment extends SettingsListFragment
                                 entry.fragment.getActivity().recreate();
                         })
                         .show();
-                return true;
             }
         }
     }
