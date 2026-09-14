@@ -50,8 +50,17 @@ public final class AppearancePresetManager {
     AppearancePresetManager(Context context) {
         this.context = context.getApplicationContext();
         preferences = DefaultPreferences.get(this.context);
+        migrateLegacyFixedWidthPreference();
         initializeStoredPreset();
         preferences.registerOnSharedPreferenceChangeListener(preferenceListener);
+    }
+
+    private void migrateLegacyFixedWidthPreference() {
+        // Left-clock width is renderer-owned since the dedicated clock column was introduced.
+        // Removing the old user preference makes historical false values harmless while keeping
+        // the legacy key available to older source code during the compatibility window.
+        if (preferences.contains(MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH))
+            preferences.edit().remove(MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH).apply();
     }
 
     private void initializeStoredPreset() {
@@ -79,7 +88,6 @@ public final class AppearancePresetManager {
                 MessageFormatSettings.PREF_MESSAGE_FORMAT_EVENT,
                 MessageFormatSettings.PREF_MESSAGE_FORMAT_EVENT_HOSTNAME,
                 MessageFormatSettings.PREF_MESSAGE_TIME_FORMAT,
-                MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH,
                 MessageFormatSettings.PREF_MESSAGE_AVATARS,
                 MessageFormatSettings.PREF_MESSAGE_CUSTOM_AVATARS,
                 RightClockSettings.PREF_MESSAGE_TIME_RIGHT
@@ -209,7 +217,6 @@ public final class AppearancePresetManager {
                 .buildEventPresetMessageFormat(context, graphic ? 1 : 0));
         builder.setEventMessageShowHostname(false);
         builder.setMessageTimeFormat(terminal ? "[HH:mm:ss]" : graphic ? "HH:mm" : "[HH:mm.ss]");
-        builder.setMessageTimeFixedWidth(!graphic);
         builder.setMessageAvatars(graphic || colorBlind);
         builder.setMessageCustomAvatars(graphic || colorBlind);
         builder.saveFormats();
