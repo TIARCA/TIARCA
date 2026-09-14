@@ -5,6 +5,7 @@ import android.content.Context;
 import java.io.IOException;
 import java.util.HashMap;
 
+import io.mrarm.irc.config.ChatBackgroundSettings;
 import io.mrarm.irc.config.SettingsHelper;
 import io.mrarm.irc.util.MessageBuilder;
 
@@ -101,6 +102,30 @@ public final class ThemePresetMigrator {
             changed = true;
         }
 
+        String backgroundAsset = theme.assets.get(ThemeInfo.ASSET_CHAT_BACKGROUND);
+        if (backgroundAsset != null) {
+            try {
+                String safe = ThemeArchive.sanitizeAssetEntry(backgroundAsset);
+                if (!safe.equals(backgroundAsset)) {
+                    theme.assets.put(ThemeInfo.ASSET_CHAT_BACKGROUND, safe);
+                    changed = true;
+                }
+            } catch (IOException invalidAsset) {
+                theme.assets.remove(ThemeInfo.ASSET_CHAT_BACKGROUND);
+                backgroundAsset = null;
+                changed = true;
+            }
+        }
+        if (ChatBackgroundSettings.TYPE_IMAGE.equals(theme.chat.backgroundType)
+                && backgroundAsset == null) {
+            // A preset cannot promise an image background if it does not declare the asset.
+            theme.chat.backgroundType = ChatBackgroundSettings.TYPE_COLOR;
+            changed = true;
+        } else if (!ChatBackgroundSettings.TYPE_IMAGE.equals(theme.chat.backgroundType)
+                && theme.assets.remove(ThemeInfo.ASSET_CHAT_BACKGROUND) != null) {
+            changed = true;
+        }
+
         if (theme.messageLayout == null) {
             theme.messageLayout = new ThemeInfo.MessageLayoutSection();
             changed = true;
@@ -162,6 +187,19 @@ public final class ThemePresetMigrator {
         }
         if (chat.monochromeJoinPartEvents == null) {
             chat.monochromeJoinPartEvents = false;
+            changed = true;
+        }
+        if (!ChatBackgroundSettings.TYPE_COLOR.equals(chat.backgroundType)
+                && !ChatBackgroundSettings.TYPE_IMAGE.equals(chat.backgroundType)) {
+            // v1-v3 had no chat-background setting: theme background is the frozen compatibility
+            // default. backgroundColor intentionally remains null in this case.
+            chat.backgroundType = ChatBackgroundSettings.TYPE_COLOR;
+            changed = true;
+        }
+        if (!ChatBackgroundSettings.SCALE_FILL.equals(chat.backgroundScale)
+                && !ChatBackgroundSettings.SCALE_FIT.equals(chat.backgroundScale)
+                && !ChatBackgroundSettings.SCALE_STRETCH.equals(chat.backgroundScale)) {
+            chat.backgroundScale = ChatBackgroundSettings.SCALE_FILL;
             changed = true;
         }
         return changed;
