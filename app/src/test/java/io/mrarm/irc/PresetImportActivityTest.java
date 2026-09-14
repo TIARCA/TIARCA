@@ -25,18 +25,18 @@ public class PresetImportActivityTest {
 
     @Test
     public void customPresetMimeTypeIsAcceptedForContentUri() {
-        Intent intent = new Intent(Intent.ACTION_VIEW,
-                Uri.parse("content://provider/document/opaque-id"));
-        intent.setType(ThemeArchive.MIME_TYPE);
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setDataAndType(Uri.parse("content://provider/document/opaque-id"),
+                ThemeArchive.MIME_TYPE);
 
         assertTrue(PresetImportActivity.isSupportedPresetIntent(intent, "shared-file"));
     }
 
     @Test
     public void ircpresetExtensionIsAcceptedWithGenericMimeType() {
-        Intent intent = new Intent(Intent.ACTION_VIEW,
-                Uri.parse("content://provider/document/MyPreset.ircpreset"));
-        intent.setType("application/octet-stream");
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setDataAndType(Uri.parse("content://provider/document/MyPreset.ircpreset"),
+                "application/octet-stream");
 
         assertTrue(PresetImportActivity.isSupportedPresetIntent(intent, "MyPreset.ircpreset"));
         assertTrue(PresetImportActivity.hasPresetExtension("PRESET.IRCPRESET"));
@@ -44,42 +44,42 @@ public class PresetImportActivityTest {
 
     @Test
     public void unrelatedZipIsRejected() {
-        Intent intent = new Intent(Intent.ACTION_VIEW,
-                Uri.parse("content://provider/document/archive.zip"));
-        intent.setType("application/zip");
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setDataAndType(Uri.parse("content://provider/document/archive.zip"),
+                "application/zip");
 
         assertFalse(PresetImportActivity.isSupportedPresetIntent(intent, "archive.zip"));
     }
 
     @Test
     public void nonViewAndWebIntentsAreRejected() {
-        Intent send = new Intent(Intent.ACTION_SEND,
-                Uri.parse("content://provider/document/preset.ircpreset"));
-        send.setType(ThemeArchive.MIME_TYPE);
+        Intent send = new Intent(Intent.ACTION_SEND);
+        send.setDataAndType(Uri.parse("content://provider/document/preset.ircpreset"),
+                ThemeArchive.MIME_TYPE);
         assertFalse(PresetImportActivity.isSupportedPresetIntent(send, "preset.ircpreset"));
 
-        Intent web = new Intent(Intent.ACTION_VIEW,
-                Uri.parse("https://example.com/preset.ircpreset"));
-        web.setType(ThemeArchive.MIME_TYPE);
+        Intent web = new Intent(Intent.ACTION_VIEW);
+        web.setDataAndType(Uri.parse("https://example.com/preset.ircpreset"),
+                ThemeArchive.MIME_TYPE);
         assertFalse(PresetImportActivity.isSupportedPresetIntent(web, "preset.ircpreset"));
     }
 
     @Test
     public void manifestRegistersPresetMimeButNotOrdinaryZip() {
         Context context = ApplicationProvider.getApplicationContext();
-        Intent preset = new Intent(Intent.ACTION_VIEW,
-                Uri.parse("content://provider/document/preset.ircpreset"));
+        Intent preset = new Intent(Intent.ACTION_VIEW);
+        preset.setDataAndType(Uri.parse("content://provider/document/preset.ircpreset"),
+                ThemeArchive.MIME_TYPE);
         preset.addCategory(Intent.CATEGORY_BROWSABLE);
-        preset.setType(ThemeArchive.MIME_TYPE);
 
         List<ResolveInfo> presetHandlers = context.getPackageManager()
                 .queryIntentActivities(preset, 0);
         assertTrue(containsPresetImportActivity(presetHandlers));
 
-        Intent zip = new Intent(Intent.ACTION_VIEW,
-                Uri.parse("content://provider/document/archive.zip"));
+        Intent zip = new Intent(Intent.ACTION_VIEW);
+        zip.setDataAndType(Uri.parse("content://provider/document/archive.zip"),
+                "application/zip");
         zip.addCategory(Intent.CATEGORY_BROWSABLE);
-        zip.setType("application/zip");
         assertFalse(containsPresetImportActivity(
                 context.getPackageManager().queryIntentActivities(zip, 0)));
     }
