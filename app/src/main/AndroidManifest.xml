@@ -70,6 +70,11 @@
                     android:host="*"
                     android:pathPattern=".*\\.ircpreset"
                     android:mimeType="*/*" />
+                <data
+                    android:scheme="content"
+                    android:host="*"
+                    android:pathPattern=".*\\.irctheme"
+                    android:mimeType="*/*" />
             </intent-filter>
         </activity>
         <activity
