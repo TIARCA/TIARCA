@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pref_header_colors">Colors</string>
+    <string name="color_set_create_new">Create a new color set</string>
+</resources>
