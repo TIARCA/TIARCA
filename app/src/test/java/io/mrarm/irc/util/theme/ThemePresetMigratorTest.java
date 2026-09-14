@@ -56,6 +56,14 @@ public class ThemePresetMigratorTest {
         assertEquals(ChatBackgroundSettings.TYPE_COLOR, theme.chat.backgroundType);
         assertNull(theme.chat.backgroundColor);
         assertEquals(ChatBackgroundSettings.SCALE_FILL, theme.chat.backgroundScale);
+        assertEquals(Float.valueOf(ChatBackgroundSettings.DEFAULT_ZOOM),
+                theme.chat.backgroundZoom);
+        assertEquals(Float.valueOf(ChatBackgroundSettings.DEFAULT_FOCUS),
+                theme.chat.backgroundFocusX);
+        assertEquals(Float.valueOf(ChatBackgroundSettings.DEFAULT_FOCUS),
+                theme.chat.backgroundFocusY);
+        assertEquals(Integer.valueOf(ChatBackgroundSettings.DEFAULT_OPACITY),
+                theme.chat.backgroundOpacity);
         assertNotNull(theme.messageLayout.normal);
         assertNotNull(theme.messageLayout.mention);
         assertNotNull(theme.messageLayout.action);
@@ -89,7 +97,7 @@ public class ThemePresetMigratorTest {
 
         assertTrue(ThemePresetMigrator.migrate(context, theme));
 
-        assertEquals(Integer.valueOf(4), theme.formatVersion);
+        assertEquals(Integer.valueOf(5), theme.formatVersion);
         assertEquals(AppearancePreset.GRAPHIC_LIGHT.getId(), theme.ui.appearancePreset);
         assertEquals("always", theme.ui.appBarCompactMode);
         assertEquals("monospace", theme.chat.font);
@@ -99,6 +107,10 @@ public class ThemePresetMigratorTest {
         assertEquals(ChatBackgroundSettings.TYPE_COLOR, theme.chat.backgroundType);
         assertNull(theme.chat.backgroundColor);
         assertEquals(ChatBackgroundSettings.SCALE_FILL, theme.chat.backgroundScale);
+        assertEquals(Float.valueOf(ChatBackgroundSettings.DEFAULT_ZOOM),
+                theme.chat.backgroundZoom);
+        assertEquals(Integer.valueOf(ChatBackgroundSettings.DEFAULT_OPACITY),
+                theme.chat.backgroundOpacity);
         assertEquals("[HH:mm]", theme.messageLayout.timeFormat);
         assertEquals(Boolean.TRUE, theme.messageLayout.timeRight);
         assertNotNull(theme.messageLayout.normal);
@@ -112,11 +124,50 @@ public class ThemePresetMigratorTest {
 
         assertTrue(ThemePresetMigrator.migrate(context, theme));
 
-        assertEquals(Integer.valueOf(4), theme.formatVersion);
+        assertEquals(Integer.valueOf(5), theme.formatVersion);
         assertEquals(ChatBackgroundSettings.TYPE_COLOR, theme.chat.backgroundType);
         assertNull(theme.chat.backgroundColor);
         assertEquals(ChatBackgroundSettings.SCALE_FILL, theme.chat.backgroundScale);
         assertFalse(theme.assets.containsKey(ThemeInfo.ASSET_CHAT_BACKGROUND));
+    }
+
+    @Test
+    public void v4BackgroundGetsDeterministicEditorDefaults() {
+        ThemeInfo theme = new ThemeInfo();
+        theme.formatVersion = 4;
+        theme.chat = new ThemeInfo.ChatSection();
+        theme.chat.backgroundType = ChatBackgroundSettings.TYPE_COLOR;
+        theme.chat.backgroundScale = ChatBackgroundSettings.SCALE_FIT;
+
+        assertTrue(ThemePresetMigrator.migrate(context, theme));
+
+        assertEquals(Integer.valueOf(5), theme.formatVersion);
+        assertEquals(ChatBackgroundSettings.SCALE_FIT, theme.chat.backgroundScale);
+        assertEquals(Float.valueOf(1f), theme.chat.backgroundZoom);
+        assertEquals(Float.valueOf(0.5f), theme.chat.backgroundFocusX);
+        assertEquals(Float.valueOf(0.5f), theme.chat.backgroundFocusY);
+        assertEquals(Integer.valueOf(100), theme.chat.backgroundOpacity);
+    }
+
+    @Test
+    public void v5MatrixTransformIsPreserved() {
+        ThemeInfo theme = new ThemeInfo();
+        theme.formatVersion = 5;
+        theme.chat = new ThemeInfo.ChatSection();
+        theme.chat.backgroundType = ChatBackgroundSettings.TYPE_COLOR;
+        theme.chat.backgroundScale = ChatBackgroundSettings.SCALE_MATRIX;
+        theme.chat.backgroundZoom = 2.5f;
+        theme.chat.backgroundFocusX = 0.25f;
+        theme.chat.backgroundFocusY = 0.75f;
+        theme.chat.backgroundOpacity = 45;
+
+        ThemePresetMigrator.migrate(context, theme);
+
+        assertEquals(ChatBackgroundSettings.SCALE_MATRIX, theme.chat.backgroundScale);
+        assertEquals(Float.valueOf(2.5f), theme.chat.backgroundZoom);
+        assertEquals(Float.valueOf(0.25f), theme.chat.backgroundFocusX);
+        assertEquals(Float.valueOf(0.75f), theme.chat.backgroundFocusY);
+        assertEquals(Integer.valueOf(45), theme.chat.backgroundOpacity);
     }
 
     @Test
