@@ -21,6 +21,7 @@ public class ChatBackgroundView extends AppCompatImageView
     private int lastWidth;
     private int lastHeight;
     private long lastImageModified;
+    private long lastImageRevision;
 
     public ChatBackgroundView(Context context) {
         super(context);
@@ -100,9 +101,11 @@ public class ChatBackgroundView extends AppCompatImageView
             width = getResources().getDisplayMetrics().widthPixels;
             height = getResources().getDisplayMetrics().heightPixels;
         }
+        SharedPreferences preferences = DefaultPreferences.get(getContext());
+        long revision = preferences.getLong(ChatBackgroundSettings.PREF_IMAGE_REVISION, 0L);
         long modified = ChatBackgroundSettings.getImageFile(getContext()).lastModified();
         if (bitmap != null && !bitmap.isRecycled() && width == lastWidth && height == lastHeight
-                && modified == lastImageModified)
+                && modified == lastImageModified && revision == lastImageRevision)
             return;
 
         Bitmap next = ChatBackgroundSettings.decodeSampledImage(getContext(), width, height);
@@ -111,6 +114,7 @@ public class ChatBackgroundView extends AppCompatImageView
         lastWidth = width;
         lastHeight = height;
         lastImageModified = modified;
+        lastImageRevision = revision;
         setImageBitmap(bitmap);
     }
 
@@ -134,5 +138,6 @@ public class ChatBackgroundView extends AppCompatImageView
         lastWidth = 0;
         lastHeight = 0;
         lastImageModified = 0;
+        lastImageRevision = 0;
     }
 }
