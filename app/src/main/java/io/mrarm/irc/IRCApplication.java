@@ -88,8 +88,6 @@ public class IRCApplication extends Application implements Application.ActivityL
         }
         DiagnosticLog.i(this, "APP", () -> "Explicit app exit requested");
         SettingsHelper.getPreferences().edit().putBoolean(PREF_INTENTIONAL_EXIT, true).commit();
-        for (ExitCallback exitCallback : mPreExitCallbacks)
-            exitCallback.onAppPreExit();
         for (ExitCallback exitCallback : mExitCallbacks)
             exitCallback.onAppExiting();
         for (Activity activity : mActivities)
