@@ -150,6 +150,25 @@ public class AppearancePresetManagerTest {
         assertEquals(AppearancePreset.TERMINAL, manager.getCurrentPreset());
     }
 
+    @Test
+    public void legacyFixedWidthPreferenceIsRemovedAndCannotPersist() {
+        manager.closeForTests();
+        preferences.edit()
+                .putBoolean(MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH, false)
+                .commit();
+
+        manager = new AppearancePresetManager(context);
+        assertFalse(preferences.contains(MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH));
+
+        preferences.edit()
+                .putBoolean(MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH, false)
+                .commit();
+        assertFalse(preferences.contains(MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH));
+
+        manager.applyPreset(AppearancePreset.IRC_DARK);
+        assertFalse(preferences.contains(MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH));
+    }
+
     private static void assertHasPrefixChip(CharSequence format) {
         Spanned spanned = (Spanned) format;
         for (MessageBuilder.MetaChipSpan chip : spanned.getSpans(0, spanned.length(),
