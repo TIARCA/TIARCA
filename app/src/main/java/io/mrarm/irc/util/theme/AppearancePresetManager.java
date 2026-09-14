@@ -163,7 +163,7 @@ public final class AppearancePresetManager {
 
         String font = terminal ? "monospace" : colorBlind
                 ? FONT_ATKINSON_HYPERLEGIBLE_NEXT : "default";
-        int fontSize = colorBlind ? 16 : graphic ? 14 : terminal ? 14 : 12;
+        int fontSize = colorBlind ? 16 : graphic ? 14 : terminal ? 10 : 12;
         boolean avatars = graphic || colorBlind;
         boolean monochrome = terminal || colorBlind;
 
@@ -218,7 +218,8 @@ public final class AppearancePresetManager {
         builder.setEventMessageFormat(MessageFormatSettingsActivity
                 .buildEventPresetMessageFormat(context, graphic || colorBlind ? 1 : 0));
         builder.setEventMessageShowHostname(false);
-        builder.setMessageTimeFormat(terminal ? "[HH:mm:ss]" : graphic ? "HH:mm" : "[HH:mm.ss]");
+        builder.setMessageTimeFormat(colorBlind ? "HH:mm" : terminal ? "[HH:mm:ss]"
+                : graphic ? "HH:mm" : "[HH:mm.ss]");
         builder.setMessageAvatars(graphic || colorBlind);
         builder.setMessageCustomAvatars(graphic || colorBlind);
         builder.saveFormats();
