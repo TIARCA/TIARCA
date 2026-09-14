@@ -21,7 +21,7 @@ import org.junit.Test;
 public class ThemeArchiveTest {
 
     @Test
-    public void v4RoundTripPreservesSectionsAndMultipleAssets() throws Exception {
+    public void v5RoundTripPreservesSectionsAndMultipleAssets() throws Exception {
         ThemeInfo theme = new ThemeInfo();
         theme.name = "Portable";
         theme.base = "default_dark";
@@ -39,7 +39,11 @@ public class ThemeArchiveTest {
         theme.chat.sendBoxAlwaysMultiline = true;
         theme.chat.monochromeBots = true;
         theme.chat.backgroundType = "image";
-        theme.chat.backgroundScale = "fill";
+        theme.chat.backgroundScale = "matrix";
+        theme.chat.backgroundZoom = 1.75f;
+        theme.chat.backgroundFocusX = 0.25f;
+        theme.chat.backgroundFocusY = 0.65f;
+        theme.chat.backgroundOpacity = 42;
         theme.chat.fontAsset = "assets/font.ttf";
         theme.assets.put(ThemeInfo.ASSET_FONT, "assets/font.ttf");
         theme.assets.put(ThemeInfo.ASSET_CHAT_BACKGROUND, "assets/background.webp");
@@ -72,7 +76,7 @@ public class ThemeArchiveTest {
 
         ThemeArchive.ImportedTheme imported =
                 ThemeArchive.read(new ByteArrayInputStream(archive));
-        assertEquals(Integer.valueOf(4), imported.theme.formatVersion);
+        assertEquals(Integer.valueOf(5), imported.theme.formatVersion);
         assertEquals("Portable", imported.theme.name);
         assertEquals("default_dark", imported.theme.base);
         assertEquals(AppearancePreset.COLOR_BLIND.getId(),
@@ -85,7 +89,11 @@ public class ThemeArchiveTest {
         assertEquals(Boolean.TRUE, imported.theme.chat.sendBoxAlwaysMultiline);
         assertEquals(Boolean.TRUE, imported.theme.chat.monochromeBots);
         assertEquals("image", imported.theme.chat.backgroundType);
-        assertEquals("fill", imported.theme.chat.backgroundScale);
+        assertEquals("matrix", imported.theme.chat.backgroundScale);
+        assertEquals(Float.valueOf(1.75f), imported.theme.chat.backgroundZoom);
+        assertEquals(Float.valueOf(0.25f), imported.theme.chat.backgroundFocusX);
+        assertEquals(Float.valueOf(0.65f), imported.theme.chat.backgroundFocusY);
+        assertEquals(Integer.valueOf(42), imported.theme.chat.backgroundOpacity);
         assertEquals("[HH:mm]", imported.theme.messageLayout.timeFormat);
         assertEquals(Boolean.TRUE, imported.theme.messageLayout.timeRight);
         assertEquals("assets/font.ttf", imported.theme.assets.get(ThemeInfo.ASSET_FONT));
@@ -161,7 +169,7 @@ public class ThemeArchiveTest {
 
     @Test
     public void unknownFutureSectionsDoNotBreakCurrentReader() throws Exception {
-        String json = "{\"formatVersion\":5,\"name\":\"Future\","
+        String json = "{\"formatVersion\":6,\"name\":\"Future\","
                 + "\"base\":\"default\",\"colors\":{},\"properties\":{},"
                 + "\"savedColors\":[],\"assets\":{},"
                 + "\"avatar\":{\"size\":28,\"shape\":\"circle\"}}";
@@ -175,7 +183,7 @@ public class ThemeArchiveTest {
 
         ThemeArchive.ImportedTheme imported = ThemeArchive.read(
                 new ByteArrayInputStream(out.toByteArray()));
-        assertEquals(Integer.valueOf(5), imported.theme.formatVersion);
+        assertEquals(Integer.valueOf(6), imported.theme.formatVersion);
         assertEquals("Future", imported.theme.name);
         assertEquals("default", imported.theme.base);
         assertFalse(imported.theme.assets.containsKey("avatar"));
