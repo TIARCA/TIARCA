@@ -340,7 +340,7 @@ public final class UpdateManager {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(
                     connection.getInputStream(), StandardCharsets.UTF_8))) {
                 String line;
-                while ((line = reader.readLine()) != -1)
+                while ((line = reader.readLine()) != null)
                     json.append(line);
             }
 
