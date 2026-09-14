@@ -4,4 +4,7 @@
     <string name="action_save_theme">Save theme</string>
     <string name="action_import_preset">Import preset</string>
     <string name="action_save_preset">Save preset</string>
+    <string name="preset_import_confirm">Import preset “%1$s”?</string>
+    <string name="preset_import_success">Preset imported</string>
+    <string name="preset_import_error">This file could not be imported as a TIARCA preset.</string>
 </resources>
