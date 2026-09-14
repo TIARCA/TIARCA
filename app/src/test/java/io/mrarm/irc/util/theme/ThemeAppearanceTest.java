@@ -1,5 +1,6 @@
 package io.mrarm.irc.util.theme;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -9,6 +10,14 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 import androidx.test.core.app.ApplicationProvider;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.Map;
+import java.util.UUID;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -109,6 +118,41 @@ public class ThemeAppearanceTest {
     }
 
     @Test
+    public void backgroundImageIsCopiedIntoPresetAndRestoredOnApply() throws Exception {
+        byte[] image = "portable-image".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        ChatBackgroundSettings.storeImage(context, new ByteArrayInputStream(image));
+        ChatBackgroundSettings.setScale(context, ChatBackgroundSettings.SCALE_FIT);
+
+        ThemeInfo theme = new ThemeInfo();
+        theme.uuid = UUID.randomUUID();
+        ThemeAppearance.capture(context, theme);
+
+        String path = theme.assets.get(ThemeInfo.ASSET_CHAT_BACKGROUND);
+        assertEquals("assets/background", path);
+        assertEquals(ChatBackgroundSettings.TYPE_IMAGE, theme.chat.backgroundType);
+        assertEquals(ChatBackgroundSettings.SCALE_FIT, theme.chat.backgroundScale);
+
+        Map<String, InputStream> exported = ThemeAppearance.openAssetsForExport(context, theme);
+        try {
+            assertTrue(exported.containsKey(path));
+            assertArrayEquals(image, readAll(exported.get(path)));
+        } finally {
+            for (InputStream input : exported.values())
+                input.close();
+        }
+
+        ChatBackgroundSettings.getImageFile(context).delete();
+        preferences.edit().putString(ChatBackgroundSettings.PREF_TYPE,
+                ChatBackgroundSettings.TYPE_COLOR).commit();
+        ThemeAppearance.apply(context, theme);
+
+        assertEquals(ChatBackgroundSettings.TYPE_IMAGE, ChatBackgroundSettings.getType(context));
+        assertArrayEquals(image, readFile(ChatBackgroundSettings.getImageFile(context)));
+        assertEquals(ChatBackgroundSettings.SCALE_FIT,
+                ChatBackgroundSettings.getScale(context));
+    }
+
+    @Test
     public void legacyPresetDoesNotInheritExistingDeviceAppearance() {
         preferences.edit()
                 .putString(ChatSettings.PREF_FONT, "monospace")
@@ -167,5 +211,20 @@ public class ThemeAppearanceTest {
         } finally {
             manager.closeForTests();
         }
+    }
+
+    private static byte[] readFile(File file) throws Exception {
+        try (FileInputStream input = new FileInputStream(file)) {
+            return readAll(input);
+        }
+    }
+
+    private static byte[] readAll(InputStream input) throws Exception {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        byte[] buffer = new byte[1024];
+        int count;
+        while ((count = input.read(buffer)) != -1)
+            output.write(buffer, 0, count);
+        return output.toByteArray();
     }
 }
