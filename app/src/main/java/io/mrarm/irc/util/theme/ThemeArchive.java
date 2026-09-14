@@ -28,8 +28,8 @@ import io.mrarm.irc.config.SettingsHelper;
 /** Portable interface-preset container. */
 public final class ThemeArchive {
 
-    /** v4 adds portable chat-background configuration on top of the v3 generic asset manifest. */
-    public static final int FORMAT_VERSION = 4;
+    /** v5 adds WYSIWYG background position, zoom and opacity on top of the v4 image asset. */
+    public static final int FORMAT_VERSION = 5;
     public static final String FILE_EXTENSION = ".ircpreset";
     public static final String LEGACY_FILE_EXTENSION = ".irctheme";
     public static final String MIME_TYPE = "application/x-tiarca-preset";
