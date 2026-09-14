@@ -30,7 +30,7 @@
                 android:text="@string/message_format_preview_title"
                 android:textStyle="bold" />
 
-            <TextView
+            <io.mrarm.irc.view.MessageFormatPreviewView
                 android:id="@+id/message_format_preview"
                 style="@style/MessageFormatSettingsExampleText"
                 android:paddingTop="8dp"

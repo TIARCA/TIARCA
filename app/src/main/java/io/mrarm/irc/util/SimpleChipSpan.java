@@ -13,13 +13,20 @@ import android.text.style.StyleSpan;
 
 public class SimpleChipSpan extends ImageSpan {
 
+    private final boolean mInheritTextStyle;
+
     public SimpleChipSpan(Context context, String text, boolean transparent) {
         super(new SimpleChipDrawable(context, text, transparent));
+        mInheritTextStyle = true;
         getDrawable().setBounds(0, 0, getDrawable().getIntrinsicWidth(), getDrawable().getIntrinsicHeight());
     }
 
     public SimpleChipSpan(Context context, String text, Drawable drawable, boolean transparent) {
         super(new SimpleChipDrawable(context, text, drawable, transparent));
+        // Meta chips in the message-format editor use this constructor. Keep those labels neutral
+        // and high-contrast: the real sender/timestamp colour and style belongs in the preview,
+        // not on the editing controls themselves.
+        mInheritTextStyle = false;
         getDrawable().setBounds(0, 0, getDrawable().getIntrinsicWidth(), getDrawable().getIntrinsicHeight());
     }
 
@@ -27,7 +34,7 @@ public class SimpleChipSpan extends ImageSpan {
     public void draw(Canvas canvas, CharSequence text, int start, int end, float x, int top, int y, int bottom, Paint paint) {
         SimpleChipDrawable chipDrawable = ((SimpleChipDrawable) getDrawable());
         Paint myPaint = chipDrawable.getPaint();
-        if (text instanceof Spanned) {
+        if (mInheritTextStyle && text instanceof Spanned) {
             Spanned spannable = (Spanned) text;
             int style = 0;
             int fgColor = -1;
@@ -57,6 +64,9 @@ public class SimpleChipSpan extends ImageSpan {
                     chipDrawable.setDefaultTextColor();
                 myPaint.setTypeface(Typeface.create(Typeface.DEFAULT, style));
             }
+        } else if (myPaint != null) {
+            chipDrawable.setDefaultTextColor();
+            myPaint.setTypeface(Typeface.DEFAULT);
         }
         super.draw(canvas, text, start, end, x, top, y, bottom, paint);
     }
