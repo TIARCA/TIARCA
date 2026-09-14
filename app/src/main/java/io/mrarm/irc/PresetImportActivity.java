@@ -13,9 +13,13 @@ import androidx.appcompat.app.AlertDialog;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
 
 import io.mrarm.irc.util.theme.ThemeArchive;
+import io.mrarm.irc.util.theme.ThemeInfo;
 import io.mrarm.irc.util.theme.ThemeManager;
+import io.mrarm.irc.util.theme.UserPresetStore;
 
 /** Handles opening portable TIARCA preset files from Android file/share providers. */
 public class PresetImportActivity extends ThemedActivity {
@@ -37,21 +41,35 @@ public class PresetImportActivity extends ThemedActivity {
         String label = displayName;
         if (label == null || label.trim().isEmpty())
             label = ThemeArchive.FILE_EXTENSION;
+        final String importedDisplayName = displayName;
         new AlertDialog.Builder(this)
                 .setTitle(R.string.action_import_preset)
                 .setMessage(getString(R.string.preset_import_confirm, label))
                 .setPositiveButton(R.string.action_import_preset,
-                        (dialog, which) -> importPreset(uri))
+                        (dialog, which) -> importPreset(uri, importedDisplayName))
                 .setNegativeButton(android.R.string.cancel, (dialog, which) -> finish())
                 .setOnCancelListener(dialog -> finish())
                 .show();
     }
 
-    private void importPreset(Uri uri) {
+    private void importPreset(Uri uri, String displayName) {
+        ThemeManager manager = ThemeManager.getInstance(this);
+        Set<UUID> before = UserPresetStore.snapshotThemeIds(manager);
         try (InputStream input = getContentResolver().openInputStream(uri)) {
             if (input == null)
                 throw new IOException("Unable to open preset");
-            ThemeManager.getInstance(this).importTheme(input);
+            manager.importTheme(input);
+            ThemeInfo imported = UserPresetStore.findImportedTheme(manager, before);
+            if (imported != null) {
+                if (imported.name == null || imported.name.trim().isEmpty()) {
+                    String fallback = UserPresetStore.nameFromFile(displayName);
+                    if (fallback != null) {
+                        imported.name = fallback;
+                        manager.saveTheme(imported);
+                    }
+                }
+                UserPresetStore.mark(this, imported);
+            }
             Toast.makeText(this, R.string.preset_import_success, Toast.LENGTH_SHORT).show();
             openMainActivity();
         } catch (IOException | RuntimeException e) {

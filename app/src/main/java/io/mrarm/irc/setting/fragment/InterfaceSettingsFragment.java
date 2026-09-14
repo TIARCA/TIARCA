@@ -3,16 +3,11 @@ package io.mrarm.irc.setting.fragment;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
-import io.mrarm.irc.util.DefaultPreferences;
-
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.Nullable;
-import androidx.core.graphics.ColorUtils;
-import androidx.core.widget.CompoundButtonCompat;
+import android.provider.OpenableColumns;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -20,12 +15,22 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+import androidx.core.graphics.ColorUtils;
+import androidx.core.widget.CompoundButtonCompat;
+
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 import io.mrarm.chatlib.dto.MessageInfo;
 import io.mrarm.chatlib.dto.MessageSenderInfo;
@@ -35,9 +40,8 @@ import io.mrarm.irc.SettingsActivity;
 import io.mrarm.irc.ThemeEditorActivity;
 import io.mrarm.irc.ThemedActivity;
 import io.mrarm.irc.config.AppSettings;
-import io.mrarm.irc.config.EventDisplaySettings;
 import io.mrarm.irc.config.ChatSettings;
-import io.mrarm.irc.config.SettingsHelper;
+import io.mrarm.irc.config.EventDisplaySettings;
 import io.mrarm.irc.dialog.MenuBottomSheetDialog;
 import io.mrarm.irc.setting.ChatBackgroundSetting;
 import io.mrarm.irc.setting.CheckBoxSetting;
@@ -48,15 +52,17 @@ import io.mrarm.irc.setting.ListWithCustomSetting;
 import io.mrarm.irc.setting.RadioButtonSetting;
 import io.mrarm.irc.setting.SettingsHeader;
 import io.mrarm.irc.setting.SettingsListAdapter;
-import io.mrarm.irc.util.EntryRecyclerViewAdapter;
 import io.mrarm.irc.util.AppLocaleManager;
+import io.mrarm.irc.util.DefaultPreferences;
+import io.mrarm.irc.util.EntryRecyclerViewAdapter;
 import io.mrarm.irc.util.MessageBuilder;
 import io.mrarm.irc.util.StyledAttributesHelper;
+import io.mrarm.irc.util.theme.AppearancePreset;
+import io.mrarm.irc.util.theme.AppearancePresetManager;
 import io.mrarm.irc.util.theme.ThemeArchive;
 import io.mrarm.irc.util.theme.ThemeInfo;
 import io.mrarm.irc.util.theme.ThemeManager;
-import io.mrarm.irc.util.theme.AppearancePreset;
-import io.mrarm.irc.util.theme.AppearancePresetManager;
+import io.mrarm.irc.util.theme.UserPresetStore;
 
 public class InterfaceSettingsFragment extends SettingsListFragment
         implements NamedSettingsFragment {
@@ -69,10 +75,13 @@ public class InterfaceSettingsFragment extends SettingsListFragment
     private ThemeInfo mPendingExportTheme;
     private boolean mPendingExportThemeIsTemporary;
     private final List<PresetOptionSetting> mPresetOptions = new ArrayList<>();
+    private final List<UserPresetOptionSetting> mUserPresetOptions = new ArrayList<>();
+    private boolean mUpdatingPresetSelection;
     private SharedPreferences mPresetPreferences;
     private final SharedPreferences.OnSharedPreferenceChangeListener mPresetListener =
             (preferences, key) -> {
-                if (AppearancePresetManager.PREF_APPEARANCE_PRESET.equals(key))
+                if (AppearancePresetManager.PREF_APPEARANCE_PRESET.equals(key)
+                        || AppSettings.PREF_THEME.equals(key))
                     updatePresetSelection();
             };
 
@@ -187,26 +196,63 @@ public class InterfaceSettingsFragment extends SettingsListFragment
 
     private void createPresetList(SettingsListAdapter adapter) {
         mPresetOptions.clear();
+        mUserPresetOptions.clear();
         RadioButtonSetting.Group group = new RadioButtonSetting.Group();
         AppearancePresetManager manager = AppearancePresetManager.getInstance(requireContext());
+
         for (AppearancePreset preset : AppearancePreset.values()) {
+            if (!preset.isApplicable())
+                continue;
             PresetOptionSetting option = new PresetOptionSetting(
                     getString(preset.getNameResId()), group);
             option.linkPreset(this, manager, preset);
-            if (!preset.isApplicable())
-                option.setEnabled(false);
             mPresetOptions.add(option);
             adapter.add(option);
         }
+
+        ThemeManager themeManager = ThemeManager.getInstance(requireContext());
+        List<ThemeInfo> imported = new ArrayList<>();
+        for (ThemeInfo theme : themeManager.getCustomThemes()) {
+            if (UserPresetStore.contains(requireContext(), theme))
+                imported.add(theme);
+        }
+        imported.sort(Comparator.comparing(
+                theme -> theme.name == null ? "" : theme.name,
+                String.CASE_INSENSITIVE_ORDER));
+        for (ThemeInfo theme : imported) {
+            String name = theme.name == null || theme.name.trim().isEmpty()
+                    ? theme.uuid.toString() : theme.name;
+            UserPresetOptionSetting option = new UserPresetOptionSetting(name, group)
+                    .linkPreset(this, themeManager, theme);
+            mUserPresetOptions.add(option);
+            adapter.add(option);
+        }
+
+        PresetOptionSetting custom = new PresetOptionSetting(
+                getString(AppearancePreset.CUSTOM.getNameResId()), group);
+        custom.linkPreset(this, manager, AppearancePreset.CUSTOM);
+        custom.setEnabled(false);
+        mPresetOptions.add(custom);
+        adapter.add(custom);
     }
 
     private void updatePresetSelection() {
         if (getContext() == null)
             return;
+        ThemeManager themeManager = ThemeManager.getInstance(requireContext());
+        ThemeInfo activeTheme = themeManager.getCurrentCustomTheme();
+        boolean activeUserPreset = UserPresetStore.contains(requireContext(), activeTheme);
         AppearancePreset current = AppearancePresetManager.getInstance(requireContext())
                 .getCurrentPreset();
-        for (PresetOptionSetting option : mPresetOptions)
-            option.setChecked(option.linkedPreset == current);
+        mUpdatingPresetSelection = true;
+        try {
+            for (PresetOptionSetting option : mPresetOptions)
+                option.setChecked(!activeUserPreset && option.linkedPreset == current);
+            for (UserPresetOptionSetting option : mUserPresetOptions)
+                option.setChecked(activeUserPreset && option.linkedTheme == activeTheme);
+        } finally {
+            mUpdatingPresetSelection = false;
+        }
     }
 
     private int[] getBaseThemeColors(int resId) {
@@ -231,6 +277,8 @@ public class InterfaceSettingsFragment extends SettingsListFragment
                     .linkBaseTheme(this, theme));
         }
         for (ThemeInfo theme : themeManager.getCustomThemes()) {
+            if (UserPresetStore.contains(requireContext(), theme))
+                continue;
             int[] colors = getBaseThemeColors(theme.baseThemeInfo.getThemeResId());
             Integer c = theme.colors.get(ThemeInfo.COLOR_PRIMARY);
             if (c != null)
@@ -301,21 +349,58 @@ public class InterfaceSettingsFragment extends SettingsListFragment
     private void importTheme(Intent data) {
         if (data == null || data.getData() == null)
             return;
+        ThemeManager manager = ThemeManager.getInstance(requireContext());
+        Set<UUID> before = UserPresetStore.snapshotThemeIds(manager);
         try {
             Uri uri = data.getData();
+            String displayName = getDisplayName(uri);
             try (ParcelFileDescriptor desc = requireActivity().getContentResolver()
                     .openFileDescriptor(uri, "r")) {
                 if (desc == null)
                     throw new IOException("Unable to open theme");
                 try (FileInputStream in = new FileInputStream(desc.getFileDescriptor())) {
-                    ThemeManager.getInstance(getContext()).importTheme(in);
+                    manager.importTheme(in);
                 }
             }
+            ThemeInfo imported = UserPresetStore.findImportedTheme(manager, before);
+            if (imported != null) {
+                if (imported.name == null || imported.name.trim().isEmpty()) {
+                    String fallback = UserPresetStore.nameFromFile(displayName);
+                    if (fallback != null) {
+                        imported.name = fallback;
+                        manager.saveTheme(imported);
+                    }
+                }
+                UserPresetStore.mark(requireContext(), imported);
+            }
+            // setTheme() already restored all preferences; recreate this Settings activity now so
+            // its live theme/resources reflect the imported preset without leaving Settings.
+            requireActivity().recreate();
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.w("InterfaceSettings", "Failed to import preset");
             Toast.makeText(getContext(), R.string.error_generic, Toast.LENGTH_SHORT).show();
         }
-        recreateAdapter();
+    }
+
+    private String getDisplayName(Uri uri) {
+        if (uri == null)
+            return null;
+        if ("content".equalsIgnoreCase(uri.getScheme())) {
+            try (Cursor cursor = requireActivity().getContentResolver().query(uri,
+                    new String[] { OpenableColumns.DISPLAY_NAME }, null, null, null)) {
+                if (cursor != null && cursor.moveToFirst()) {
+                    int index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                    if (index >= 0) {
+                        String value = cursor.getString(index);
+                        if (value != null && !value.trim().isEmpty())
+                            return value;
+                    }
+                }
+            } catch (RuntimeException ignored) {
+                // Fall back to the Uri segment below.
+            }
+        }
+        return uri.getLastPathSegment();
     }
 
     private ThemeInfo prepareThemeForExport() {
@@ -334,7 +419,11 @@ public class InterfaceSettingsFragment extends SettingsListFragment
         ThemeInfo exportTheme = new ThemeInfo();
         exportTheme.base = baseTheme.getId();
         exportTheme.baseThemeInfo = baseTheme;
-        exportTheme.name = getString(baseTheme.getNameResId());
+        AppearancePreset appearancePreset = AppearancePresetManager.getInstance(requireContext())
+                .getCurrentPreset();
+        exportTheme.name = appearancePreset.isApplicable()
+                ? getString(appearancePreset.getNameResId())
+                : getString(baseTheme.getNameResId());
         try {
             themeManager.saveTheme(exportTheme);
             mPendingExportThemeIsTemporary = true;
@@ -367,7 +456,7 @@ public class InterfaceSettingsFragment extends SettingsListFragment
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.w("InterfaceSettings", "Failed to export preset");
             Toast.makeText(getContext(), R.string.error_generic, Toast.LENGTH_SHORT).show();
         } finally {
             if (temporary)
@@ -563,13 +652,84 @@ public class InterfaceSettingsFragment extends SettingsListFragment
         @Override
         public void setChecked(boolean checked) {
             boolean apply = checked && !isChecked() && linkedPreset != null
-                    && linkedPreset.isApplicable();
+                    && linkedPreset.isApplicable() && fragment != null
+                    && !fragment.mUpdatingPresetSelection;
             super.setChecked(checked);
             if (!apply)
                 return;
             manager.applyPreset(linkedPreset);
             if (fragment.getActivity() != null)
                 fragment.getActivity().recreate();
+        }
+    }
+
+    private static final class UserPresetOptionSetting extends RadioButtonSetting {
+
+        private static final int sHolder = SettingsListAdapter.registerViewHolder(Holder.class,
+                R.layout.settings_list_checkbox_entry);
+
+        private InterfaceSettingsFragment fragment;
+        private ThemeManager manager;
+        private ThemeInfo linkedTheme;
+
+        UserPresetOptionSetting(String name, Group group) {
+            super(name, group);
+        }
+
+        UserPresetOptionSetting linkPreset(InterfaceSettingsFragment fragment,
+                                           ThemeManager manager, ThemeInfo theme) {
+            this.fragment = fragment;
+            this.manager = manager;
+            setChecked(manager.getCurrentCustomTheme() == theme);
+            linkedTheme = theme;
+            return this;
+        }
+
+        @Override
+        public int getViewHolder() {
+            return sHolder;
+        }
+
+        @Override
+        public void setChecked(boolean checked) {
+            boolean apply = checked && !isChecked() && linkedTheme != null
+                    && fragment != null && !fragment.mUpdatingPresetSelection;
+            super.setChecked(checked);
+            if (!apply)
+                return;
+            manager.setTheme(linkedTheme);
+            if (fragment.getActivity() != null)
+                fragment.getActivity().recreate();
+        }
+
+        public static class Holder extends RadioButtonSetting.Holder
+                implements View.OnLongClickListener {
+
+            Holder(View itemView, SettingsListAdapter adapter) {
+                super(itemView, adapter);
+                itemView.setOnLongClickListener(this);
+            }
+
+            @Override
+            public boolean onLongClick(View v) {
+                UserPresetOptionSetting entry = (UserPresetOptionSetting) getEntry();
+                ThemeInfo theme = entry.linkedTheme;
+                if (theme == null || entry.fragment == null)
+                    return false;
+                String name = theme.name == null ? "" : theme.name;
+                new AlertDialog.Builder(v.getContext())
+                        .setTitle(R.string.action_delete)
+                        .setMessage(name)
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .setPositiveButton(R.string.action_delete, (dialog, which) -> {
+                            UserPresetStore.unmark(v.getContext(), theme);
+                            entry.manager.deleteTheme(theme);
+                            if (entry.fragment.getActivity() != null)
+                                entry.fragment.getActivity().recreate();
+                        })
+                        .show();
+                return true;
+            }
         }
     }
 }
