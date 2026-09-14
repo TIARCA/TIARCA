@@ -67,7 +67,6 @@ public class MessageBuilder {
 
     private Context mContext;
     private SimpleDateFormat mMessageTimeFormat;
-    private boolean mMessageTimeFixedWidth = true;
     private CharSequence mMessageFormat;
     private CharSequence mMentionMessageFormat;
     private CharSequence mActionMessageFormat;
@@ -168,7 +167,6 @@ public class MessageBuilder {
                     MessageFormatSettings.PREF_MESSAGE_TIME_FORMAT, DEFAULT_TIME_FORMAT), Locale.getDefault());
         } catch (Exception ignored) {
         }
-        mMessageTimeFixedWidth = mgr.getBoolean(MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH, mMessageTimeFixedWidth);
         mMessageFormat = getMessageFormat(mgr, MessageFormatSettings.PREF_MESSAGE_FORMAT);
         if (mMessageFormat == null)
             mMessageFormat = buildDefaultMessageFormat(context);
@@ -195,7 +193,6 @@ public class MessageBuilder {
     public void saveFormats() {
         SharedPreferences.Editor mgr = DefaultPreferences.get(mContext).edit();
         mgr.putString(MessageFormatSettings.PREF_MESSAGE_TIME_FORMAT, mMessageTimeFormat.toPattern());
-        mgr.putBoolean(MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH, mMessageTimeFixedWidth);
         mgr.putString(MessageFormatSettings.PREF_MESSAGE_FORMAT, SettingsHelper.getGson().toJson(spannableToJson(mMessageFormat)));
         mgr.putString(MessageFormatSettings.PREF_MESSAGE_FORMAT_MENTION, SettingsHelper.getGson().toJson(spannableToJson(mMentionMessageFormat)));
         mgr.putString(MessageFormatSettings.PREF_MESSAGE_FORMAT_ACTION, SettingsHelper.getGson().toJson(spannableToJson(mActionMessageFormat)));
@@ -228,12 +225,16 @@ public class MessageBuilder {
         mMessageTimeFormat = new SimpleDateFormat(format, Locale.getDefault());
     }
 
+    /** @deprecated Timestamp width is automatic when the clock is rendered on the left. */
+    @Deprecated
     public boolean isMessageTimeFixedWidth() {
-        return mMessageTimeFixedWidth;
+        return true;
     }
 
+    /** @deprecated Timestamp width is automatic; this method is retained as a no-op shim. */
+    @Deprecated
     public void setMessageTimeFixedWidth(boolean fixedWidth) {
-        mMessageTimeFixedWidth = fixedWidth;
+        // No-op for source compatibility with older settings code.
     }
 
     public CharSequence getMessageFormat() {
@@ -302,14 +303,11 @@ public class MessageBuilder {
 
     public CharSequence createTimestamp(Date date, boolean addDefaultColorSpan) {
         String ds = getMessageTimeFormat().format(date);
-        if (!mMessageTimeFixedWidth && !addDefaultColorSpan)
+        if (!addDefaultColorSpan)
             return ds;
-        SpannableString ret = new SpannableString(ds + (mMessageTimeFixedWidth ? " " : ""));
-        if (mMessageTimeFixedWidth)
-            ret.setSpan(new FixedWidthTimestampSpan(ds.length()), ds.length(), ret.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        if (addDefaultColorSpan)
-            ret.setSpan(new ForegroundColorSpan(ContextCompat.getColor(mContext,
-                    R.color.messageTimestamp)), 0, ret.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        SpannableString ret = new SpannableString(ds);
+        ret.setSpan(new ForegroundColorSpan(ContextCompat.getColor(mContext,
+                R.color.messageTimestamp)), 0, ret.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         return ret;
     }
 
