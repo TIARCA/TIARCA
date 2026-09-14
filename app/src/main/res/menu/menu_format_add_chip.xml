@@ -16,6 +16,6 @@
         android:title="@string/message_format_message_add" />
     <item
         android:id="@+id/message_format_wrap_anchor"
-        android:title="@string/message_format_wrap_anchor_add" />
+        android:title="@string/message_format_indent_chip" />
 
 </menu>
