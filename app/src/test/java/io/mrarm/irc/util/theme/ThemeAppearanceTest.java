@@ -2,6 +2,7 @@ package io.mrarm.irc.util.theme;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
@@ -15,6 +16,7 @@ import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
+import io.mrarm.irc.config.ChatBackgroundSettings;
 import io.mrarm.irc.config.ChatSettings;
 import io.mrarm.irc.config.MessageFormatSettings;
 import io.mrarm.irc.config.RightClockSettings;
@@ -35,6 +37,7 @@ public class ThemeAppearanceTest {
         SettingsHelper.getInstance(context);
         preferences = DefaultPreferences.get(context);
         preferences.edit().clear().commit();
+        ChatBackgroundSettings.getImageFile(context).delete();
     }
 
     @Test
@@ -61,6 +64,9 @@ public class ThemeAppearanceTest {
         assertEquals(Boolean.TRUE, theme.chat.globalFontEnabled);
         assertEquals(Boolean.FALSE, theme.chat.textAutocorrectEnabled);
         assertEquals(Boolean.TRUE, theme.chat.sendBoxAlwaysMultiline);
+        assertEquals(ChatBackgroundSettings.TYPE_COLOR, theme.chat.backgroundType);
+        assertNull(theme.chat.backgroundColor);
+        assertEquals(ChatBackgroundSettings.SCALE_FILL, theme.chat.backgroundScale);
 
         preferences.edit().clear()
                 .putString(AppLocaleManager.PREF_APP_LANGUAGE, "en")
@@ -76,6 +82,30 @@ public class ThemeAppearanceTest {
         assertTrue(preferences.getBoolean(ChatSettings.PREF_GLOBAL_FONT_ENABLED, false));
         assertFalse(preferences.getBoolean(ChatSettings.PREF_TEXT_AUTOCORRECT_ENABLED, true));
         assertTrue(preferences.getBoolean(ChatSettings.PREF_SEND_BOX_ALWAYS_MULTILINE, false));
+        assertEquals(ChatBackgroundSettings.TYPE_COLOR,
+                ChatBackgroundSettings.getType(context));
+    }
+
+    @Test
+    public void customBackgroundColorIsPortable() {
+        ChatBackgroundSettings.useColor(context, 0xFF123456);
+        ChatBackgroundSettings.setScale(context, ChatBackgroundSettings.SCALE_FIT);
+
+        ThemeInfo theme = new ThemeInfo();
+        ThemeAppearance.capture(context, theme);
+
+        assertEquals(ChatBackgroundSettings.TYPE_COLOR, theme.chat.backgroundType);
+        assertEquals(Integer.valueOf(0xFF123456), theme.chat.backgroundColor);
+        assertEquals(ChatBackgroundSettings.SCALE_FIT, theme.chat.backgroundScale);
+
+        ChatBackgroundSettings.useColor(context, 0xFFABCDEF);
+        ChatBackgroundSettings.setScale(context, ChatBackgroundSettings.SCALE_STRETCH);
+        ThemeAppearance.apply(context, theme);
+
+        assertEquals(0xFF123456,
+                ChatBackgroundSettings.getCustomColor(context, 0));
+        assertEquals(ChatBackgroundSettings.SCALE_FIT,
+                ChatBackgroundSettings.getScale(context));
     }
 
     @Test
@@ -90,6 +120,10 @@ public class ThemeAppearanceTest {
                 .putBoolean(MessageFormatSettings.PREF_MESSAGE_AVATARS, true)
                 .putBoolean(MessageFormatSettings.PREF_MESSAGE_CUSTOM_AVATARS, true)
                 .putBoolean(RightClockSettings.PREF_MESSAGE_TIME_RIGHT, true)
+                .putString(ChatBackgroundSettings.PREF_TYPE, ChatBackgroundSettings.TYPE_IMAGE)
+                .putInt(ChatBackgroundSettings.PREF_COLOR, 0xFF00FF00)
+                .putString(ChatBackgroundSettings.PREF_SCALE,
+                        ChatBackgroundSettings.SCALE_STRETCH)
                 .commit();
 
         ThemeInfo legacy = new ThemeInfo();
@@ -110,6 +144,11 @@ public class ThemeAppearanceTest {
         assertFalse(preferences.getBoolean(MessageFormatSettings.PREF_MESSAGE_AVATARS, true));
         assertFalse(preferences.getBoolean(MessageFormatSettings.PREF_MESSAGE_CUSTOM_AVATARS, true));
         assertFalse(preferences.getBoolean(RightClockSettings.PREF_MESSAGE_TIME_RIGHT, true));
+        assertEquals(ChatBackgroundSettings.TYPE_COLOR,
+                ChatBackgroundSettings.getType(context));
+        assertFalse(ChatBackgroundSettings.hasCustomColor(context));
+        assertEquals(ChatBackgroundSettings.SCALE_FILL,
+                ChatBackgroundSettings.getScale(context));
     }
 
     @Test
