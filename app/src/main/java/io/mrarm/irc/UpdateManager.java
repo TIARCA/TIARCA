@@ -38,6 +38,7 @@ import java.text.DateFormat;
 import java.util.Date;
 import java.util.Locale;
 
+import io.mrarm.irc.util.AboutDialogUi;
 import io.mrarm.irc.util.DiagnosticLog;
 
 /**
@@ -93,17 +94,18 @@ public final class UpdateManager {
         TextView title = new TextView(activity);
         title.setText(R.string.about_title);
         title.setTextAppearance(androidx.appcompat.R.style.TextAppearance_AppCompat_Title);
-        title.setPadding(dp(activity, 24), dp(activity, 20), dp(activity, 24), dp(activity, 8));
+        title.setPadding(dp(activity, 24), dp(activity, 16), dp(activity, 24), dp(activity, 6));
         title.setClickable(true);
         title.setFocusable(true);
 
         LinearLayout content = new LinearLayout(activity);
         content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(padding, 0, padding, 0);
+        content.setPadding(padding, 0, padding, dp(activity, 6));
 
         TextView body = new TextView(activity);
         body.setText(activity.getString(R.string.about_body, BuildConfig.VERSION_NAME));
         body.setTextIsSelectable(true);
+        AboutDialogUi.compactBody(body);
         content.addView(body, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
@@ -112,7 +114,7 @@ public final class UpdateManager {
         LinearLayout.LayoutParams checkNowParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         checkNowParams.gravity = Gravity.CENTER_HORIZONTAL;
-        checkNowParams.topMargin = dp(activity, 14);
+        checkNowParams.topMargin = dp(activity, 8);
         content.addView(checkNow, checkNowParams);
 
         CheckBox automatic = new CheckBox(activity);
@@ -123,18 +125,18 @@ public final class UpdateManager {
         automatic.setChecked(preferences.getBoolean(PREF_AUTOMATIC, false));
         LinearLayout.LayoutParams automaticParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        automaticParams.topMargin = dp(activity, 4);
+        automaticParams.topMargin = dp(activity, 2);
         content.addView(automatic, automaticParams);
 
         TextView lastCheck = new TextView(activity);
-        lastCheck.setPadding(0, dp(activity, 6), 0, 0);
+        lastCheck.setPadding(0, dp(activity, 4), 0, 0);
         lastCheck.setText(lastCheckText(activity, preferences));
         content.addView(lastCheck, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
         LinearLayout debugPanel = new LinearLayout(activity);
         debugPanel.setOrientation(LinearLayout.VERTICAL);
-        debugPanel.setPadding(0, dp(activity, 12), 0, 0);
+        debugPanel.setPadding(0, dp(activity, 8), 0, 0);
 
         TextView debugStatus = new TextView(activity);
         debugStatus.setText(text(activity,
@@ -144,19 +146,21 @@ public final class UpdateManager {
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
         Button shareDebug = new Button(activity);
-        shareDebug.setText(text(activity, "Condividi log di debug", "Share debug log"));
+        shareDebug.setText(text(activity, "Condividi", "Share"));
         debugPanel.addView(shareDebug, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
         Button clearDebug = new Button(activity);
-        clearDebug.setText(text(activity, "Cancella log di debug", "Clear debug log"));
+        clearDebug.setText(text(activity, "Cancella", "Clear"));
         debugPanel.addView(clearDebug, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
         Button disableDebug = new Button(activity);
-        disableDebug.setText(text(activity, "Disattiva modalità debug", "Disable debug mode"));
+        disableDebug.setText(text(activity, "Disattiva", "Disable"));
         debugPanel.addView(disableDebug, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        AboutDialogUi.compactDebugActions(activity, debugPanel,
+                shareDebug, clearDebug, disableDebug);
         content.addView(debugPanel, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
@@ -211,7 +215,7 @@ public final class UpdateManager {
 
         new AlertDialog.Builder(activity)
                 .setCustomTitle(title)
-                .setView(content)
+                .setView(AboutDialogUi.wrapScrollable(activity, content))
                 .setNeutralButton(R.string.about_revolution_github, (dialog, which) ->
                         activity.startActivity(new Intent(Intent.ACTION_VIEW,
                                 Uri.parse("https://github.com/MCMrARM/revolution-irc"))))
