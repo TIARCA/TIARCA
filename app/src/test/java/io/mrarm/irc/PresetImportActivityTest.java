@@ -43,6 +43,16 @@ public class PresetImportActivityTest {
     }
 
     @Test
+    public void legacyIrcthemeExtensionIsAcceptedWithGenericMimeType() {
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setDataAndType(Uri.parse("content://provider/document/MyPreset.irctheme"),
+                "application/octet-stream");
+
+        assertTrue(PresetImportActivity.isSupportedPresetIntent(intent, "MyPreset.irctheme"));
+        assertTrue(PresetImportActivity.hasPresetExtension("PRESET.IRCTHEME"));
+    }
+
+    @Test
     public void unrelatedZipIsRejected() {
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.setDataAndType(Uri.parse("content://provider/document/archive.zip"),
@@ -65,7 +75,7 @@ public class PresetImportActivityTest {
     }
 
     @Test
-    public void manifestRegistersPresetMimeButNotOrdinaryZip() {
+    public void manifestRegistersPresetMimeAndBothPresetExtensionsButNotOrdinaryZip() {
         Context context = ApplicationProvider.getApplicationContext();
         Intent preset = new Intent(Intent.ACTION_VIEW);
         preset.setDataAndType(Uri.parse("content://provider/document/preset.ircpreset"),
@@ -75,6 +85,13 @@ public class PresetImportActivityTest {
         List<ResolveInfo> presetHandlers = context.getPackageManager()
                 .queryIntentActivities(preset, 0);
         assertTrue(containsPresetImportActivity(presetHandlers));
+
+        Intent legacy = new Intent(Intent.ACTION_VIEW);
+        legacy.setDataAndType(Uri.parse("content://provider/document/old.irctheme"),
+                "application/octet-stream");
+        legacy.addCategory(Intent.CATEGORY_BROWSABLE);
+        assertTrue(containsPresetImportActivity(
+                context.getPackageManager().queryIntentActivities(legacy, 0)));
 
         Intent zip = new Intent(Intent.ACTION_VIEW);
         zip.setDataAndType(Uri.parse("content://provider/document/archive.zip"),
