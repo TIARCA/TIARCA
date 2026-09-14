@@ -10,6 +10,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 
 import io.mrarm.irc.util.DefaultPreferences;
 
@@ -19,6 +20,8 @@ public final class ChatBackgroundSettings {
     public static final String PREF_TYPE = "chat_background_type";
     public static final String PREF_COLOR = "chat_background_color";
     public static final String PREF_SCALE = "chat_background_scale";
+    /** Internal change signal; it is intentionally not serialized into portable presets. */
+    public static final String PREF_IMAGE_REVISION = "chat_background_image_revision";
 
     public static final String TYPE_COLOR = "color";
     public static final String TYPE_IMAGE = "image";
@@ -115,9 +118,12 @@ public final class ChatBackgroundSettings {
                 temp.delete();
             }
         }
-        prefs(context).edit()
+        SharedPreferences preferences = prefs(context);
+        long revision = preferences.getLong(PREF_IMAGE_REVISION, 0L) + 1L;
+        preferences.edit()
                 .putString(PREF_TYPE, TYPE_IMAGE)
                 .putString(PREF_SCALE, getScale(context))
+                .putLong(PREF_IMAGE_REVISION, revision)
                 .apply();
     }
 
@@ -165,7 +171,7 @@ public final class ChatBackgroundSettings {
         return BitmapFactory.decodeFile(image.getAbsolutePath(), options);
     }
 
-    private static void copyLimited(InputStream input, FileOutputStream output, int maxBytes)
+    private static void copyLimited(InputStream input, OutputStream output, int maxBytes)
             throws IOException {
         byte[] buffer = new byte[16 * 1024];
         int total = 0;
