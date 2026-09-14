@@ -94,6 +94,7 @@ public class ChatFragment extends Fragment implements
         ((AppCompatActivity) getActivity()).getSupportActionBar().setTitle(mConnectionInfo.getName());
 
         ((MainActivity) getActivity()).addActionBarDrawerToggle(toolbar);
+        toolbar.setOnClickListener(v -> showChannelActions(null));
 
         mSectionsPagerAdapter = new ChatPagerAdapter(this, mConnectionInfo, savedInstanceState);
 
