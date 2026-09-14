@@ -10,6 +10,10 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import io.mrarm.irc.config.AutomatedSenderSettings;
 import io.mrarm.irc.config.ChatSettings;
@@ -32,6 +36,8 @@ final class ThemeAppearance {
     static void capture(Context context, ThemeInfo theme) {
         SharedPreferences prefs = DefaultPreferences.get(context);
         theme.formatVersion = ThemeArchive.FORMAT_VERSION;
+        if (theme.assets == null)
+            theme.assets = new HashMap<>();
 
         ThemeInfo.UiSection ui = new ThemeInfo.UiSection();
         ui.appearancePreset = prefs.getString(
@@ -65,6 +71,7 @@ final class ThemeAppearance {
                 EventDisplaySettings.PREF_MONOCHROME_JOIN_PART, false);
         theme.chat = chat;
 
+        theme.assets.remove(ThemeInfo.ASSET_FONT);
         if (ListWithCustomSetting.isPrefCustomValue(chat.font)) {
             String originalName = ListWithCustomSetting.getPrefCustomValue(chat.font);
             File source = ListWithCustomSetting.getCustomFile(
@@ -73,6 +80,7 @@ final class ThemeAppearance {
                 String ext = extensionOf(source.getName());
                 chat.fontAsset = ThemeArchive.ASSET_PREFIX + "font" +
                         (ext.isEmpty() ? "" : "." + ext);
+                theme.assets.put(ThemeInfo.ASSET_FONT, chat.fontAsset);
                 if (theme.uuid != null) {
                     try {
                         copyFile(source, getThemeAssetFile(context, theme, chat.fontAsset));
@@ -101,6 +109,9 @@ final class ThemeAppearance {
     }
 
     static void apply(Context context, ThemeInfo theme) {
+        // Applying an old supported preset must never inherit unrelated state from this device.
+        ThemePresetMigrator.migrate(context, theme);
+
         SharedPreferences prefs = DefaultPreferences.get(context);
         SharedPreferences.Editor editor = prefs.edit();
         String appearancePreset = theme.ui == null ? null : theme.ui.appearancePreset;
@@ -146,6 +157,8 @@ final class ThemeAppearance {
                 if (ListWithCustomSetting.isPrefCustomValue(theme.chat.font)) {
                     if (restoreCustomFont(context, theme))
                         editor.putString(ChatSettings.PREF_FONT, theme.chat.font);
+                    else
+                        editor.putString(ChatSettings.PREF_FONT, "default");
                 } else {
                     editor.putString(ChatSettings.PREF_FONT, theme.chat.font);
                 }
@@ -182,16 +195,61 @@ final class ThemeAppearance {
                     appearancePreset).apply();
     }
 
+    /** Opens every currently available asset declared by the generic manifest. */
+    static Map<String, InputStream> openAssetsForExport(Context context, ThemeInfo theme)
+            throws IOException {
+        if (theme == null)
+            return Collections.emptyMap();
+        Map<String, InputStream> result = new LinkedHashMap<>();
+        for (String path : ThemeArchive.getDeclaredAssetPaths(theme)) {
+            File source = null;
+            if (theme.uuid != null) {
+                File stored = getThemeAssetFile(context, theme, path);
+                if (stored.isFile())
+                    source = stored;
+            }
+            if (source == null && theme.chat != null && path.equals(theme.chat.fontAsset)
+                    && ListWithCustomSetting.isPrefCustomValue(theme.chat.font)) {
+                String name = ListWithCustomSetting.getPrefCustomValue(theme.chat.font);
+                File active = ListWithCustomSetting.getCustomFile(
+                        context, ChatSettings.PREF_FONT, name);
+                if (active != null && active.isFile())
+                    source = active;
+            }
+            if (source != null)
+                result.put(path, new FileInputStream(source));
+        }
+        return result;
+    }
+
+    /** Stores all declared imported assets under this preset's private asset directory. */
+    static void storeImportedAssets(Context context, ThemeInfo theme, Map<String, byte[]> assets)
+            throws IOException {
+        if (assets == null || assets.isEmpty() || theme == null || theme.uuid == null)
+            return;
+        for (Map.Entry<String, byte[]> entry : assets.entrySet()) {
+            if (entry.getValue() == null)
+                continue;
+            File destination = getThemeAssetFile(context, theme, entry.getKey());
+            File parent = destination.getParentFile();
+            if (parent != null && !parent.exists() && !parent.mkdirs())
+                throw new IOException("Unable to create theme asset directory");
+            try (FileOutputStream out = new FileOutputStream(destination)) {
+                out.write(entry.getValue());
+            }
+        }
+    }
+
+    /** Compatibility helper for callers/tests from the v2 single-font API. */
     static InputStream openFontForExport(Context context, ThemeInfo theme) throws IOException {
         if (theme.chat == null || theme.chat.fontAsset == null)
             return null;
-
+        String path = ThemeArchive.sanitizeAssetEntry(theme.chat.fontAsset);
         if (theme.uuid != null) {
-            File stored = getThemeAssetFile(context, theme, theme.chat.fontAsset);
+            File stored = getThemeAssetFile(context, theme, path);
             if (stored.isFile())
                 return new FileInputStream(stored);
         }
-
         if (ListWithCustomSetting.isPrefCustomValue(theme.chat.font)) {
             String name = ListWithCustomSetting.getPrefCustomValue(theme.chat.font);
             File active = ListWithCustomSetting.getCustomFile(context, ChatSettings.PREF_FONT, name);
@@ -201,17 +259,13 @@ final class ThemeAppearance {
         return null;
     }
 
+    /** Compatibility helper for the v2 single-font import API. */
     static void storeImportedFont(Context context, ThemeInfo theme, byte[] data,
                                   String archiveEntry) throws IOException {
-        if (data == null || archiveEntry == null || theme.uuid == null)
+        if (data == null || archiveEntry == null)
             return;
-        File destination = getThemeAssetFile(context, theme, archiveEntry);
-        File parent = destination.getParentFile();
-        if (parent != null && !parent.exists() && !parent.mkdirs())
-            throw new IOException("Unable to create theme asset directory");
-        try (FileOutputStream out = new FileOutputStream(destination)) {
-            out.write(data);
-        }
+        storeImportedAssets(context, theme,
+                Collections.singletonMap(ThemeArchive.sanitizeAssetEntry(archiveEntry), data));
     }
 
     static void deleteAssets(Context context, ThemeInfo theme) {
@@ -253,12 +307,14 @@ final class ThemeAppearance {
         String originalName = ListWithCustomSetting.getPrefCustomValue(theme.chat.font);
         if (originalName == null)
             return false;
-        File source = getThemeAssetFile(context, theme, theme.chat.fontAsset);
         File destination = ListWithCustomSetting.getCustomFile(
                 context, ChatSettings.PREF_FONT, originalName);
-        if (!source.isFile() || destination == null)
+        if (destination == null)
             return false;
         try {
+            File source = getThemeAssetFile(context, theme, theme.chat.fontAsset);
+            if (!source.isFile())
+                return false;
             copyFile(source, destination);
             return true;
         } catch (IOException ignored) {
@@ -266,8 +322,10 @@ final class ThemeAppearance {
         }
     }
 
-    private static File getThemeAssetFile(Context context, ThemeInfo theme, String archiveEntry) {
-        String name = archiveEntry.substring(ThemeArchive.ASSET_PREFIX.length());
+    private static File getThemeAssetFile(Context context, ThemeInfo theme, String archiveEntry)
+            throws IOException {
+        String safeEntry = ThemeArchive.sanitizeAssetEntry(archiveEntry);
+        String name = safeEntry.substring(ThemeArchive.ASSET_PREFIX.length());
         File themeDir = new File(new File(context.getFilesDir(), "themes/" + ASSET_DIR),
                 theme.uuid.toString());
         return new File(themeDir, name);
