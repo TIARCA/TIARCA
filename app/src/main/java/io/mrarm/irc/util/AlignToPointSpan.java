@@ -5,6 +5,7 @@ import android.graphics.Paint;
 import android.text.Layout;
 import android.text.NoCopySpan;
 import android.text.Spannable;
+import android.text.Spanned;
 import android.text.style.LeadingMarginSpan;
 import android.widget.TextView;
 
@@ -36,9 +37,24 @@ public class AlignToPointSpan implements LeadingMarginSpan, NoCopySpan {
         if (text == null || !(text instanceof Spannable))
             return text;
         Spannable s = (Spannable) text;
-        for (AlignToPointSpan span : s.getSpans(0, text.length(),
-                AlignToPointSpan.class)) {
-            span.mMargin = (int) Layout.getDesiredWidth(text, 0, s.getSpanStart(span.mAnchor),
+        AlignToPointSpan[] spans = s.getSpans(0, text.length(), AlignToPointSpan.class);
+
+        // AlignToPointSpan is intentionally NoCopySpan, but the zero-width Anchor is copyable.
+        // Message views may transform the rendered text (for example by moving the timestamp to a
+        // dedicated column), so recreate the presentation span from any surviving anchors.
+        if (spans.length == 0) {
+            Anchor[] anchors = s.getSpans(0, text.length(), Anchor.class);
+            for (Anchor anchor : anchors)
+                s.setSpan(new AlignToPointSpan(anchor), 0, text.length(),
+                        Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+            spans = s.getSpans(0, text.length(), AlignToPointSpan.class);
+        }
+
+        for (AlignToPointSpan span : spans) {
+            int anchorPosition = s.getSpanStart(span.mAnchor);
+            if (anchorPosition < 0)
+                continue;
+            span.mMargin = (int) Layout.getDesiredWidth(text, 0, anchorPosition,
                     textView.getPaint());
         }
         return text;
