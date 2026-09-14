@@ -136,8 +136,16 @@ public class ThemeInfo {
         public String backgroundType;
         /** Null means use the theme's normal background color. */
         public Integer backgroundColor;
-        /** `fill`, `fit` or `stretch`. */
+        /** Legacy `fill`/`fit`/`stretch`, or current `matrix`. */
         public String backgroundScale;
+        /** Additional zoom over the automatic fill scale, 1..6. */
+        public Float backgroundZoom;
+        /** Normalized image focal point, 0..1. */
+        public Float backgroundFocusX;
+        /** Normalized image focal point, 0..1. */
+        public Float backgroundFocusY;
+        /** Image opacity in percent, 0..100. */
+        public Integer backgroundOpacity;
         /** Legacy direct asset path retained so v2/older readers can still import custom fonts. */
         public String fontAsset;
 
@@ -160,6 +168,10 @@ public class ThemeInfo {
             backgroundType = other.backgroundType;
             backgroundColor = other.backgroundColor;
             backgroundScale = other.backgroundScale;
+            backgroundZoom = other.backgroundZoom;
+            backgroundFocusX = other.backgroundFocusX;
+            backgroundFocusY = other.backgroundFocusY;
+            backgroundOpacity = other.backgroundOpacity;
             fontAsset = other.fontAsset;
         }
     }
