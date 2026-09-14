@@ -12,6 +12,7 @@ import java.util.List;
 import io.mrarm.irc.config.InterfaceSettingsRefreshState;
 import io.mrarm.irc.config.SettingsHelper;
 import io.mrarm.irc.util.AppLocaleManager;
+import io.mrarm.irc.util.DiagnosticLog;
 import io.mrarm.irc.util.theme.AppearancePresetManager;
 
 public class IRCApplication extends Application implements Application.ActivityLifecycleCallbacks {
@@ -27,6 +28,8 @@ public class IRCApplication extends Application implements Application.ActivityL
     public void onCreate() {
         super.onCreate();
         SettingsHelper.getInstance(this);
+        DiagnosticLog.initialize(this);
+        DiagnosticLog.i(this, "APP", () -> "Application process started");
         clearSessionRestoreAfterIntentionalExit();
         AppLocaleManager.applyStoredLanguage(this);
         migrateDefaultThemeForV18();
@@ -83,6 +86,7 @@ public class IRCApplication extends Application implements Application.ActivityL
             if (!exitCallback.onAppPreExit())
                 return false;
         }
+        DiagnosticLog.i(this, "APP", () -> "Explicit app exit requested");
         SettingsHelper.getPreferences().edit().putBoolean(PREF_INTENTIONAL_EXIT, true).commit();
         for (ExitCallback exitCallback : mExitCallbacks)
             exitCallback.onAppExiting();

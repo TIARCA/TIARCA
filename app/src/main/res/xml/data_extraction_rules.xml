@@ -14,12 +14,17 @@
     is excluded from cloud backup to avoid consuming the Auto Backup quota, but
     included in direct device-to-device transfer where Android provides a
     dedicated migration path.
+
+    Diagnostic logs and the hidden debug-mode preference are deliberately ephemeral and are
+    never migrated or backed up.
 -->
 <data-extraction-rules>
     <cloud-backup disableIfNoEncryptionCapabilities="true">
         <include domain="sharedpref" path="." />
         <include domain="file" path="." />
         <include domain="database" path="." />
+        <exclude domain="sharedpref" path="tiarca_diagnostics.xml" />
+        <exclude domain="file" path="diagnostics/" />
     </cloud-backup>
 
     <device-transfer>
@@ -27,5 +32,7 @@
         <include domain="file" path="." />
         <include domain="database" path="." />
         <include domain="external" path="chat-logs" />
+        <exclude domain="sharedpref" path="tiarca_diagnostics.xml" />
+        <exclude domain="file" path="diagnostics/" />
     </device-transfer>
 </data-extraction-rules>

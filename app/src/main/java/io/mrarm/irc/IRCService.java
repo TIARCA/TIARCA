@@ -17,21 +17,18 @@ import android.os.Looper;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
-import android.os.Message;
-import android.util.Log;
-
 import java.util.HashMap;
 import java.util.Map;
 
 import io.mrarm.chatlib.dto.MessageId;
 import io.mrarm.chatlib.dto.MessageInfo;
+import io.mrarm.chatlib.irc.IRCConnection;
 import io.mrarm.chatlib.message.MessageListener;
 import io.mrarm.irc.job.ServerPingScheduler;
+import io.mrarm.irc.util.DiagnosticLog;
 import io.mrarm.irc.util.WarningHelper;
 
 public class IRCService extends Service implements ServerConnectionManager.ConnectionsListener {
-
-    private static final String TAG = "IRCService";
 
     public static final int IDLE_NOTIFICATION_ID = 100;
     public static final int EXIT_ACTION_ID = 102; // 101 is taken by chat summary
@@ -55,7 +52,7 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
                 mConnectivityManager.getNetworkCapabilities(activeNetwork);
         boolean connected = hasInternetConnectivity();
         boolean wifi = ServerConnectionManager.isWifiConnected(this);
-        Log.i(TAG, "Active network: id=" + activeNetwork + ", connected=" + connected +
+        DiagnosticLog.d(this, "NETWORK", () -> "Active network connected=" + connected +
                 ", validated=" + hasCapability(capabilities,
                 NetworkCapabilities.NET_CAPABILITY_VALIDATED) + ", wifi=" + wifi +
                 ", cellular=" + hasTransport(capabilities,
@@ -66,14 +63,19 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
             return;
         mLastInternetConnectivity = connected;
         mLastWifiConnectivity = wifi;
-        Log.i(TAG, "Connectivity changed: connected=" + connected + ", wifi=" + wifi);
+        DiagnosticLog.i(this, "NETWORK", () -> "Connectivity changed connected=" + connected +
+                ", wifi=" + wifi);
         ServerConnectionManager.getInstance(this).notifyConnectivityChanged(connected);
         ServerPingScheduler.getInstance(this).onWifiStateChanged(wifi);
     };
 
     private boolean mCreatedChannel = false;
 
-    private Map<ServerConnectionInfo, MessageListener> messageListeners = new HashMap<>();
+    private final Map<ServerConnectionInfo, MessageListener> messageListeners = new HashMap<>();
+    private final Map<ServerConnectionInfo, ServerConnectionInfo.InfoChangeListener> stateListeners =
+            new HashMap<>();
+    private final Map<ServerConnectionInfo, IRCConnection.DisconnectListener> disconnectListeners =
+            new HashMap<>();
 
     public static void start(Context context) {
         Intent intent = new Intent(context, IRCService.class);
@@ -98,7 +100,7 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.i(TAG, "Service created");
+        DiagnosticLog.i(this, "SERVICE", () -> "IRC service created");
 
         WarningHelper.setAppContext(getApplicationContext());
 
@@ -115,7 +117,7 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
 
     @Override
     public void onDestroy() {
-        Log.i(TAG, "Service destroyed");
+        DiagnosticLog.i(this, "SERVICE", () -> "IRC service destroyed");
         super.onDestroy();
 
         if (ServerConnectionManager.hasInstance()) {
@@ -133,8 +135,8 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         String action = intent != null ? intent.getAction() : null;
-        Log.i(TAG, "Service start: action=" + action + ", flags=" + flags +
-                ", startId=" + startId);
+        DiagnosticLog.d(this, "SERVICE", () -> "Service start action=" + action +
+                ", flags=" + flags + ", startId=" + startId);
         if (action == null)
             return START_STICKY;
         if (action.equals(ACTION_START_FOREGROUND)) {
@@ -185,9 +187,12 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
             } else {
                 startForeground(IDLE_NOTIFICATION_ID, notification.build());
             }
-            Log.i(TAG, "Foreground notification active: connected=" + connectedCount +
-                    ", connecting=" + connectingCount + ", disconnected=" +
-                    disconnectedCount);
+            final int finalConnectedCount = connectedCount;
+            final int finalConnectingCount = connectingCount;
+            final int finalDisconnectedCount = disconnectedCount;
+            DiagnosticLog.d(this, "SERVICE", () -> "Foreground active connected=" +
+                    finalConnectedCount + ", connecting=" + finalConnectingCount +
+                    ", disconnected=" + finalDisconnectedCount);
         }
         return START_STICKY;
     }
@@ -205,6 +210,29 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
         };
         messageListeners.put(connection, listener);
         connection.getApiInstance().getMessageStorageApi().subscribeChannelMessages(null, listener, null, null);
+
+        String serverId = DiagnosticLog.pseudonym("server", connection.getUUID().toString());
+        ServerConnectionInfo.InfoChangeListener stateListener = changed ->
+                DiagnosticLog.i(this, "CONNECTION", () -> serverId + " connected=" +
+                        changed.isConnected() + ", connecting=" + changed.isConnecting() +
+                        ", disconnecting=" + changed.isDisconnecting() +
+                        ", userDisconnect=" + changed.hasUserDisconnectRequest());
+        stateListeners.put(connection, stateListener);
+        connection.addOnChannelInfoChangeListener(stateListener);
+
+        if (connection.getApiInstance() instanceof IRCConnection) {
+            IRCConnection ircConnection = (IRCConnection) connection.getApiInstance();
+            IRCConnection.DisconnectListener disconnectListener = (ignored, reason) -> {
+                String reasonClass = reason == null ? "unknown" :
+                        reason.getClass().getSimpleName();
+                DiagnosticLog.w(this, "CONNECTION",
+                        () -> serverId + " transport disconnected reason=" + reasonClass,
+                        reason);
+            };
+            disconnectListeners.put(connection, disconnectListener);
+            ircConnection.addDisconnectListener(disconnectListener);
+        }
+        DiagnosticLog.i(this, "CONNECTION", () -> serverId + " added to service");
     }
 
     @Override
@@ -212,6 +240,14 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
         MessageListener listener = messageListeners.remove(connection);
         if (listener != null)
             connection.getApiInstance().getMessageStorageApi().unsubscribeChannelMessages(null, listener, null, null);
+        ServerConnectionInfo.InfoChangeListener stateListener = stateListeners.remove(connection);
+        if (stateListener != null)
+            connection.removeOnChannelInfoChangeListener(stateListener);
+        IRCConnection.DisconnectListener disconnectListener = disconnectListeners.remove(connection);
+        if (disconnectListener != null && connection.getApiInstance() instanceof IRCConnection)
+            ((IRCConnection) connection.getApiInstance()).removeDisconnectListener(disconnectListener);
+        String serverId = DiagnosticLog.pseudonym("server", connection.getUUID().toString());
+        DiagnosticLog.i(this, "CONNECTION", () -> serverId + " removed from service");
     }
 
     @Nullable
@@ -226,7 +262,7 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
         public void onReceive(Context context, Intent intent) {
             if (!Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction()))
                 return;
-            Log.i("IRCService", "Device booted");
+            DiagnosticLog.i(context, "SERVICE", () -> "Device boot receiver started IRC service");
             IRCService.start(context);
         }
 
@@ -254,13 +290,13 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
             mNetworkCallback = new ConnectivityManager.NetworkCallback() {
                 @Override
                 public void onAvailable(Network network) {
-                    Log.i(TAG, "Network available: id=" + network);
+                    DiagnosticLog.d(IRCService.this, "NETWORK", () -> "Network became available");
                     scheduleConnectivityChanged();
                 }
 
                 @Override
                 public void onLost(Network network) {
-                    Log.i(TAG, "Network lost: id=" + network);
+                    DiagnosticLog.d(IRCService.this, "NETWORK", () -> "Network was lost");
                     // Re-read the active network: another transport may already have replaced it.
                     scheduleConnectivityChanged();
                 }
@@ -268,8 +304,8 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
                 @Override
                 public void onCapabilitiesChanged(Network network,
                                                   NetworkCapabilities capabilities) {
-                    Log.i(TAG, "Network capabilities changed: id=" + network +
-                            ", internet=" + hasCapability(capabilities,
+                    DiagnosticLog.d(IRCService.this, "NETWORK", () ->
+                            "Capabilities changed internet=" + hasCapability(capabilities,
                             NetworkCapabilities.NET_CAPABILITY_INTERNET) + ", validated=" +
                             hasCapability(capabilities,
                             NetworkCapabilities.NET_CAPABILITY_VALIDATED) + ", wifi=" +

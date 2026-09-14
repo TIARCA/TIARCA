@@ -1,6 +1,6 @@
 # Add project specific ProGuard rules here.
-# By default, the flags in this file are appended to flags specified
-# in /home/paul/Documents/app/android-sdk/tools/proguard/proguard-android.txt
+# By default, the flags in this file are appended to flags specified in
+# /home/paul/Documents/app/android-sdk/tools/proguard/proguard-android.txt
 # You can edit the include path and order by changing the proguardFiles
 # directive in build.gradle.
 #
@@ -26,6 +26,14 @@
 
 -dontobfuscate
 -optimizations !code/allocation/variable
+
+# Production diagnostics are handled by DiagnosticLog. Remove verbose/info Logcat calls from
+# minified release builds, while retaining warnings and errors that may still be useful locally.
+-assumenosideeffects class android.util.Log {
+    public static int v(...);
+    public static int d(...);
+    public static int i(...);
+}
 
 -keep public class * extends io.mrarm.irc.util.EntryRecyclerViewAdapter$EntryHolder {
     <init>(...);
