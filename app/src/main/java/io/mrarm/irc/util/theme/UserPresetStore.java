@@ -68,6 +68,10 @@ public final class UserPresetStore {
         return manager.getCurrentCustomTheme();
     }
 
+    public static boolean isLegacyThemeFile(String displayName) {
+        return hasExtension(displayName, ThemeArchive.LEGACY_FILE_EXTENSION);
+    }
+
     public static String nameFromFile(String displayName) {
         if (displayName == null)
             return null;
@@ -77,6 +81,12 @@ public final class UserPresetStore {
         String lower = name.toLowerCase(Locale.ROOT);
         if (lower.endsWith(ThemeArchive.FILE_EXTENSION))
             name = name.substring(0, name.length() - ThemeArchive.FILE_EXTENSION.length()).trim();
+        else if (lower.endsWith(ThemeArchive.LEGACY_FILE_EXTENSION))
+            name = name.substring(0, name.length() - ThemeArchive.LEGACY_FILE_EXTENSION.length()).trim();
         return name.isEmpty() ? null : name;
+    }
+
+    private static boolean hasExtension(String value, String extension) {
+        return value != null && value.trim().toLowerCase(Locale.ROOT).endsWith(extension);
     }
 }

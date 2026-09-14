@@ -35,8 +35,12 @@ public class UserPresetStoreTest {
     }
 
     @Test
-    public void fileNameFallbackDropsPortablePresetExtension() {
+    public void fileNameFallbackDropsPortableAndLegacyExtensions() {
         assertTrue("My preset".equals(UserPresetStore.nameFromFile("My preset.ircpreset")));
         assertTrue("Preset".equals(UserPresetStore.nameFromFile("Preset.IRCPRESET")));
+        assertTrue("Old colors".equals(UserPresetStore.nameFromFile("Old colors.irctheme")));
+        assertTrue("Legacy".equals(UserPresetStore.nameFromFile("Legacy.IRCTHEME")));
+        assertTrue(UserPresetStore.isLegacyThemeFile("Legacy.IRCTHEME"));
+        assertFalse(UserPresetStore.isLegacyThemeFile("Preset.ircpreset"));
     }
 }

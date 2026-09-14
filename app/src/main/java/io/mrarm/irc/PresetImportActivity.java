@@ -61,12 +61,12 @@ public class PresetImportActivity extends ThemedActivity {
             manager.importTheme(input);
             ThemeInfo imported = UserPresetStore.findImportedTheme(manager, before);
             if (imported != null) {
-                if (imported.name == null || imported.name.trim().isEmpty()) {
-                    String fallback = UserPresetStore.nameFromFile(displayName);
-                    if (fallback != null) {
-                        imported.name = fallback;
-                        manager.saveTheme(imported);
-                    }
+                String fileName = UserPresetStore.nameFromFile(displayName);
+                boolean useFileName = UserPresetStore.isLegacyThemeFile(displayName)
+                        || imported.name == null || imported.name.trim().isEmpty();
+                if (useFileName && fileName != null) {
+                    imported.name = fileName;
+                    manager.saveTheme(imported);
                 }
                 UserPresetStore.mark(this, imported);
             }
@@ -134,7 +134,10 @@ public class PresetImportActivity extends ThemedActivity {
     }
 
     static boolean hasPresetExtension(String value) {
-        return value != null && value.toLowerCase(Locale.ROOT)
-                .endsWith(ThemeArchive.FILE_EXTENSION);
+        if (value == null)
+            return false;
+        String lower = value.toLowerCase(Locale.ROOT);
+        return lower.endsWith(ThemeArchive.FILE_EXTENSION)
+                || lower.endsWith(ThemeArchive.LEGACY_FILE_EXTENSION);
     }
 }
