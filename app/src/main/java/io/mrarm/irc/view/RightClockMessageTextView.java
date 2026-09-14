@@ -15,15 +15,18 @@ import androidx.appcompat.widget.AppCompatTextView;
 
 import io.mrarm.irc.R;
 import io.mrarm.irc.config.RightClockSettings;
+import io.mrarm.irc.util.AlignToPointSpan;
 import io.mrarm.irc.util.DefaultPreferences;
+import io.mrarm.irc.util.FixedWidthTimestampSpan;
 import io.mrarm.irc.util.IRCColorUtils;
 
 /**
- * Message TextView that can move the timestamp to a dedicated TextView at the far right.
+ * Message TextView that moves the timestamp into a dedicated clock column.
  *
- * The existing MessageBuilder remains the source of truth for formatting. When the option is
- * enabled, this view identifies the rendered timestamp by its timestamp colour span, removes it
- * from the message body and places the original styled timestamp into chat_message_time.
+ * When the right-clock option is disabled the timestamp is placed at the far left, before any
+ * avatar. When it is enabled the timestamp is placed at the far right. Keeping the timestamp out
+ * of the message body makes avatar/no-avatar rows share the same left edge and avoids visual
+ * jumps between user messages and events.
  */
 public class RightClockMessageTextView extends AppCompatTextView
         implements SharedPreferences.OnSharedPreferenceChangeListener {
@@ -57,7 +60,7 @@ public class RightClockMessageTextView extends AppCompatTextView
         super.onAttachedToWindow();
         DefaultPreferences.get(getContext()).registerOnSharedPreferenceChangeListener(this);
         if (mOriginalText != null)
-            applyRightClock(mOriginalText, mLastBufferType);
+            applyClockPlacement(mOriginalText, mLastBufferType);
     }
 
     @Override
@@ -69,7 +72,7 @@ public class RightClockMessageTextView extends AppCompatTextView
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         if (RightClockSettings.PREF_MESSAGE_TIME_RIGHT.equals(key) && mOriginalText != null)
-            applyRightClock(mOriginalText, mLastBufferType);
+            applyClockPlacement(mOriginalText, mLastBufferType);
     }
 
     @Override
@@ -80,23 +83,24 @@ public class RightClockMessageTextView extends AppCompatTextView
         }
         mLastBufferType = type != null ? type : BufferType.NORMAL;
         mOriginalText = text;
-        applyRightClock(text, mLastBufferType);
+        applyClockPlacement(text, mLastBufferType);
     }
 
-    private void applyRightClock(CharSequence source, BufferType type) {
+    private void applyClockPlacement(CharSequence source, BufferType type) {
         mApplying = true;
         try {
-            TextView clock = findClockView();
-            if (!RightClockSettings.isEnabled(getContext()) || clock == null || source == null) {
-                if (clock != null)
-                    clock.setVisibility(View.GONE);
-                super.setText(source, type);
+            TextView leftClock = findClockView(R.id.chat_message_time_left);
+            TextView rightClock = findClockView(R.id.chat_message_time);
+            hideClock(leftClock);
+            hideClock(rightClock);
+
+            if (source == null) {
+                super.setText(null, type);
                 return;
             }
 
             TimestampRange range = findTimestampRange(source);
             if (range == null) {
-                clock.setVisibility(View.GONE);
                 super.setText(source, type);
                 return;
             }
@@ -111,19 +115,49 @@ public class RightClockMessageTextView extends AppCompatTextView
             else if (range.start > 0 && body.charAt(range.start - 1) == ' ')
                 body.delete(range.start - 1, range.start);
 
-            clock.setTypeface(getTypeface());
-            clock.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, getTextSize());
-            clock.setText(trimTimestamp(timestamp));
+            boolean showAtRight = RightClockSettings.isEnabled(getContext());
+            TextView clock = showAtRight ? rightClock : leftClock;
+            if (clock == null) {
+                super.setText(source, type);
+                return;
+            }
+
+            CharSequence cleanTimestamp = trimTimestamp(timestamp);
+            copyTextStyle(clock);
+            clock.setText(cleanTimestamp);
+            if (showAtRight) {
+                clock.setMinWidth(0);
+            } else {
+                int fixedContentWidth = FixedWidthTimestampSpan.measureFixedTimestampWidth(
+                        clock.getPaint(), cleanTimestamp);
+                clock.setMinWidth(fixedContentWidth + clock.getPaddingLeft() +
+                        clock.getPaddingRight());
+            }
             clock.setVisibility(View.VISIBLE);
-            super.setText(new SpannableString(body), type);
+
+            // Moving the timestamp changes the horizontal position of the wrap anchor. The
+            // presentation span is NoCopySpan, so AlignToPointSpan.apply() also recreates it from
+            // the surviving anchor before recalculating the continuation-line indentation.
+            AlignToPointSpan.apply(this, body);
+            super.setText(body, type);
         } finally {
             mApplying = false;
         }
     }
 
-    private TextView findClockView() {
+    private void copyTextStyle(TextView clock) {
+        clock.setTypeface(getTypeface());
+        clock.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, getTextSize());
+    }
+
+    private void hideClock(TextView clock) {
+        if (clock != null)
+            clock.setVisibility(View.GONE);
+    }
+
+    private TextView findClockView(int id) {
         if (getParent() instanceof View)
-            return ((View) getParent()).findViewById(R.id.chat_message_time);
+            return ((View) getParent()).findViewById(id);
         return null;
     }
 

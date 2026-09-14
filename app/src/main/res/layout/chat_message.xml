@@ -6,6 +6,18 @@
     android:gravity="top"
     android:background="?attr/selectableItemBackground">
 
+    <TextView
+        android:id="@+id/chat_message_time_left"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingStart="8dp"
+        android:paddingTop="1dp"
+        android:paddingBottom="1dp"
+        android:gravity="start|top"
+        android:textAppearance="@style/TextAppearance.AppCompat.Body1"
+        android:textColor="@color/messageTimestamp"
+        android:visibility="gone" />
+
     <io.mrarm.irc.view.CircularImageView
         android:id="@+id/chat_message_avatar"
         android:layout_width="32dp"
