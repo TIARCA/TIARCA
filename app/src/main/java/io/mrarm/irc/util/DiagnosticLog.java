@@ -13,6 +13,8 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -121,6 +123,24 @@ public final class DiagnosticLog {
             message = "<diagnostic message unavailable>";
         }
         writeLine(level, category, message, error);
+    }
+
+    /** Returns a stable, irreversible short label suitable for correlating one local object. */
+    public static String pseudonym(String prefix, String value) {
+        String safePrefix = prefix == null || prefix.trim().isEmpty() ? "item" :
+                prefix.replaceAll("[^A-Za-z0-9_.-]", "_");
+        if (value == null)
+            return safePrefix + "-unknown";
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(value.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder();
+            for (int i = 0; i < 4; i++)
+                hex.append(String.format(Locale.US, "%02x", digest[i] & 0xff));
+            return safePrefix + "-" + hex;
+        } catch (NoSuchAlgorithmException impossible) {
+            return safePrefix + "-unknown";
+        }
     }
 
     public static synchronized File createShareFile(Context context) throws IOException {
