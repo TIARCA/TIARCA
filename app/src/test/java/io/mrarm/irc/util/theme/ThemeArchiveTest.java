@@ -21,7 +21,7 @@ import org.junit.Test;
 public class ThemeArchiveTest {
 
     @Test
-    public void v3RoundTripPreservesSectionsAndMultipleAssets() throws Exception {
+    public void v4RoundTripPreservesSectionsAndMultipleAssets() throws Exception {
         ThemeInfo theme = new ThemeInfo();
         theme.name = "Portable";
         theme.base = "default_dark";
@@ -38,9 +38,11 @@ public class ThemeArchiveTest {
         theme.chat.textAutocorrectEnabled = false;
         theme.chat.sendBoxAlwaysMultiline = true;
         theme.chat.monochromeBots = true;
+        theme.chat.backgroundType = "image";
+        theme.chat.backgroundScale = "fill";
         theme.chat.fontAsset = "assets/font.ttf";
         theme.assets.put(ThemeInfo.ASSET_FONT, "assets/font.ttf");
-        theme.assets.put("background", "assets/background.webp");
+        theme.assets.put(ThemeInfo.ASSET_CHAT_BACKGROUND, "assets/background.webp");
 
         theme.messageLayout = new ThemeInfo.MessageLayoutSection();
         theme.messageLayout.timeFormat = "[HH:mm]";
@@ -70,7 +72,7 @@ public class ThemeArchiveTest {
 
         ThemeArchive.ImportedTheme imported =
                 ThemeArchive.read(new ByteArrayInputStream(archive));
-        assertEquals(Integer.valueOf(3), imported.theme.formatVersion);
+        assertEquals(Integer.valueOf(4), imported.theme.formatVersion);
         assertEquals("Portable", imported.theme.name);
         assertEquals("default_dark", imported.theme.base);
         assertEquals(AppearancePreset.COLOR_BLIND.getId(),
@@ -82,10 +84,13 @@ public class ThemeArchiveTest {
         assertEquals(Boolean.FALSE, imported.theme.chat.textAutocorrectEnabled);
         assertEquals(Boolean.TRUE, imported.theme.chat.sendBoxAlwaysMultiline);
         assertEquals(Boolean.TRUE, imported.theme.chat.monochromeBots);
+        assertEquals("image", imported.theme.chat.backgroundType);
+        assertEquals("fill", imported.theme.chat.backgroundScale);
         assertEquals("[HH:mm]", imported.theme.messageLayout.timeFormat);
         assertEquals(Boolean.TRUE, imported.theme.messageLayout.timeRight);
         assertEquals("assets/font.ttf", imported.theme.assets.get(ThemeInfo.ASSET_FONT));
-        assertEquals("assets/background.webp", imported.theme.assets.get("background"));
+        assertEquals("assets/background.webp",
+                imported.theme.assets.get(ThemeInfo.ASSET_CHAT_BACKGROUND));
         assertArrayEquals(font, imported.assets.get("assets/font.ttf"));
         assertArrayEquals(background, imported.assets.get("assets/background.webp"));
         assertArrayEquals(font, imported.fontData);
@@ -119,7 +124,7 @@ public class ThemeArchiveTest {
 
     @Test
     public void undeclaredAssetIsNotExposedToImporter() throws Exception {
-        String json = "{\"formatVersion\":3,\"name\":\"Portable\","
+        String json = "{\"formatVersion\":4,\"name\":\"Portable\","
                 + "\"base\":\"default\",\"colors\":{},\"properties\":{},"
                 + "\"savedColors\":[],\"assets\":{}}";
 
@@ -156,7 +161,7 @@ public class ThemeArchiveTest {
 
     @Test
     public void unknownFutureSectionsDoNotBreakCurrentReader() throws Exception {
-        String json = "{\"formatVersion\":4,\"name\":\"Future\","
+        String json = "{\"formatVersion\":5,\"name\":\"Future\","
                 + "\"base\":\"default\",\"colors\":{},\"properties\":{},"
                 + "\"savedColors\":[],\"assets\":{},"
                 + "\"avatar\":{\"size\":28,\"shape\":\"circle\"}}";
@@ -170,7 +175,7 @@ public class ThemeArchiveTest {
 
         ThemeArchive.ImportedTheme imported = ThemeArchive.read(
                 new ByteArrayInputStream(out.toByteArray()));
-        assertEquals(Integer.valueOf(4), imported.theme.formatVersion);
+        assertEquals(Integer.valueOf(5), imported.theme.formatVersion);
         assertEquals("Future", imported.theme.name);
         assertEquals("default", imported.theme.base);
         assertFalse(imported.theme.assets.containsKey("avatar"));
