@@ -15,9 +15,10 @@ import java.io.InputStream;
 
 import io.mrarm.irc.R;
 import io.mrarm.irc.config.ChatBackgroundSettings;
+import io.mrarm.irc.dialog.ChatBackgroundEditorDialog;
 import io.mrarm.irc.dialog.MaterialColorPickerDialog;
 
-/** Single Interface setting that owns color/image selection and image fitting. */
+/** Single Interface setting that owns color/image selection and WYSIWYG image adjustment. */
 public class ChatBackgroundSetting extends SimpleSetting
         implements SettingsListAdapter.ActivityResultCallback {
 
@@ -43,7 +44,7 @@ public class ChatBackgroundSetting extends SimpleSetting
         if (ChatBackgroundSettings.TYPE_IMAGE.equals(ChatBackgroundSettings.getType(context))
                 && ChatBackgroundSettings.hasImage(context)) {
             mValue = context.getString(R.string.chat_background_desc_image,
-                    scaleLabel(context, ChatBackgroundSettings.getScale(context)));
+                    ChatBackgroundSettings.getOpacity(context));
         } else {
             String color = ChatBackgroundSettings.hasCustomColor(context)
                     ? String.format("#%06X", ChatBackgroundSettings.getCustomColor(context,
@@ -62,7 +63,7 @@ public class ChatBackgroundSetting extends SimpleSetting
                 ? new CharSequence[] {
                         view.getContext().getString(R.string.chat_background_color),
                         view.getContext().getString(R.string.chat_background_choose_image),
-                        view.getContext().getString(R.string.chat_background_image_fitting)
+                        view.getContext().getString(R.string.chat_background_adjust_image)
                 }
                 : new CharSequence[] {
                         view.getContext().getString(R.string.chat_background_color),
@@ -76,7 +77,7 @@ public class ChatBackgroundSetting extends SimpleSetting
                     else if (which == 1)
                         chooseImage(adapter);
                     else
-                        showScaleMenu(view.getContext());
+                        editExistingImage(adapter.getActivity());
                 })
                 .show();
     }
@@ -112,26 +113,13 @@ public class ChatBackgroundSetting extends SimpleSetting
         adapter.launchActivityForResult(intent, requestCode);
     }
 
-    private void showScaleMenu(Context context) {
-        CharSequence[] items = {
-                context.getString(R.string.chat_background_scale_fill),
-                context.getString(R.string.chat_background_scale_fit),
-                context.getString(R.string.chat_background_scale_stretch)
-        };
-        String current = ChatBackgroundSettings.getScale(context);
-        int checked = ChatBackgroundSettings.SCALE_FIT.equals(current) ? 1
-                : ChatBackgroundSettings.SCALE_STRETCH.equals(current) ? 2 : 0;
-        new AlertDialog.Builder(context)
-                .setTitle(R.string.chat_background_image_fitting)
-                .setSingleChoiceItems(items, checked, (dialog, which) -> {
-                    ChatBackgroundSettings.setScale(context,
-                            which == 1 ? ChatBackgroundSettings.SCALE_FIT
-                                    : which == 2 ? ChatBackgroundSettings.SCALE_STRETCH
-                                    : ChatBackgroundSettings.SCALE_FILL);
-                    refreshDescription();
-                    dialog.dismiss();
-                })
-                .show();
+    private void editExistingImage(Activity activity) {
+        try {
+            ChatBackgroundSettings.prepareCandidateFromActive(activity);
+            ChatBackgroundEditorDialog.show(activity, this::refreshDescription, null);
+        } catch (IOException e) {
+            Toast.makeText(activity, R.string.error_file_open, Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override
@@ -145,20 +133,12 @@ public class ChatBackgroundSetting extends SimpleSetting
         try (InputStream input = activity.getContentResolver().openInputStream(uri)) {
             if (input == null)
                 throw new IOException("Unable to open selected image");
-            ChatBackgroundSettings.storeImage(activity, input);
-            refreshDescription();
-            showScaleMenu(activity);
+            ChatBackgroundSettings.storeCandidateImage(activity, input);
+            ChatBackgroundEditorDialog.show(activity, this::refreshDescription, null);
         } catch (IOException e) {
+            ChatBackgroundSettings.discardCandidate(activity);
             Toast.makeText(activity, R.string.error_file_open, Toast.LENGTH_SHORT).show();
         }
-    }
-
-    private static CharSequence scaleLabel(Context context, String scale) {
-        if (ChatBackgroundSettings.SCALE_FIT.equals(scale))
-            return context.getString(R.string.chat_background_scale_fit);
-        if (ChatBackgroundSettings.SCALE_STRETCH.equals(scale))
-            return context.getString(R.string.chat_background_scale_stretch);
-        return context.getString(R.string.chat_background_scale_fill);
     }
 
     public static class Holder extends SimpleSetting.Holder<ChatBackgroundSetting> {

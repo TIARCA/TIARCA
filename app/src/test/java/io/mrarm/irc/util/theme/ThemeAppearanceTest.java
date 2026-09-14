@@ -47,6 +47,7 @@ public class ThemeAppearanceTest {
         preferences = DefaultPreferences.get(context);
         preferences.edit().clear().commit();
         ChatBackgroundSettings.getImageFile(context).delete();
+        ChatBackgroundSettings.discardCandidate(context);
     }
 
     @Test
@@ -76,6 +77,12 @@ public class ThemeAppearanceTest {
         assertEquals(ChatBackgroundSettings.TYPE_COLOR, theme.chat.backgroundType);
         assertNull(theme.chat.backgroundColor);
         assertEquals(ChatBackgroundSettings.SCALE_FILL, theme.chat.backgroundScale);
+        assertEquals(Float.valueOf(ChatBackgroundSettings.DEFAULT_ZOOM),
+                theme.chat.backgroundZoom);
+        assertEquals(Float.valueOf(ChatBackgroundSettings.DEFAULT_FOCUS),
+                theme.chat.backgroundFocusX);
+        assertEquals(Integer.valueOf(ChatBackgroundSettings.DEFAULT_OPACITY),
+                theme.chat.backgroundOpacity);
 
         preferences.edit().clear()
                 .putString(AppLocaleManager.PREF_APP_LANGUAGE, "en")
@@ -153,6 +160,39 @@ public class ThemeAppearanceTest {
     }
 
     @Test
+    public void wysiwygBackgroundTransformIsPortable() throws Exception {
+        byte[] image = "wysiwyg-image".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        ChatBackgroundSettings.storeImage(context, new ByteArrayInputStream(image));
+        ChatBackgroundSettings.setTransform(context, 2.25f, 0.2f, 0.8f, 47);
+
+        ThemeInfo theme = new ThemeInfo();
+        theme.uuid = UUID.randomUUID();
+        ThemeAppearance.capture(context, theme);
+
+        assertEquals(Integer.valueOf(5), theme.formatVersion);
+        assertEquals(ChatBackgroundSettings.SCALE_MATRIX, theme.chat.backgroundScale);
+        assertEquals(Float.valueOf(2.25f), theme.chat.backgroundZoom);
+        assertEquals(Float.valueOf(0.2f), theme.chat.backgroundFocusX);
+        assertEquals(Float.valueOf(0.8f), theme.chat.backgroundFocusY);
+        assertEquals(Integer.valueOf(47), theme.chat.backgroundOpacity);
+
+        preferences.edit()
+                .putFloat(ChatBackgroundSettings.PREF_ZOOM, 5f)
+                .putFloat(ChatBackgroundSettings.PREF_FOCUS_X, 1f)
+                .putFloat(ChatBackgroundSettings.PREF_FOCUS_Y, 0f)
+                .putInt(ChatBackgroundSettings.PREF_OPACITY, 100)
+                .commit();
+        ThemeAppearance.apply(context, theme);
+
+        assertEquals(ChatBackgroundSettings.SCALE_MATRIX,
+                ChatBackgroundSettings.getScale(context));
+        assertEquals(2.25f, ChatBackgroundSettings.getZoom(context), 0.0001f);
+        assertEquals(0.2f, ChatBackgroundSettings.getFocusX(context), 0.0001f);
+        assertEquals(0.8f, ChatBackgroundSettings.getFocusY(context), 0.0001f);
+        assertEquals(47, ChatBackgroundSettings.getOpacity(context));
+    }
+
+    @Test
     public void legacyPresetDoesNotInheritExistingDeviceAppearance() {
         preferences.edit()
                 .putString(ChatSettings.PREF_FONT, "monospace")
@@ -167,7 +207,11 @@ public class ThemeAppearanceTest {
                 .putString(ChatBackgroundSettings.PREF_TYPE, ChatBackgroundSettings.TYPE_IMAGE)
                 .putInt(ChatBackgroundSettings.PREF_COLOR, 0xFF00FF00)
                 .putString(ChatBackgroundSettings.PREF_SCALE,
-                        ChatBackgroundSettings.SCALE_STRETCH)
+                        ChatBackgroundSettings.SCALE_MATRIX)
+                .putFloat(ChatBackgroundSettings.PREF_ZOOM, 4f)
+                .putFloat(ChatBackgroundSettings.PREF_FOCUS_X, 0.1f)
+                .putFloat(ChatBackgroundSettings.PREF_FOCUS_Y, 0.9f)
+                .putInt(ChatBackgroundSettings.PREF_OPACITY, 22)
                 .commit();
 
         ThemeInfo legacy = new ThemeInfo();
@@ -193,6 +237,14 @@ public class ThemeAppearanceTest {
         assertFalse(ChatBackgroundSettings.hasCustomColor(context));
         assertEquals(ChatBackgroundSettings.SCALE_FILL,
                 ChatBackgroundSettings.getScale(context));
+        assertEquals(ChatBackgroundSettings.DEFAULT_ZOOM,
+                ChatBackgroundSettings.getZoom(context), 0.0001f);
+        assertEquals(ChatBackgroundSettings.DEFAULT_FOCUS,
+                ChatBackgroundSettings.getFocusX(context), 0.0001f);
+        assertEquals(ChatBackgroundSettings.DEFAULT_FOCUS,
+                ChatBackgroundSettings.getFocusY(context), 0.0001f);
+        assertEquals(ChatBackgroundSettings.DEFAULT_OPACITY,
+                ChatBackgroundSettings.getOpacity(context));
     }
 
     @Test
