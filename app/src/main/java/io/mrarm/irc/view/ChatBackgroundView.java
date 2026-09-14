@@ -3,6 +3,7 @@ package io.mrarm.irc.view;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.Matrix;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 
@@ -17,6 +18,7 @@ import io.mrarm.irc.util.DefaultPreferences;
 public class ChatBackgroundView extends AppCompatImageView
         implements SharedPreferences.OnSharedPreferenceChangeListener {
 
+    private final Matrix transform = new Matrix();
     private Bitmap bitmap;
     private int lastWidth;
     private int lastHeight;
@@ -70,6 +72,10 @@ public class ChatBackgroundView extends AppCompatImageView
         if (ChatBackgroundSettings.PREF_TYPE.equals(key)
                 || ChatBackgroundSettings.PREF_COLOR.equals(key)
                 || ChatBackgroundSettings.PREF_SCALE.equals(key)
+                || ChatBackgroundSettings.PREF_ZOOM.equals(key)
+                || ChatBackgroundSettings.PREF_FOCUS_X.equals(key)
+                || ChatBackgroundSettings.PREF_FOCUS_Y.equals(key)
+                || ChatBackgroundSettings.PREF_OPACITY.equals(key)
                 || ChatBackgroundSettings.PREF_IMAGE_REVISION.equals(key))
             post(this::refresh);
     }
@@ -79,14 +85,6 @@ public class ChatBackgroundView extends AppCompatImageView
         int color = ChatBackgroundSettings.hasCustomColor(getContext())
                 ? ChatBackgroundSettings.getCustomColor(getContext(), themeColor) : themeColor;
         setBackgroundColor(color);
-
-        String scale = ChatBackgroundSettings.getScale(getContext());
-        if (ChatBackgroundSettings.SCALE_FIT.equals(scale))
-            setScaleType(ScaleType.FIT_CENTER);
-        else if (ChatBackgroundSettings.SCALE_STRETCH.equals(scale))
-            setScaleType(ScaleType.FIT_XY);
-        else
-            setScaleType(ScaleType.CENTER_CROP);
 
         if (!ChatBackgroundSettings.TYPE_IMAGE.equals(
                 ChatBackgroundSettings.getType(getContext()))
@@ -104,18 +102,50 @@ public class ChatBackgroundView extends AppCompatImageView
         SharedPreferences preferences = DefaultPreferences.get(getContext());
         long revision = preferences.getLong(ChatBackgroundSettings.PREF_IMAGE_REVISION, 0L);
         long modified = ChatBackgroundSettings.getImageFile(getContext()).lastModified();
-        if (bitmap != null && !bitmap.isRecycled() && width == lastWidth && height == lastHeight
-                && modified == lastImageModified && revision == lastImageRevision)
-            return;
+        boolean reload = bitmap == null || bitmap.isRecycled() || width != lastWidth
+                || height != lastHeight || modified != lastImageModified
+                || revision != lastImageRevision;
+        if (reload) {
+            Bitmap next = ChatBackgroundSettings.decodeSampledImage(getContext(), width, height);
+            clearBitmap();
+            bitmap = next;
+            lastWidth = width;
+            lastHeight = height;
+            lastImageModified = modified;
+            lastImageRevision = revision;
+            setImageBitmap(bitmap);
+        }
+        applyPresentation(width, height);
+    }
 
-        Bitmap next = ChatBackgroundSettings.decodeSampledImage(getContext(), width, height);
-        clearBitmap();
-        bitmap = next;
-        lastWidth = width;
-        lastHeight = height;
-        lastImageModified = modified;
-        lastImageRevision = revision;
-        setImageBitmap(bitmap);
+    private void applyPresentation(int width, int height) {
+        setImageAlpha(Math.round(ChatBackgroundSettings.getOpacity(getContext()) * 2.55f));
+        String scaleMode = ChatBackgroundSettings.getScale(getContext());
+        if (ChatBackgroundSettings.SCALE_MATRIX.equals(scaleMode) && bitmap != null
+                && !bitmap.isRecycled()) {
+            setScaleType(ScaleType.MATRIX);
+            float base = Math.max((float) width / bitmap.getWidth(),
+                    (float) height / bitmap.getHeight());
+            float scale = base * ChatBackgroundSettings.getZoom(getContext());
+            float scaledWidth = bitmap.getWidth() * scale;
+            float scaledHeight = bitmap.getHeight() * scale;
+            float tx = width * 0.5f
+                    - ChatBackgroundSettings.getFocusX(getContext()) * scaledWidth;
+            float ty = height * 0.5f
+                    - ChatBackgroundSettings.getFocusY(getContext()) * scaledHeight;
+            tx = clamp(tx, width - scaledWidth, 0f);
+            ty = clamp(ty, height - scaledHeight, 0f);
+            transform.reset();
+            transform.setScale(scale, scale);
+            transform.postTranslate(tx, ty);
+            setImageMatrix(transform);
+        } else if (ChatBackgroundSettings.SCALE_FIT.equals(scaleMode)) {
+            setScaleType(ScaleType.FIT_CENTER);
+        } else if (ChatBackgroundSettings.SCALE_STRETCH.equals(scaleMode)) {
+            setScaleType(ScaleType.FIT_XY);
+        } else {
+            setScaleType(ScaleType.CENTER_CROP);
+        }
     }
 
     private int resolveThemeBackgroundColor() {
@@ -130,8 +160,15 @@ public class ChatBackgroundView extends AppCompatImageView
         return value.data;
     }
 
+    private static float clamp(float value, float min, float max) {
+        if (min > max)
+            return (min + max) * 0.5f;
+        return Math.max(min, Math.min(max, value));
+    }
+
     private void clearBitmap() {
         setImageDrawable(null);
+        setImageAlpha(255);
         if (bitmap != null && !bitmap.isRecycled())
             bitmap.recycle();
         bitmap = null;
