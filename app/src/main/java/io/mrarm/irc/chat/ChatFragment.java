@@ -9,8 +9,10 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
+import androidx.core.view.GravityCompat;
 import androidx.core.widget.ImageViewCompat;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.PopupMenu;
 import androidx.appcompat.widget.Toolbar;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -58,6 +60,7 @@ public class ChatFragment extends Fragment implements
     private int mNormalToolbarInset;
     private OneTimeMessageJump mMessageJump;
     private String mAutoOpenChannel;
+    private boolean mForceServerMenuContext;
 
     public static ChatFragment newInstance(ServerConnectionInfo server, String channel, String messageId) {
         ChatFragment fragment = new ChatFragment();
@@ -243,32 +246,31 @@ public class ChatFragment extends Fragment implements
     }
 
     private void showServerActionsFromToolbar() {
-        if (mViewPager == null || mTabLayout == null)
+        FragmentActivity rawActivity = getActivity();
+        if (!(rawActivity instanceof MainActivity))
             return;
-        int serverPosition = mSectionsPagerAdapter.findChannel(null);
-        if (serverPosition < 0)
-            return;
-        int originalPosition = mViewPager.getCurrentItem();
-        if (originalPosition == serverPosition) {
-            showChannelActions(null);
-            return;
+        MainActivity activity = (MainActivity) rawActivity;
+        PopupMenu popup = new PopupMenu(activity, activity.getToolbar(), GravityCompat.END);
+        activity.getMenuInflater().inflate(R.menu.menu_chat, popup.getMenu());
+
+        // Ask MainActivity to prepare the exact same menu it would prepare on the Server tab,
+        // but do it with a temporary logical server context instead of moving ViewPager2.
+        mForceServerMenuContext = true;
+        try {
+            activity.onPrepareOptionsMenu(popup.getMenu());
+        } finally {
+            mForceServerMenuContext = false;
         }
 
-        // Prepare exactly the same overflow menu as the Server tab, then restore the visible tab
-        // before the next frame. The popup keeps the server menu that was prepared at show time.
-        mViewPager.setCurrentItem(serverPosition, false);
-        FragmentActivity activity = getActivity();
-        if (activity instanceof MainActivity) {
-            activity.invalidateOptionsMenu();
-            mTabLayout.post(() -> {
-                if (!isAdded() || getActivity() != activity)
-                    return;
-                ((MainActivity) activity).getToolbar().showOverflowMenu();
-                mViewPager.setCurrentItem(originalPosition, false);
-            });
-        } else {
-            mViewPager.setCurrentItem(originalPosition, false);
-        }
+        popup.setOnMenuItemClickListener(item -> {
+            mForceServerMenuContext = true;
+            try {
+                return activity.onOptionsItemSelected(item);
+            } finally {
+                mForceServerMenuContext = false;
+            }
+        });
+        popup.show();
     }
 
     public void showChannelActions(String channel) {
@@ -389,6 +391,8 @@ public class ChatFragment extends Fragment implements
     }
 
     public String getCurrentChannel() {
+        if (mForceServerMenuContext)
+            return null;
         return mSectionsPagerAdapter.getChannel(mViewPager.getCurrentItem());
     }
 
@@ -523,8 +527,8 @@ public class ChatFragment extends Fragment implements
         private String mMessageId;
 
         private OneTimeMessageJump(String channel, String messageId) {
-            this.mChannel = channel;
-            this.mMessageId = messageId;
+            mChannel = channel;
+            mMessageId = messageId;
         }
 
     }
