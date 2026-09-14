@@ -56,6 +56,9 @@ public class ThemeInfo {
 
     public static final String PROP_LIGHT_STATUS_BAR = "windowLightStatusBar";
 
+    /** Stable logical asset id used by current and legacy font handling. */
+    public static final String ASSET_FONT = "font";
+
     public Integer formatVersion;
 
     public transient UUID uuid;
@@ -68,6 +71,14 @@ public class ThemeInfo {
     public Map<String, Object> properties = new HashMap<>();
     public List<Integer> savedColors = new ArrayList<>();
 
+    /**
+     * Generic portable-asset manifest: stable logical id -> archive path (for example
+     * "font" -> "assets/font.ttf"). Feature-specific sections may keep legacy path fields for
+     * backward compatibility, while new features can use this manifest without changing the ZIP
+     * container implementation.
+     */
+    public Map<String, String> assets = new HashMap<>();
+
     public UiSection ui;
     public ChatSection chat;
     public MessageLayoutSection messageLayout;
@@ -79,6 +90,7 @@ public class ThemeInfo {
         colors = new HashMap<>(otherTheme.colors);
         properties = new HashMap<>(otherTheme.properties);
         savedColors = new ArrayList<>(otherTheme.savedColors);
+        assets = otherTheme.assets == null ? new HashMap<>() : new HashMap<>(otherTheme.assets);
         ui = otherTheme.ui == null ? null : new UiSection(otherTheme.ui);
         chat = otherTheme.chat == null ? null : new ChatSection(otherTheme.chat);
         messageLayout = otherTheme.messageLayout == null ? null :
@@ -118,6 +130,7 @@ public class ThemeInfo {
         public Boolean monochromeKickEvents;
         public Boolean monochromeQuitEvents;
         public Boolean monochromeJoinPartEvents;
+        /** Legacy direct asset path retained so v2/older readers can still import custom fonts. */
         public String fontAsset;
 
         public ChatSection() {
