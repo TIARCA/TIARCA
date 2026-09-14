@@ -16,6 +16,7 @@ import android.util.Log;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import io.mrarm.chatlib.irc.IRCConnection;
@@ -110,8 +111,11 @@ public class UserAutoRunCommandHelper implements ServerConnectionInfo.ChannelLis
                     throw new RuntimeException();
                 }
             } catch (RuntimeException e) {
-                Log.e("ServerConnectionInfo", "User command execution failed: " + cmd);
-                e.printStackTrace();
+                String commandName = commandName(cmd);
+                Log.e("ServerConnectionInfo", "User autorun command failed: command=" +
+                        commandName);
+                DiagnosticLog.e(mConnection.getConnectionManager().getContext(), "COMMAND",
+                        () -> "Autorun command failed command=" + commandName, e);
                 if (errors == null)
                     errors = new ArrayList<>();
                 errors.add(cmd);
@@ -120,6 +124,17 @@ public class UserAutoRunCommandHelper implements ServerConnectionInfo.ChannelLis
         if (errors != null) {
             WarningHelper.showWarning(new CommandProcessErrorWarning(mConnection.getName(), errors));
         }
+    }
+
+    private static String commandName(String command) {
+        if (command == null)
+            return "unknown";
+        String trimmed = command.trim();
+        if (trimmed.isEmpty())
+            return "unknown";
+        int space = trimmed.indexOf(' ');
+        String name = space < 0 ? trimmed : trimmed.substring(0, space);
+        return name.replaceAll("[^A-Za-z0-9_-]", "_").toUpperCase(Locale.ROOT);
     }
 
     public void cancelUserCommandExecution() {
