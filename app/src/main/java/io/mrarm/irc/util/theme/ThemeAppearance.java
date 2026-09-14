@@ -92,7 +92,10 @@ final class ThemeAppearance {
         layout.event = serialize(builder.getEventMessageFormat());
         layout.eventHostname = builder.getEventMessageShowHostname();
         layout.timeFormat = builder.getMessageTimeFormat().toPattern();
-        layout.timeFixedWidth = builder.isMessageTimeFixedWidth();
+        // Legacy compatibility only: old TIARCA versions still read this field. The current
+        // renderer always aligns a left-side clock automatically, so new presets advertise the
+        // safe legacy value without treating it as a user preference.
+        layout.timeFixedWidth = true;
         layout.timeRight = RightClockSettings.isEnabled(context);
         theme.messageLayout = layout;
     }
@@ -167,8 +170,8 @@ final class ThemeAppearance {
                 } catch (IllegalArgumentException ignored) {
                 }
             }
-            if (layout.timeFixedWidth != null)
-                builder.setMessageTimeFixedWidth(layout.timeFixedWidth);
+            // timeFixedWidth is deliberately ignored. It remains in ThemeInfo only so that old
+            // preset files can still be parsed and new files remain friendly to old app versions.
             builder.saveFormats();
             if (layout.timeRight != null)
                 RightClockSettings.setEnabled(context, layout.timeRight);
@@ -239,7 +242,6 @@ final class ThemeAppearance {
                 || MessageFormatSettings.PREF_MESSAGE_FORMAT_EVENT.equals(key)
                 || MessageFormatSettings.PREF_MESSAGE_FORMAT_EVENT_HOSTNAME.equals(key)
                 || MessageFormatSettings.PREF_MESSAGE_TIME_FORMAT.equals(key)
-                || MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH.equals(key)
                 || MessageFormatSettings.PREF_MESSAGE_AVATARS.equals(key)
                 || MessageFormatSettings.PREF_MESSAGE_CUSTOM_AVATARS.equals(key)
                 || RightClockSettings.PREF_MESSAGE_TIME_RIGHT.equals(key);
