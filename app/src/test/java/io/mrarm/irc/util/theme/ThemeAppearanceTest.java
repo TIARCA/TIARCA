@@ -17,6 +17,7 @@ import org.robolectric.annotation.Config;
 
 import io.mrarm.irc.config.ChatSettings;
 import io.mrarm.irc.config.MessageFormatSettings;
+import io.mrarm.irc.config.RightClockSettings;
 import io.mrarm.irc.config.SettingsHelper;
 import io.mrarm.irc.util.AppLocaleManager;
 import io.mrarm.irc.util.DefaultPreferences;
@@ -75,6 +76,40 @@ public class ThemeAppearanceTest {
         assertTrue(preferences.getBoolean(ChatSettings.PREF_GLOBAL_FONT_ENABLED, false));
         assertFalse(preferences.getBoolean(ChatSettings.PREF_TEXT_AUTOCORRECT_ENABLED, true));
         assertTrue(preferences.getBoolean(ChatSettings.PREF_SEND_BOX_ALWAYS_MULTILINE, false));
+    }
+
+    @Test
+    public void legacyPresetDoesNotInheritExistingDeviceAppearance() {
+        preferences.edit()
+                .putString(ChatSettings.PREF_FONT, "monospace")
+                .putInt(ChatSettings.PREF_FONT_SIZE, 30)
+                .putBoolean(ChatSettings.PREF_GLOBAL_FONT_ENABLED, true)
+                .putBoolean(ChatSettings.PREF_TEXT_AUTOCORRECT_ENABLED, false)
+                .putBoolean(ChatSettings.PREF_SEND_BOX_ALWAYS_MULTILINE, true)
+                .putString(ChatSettings.PREF_APPBAR_COMPACT_MODE, "always")
+                .putBoolean(MessageFormatSettings.PREF_MESSAGE_AVATARS, true)
+                .putBoolean(MessageFormatSettings.PREF_MESSAGE_CUSTOM_AVATARS, true)
+                .putBoolean(RightClockSettings.PREF_MESSAGE_TIME_RIGHT, true)
+                .commit();
+
+        ThemeInfo legacy = new ThemeInfo();
+        legacy.formatVersion = null;
+        legacy.base = "default_dark";
+        legacy.ui = null;
+        legacy.chat = null;
+        legacy.messageLayout = null;
+        ThemeAppearance.apply(context, legacy);
+
+        assertEquals(Integer.valueOf(ThemeArchive.FORMAT_VERSION), legacy.formatVersion);
+        assertEquals("default", preferences.getString(ChatSettings.PREF_FONT, null));
+        assertEquals(12, preferences.getInt(ChatSettings.PREF_FONT_SIZE, -1));
+        assertFalse(preferences.getBoolean(ChatSettings.PREF_GLOBAL_FONT_ENABLED, true));
+        assertTrue(preferences.getBoolean(ChatSettings.PREF_TEXT_AUTOCORRECT_ENABLED, false));
+        assertFalse(preferences.getBoolean(ChatSettings.PREF_SEND_BOX_ALWAYS_MULTILINE, true));
+        assertEquals("auto", preferences.getString(ChatSettings.PREF_APPBAR_COMPACT_MODE, null));
+        assertFalse(preferences.getBoolean(MessageFormatSettings.PREF_MESSAGE_AVATARS, true));
+        assertFalse(preferences.getBoolean(MessageFormatSettings.PREF_MESSAGE_CUSTOM_AVATARS, true));
+        assertFalse(preferences.getBoolean(RightClockSettings.PREF_MESSAGE_TIME_RIGHT, true));
     }
 
     @Test
