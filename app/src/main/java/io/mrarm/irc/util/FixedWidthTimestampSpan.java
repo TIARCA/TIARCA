@@ -11,8 +11,6 @@ import java.util.regex.Pattern;
 public class FixedWidthTimestampSpan extends ReplacementSpan {
 
     private static final String MEASURE_NUMBER_CHARS = "1234567890";
-    private float[] mNumberWidths = new float[MEASURE_NUMBER_CHARS.length()];
-
     private static final Pattern sMatchNumbersRegex = Pattern.compile("[0-9]");
 
     private int mPreOffset;
@@ -21,21 +19,39 @@ public class FixedWidthTimestampSpan extends ReplacementSpan {
         mPreOffset = preOffset;
     }
 
+    /**
+     * Returns the width required to render {@code timestamp} as if every digit had the width of
+     * the widest digit in the current typeface. This is useful both for the legacy inline span and
+     * for the dedicated left timestamp column used by chat rows.
+     */
+    public static int measureFixedTimestampWidth(@NonNull Paint paint,
+                                                 @NonNull CharSequence timestamp) {
+        return (int) Math.ceil(measureFixedTimestampWidthFloat(paint, timestamp));
+    }
+
+    private static float measureFixedTimestampWidthFloat(@NonNull Paint paint,
+                                                         @NonNull CharSequence timestamp) {
+        float[] numberWidths = new float[MEASURE_NUMBER_CHARS.length()];
+        paint.getTextWidths(MEASURE_NUMBER_CHARS, numberWidths);
+        float maxWidth = 0.f;
+        char widestDigit = '0';
+        for (int i = MEASURE_NUMBER_CHARS.length() - 1; i >= 0; --i) {
+            if (numberWidths[i] > maxWidth) {
+                maxWidth = numberWidths[i];
+                widestDigit = MEASURE_NUMBER_CHARS.charAt(i);
+            }
+        }
+        String widest = sMatchNumbersRegex.matcher(timestamp)
+                .replaceAll(String.valueOf(widestDigit));
+        return paint.measureText(widest);
+    }
+
     @Override
     public int getSize(@NonNull Paint paint, CharSequence text, int start, int end,
                        @Nullable Paint.FontMetricsInt fm) {
-        paint.getTextWidths(MEASURE_NUMBER_CHARS, mNumberWidths);
-        float mw = 0.f;
-        char ld = '0';
-        for (int i = MEASURE_NUMBER_CHARS.length() - 1; i >= 0; --i) {
-            if (mNumberWidths[i] > mw) {
-                mw = mNumberWidths[i];
-                ld = MEASURE_NUMBER_CHARS.charAt(i);
-            }
-        }
-        CharSequence s = text.subSequence(start - mPreOffset, start);
-        String rs = sMatchNumbersRegex.matcher(s).replaceAll(String.valueOf(ld));
-        return (int) (paint.measureText(rs) - paint.measureText(s, 0, s.length()));
+        CharSequence timestamp = text.subSequence(start - mPreOffset, start);
+        return (int) (measureFixedTimestampWidthFloat(paint, timestamp) -
+                paint.measureText(timestamp, 0, timestamp.length()));
     }
 
     @Override
