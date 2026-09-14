@@ -193,6 +193,7 @@ public final class AppearancePresetManager {
         boolean terminal = preset == AppearancePreset.TERMINAL;
         boolean colorBlind = preset == AppearancePreset.COLOR_BLIND;
         boolean prefix = terminal || colorBlind;
+        boolean underlineMentions = terminal || colorBlind;
 
         MessageBuilder builder = MessageBuilder.getInstance(context);
         int normalLayout = graphic ? 2 : terminal ? 1 : 0;
@@ -207,13 +208,13 @@ public final class AppearancePresetManager {
         CharSequence notice = MessageFormatSettingsActivity.buildNoticePresetMessageFormat(
                 context, terminal ? 1 : 0, prefix);
 
-        if (terminal || colorBlind) {
-            normal = addSenderStyle(normal, true, false);
-            mention = addSenderStyle(mention, true, true);
-            action = addSenderStyle(action, true, false);
-            actionMention = addSenderStyle(actionMention, true, true);
-            notice = addSenderStyle(notice, true, false);
-        }
+        // Every built-in appearance preset starts with bold nicknames. Terminal and the
+        // high-legibility preset retain their existing redundant underline for mentions.
+        normal = addSenderStyle(normal, true, false);
+        mention = addSenderStyle(mention, true, underlineMentions);
+        action = addSenderStyle(action, true, false);
+        actionMention = addSenderStyle(actionMention, true, underlineMentions);
+        notice = addSenderStyle(notice, true, false);
 
         builder.setMessageFormat(normal);
         builder.setMentionMessageFormat(mention);
@@ -221,7 +222,7 @@ public final class AppearancePresetManager {
         builder.setActionMentionMessageFormat(actionMention);
         builder.setNoticeMessageFormat(notice);
         builder.setEventMessageFormat(MessageFormatSettingsActivity
-                .buildEventPresetMessageFormat(context, graphic ? 1 : 0));
+                .buildEventPresetMessageFormat(context, graphic || colorBlind ? 1 : 0));
         builder.setEventMessageShowHostname(false);
         builder.setMessageTimeFormat(terminal ? "[HH:mm:ss]" : graphic ? "HH:mm" : "[HH:mm.ss]");
         builder.setMessageAvatars(graphic || colorBlind);

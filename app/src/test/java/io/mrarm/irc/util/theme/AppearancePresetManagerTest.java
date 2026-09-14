@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Typeface;
 import android.text.Spanned;
 import android.text.style.StyleSpan;
 import android.text.style.UnderlineSpan;
@@ -114,6 +115,30 @@ public class AppearancePresetManagerTest {
     }
 
     @Test
+    public void everyBuiltInPresetUsesBoldSenderNicknames() {
+        MessageBuilder builder = MessageBuilder.getInstance(context);
+        for (AppearancePreset preset : AppearancePreset.values()) {
+            if (!preset.isApplicable())
+                continue;
+            manager.applyPreset(preset);
+            assertSenderBold(builder.getMessageFormat());
+            assertSenderBold(builder.getMentionMessageFormat());
+            assertSenderBold(builder.getActionMessageFormat());
+            assertSenderBold(builder.getActionMentionMessageFormat());
+            assertSenderBold(builder.getNoticeMessageFormat());
+        }
+    }
+
+    @Test
+    public void colorBlindEventsAreNotItalic() {
+        manager.applyPreset(AppearancePreset.COLOR_BLIND);
+
+        Spanned event = (Spanned) MessageBuilder.getInstance(context).getEventMessageFormat();
+        for (StyleSpan span : event.getSpans(0, event.length(), StyleSpan.class))
+            assertFalse(span.getStyle() == Typeface.ITALIC);
+    }
+
+    @Test
     public void manualVisualChangeMarksPresetCustom() {
         manager.applyPreset(AppearancePreset.IRC_LIGHT);
         preferences.edit().putInt(ChatSettings.PREF_FONT_SIZE, 17).commit();
@@ -177,5 +202,22 @@ public class AppearancePresetManagerTest {
                 return;
         }
         throw new AssertionError("Sender-prefix chip missing");
+    }
+
+    private static void assertSenderBold(CharSequence format) {
+        Spanned spanned = (Spanned) format;
+        for (MessageBuilder.MetaChipSpan chip : spanned.getSpans(0, spanned.length(),
+                MessageBuilder.MetaChipSpan.class)) {
+            if (chip.getType() != MessageBuilder.MetaChipSpan.TYPE_SENDER)
+                continue;
+            int start = spanned.getSpanStart(chip);
+            int end = spanned.getSpanEnd(chip);
+            for (StyleSpan span : spanned.getSpans(start, end, StyleSpan.class)) {
+                if (span.getStyle() == Typeface.BOLD || span.getStyle() == Typeface.BOLD_ITALIC)
+                    return;
+            }
+            throw new AssertionError("Sender nickname is not bold");
+        }
+        throw new AssertionError("Sender chip missing");
     }
 }
