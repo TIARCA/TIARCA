@@ -26,8 +26,15 @@ public class SimpleChipDrawable extends Drawable {
     private Rect mTempRect = new Rect();
 
     public SimpleChipDrawable(Context ctx, String text, Drawable content, boolean transparent) {
-        mText = text;
-        mContentDrawable = content;
+        // The only icon-only meta chip is the message wrap anchor. Render it as an explicit label
+        // in the editor so users can understand what it does instead of seeing an unexplained icon.
+        if (text == null && content != null) {
+            mText = ctx.getString(R.string.message_format_indent_chip);
+            mContentDrawable = null;
+        } else {
+            mText = text;
+            mContentDrawable = content;
+        }
         StyledAttributesHelper ta = StyledAttributesHelper.obtainStyledAttributes(ctx, new int[] { android.R.attr.textAppearance });
         int resId = ta.getResourceId(android.R.attr.textAppearance, 0);
         ta.recycle();
@@ -35,9 +42,8 @@ public class SimpleChipDrawable extends Drawable {
         int textSize = ta.getDimensionPixelSize(android.R.attr.textSize, 0);
         ta.recycle();
 
-        // Chips are also used inside themed editor fields. Resolving the default text colour from
-        // the current theme avoids stale/light-theme textAppearance colours becoming black-on-black
-        // when the app switches to a dark theme. Explicit foreground spans still override this.
+        // Chips are editing controls, not the final chat preview: keep their labels readable in
+        // both light and dark themes. The actual message colours are shown in the preview below.
         mDefaultTextColor = StyledAttributesHelper.getColor(
                 ctx, android.R.attr.textColorPrimary, Color.BLACK);
 
