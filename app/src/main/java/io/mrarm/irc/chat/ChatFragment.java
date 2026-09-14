@@ -94,7 +94,7 @@ public class ChatFragment extends Fragment implements
         ((AppCompatActivity) getActivity()).getSupportActionBar().setTitle(mConnectionInfo.getName());
 
         ((MainActivity) getActivity()).addActionBarDrawerToggle(toolbar);
-        toolbar.setOnClickListener(v -> showChannelActions(null));
+        toolbar.setOnClickListener(v -> showServerActionsFromToolbar());
 
         mSectionsPagerAdapter = new ChatPagerAdapter(this, mConnectionInfo, savedInstanceState);
 
@@ -240,6 +240,35 @@ public class ChatFragment extends Fragment implements
             }
             return true;
         });
+    }
+
+    private void showServerActionsFromToolbar() {
+        if (mViewPager == null || mTabLayout == null)
+            return;
+        int serverPosition = mSectionsPagerAdapter.findChannel(null);
+        if (serverPosition < 0)
+            return;
+        int originalPosition = mViewPager.getCurrentItem();
+        if (originalPosition == serverPosition) {
+            showChannelActions(null);
+            return;
+        }
+
+        // Prepare exactly the same overflow menu as the Server tab, then restore the visible tab
+        // before the next frame. The popup keeps the server menu that was prepared at show time.
+        mViewPager.setCurrentItem(serverPosition, false);
+        FragmentActivity activity = getActivity();
+        if (activity instanceof MainActivity) {
+            activity.invalidateOptionsMenu();
+            mTabLayout.post(() -> {
+                if (!isAdded() || getActivity() != activity)
+                    return;
+                ((MainActivity) activity).getToolbar().showOverflowMenu();
+                mViewPager.setCurrentItem(originalPosition, false);
+            });
+        } else {
+            mViewPager.setCurrentItem(originalPosition, false);
+        }
     }
 
     public void showChannelActions(String channel) {
