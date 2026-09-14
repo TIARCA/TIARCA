@@ -28,6 +28,7 @@ import com.google.gson.JsonParser;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -36,6 +37,8 @@ import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.util.Date;
 import java.util.Locale;
+
+import io.mrarm.irc.util.DiagnosticLog;
 
 /**
  * Small self-updater for the official GitHub Releases build.
@@ -53,6 +56,8 @@ public final class UpdateManager {
     private static final String PREF_LAST_ATTEMPT = "last_attempt";
     private static final String PREF_LAST_SUCCESS = "last_success";
     private static final long CHECK_INTERVAL_MS = 7L * 24L * 60L * 60L * 1000L;
+    private static final int DEBUG_TAP_COUNT = 7;
+    private static final long DEBUG_TAP_RESET_MS = 3000L;
 
     private static boolean sStartupHandled;
     private static boolean sCheckInProgress;
@@ -84,6 +89,13 @@ public final class UpdateManager {
     public static void showAboutDialog(Activity activity) {
         SharedPreferences preferences = prefs(activity);
         int padding = dp(activity, 20);
+
+        TextView title = new TextView(activity);
+        title.setText(R.string.about_title);
+        title.setTextAppearance(androidx.appcompat.R.style.TextAppearance_AppCompat_Title);
+        title.setPadding(dp(activity, 24), dp(activity, 20), dp(activity, 24), dp(activity, 8));
+        title.setClickable(true);
+        title.setFocusable(true);
 
         LinearLayout content = new LinearLayout(activity);
         content.setOrientation(LinearLayout.VERTICAL);
@@ -120,21 +132,111 @@ public final class UpdateManager {
         content.addView(lastCheck, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
+        LinearLayout debugPanel = new LinearLayout(activity);
+        debugPanel.setOrientation(LinearLayout.VERTICAL);
+        debugPanel.setPadding(0, dp(activity, 12), 0, 0);
+
+        TextView debugStatus = new TextView(activity);
+        debugStatus.setText(text(activity,
+                "Modalità debug attiva. Il log diagnostico esclude intenzionalmente contenuti delle chat e credenziali.",
+                "Debug mode is active. The diagnostic log intentionally excludes chat contents and credentials."));
+        debugPanel.addView(debugStatus, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        Button shareDebug = new Button(activity);
+        shareDebug.setText(text(activity, "Condividi log di debug", "Share debug log"));
+        debugPanel.addView(shareDebug, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        Button clearDebug = new Button(activity);
+        clearDebug.setText(text(activity, "Cancella log di debug", "Clear debug log"));
+        debugPanel.addView(clearDebug, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        Button disableDebug = new Button(activity);
+        disableDebug.setText(text(activity, "Disattiva modalità debug", "Disable debug mode"));
+        debugPanel.addView(disableDebug, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        content.addView(debugPanel, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        Runnable refreshDebugPanel = () -> debugPanel.setVisibility(
+                DiagnosticLog.isEnabled(activity) ? View.VISIBLE : View.GONE);
+        refreshDebugPanel.run();
+
         automatic.setOnCheckedChangeListener((buttonView, isChecked) ->
                 preferences.edit()
                         .putBoolean(PREF_CHOICE_MADE, true)
                         .putBoolean(PREF_AUTOMATIC, isChecked)
                         .apply());
         checkNow.setOnClickListener(v -> checkForUpdates(activity, true));
+        shareDebug.setOnClickListener(v -> shareDebugLog(activity));
+        clearDebug.setOnClickListener(v -> {
+            DiagnosticLog.clear(activity);
+            Toast.makeText(activity,
+                    text(activity, "Log di debug cancellato", "Debug log cleared"),
+                    Toast.LENGTH_SHORT).show();
+        });
+        disableDebug.setOnClickListener(v -> {
+            DiagnosticLog.setEnabled(activity, false);
+            refreshDebugPanel.run();
+            Toast.makeText(activity,
+                    text(activity, "Modalità debug disattivata", "Debug mode disabled"),
+                    Toast.LENGTH_SHORT).show();
+        });
+
+        final int[] taps = {0};
+        final long[] lastTap = {0L};
+        title.setOnClickListener(v -> {
+            long now = System.currentTimeMillis();
+            if (now - lastTap[0] > DEBUG_TAP_RESET_MS)
+                taps[0] = 0;
+            lastTap[0] = now;
+            taps[0]++;
+            if (taps[0] < DEBUG_TAP_COUNT)
+                return;
+            taps[0] = 0;
+            if (DiagnosticLog.isEnabled(activity)) {
+                Toast.makeText(activity,
+                        text(activity, "Modalità debug già attiva", "Debug mode is already active"),
+                        Toast.LENGTH_SHORT).show();
+                return;
+            }
+            DiagnosticLog.setEnabled(activity, true);
+            refreshDebugPanel.run();
+            Toast.makeText(activity,
+                    text(activity, "Modalità debug attivata", "Debug mode enabled"),
+                    Toast.LENGTH_SHORT).show();
+        });
 
         new AlertDialog.Builder(activity)
-                .setTitle(R.string.about_title)
+                .setCustomTitle(title)
                 .setView(content)
                 .setNeutralButton(R.string.about_revolution_github, (dialog, which) ->
                         activity.startActivity(new Intent(Intent.ACTION_VIEW,
                                 Uri.parse("https://github.com/MCMrARM/revolution-irc"))))
                 .setPositiveButton(android.R.string.ok, null)
                 .show();
+    }
+
+    private static void shareDebugLog(Activity activity) {
+        try {
+            File file = DiagnosticLog.createShareFile(activity);
+            Uri uri = FileProvider.getUriForFile(activity,
+                    activity.getPackageName() + ".fileprovider", file);
+            Intent intent = new Intent(Intent.ACTION_SEND)
+                    .setType("text/plain")
+                    .putExtra(Intent.EXTRA_STREAM, uri)
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            activity.startActivity(Intent.createChooser(intent,
+                    text(activity, "Condividi log di debug", "Share debug log")));
+        } catch (IOException | RuntimeException e) {
+            showMessage(activity,
+                    text(activity, "Log di debug", "Debug log"),
+                    text(activity,
+                            "Non è stato possibile preparare il log per la condivisione.",
+                            "The debug log could not be prepared for sharing."));
+        }
     }
 
     public static void checkForUpdates(Activity activity, boolean manual) {
@@ -238,7 +340,7 @@ public final class UpdateManager {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(
                     connection.getInputStream(), StandardCharsets.UTF_8))) {
                 String line;
-                while ((line = reader.readLine()) != null)
+                while ((line = reader.readLine()) != -1)
                     json.append(line);
             }
 
