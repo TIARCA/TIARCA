@@ -22,14 +22,13 @@ import java.util.Map;
 
 import io.mrarm.chatlib.dto.MessageId;
 import io.mrarm.chatlib.dto.MessageInfo;
+import io.mrarm.chatlib.irc.IRCConnection;
 import io.mrarm.chatlib.message.MessageListener;
 import io.mrarm.irc.job.ServerPingScheduler;
 import io.mrarm.irc.util.DiagnosticLog;
 import io.mrarm.irc.util.WarningHelper;
 
 public class IRCService extends Service implements ServerConnectionManager.ConnectionsListener {
-
-    private static final String TAG = "IRCService";
 
     public static final int IDLE_NOTIFICATION_ID = 100;
     public static final int EXIT_ACTION_ID = 102; // 101 is taken by chat summary
@@ -72,8 +71,10 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
 
     private boolean mCreatedChannel = false;
 
-    private Map<ServerConnectionInfo, MessageListener> messageListeners = new HashMap<>();
-    private Map<ServerConnectionInfo, ServerConnectionInfo.InfoChangeListener> stateListeners =
+    private final Map<ServerConnectionInfo, MessageListener> messageListeners = new HashMap<>();
+    private final Map<ServerConnectionInfo, ServerConnectionInfo.InfoChangeListener> stateListeners =
+            new HashMap<>();
+    private final Map<ServerConnectionInfo, IRCConnection.DisconnectListener> disconnectListeners =
             new HashMap<>();
 
     public static void start(Context context) {
@@ -218,6 +219,19 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
                         ", userDisconnect=" + changed.hasUserDisconnectRequest());
         stateListeners.put(connection, stateListener);
         connection.addOnChannelInfoChangeListener(stateListener);
+
+        if (connection.getApiInstance() instanceof IRCConnection) {
+            IRCConnection ircConnection = (IRCConnection) connection.getApiInstance();
+            IRCConnection.DisconnectListener disconnectListener = (ignored, reason) -> {
+                String reasonClass = reason == null ? "unknown" :
+                        reason.getClass().getSimpleName();
+                DiagnosticLog.w(this, "CONNECTION",
+                        () -> serverId + " transport disconnected reason=" + reasonClass,
+                        reason);
+            };
+            disconnectListeners.put(connection, disconnectListener);
+            ircConnection.addDisconnectListener(disconnectListener);
+        }
         DiagnosticLog.i(this, "CONNECTION", () -> serverId + " added to service");
     }
 
@@ -229,6 +243,9 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
         ServerConnectionInfo.InfoChangeListener stateListener = stateListeners.remove(connection);
         if (stateListener != null)
             connection.removeOnChannelInfoChangeListener(stateListener);
+        IRCConnection.DisconnectListener disconnectListener = disconnectListeners.remove(connection);
+        if (disconnectListener != null && connection.getApiInstance() instanceof IRCConnection)
+            ((IRCConnection) connection.getApiInstance()).removeDisconnectListener(disconnectListener);
         String serverId = DiagnosticLog.pseudonym("server", connection.getUUID().toString());
         DiagnosticLog.i(this, "CONNECTION", () -> serverId + " removed from service");
     }
