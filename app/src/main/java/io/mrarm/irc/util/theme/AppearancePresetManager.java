@@ -39,6 +39,13 @@ public final class AppearancePresetManager {
 
     private final SharedPreferences.OnSharedPreferenceChangeListener preferenceListener =
             (preferences, key) -> {
+                if (MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH.equals(key)) {
+                    // Some legacy code paths still serialize this key. Keep it tombstoned so it
+                    // can no longer become persistent user state while those callers are phased out.
+                    if (preferences.contains(key))
+                        preferences.edit().remove(key).apply();
+                    return;
+                }
                 if (applyingPreset || PREF_APPEARANCE_PRESET.equals(key)
                         || !isPresetVisualPreference(key))
                     return;
