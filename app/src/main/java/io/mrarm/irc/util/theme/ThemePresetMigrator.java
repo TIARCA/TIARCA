@@ -198,11 +198,35 @@ public final class ThemePresetMigrator {
         }
         if (!ChatBackgroundSettings.SCALE_FILL.equals(chat.backgroundScale)
                 && !ChatBackgroundSettings.SCALE_FIT.equals(chat.backgroundScale)
-                && !ChatBackgroundSettings.SCALE_STRETCH.equals(chat.backgroundScale)) {
+                && !ChatBackgroundSettings.SCALE_STRETCH.equals(chat.backgroundScale)
+                && !ChatBackgroundSettings.SCALE_MATRIX.equals(chat.backgroundScale)) {
             chat.backgroundScale = ChatBackgroundSettings.SCALE_FILL;
             changed = true;
         }
+        if (!validFloat(chat.backgroundZoom, ChatBackgroundSettings.DEFAULT_ZOOM,
+                ChatBackgroundSettings.MAX_ZOOM)) {
+            chat.backgroundZoom = ChatBackgroundSettings.DEFAULT_ZOOM;
+            changed = true;
+        }
+        if (!validFloat(chat.backgroundFocusX, 0f, 1f)) {
+            chat.backgroundFocusX = ChatBackgroundSettings.DEFAULT_FOCUS;
+            changed = true;
+        }
+        if (!validFloat(chat.backgroundFocusY, 0f, 1f)) {
+            chat.backgroundFocusY = ChatBackgroundSettings.DEFAULT_FOCUS;
+            changed = true;
+        }
+        if (chat.backgroundOpacity == null || chat.backgroundOpacity < 0
+                || chat.backgroundOpacity > 100) {
+            chat.backgroundOpacity = ChatBackgroundSettings.DEFAULT_OPACITY;
+            changed = true;
+        }
         return changed;
+    }
+
+    private static boolean validFloat(Float value, float min, float max) {
+        return value != null && !Float.isNaN(value) && !Float.isInfinite(value)
+                && value >= min && value <= max;
     }
 
     private static boolean setMessageLayoutDefaults(Context context,
