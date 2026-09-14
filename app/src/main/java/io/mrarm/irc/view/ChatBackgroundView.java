@@ -69,7 +69,8 @@ public class ChatBackgroundView extends AppCompatImageView
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         if (ChatBackgroundSettings.PREF_TYPE.equals(key)
                 || ChatBackgroundSettings.PREF_COLOR.equals(key)
-                || ChatBackgroundSettings.PREF_SCALE.equals(key))
+                || ChatBackgroundSettings.PREF_SCALE.equals(key)
+                || ChatBackgroundSettings.PREF_IMAGE_REVISION.equals(key))
             post(this::refresh);
     }
 
