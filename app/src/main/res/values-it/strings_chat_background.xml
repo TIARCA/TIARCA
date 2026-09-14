@@ -3,6 +3,9 @@
     <string name="pref_title_chat_background">Sfondo</string>
     <string name="chat_background_color">Colore</string>
     <string name="chat_background_choose_image">Scegli immagine</string>
+    <string name="chat_background_adjust_image">Regola immagine</string>
+    <string name="chat_background_editor_hint">Trascina per posizionare · pizzica per zoomare</string>
+    <string name="chat_background_opacity">Opacità</string>
     <string name="chat_background_image_fitting">Adattamento immagine</string>
     <string name="chat_background_theme_color">Colore del tema</string>
     <string name="chat_background_custom_color">Scegli colore</string>
@@ -10,5 +13,5 @@
     <string name="chat_background_scale_fit">Adatta</string>
     <string name="chat_background_scale_stretch">Allunga</string>
     <string name="chat_background_desc_color">Colore · %1$s</string>
-    <string name="chat_background_desc_image">Immagine · %1$s</string>
+    <string name="chat_background_desc_image">Immagine · %1$d%%</string>
 </resources>
