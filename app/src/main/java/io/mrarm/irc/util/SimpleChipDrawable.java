@@ -2,7 +2,6 @@ package io.mrarm.irc.util;
 
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
@@ -42,10 +41,10 @@ public class SimpleChipDrawable extends Drawable {
         int textSize = ta.getDimensionPixelSize(android.R.attr.textSize, 0);
         ta.recycle();
 
-        // Chips are editing controls, not the final chat preview: keep their labels readable in
-        // both light and dark themes. The actual message colours are shown in the preview below.
-        mDefaultTextColor = StyledAttributesHelper.getColor(
-                ctx, android.R.attr.textColorPrimary, Color.BLACK);
+        // Message-format chips are editing controls, not rendered chat content. Use an explicit
+        // day/night resource rather than inheriting a possibly stale theme textColorPrimary.
+        // This keeps labels dark on light surfaces and white on dark/Terminal surfaces.
+        mDefaultTextColor = ContextCompat.getColor(ctx, R.color.messageFormatEditorControlText);
 
         mBackground = ContextCompat.getDrawable(ctx,
                 transparent ? R.drawable.transparent_chip_background : R.drawable.chip_background);
