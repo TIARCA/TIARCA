@@ -195,7 +195,7 @@
                         android:text="@string/appearance_preset_color_blind" />
                 </RadioGroup>
 
-                <ImageView
+                <io.mrarm.irc.view.OnboardingPresetPreviewView
                     android:id="@+id/onboarding_preset_preview"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
