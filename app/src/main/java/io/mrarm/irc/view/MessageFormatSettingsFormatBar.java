@@ -2,9 +2,18 @@ package io.mrarm.irc.view;
 
 import android.content.Context;
 import android.content.DialogInterface;
-import androidx.annotation.Nullable;
-import android.text.style.ForegroundColorSpan;
+import android.graphics.Typeface;
 import android.util.AttributeSet;
+import android.util.TypedValue;
+import android.view.Gravity;
+import android.view.ViewGroup;
+import android.widget.RelativeLayout;
+
+import androidx.annotation.Nullable;
+import androidx.appcompat.widget.AppCompatTextView;
+import androidx.core.content.ContextCompat;
+
+import android.text.style.ForegroundColorSpan;
 
 import io.mrarm.irc.dialog.ColorListPickerDialog;
 import io.mrarm.irc.R;
@@ -14,15 +23,42 @@ import io.mrarm.irc.util.MessageBuilder;
 public class MessageFormatSettingsFormatBar extends TextFormatBar {
 
     public MessageFormatSettingsFormatBar(Context context) {
-        super(context);
+        this(context, null);
     }
 
     public MessageFormatSettingsFormatBar(Context context, @Nullable AttributeSet attrs) {
-        super(context, attrs);
+        this(context, attrs, R.attr.textFormatBarStyle);
     }
 
-    public MessageFormatSettingsFormatBar(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
+    public MessageFormatSettingsFormatBar(Context context, @Nullable AttributeSet attrs,
+                                          int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+        addElementsHint();
+    }
+
+    private void addElementsHint() {
+        RelativeLayout bar = findViewById(R.id.formatting_bar);
+        if (bar == null)
+            return;
+
+        AppCompatTextView hint = new AppCompatTextView(getContext());
+        hint.setText(R.string.message_format_add_elements_hint);
+        hint.setTextColor(ContextCompat.getColor(
+                getContext(), R.color.messageFormatEditorControlText));
+        hint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        hint.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        hint.setGravity(Gravity.CENTER);
+        hint.setTextAlignment(TEXT_ALIGNMENT_CENTER);
+        hint.setMaxLines(2);
+        hint.setIncludeFontPadding(false);
+        int horizontalPadding = Math.round(4 * getResources().getDisplayMetrics().density);
+        hint.setPadding(horizontalPadding, 0, horizontalPadding, 0);
+
+        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        params.addRule(RelativeLayout.START_OF, R.id.format_extra);
+        params.addRule(RelativeLayout.LEFT_OF, R.id.format_extra);
+        bar.addView(hint, params);
     }
 
     @Override
