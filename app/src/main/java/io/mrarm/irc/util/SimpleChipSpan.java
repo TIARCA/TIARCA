@@ -25,7 +25,7 @@ public class SimpleChipSpan extends ImageSpan {
         // This constructor is used by the message-format meta objects. They are interactive editor
         // controls, so keep a clearly visible pill background even when the historical caller asks
         // for the old "transparent" treatment. Literal separators remain plain text beside them.
-        super(new SimpleChipDrawable(context, text, drawable, false));
+        super(new SimpleChipDrawable(context, text, drawable, false, true));
         // Meta chips in the message-format editor use this constructor. Keep those labels neutral
         // and high-contrast: the real sender/timestamp colour and style belongs in the preview,
         // not on the editing controls themselves.

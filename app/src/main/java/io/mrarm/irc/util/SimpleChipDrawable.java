@@ -2,6 +2,7 @@ package io.mrarm.irc.util;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
@@ -25,6 +26,16 @@ public class SimpleChipDrawable extends Drawable {
     private Rect mTempRect = new Rect();
 
     public SimpleChipDrawable(Context ctx, String text, Drawable content, boolean transparent) {
+        this(ctx, text, content, transparent, false);
+    }
+
+    /**
+     * @param editorControl true only for message-format meta chips. Those are editor controls and
+     *                      intentionally use a fixed, high-contrast pill palette independent of
+     *                      chat-message styling or generic ChipsEditText chips elsewhere.
+     */
+    public SimpleChipDrawable(Context ctx, String text, Drawable content, boolean transparent,
+                              boolean editorControl) {
         // The only icon-only meta chip is the message wrap anchor. Render it as an explicit label
         // in the editor so users can understand what it does instead of seeing an unexplained icon.
         if (text == null && content != null) {
@@ -34,20 +45,28 @@ public class SimpleChipDrawable extends Drawable {
             mText = text;
             mContentDrawable = content;
         }
-        StyledAttributesHelper ta = StyledAttributesHelper.obtainStyledAttributes(ctx, new int[] { android.R.attr.textAppearance });
+        StyledAttributesHelper ta = StyledAttributesHelper.obtainStyledAttributes(ctx,
+                new int[] { android.R.attr.textAppearance });
         int resId = ta.getResourceId(android.R.attr.textAppearance, 0);
         ta.recycle();
-        ta = StyledAttributesHelper.obtainStyledAttributes(ctx, resId, new int[] { android.R.attr.textSize, android.R.attr.textColor });
+        ta = StyledAttributesHelper.obtainStyledAttributes(ctx, resId,
+                new int[] { android.R.attr.textSize, android.R.attr.textColor });
         int textSize = ta.getDimensionPixelSize(android.R.attr.textSize, 0);
         ta.recycle();
 
-        // Message-format chips are editing controls, not rendered chat content. Use an explicit
-        // day/night resource rather than inheriting a possibly stale theme textColorPrimary.
-        // This keeps labels dark on light surfaces and white on dark/Terminal surfaces.
-        mDefaultTextColor = ContextCompat.getColor(ctx, R.color.messageFormatEditorControlText);
+        if (editorControl) {
+            mDefaultTextColor = ContextCompat.getColor(
+                    ctx, R.color.messageFormatEditorChipText);
+            mBackground = ContextCompat.getDrawable(
+                    ctx, R.drawable.message_format_editor_chip_background);
+        } else {
+            // Generic chips keep their historical theme-aware colours.
+            mDefaultTextColor = StyledAttributesHelper.getColor(
+                    ctx, android.R.attr.textColorPrimary, Color.BLACK);
+            mBackground = ContextCompat.getDrawable(ctx,
+                    transparent ? R.drawable.transparent_chip_background : R.drawable.chip_background);
+        }
 
-        mBackground = ContextCompat.getDrawable(ctx,
-                transparent ? R.drawable.transparent_chip_background : R.drawable.chip_background);
         mPaint = new Paint();
         mPaint.setAntiAlias(true);
         mPaint.setTextAlign(Paint.Align.CENTER);
@@ -59,7 +78,7 @@ public class SimpleChipDrawable extends Drawable {
     }
 
     public SimpleChipDrawable(Context ctx, String text, boolean transparent) {
-        this(ctx, text, null, transparent);
+        this(ctx, text, null, transparent, false);
     }
 
     public Paint getPaint() {
@@ -91,7 +110,8 @@ public class SimpleChipDrawable extends Drawable {
         Rect bounds = getBounds();
         mBackground.draw(canvas);
         if (mText != null)
-            canvas.drawText(mText, bounds.centerX(), bounds.centerY() - (mPaint.descent() + mPaint.ascent()) / 2, mPaint);
+            canvas.drawText(mText, bounds.centerX(),
+                    bounds.centerY() - (mPaint.descent() + mPaint.ascent()) / 2, mPaint);
         if (mContentDrawable != null) {
             int cw = mContentDrawable.getIntrinsicWidth();
             int ch = mContentDrawable.getIntrinsicHeight();

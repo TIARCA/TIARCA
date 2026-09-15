@@ -54,10 +54,15 @@ public class MessageFormatSettingsFormatBar extends TextFormatBar {
         int horizontalPadding = Math.round(4 * getResources().getDisplayMetrics().density);
         hint.setPadding(horizontalPadding, 0, horizontalPadding, 0);
 
+        // The bar itself is WRAP_CONTENT. A MATCH_PARENT child here creates a circular measure
+        // that can make the whole formatting bar expand to the available viewport when an editor
+        // gains focus (especially while the IME is opening), pushing the chip controls off-screen.
+        // Keep the hint intrinsically sized and center it vertically instead.
         RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT);
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         params.addRule(RelativeLayout.START_OF, R.id.format_extra);
         params.addRule(RelativeLayout.LEFT_OF, R.id.format_extra);
+        params.addRule(RelativeLayout.CENTER_VERTICAL, RelativeLayout.TRUE);
         bar.addView(hint, params);
     }
 

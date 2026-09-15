@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- White chip/hint labels remain readable on dark and Terminal editor surfaces. -->
+    <!-- General editor hint/control text follows dark and Terminal surfaces. -->
     <color name="messageFormatEditorControlText">#FFFFFFFF</color>
+
+    <!-- Keep meta chips readable without inheriting rendered-message colours. -->
+    <color name="messageFormatEditorChipText">#FFFFFFFF</color>
+    <color name="messageFormatEditorChipBackground">#244B73</color>
 </resources>

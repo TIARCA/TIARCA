@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Editor controls need a stable high-contrast label colour independent of message spans. -->
+    <!-- General editor hint/control text follows the light surface. -->
     <color name="messageFormatEditorControlText">#DE000000</color>
+
+    <!-- Message-format meta chips are controls: keep white labels on a deliberately darker pill. -->
+    <color name="messageFormatEditorChipText">#FFFFFFFF</color>
+    <color name="messageFormatEditorChipBackground">#3F51B5</color>
 </resources>
