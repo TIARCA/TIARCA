@@ -5,16 +5,20 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
-import android.text.Editable;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
@@ -23,6 +27,7 @@ import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,15 +36,17 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import io.mrarm.chatlib.dto.ChannelList;
+import io.mrarm.irc.ChannelListActivity;
 import io.mrarm.irc.MainActivity;
 import io.mrarm.irc.NetworkCatalogActivity;
 import io.mrarm.irc.R;
 import io.mrarm.irc.ServerConnectionInfo;
 import io.mrarm.irc.ServerConnectionManager;
+import io.mrarm.irc.TemporaryChannelListConnection;
 import io.mrarm.irc.ThemedActivity;
 import io.mrarm.irc.config.AppSettings;
 import io.mrarm.irc.config.IdentitySettings;
@@ -52,17 +59,20 @@ import io.mrarm.irc.util.theme.AppearancePresetManager;
 import io.mrarm.irc.util.theme.ThemeInfo;
 import io.mrarm.irc.util.theme.ThemeManager;
 import io.mrarm.irc.util.theme.UserPresetStore;
+import io.mrarm.irc.view.ChipsEditText;
 
 /** Four-step first-run wizard. Existing configuration is updated, never wholesale deleted. */
 public class OnboardingActivity extends ThemedActivity {
 
     public static final String EXTRA_MANUAL_RESET = "manual_reset";
 
+    private static final String TAG = "OnboardingActivity";
     private static final int STEP_WELCOME = 0;
     private static final int STEP_IDENTITY = 1;
     private static final int STEP_APPEARANCE = 2;
     private static final int STEP_NETWORK = 3;
     private static final int STEP_COUNT = 4;
+    private static final int PREVIEW_FRAME_COUNT = 6;
 
     private static final String STATE_STEP = "step";
     private static final String STATE_IMPORTED_PRESET = "imported_preset";
@@ -72,6 +82,8 @@ public class OnboardingActivity extends ThemedActivity {
     private static final String STATE_NETWORK_ADDRESSES = "network_addresses";
     private static final String STATE_NETWORK_PORT = "network_port";
     private static final String STATE_NETWORK_TLS = "network_tls";
+    private static final String STATE_SASL_USER_TOUCHED = "sasl_user_touched";
+    private static final String STATE_CHANNELS = "channels";
 
     private int mStep;
     private boolean mManualReset;
@@ -92,6 +104,7 @@ public class OnboardingActivity extends ThemedActivity {
     private EditText mRealname;
     private CheckBox mApplyExisting;
     private RadioGroup mPresetGroup;
+    private ImageView mPresetPreview;
     private TextView mImportedPreset;
     private RadioButton mSimosnap;
     private TextView mSelectedNetwork;
@@ -100,6 +113,7 @@ public class OnboardingActivity extends ThemedActivity {
     private EditText mServerAddress;
     private EditText mServerPort;
     private CheckBox mServerTls;
+    private ChipsEditText mChannels;
     private CheckBox mSaslCheck;
     private LinearLayout mSaslFields;
     private EditText mSaslUser;
@@ -107,8 +121,13 @@ public class OnboardingActivity extends ThemedActivity {
     private Button mBack;
     private Button mNext;
 
+    private Bitmap mPresetPreviewSprite;
+    private TemporaryChannelListConnection mTemporaryChannelListConnection;
+    private AlertDialog mChannelListProgressDialog;
+
     private ActivityResultLauncher<Intent> mPresetLauncher;
     private ActivityResultLauncher<Intent> mNetworkLauncher;
+    private ActivityResultLauncher<Intent> mChannelListPickerLauncher;
 
     public static Intent createIntent(Context context, boolean manualReset) {
         return new Intent(context, OnboardingActivity.class)
@@ -162,6 +181,7 @@ public class OnboardingActivity extends ThemedActivity {
                     mUseOtherNetwork = true;
                     mManualNetwork = manual;
                     mSimosnap.setChecked(false);
+                    clearSelectedChannels();
                     if (manual) {
                         mSelectedNetworkName = null;
                         mSelectedNetworkAddresses = null;
@@ -182,6 +202,15 @@ public class OnboardingActivity extends ThemedActivity {
                         mSelectedNetwork.setVisibility(View.VISIBLE);
                     }
                 });
+        mChannelListPickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(), result -> {
+                    if (result.getResultCode() != Activity.RESULT_OK || result.getData() == null)
+                        return;
+                    ArrayList<String> selected = result.getData().getStringArrayListExtra(
+                            ChannelListActivity.RESULT_SELECTED_CHANNELS);
+                    if (selected != null)
+                        mergeSelectedChannels(selected);
+                });
     }
 
     private void bindViews() {
@@ -197,6 +226,7 @@ public class OnboardingActivity extends ThemedActivity {
         mRealname = findViewById(R.id.onboarding_realname);
         mApplyExisting = findViewById(R.id.onboarding_apply_existing);
         mPresetGroup = findViewById(R.id.onboarding_preset_group);
+        mPresetPreview = findViewById(R.id.onboarding_preset_preview);
         mImportedPreset = findViewById(R.id.onboarding_imported_preset);
         mSimosnap = findViewById(R.id.onboarding_network_simosnap);
         mSelectedNetwork = findViewById(R.id.onboarding_selected_network);
@@ -205,6 +235,7 @@ public class OnboardingActivity extends ThemedActivity {
         mServerAddress = findViewById(R.id.onboarding_server_address);
         mServerPort = findViewById(R.id.onboarding_server_port);
         mServerTls = findViewById(R.id.onboarding_server_tls);
+        mChannels = findViewById(R.id.onboarding_channels);
         mSaslCheck = findViewById(R.id.onboarding_sasl_check);
         mSaslFields = findViewById(R.id.onboarding_sasl_fields);
         mSaslUser = findViewById(R.id.onboarding_sasl_user);
@@ -223,8 +254,13 @@ public class OnboardingActivity extends ThemedActivity {
             showStep();
         });
         mNext.setOnClickListener(view -> {
-            if (mStep == STEP_IDENTITY && !validateNickname())
+            if (mStep == STEP_IDENTITY) {
+                continueWithNickname(() -> {
+                    mStep++;
+                    showStep();
+                });
                 return;
+            }
             if (mStep < STEP_NETWORK) {
                 mStep++;
                 showStep();
@@ -245,24 +281,29 @@ public class OnboardingActivity extends ThemedActivity {
             mManualNetwork = false;
             mSelectedNetwork.setVisibility(View.GONE);
             mManualServerFields.setVisibility(View.GONE);
+            clearSelectedChannels();
         });
         findViewById(R.id.onboarding_choose_other_network).setOnClickListener(view -> {
             Intent intent = new Intent(this, NetworkCatalogActivity.class)
                     .putExtra(NetworkCatalogActivity.ARG_PICK_ONLY, true);
             mNetworkLauncher.launch(intent);
         });
+        findViewById(R.id.onboarding_channel_list).setOnClickListener(
+                view -> startTemporaryChannelList());
 
         mSaslCheck.setOnCheckedChangeListener((button, checked) -> {
             mSaslFields.setVisibility(checked ? View.VISIBLE : View.GONE);
+            if (checked && TextUtils.isEmpty(mSaslUser.getText()))
+                mSaslUserTouched = false;
             if (checked && !mSaslUserTouched)
                 syncSaslUserFromNickname();
         });
         mNickname.addTextChangedListener(new SimpleTextWatcher(text -> {
-            if (mSaslCheck.isChecked() && !mSaslUserTouched)
+            if (!mSaslUserTouched)
                 syncSaslUserFromNickname();
         }));
         mSaslUser.addTextChangedListener(new SimpleTextWatcher(text -> {
-            if (!mSyncingSaslUser)
+            if (!mSyncingSaslUser && mSaslUser.hasFocus())
                 mSaslUserTouched = true;
         }));
     }
@@ -279,6 +320,7 @@ public class OnboardingActivity extends ThemedActivity {
         int checkedId = presetViewId(current);
         if (checkedId != View.NO_ID)
             mPresetGroup.check(checkedId);
+        updatePresetPreview(current);
     }
 
     private void bindPreset(int viewId, AppearancePreset preset) {
@@ -302,7 +344,46 @@ public class OnboardingActivity extends ThemedActivity {
         }
     }
 
+    private int presetPreviewIndex(AppearancePreset preset) {
+        switch (preset) {
+            case GRAPHIC_LIGHT: return 0;
+            case GRAPHIC_DARK: return 1;
+            case IRC_LIGHT: return 2;
+            case IRC_DARK: return 3;
+            case TERMINAL: return 4;
+            case COLOR_BLIND: return 5;
+            default: return -1;
+        }
+    }
+
+    private void updatePresetPreview(AppearancePreset preset) {
+        if (mPresetPreview == null || mImportedPresetName != null) {
+            if (mPresetPreview != null)
+                mPresetPreview.setVisibility(View.GONE);
+            return;
+        }
+        int index = presetPreviewIndex(preset);
+        if (index < 0) {
+            mPresetPreview.setVisibility(View.GONE);
+            return;
+        }
+        if (mPresetPreviewSprite == null)
+            mPresetPreviewSprite = BitmapFactory.decodeResource(
+                    getResources(), R.drawable.onboarding_preset_previews);
+        if (mPresetPreviewSprite == null || mPresetPreviewSprite.getHeight() < PREVIEW_FRAME_COUNT) {
+            mPresetPreview.setVisibility(View.GONE);
+            return;
+        }
+        int frameHeight = mPresetPreviewSprite.getHeight() / PREVIEW_FRAME_COUNT;
+        Bitmap frame = Bitmap.createBitmap(mPresetPreviewSprite, 0, index * frameHeight,
+                mPresetPreviewSprite.getWidth(), frameHeight);
+        mPresetPreview.setImageBitmap(frame);
+        mPresetPreview.setVisibility(View.VISIBLE);
+    }
+
     private void syncSaslUserFromNickname() {
+        if (mSaslUserTouched)
+            return;
         String nick = mNickname.getText().toString().trim();
         if (nick.isEmpty())
             return;
@@ -310,6 +391,26 @@ public class OnboardingActivity extends ThemedActivity {
         mSaslUser.setText(nick);
         mSaslUser.setSelection(mSaslUser.length());
         mSyncingSaslUser = false;
+    }
+
+    private void continueWithNickname(Runnable continuation) {
+        String nick = mNickname.getText().toString().trim();
+        if (!nick.isEmpty()) {
+            continuation.run();
+            return;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.onboarding_nickname_missing_title)
+                .setMessage(R.string.onboarding_nickname_missing_body)
+                .setNegativeButton(R.string.action_cancel, null)
+                .setPositiveButton(R.string.onboarding_continue, (dialog, which) -> {
+                    String generated = IdentitySettings.createAutomaticIdentity();
+                    mNickname.setText(generated);
+                    mNickname.setSelection(mNickname.length());
+                    syncSaslUserFromNickname();
+                    continuation.run();
+                })
+                .show();
     }
 
     private boolean validateNickname() {
@@ -355,6 +456,11 @@ public class OnboardingActivity extends ThemedActivity {
         mStepLabel.setText(getString(R.string.onboarding_step, mStep + 1, STEP_COUNT));
         mBack.setVisibility(mStep == STEP_WELCOME ? View.INVISIBLE : View.VISIBLE);
         mNext.setText(mStep == STEP_NETWORK ? R.string.onboarding_enter : R.string.onboarding_next);
+        if (mStep == STEP_NETWORK && !mSaslUserTouched)
+            syncSaslUserFromNickname();
+        View scroll = findViewById(R.id.onboarding_scroll);
+        if (scroll != null)
+            scroll.post(() -> scroll.scrollTo(0, 0));
     }
 
     private void importPreset(Uri uri) {
@@ -408,11 +514,138 @@ public class OnboardingActivity extends ThemedActivity {
     private void updateImportedPresetLabel() {
         if (mImportedPresetName == null || mImportedPresetName.trim().isEmpty()) {
             mImportedPreset.setVisibility(View.GONE);
+            updatePresetPreview(AppearancePresetManager.getInstance(this).getCurrentPreset());
             return;
         }
         mImportedPreset.setText(getString(R.string.onboarding_imported_preset, mImportedPresetName));
         mImportedPreset.setVisibility(View.VISIBLE);
         mPresetGroup.clearCheck();
+        mPresetPreview.setVisibility(View.GONE);
+    }
+
+    private void startTemporaryChannelList() {
+        if (!validateNickname() || !validateNetwork() || !validateAuth())
+            return;
+        if (mTemporaryChannelListConnection != null)
+            mTemporaryChannelListConnection.cancel();
+
+        ServerConfigData temporary = buildTemporaryServerConfig();
+        if (temporary == null)
+            return;
+
+        ProgressBar progress = new ProgressBar(this);
+        int padding = Math.round(16 * getResources().getDisplayMetrics().density);
+        progress.setPadding(padding, padding, padding, padding);
+        mChannelListProgressDialog = new AlertDialog.Builder(this)
+                .setMessage(R.string.server_channel_list_connecting)
+                .setView(progress)
+                .setNegativeButton(R.string.action_cancel, (dialog, which) -> cancelChannelList())
+                .setOnCancelListener(dialog -> cancelChannelList())
+                .show();
+
+        mTemporaryChannelListConnection = new TemporaryChannelListConnection(this, temporary);
+        mTemporaryChannelListConnection.start(new TemporaryChannelListConnection.Callback() {
+            @Override
+            public void onSuccess(List<ChannelList.Entry> entries) {
+                runOnUiThread(() -> {
+                    mTemporaryChannelListConnection = null;
+                    dismissChannelListProgress();
+                    if (isFinishing() || isDestroyed())
+                        return;
+                    if (entries == null || entries.isEmpty()) {
+                        Toast.makeText(OnboardingActivity.this,
+                                R.string.server_channel_list_empty, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    mChannelListPickerLauncher.launch(
+                            ChannelListActivity.getPickerIntent(OnboardingActivity.this, entries));
+                });
+            }
+
+            @Override
+            public void onError(Exception error) {
+                Log.w(TAG, "Temporary onboarding LIST connection failed", error);
+                runOnUiThread(() -> {
+                    mTemporaryChannelListConnection = null;
+                    dismissChannelListProgress();
+                    if (!isFinishing() && !isDestroyed()) {
+                        Toast.makeText(OnboardingActivity.this,
+                                R.string.server_channel_list_connection_error,
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+        });
+    }
+
+    private ServerConfigData buildTemporaryServerConfig() {
+        SelectedNetwork selection = getSelectedNetwork();
+        if (selection == null)
+            return null;
+        ServerConfigData data = new ServerConfigData();
+        data.uuid = UUID.randomUUID();
+        data.name = selection.name;
+        data.setConnectionAddresses(selection.addresses);
+        data.port = selection.port;
+        data.ssl = selection.tls;
+        data.charset = "UTF-8";
+        data.nicks = Arrays.asList(mNickname.getText().toString().trim());
+        String ident = mIdent.getText().toString().trim();
+        data.user = ident.isEmpty() ? null : ident;
+        String realname = mRealname.getText().toString().trim();
+        data.realname = realname.isEmpty() ? null : realname;
+        if (mSaslCheck.isChecked()) {
+            data.authMode = ServerConfigData.AUTH_SASL;
+            data.authUser = mSaslUser.getText().toString().trim();
+            data.authPass = mSaslPassword.getText().toString();
+        }
+        return data;
+    }
+
+    private void cancelChannelList() {
+        if (mTemporaryChannelListConnection != null)
+            mTemporaryChannelListConnection.cancel();
+        mTemporaryChannelListConnection = null;
+    }
+
+    private void dismissChannelListProgress() {
+        if (mChannelListProgressDialog != null) {
+            mChannelListProgressDialog.dismiss();
+            mChannelListProgressDialog = null;
+        }
+    }
+
+    private void mergeSelectedChannels(List<String> selected) {
+        ArrayList<String> merged = new ArrayList<>();
+        for (String existing : mChannels.getItems())
+            addChannelIfMissing(merged, existing);
+        for (String channel : selected)
+            addChannelIfMissing(merged, channel);
+        mChannels.setItems(merged);
+    }
+
+    private void clearSelectedChannels() {
+        mChannels.setItems(new ArrayList<>());
+    }
+
+    private static void addChannelIfMissing(List<String> channels, String candidate) {
+        if (candidate == null)
+            return;
+        String value = candidate.trim();
+        if (value.isEmpty() || value.equals("#"))
+            return;
+        for (String existing : channels) {
+            if (existing.equalsIgnoreCase(value))
+                return;
+        }
+        channels.add(value);
+    }
+
+    private ArrayList<String> getSelectedChannels() {
+        ArrayList<String> result = new ArrayList<>();
+        for (String channel : mChannels.getItems())
+            addChannelIfMissing(result, channel);
+        return result;
     }
 
     private void commitAndEnter() {
@@ -467,6 +700,7 @@ public class OnboardingActivity extends ThemedActivity {
                 target.authCertPrivKey = null;
                 target.authCertPrivKeyType = null;
             }
+            mergeAutojoinChannels(target, getSelectedChannels());
             configManager.saveServer(target);
         } catch (IOException e) {
             Toast.makeText(this, R.string.server_save_error, Toast.LENGTH_LONG).show();
@@ -507,40 +741,13 @@ public class OnboardingActivity extends ThemedActivity {
     }
 
     private ServerConfigData resolveTargetServer(ServerConfigManager manager) {
-        if (!mUseOtherNetwork) {
-            ServerConfigData simosnap = manager.findServer(OnboardingState.SIMOSNAP_UUID);
-            if (simosnap != null)
-                return simosnap;
-            simosnap = new ServerConfigData();
-            simosnap.uuid = OnboardingState.SIMOSNAP_UUID;
-            simosnap.name = "Simosnap";
-            simosnap.setConnectionAddresses(Arrays.asList("irc.simosnap.org"));
-            simosnap.port = 6697;
-            simosnap.ssl = true;
-            simosnap.charset = "UTF-8";
-            simosnap.rejoinChannels = true;
-            simosnap.hideJoinPartMessages = true;
-            return simosnap;
-        }
+        SelectedNetwork selection = getSelectedNetwork();
+        if (selection == null)
+            return null;
 
-        String name;
-        ArrayList<String> addresses;
-        int port;
-        boolean tls;
-        if (mManualNetwork) {
-            name = mNetworkName.getText().toString().trim();
-            addresses = new ArrayList<>();
-            addresses.add(mServerAddress.getText().toString().trim());
-            port = Integer.parseInt(mServerPort.getText().toString().trim());
-            tls = mServerTls.isChecked();
-        } else {
-            name = mSelectedNetworkName;
-            addresses = mSelectedNetworkAddresses;
-            port = mSelectedNetworkPort;
-            tls = mSelectedNetworkTls;
-        }
-
-        ServerConfigData server = findServerByName(manager.getServers(), name);
+        OnboardingNetworkResolver.Resolution resolution = OnboardingNetworkResolver.resolve(
+                manager.getServers(), selection.name, selection.addresses);
+        ServerConfigData server = resolution.existing;
         if (server == null) {
             server = new ServerConfigData();
             server.uuid = UUID.randomUUID();
@@ -548,21 +755,50 @@ public class OnboardingActivity extends ThemedActivity {
             server.hideJoinPartMessages = true;
             server.charset = "UTF-8";
         }
-        server.name = name;
-        server.setConnectionAddresses(addresses);
-        server.port = port;
-        server.ssl = tls;
+        server.name = resolution.name;
+        server.setConnectionAddresses(selection.addresses);
+        server.port = selection.port;
+        server.ssl = selection.tls;
         return server;
     }
 
-    private static ServerConfigData findServerByName(List<ServerConfigData> servers, String name) {
-        if (name == null)
-            return null;
-        for (ServerConfigData server : servers) {
-            if (server.name != null && server.name.equalsIgnoreCase(name))
-                return server;
+    private SelectedNetwork getSelectedNetwork() {
+        if (!mUseOtherNetwork) {
+            return new SelectedNetwork("Simosnap",
+                    new ArrayList<>(Arrays.asList("irc.simosnap.org")), 6697, true);
         }
-        return null;
+        if (!mManualNetwork) {
+            if (mSelectedNetworkName == null || mSelectedNetworkAddresses == null ||
+                    mSelectedNetworkAddresses.isEmpty())
+                return null;
+            return new SelectedNetwork(mSelectedNetworkName,
+                    new ArrayList<>(mSelectedNetworkAddresses), mSelectedNetworkPort,
+                    mSelectedNetworkTls);
+        }
+        String name = mNetworkName.getText().toString().trim();
+        String address = mServerAddress.getText().toString().trim();
+        int port;
+        try {
+            port = Integer.parseInt(mServerPort.getText().toString().trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+        ArrayList<String> addresses = new ArrayList<>();
+        addresses.add(address);
+        return new SelectedNetwork(name, addresses, port, mServerTls.isChecked());
+    }
+
+    private static void mergeAutojoinChannels(ServerConfigData target, List<String> selected) {
+        if (selected == null || selected.isEmpty())
+            return;
+        ArrayList<String> merged = new ArrayList<>();
+        if (target.autojoinChannels != null) {
+            for (String channel : target.autojoinChannels)
+                addChannelIfMissing(merged, channel);
+        }
+        for (String channel : selected)
+            addChannelIfMissing(merged, channel);
+        target.autojoinChannels = merged;
     }
 
     private static void applyIdentity(ServerConfigData server, String nick, String ident,
@@ -583,6 +819,8 @@ public class OnboardingActivity extends ThemedActivity {
         outState.putStringArrayList(STATE_NETWORK_ADDRESSES, mSelectedNetworkAddresses);
         outState.putInt(STATE_NETWORK_PORT, mSelectedNetworkPort);
         outState.putBoolean(STATE_NETWORK_TLS, mSelectedNetworkTls);
+        outState.putBoolean(STATE_SASL_USER_TOUCHED, mSaslUserTouched);
+        outState.putStringArrayList(STATE_CHANNELS, getSelectedChannels());
     }
 
     private void restoreState(Bundle state) {
@@ -594,6 +832,10 @@ public class OnboardingActivity extends ThemedActivity {
         mSelectedNetworkAddresses = state.getStringArrayList(STATE_NETWORK_ADDRESSES);
         mSelectedNetworkPort = state.getInt(STATE_NETWORK_PORT, 6697);
         mSelectedNetworkTls = state.getBoolean(STATE_NETWORK_TLS, true);
+        mSaslUserTouched = state.getBoolean(STATE_SASL_USER_TOUCHED, false);
+        ArrayList<String> channels = state.getStringArrayList(STATE_CHANNELS);
+        if (channels != null)
+            mChannels.setItems(channels);
         mSimosnap.setChecked(!mUseOtherNetwork);
         mManualServerFields.setVisibility(mUseOtherNetwork && mManualNetwork
                 ? View.VISIBLE : View.GONE);
@@ -602,6 +844,27 @@ public class OnboardingActivity extends ThemedActivity {
                     ? getString(R.string.onboarding_manual_network)
                     : getString(R.string.onboarding_selected_network, mSelectedNetworkName));
             mSelectedNetwork.setVisibility(View.VISIBLE);
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        cancelChannelList();
+        dismissChannelListProgress();
+        super.onDestroy();
+    }
+
+    private static final class SelectedNetwork {
+        final String name;
+        final ArrayList<String> addresses;
+        final int port;
+        final boolean tls;
+
+        SelectedNetwork(String name, ArrayList<String> addresses, int port, boolean tls) {
+            this.name = name;
+            this.addresses = addresses;
+            this.port = port;
+            this.tls = tls;
         }
     }
 }

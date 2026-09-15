@@ -9,12 +9,16 @@
     <string name="onboarding_ident">Ident (optional)</string>
     <string name="onboarding_realname">Real name (optional)</string>
     <string name="onboarding_apply_existing">Apply this identity to already configured networks</string>
+    <string name="onboarding_nickname_missing_title">No nickname entered</string>
+    <string name="onboarding_nickname_missing_body">You did not enter a nickname. If you continue, TIARCA will assign a random nickname to you.</string>
+    <string name="onboarding_continue">Continue</string>
     <string name="onboarding_appearance_title">Choose your style</string>
     <string name="onboarding_appearance_body">Choose TIARCA\'s initial appearance. Advanced options for colours, fonts, background, message format and more are available later in Settings → Interface.</string>
+    <string name="onboarding_preset_preview_description">Preview of the selected TIARCA style</string>
     <string name="onboarding_import_preset">Import a preset</string>
     <string name="onboarding_imported_preset">Imported preset: %1$s</string>
     <string name="onboarding_network_title">Choose an IRC network</string>
-    <string name="onboarding_network_body">Use Simosnap, already configured, or choose another IRC network from TIARCA\'s offline catalogue. You can also enter a server manually.</string>
+    <string name="onboarding_network_body">Use Simosnap, already configured, or choose another IRC network from TIARCA\'s offline catalogue. You can also enter a server manually and browse its channel list before saving.</string>
     <string name="onboarding_network_simosnap">Simosnap</string>
     <string name="onboarding_network_simosnap_summary">irc.simosnap.org · TLS · 6697</string>
     <string name="onboarding_choose_other_network">Choose another server</string>

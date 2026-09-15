@@ -1,13 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<io.mrarm.irc.view.ImeInsetRelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:id="@+id/onboarding_nav_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:orientation="vertical">
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="?android:attr/listDivider" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="end|center_vertical"
+            android:orientation="horizontal"
+            android:padding="12dp">
+
+            <Button
+                android:id="@+id/onboarding_back"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/onboarding_back" />
+
+            <Button
+                android:id="@+id/onboarding_next"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="@string/onboarding_next" />
+        </LinearLayout>
+    </LinearLayout>
 
     <ScrollView
+        android:id="@+id/onboarding_scroll"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="match_parent"
+        android:layout_above="@id/onboarding_nav_bar"
         android:fillViewport="true">
 
         <LinearLayout
@@ -20,8 +54,8 @@
                 android:id="@+id/onboarding_step_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textAppearance="?android:attr/textAppearanceSmall"
-                android:layout_marginBottom="8dp" />
+                android:layout_marginBottom="8dp"
+                android:textAppearance="?android:attr/textAppearanceSmall" />
 
             <LinearLayout
                 android:id="@+id/onboarding_step_welcome"
@@ -161,6 +195,15 @@
                         android:text="@string/appearance_preset_color_blind" />
                 </RadioGroup>
 
+                <ImageView
+                    android:id="@+id/onboarding_preset_preview"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:adjustViewBounds="true"
+                    android:contentDescription="@string/onboarding_preset_preview_description"
+                    android:scaleType="fitCenter" />
+
                 <Button
                     android:id="@+id/onboarding_import_preset"
                     android:layout_width="wrap_content"
@@ -263,6 +306,32 @@
                         android:text="@string/onboarding_server_tls" />
                 </LinearLayout>
 
+                <LinearLayout
+                    android:id="@+id/onboarding_channels_section"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/server_join_channels"
+                        android:textStyle="bold" />
+
+                    <io.mrarm.irc.view.ChipsEditText
+                        android:id="@+id/onboarding_channels"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
+
+                    <Button
+                        android:id="@+id/onboarding_channel_list"
+                        style="@style/Widget.AppCompat.Button.Borderless.Colored"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/server_channel_list" />
+                </LinearLayout>
+
                 <CheckBox
                     android:id="@+id/onboarding_sasl_check"
                     android:layout_width="match_parent"
@@ -302,29 +371,4 @@
         </LinearLayout>
     </ScrollView>
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="?android:attr/listDivider" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="end|center_vertical"
-        android:orientation="horizontal"
-        android:padding="12dp">
-
-        <Button
-            android:id="@+id/onboarding_back"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/onboarding_back" />
-
-        <Button
-            android:id="@+id/onboarding_next"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="@string/onboarding_next" />
-    </LinearLayout>
-</LinearLayout>
+</io.mrarm.irc.view.ImeInsetRelativeLayout>

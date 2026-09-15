@@ -29,7 +29,7 @@ public class OnboardingStructureTest {
     }
 
     @Test
-    public void wizardShowsAllBuiltInStylesAndImport() throws IOException {
+    public void wizardShowsAllBuiltInStylesImportAndPreview() throws IOException {
         String xml = read("src/main/res/layout/activity_onboarding.xml");
         assertTrue(xml.contains("onboarding_preset_graphic_light"));
         assertTrue(xml.contains("onboarding_preset_graphic_dark"));
@@ -38,6 +38,11 @@ public class OnboardingStructureTest {
         assertTrue(xml.contains("onboarding_preset_terminal"));
         assertTrue(xml.contains("onboarding_preset_color_blind"));
         assertTrue(xml.contains("onboarding_import_preset"));
+        assertTrue(xml.contains("onboarding_preset_preview"));
+
+        Path preview = path("src/main/res/drawable-nodpi/onboarding_preset_previews.webp");
+        assertTrue("Real-device preset preview sprite must be packaged", Files.exists(preview));
+        assertTrue("Preview sprite must not be empty", Files.size(preview) > 1000);
     }
 
     @Test
@@ -48,6 +53,15 @@ public class OnboardingStructureTest {
         assertTrue(xml.contains("onboarding_sasl_user"));
         assertTrue(xml.contains("onboarding_sasl_password"));
         assertTrue(xml.contains("onboarding_apply_existing"));
+    }
+
+    @Test
+    public void navigationStaysInImeAwareBottomBar() throws IOException {
+        String xml = read("src/main/res/layout/activity_onboarding.xml");
+        assertTrue(xml.contains("ImeInsetRelativeLayout"));
+        assertTrue(xml.contains("onboarding_nav_bar"));
+        assertTrue(xml.contains("android:layout_alignParentBottom=\"true\""));
+        assertTrue(xml.contains("android:layout_above=\"@id/onboarding_nav_bar\""));
     }
 
     @Test
@@ -64,7 +78,38 @@ public class OnboardingStructureTest {
         String java = read("src/main/java/io/mrarm/irc/onboarding/OnboardingActivity.java");
         assertTrue(java.contains("mSaslUserTouched"));
         assertTrue(java.contains("syncSaslUserFromNickname"));
-        assertTrue(java.contains("if (!mSyncingSaslUser)"));
+        assertTrue(java.contains("mSaslUser.hasFocus()"));
+        assertTrue(java.contains("TextUtils.isEmpty(mSaslUser.getText())"));
+    }
+
+    @Test
+    public void emptyNicknameOffersAutomaticTiarcaIdentity() throws IOException {
+        String java = read("src/main/java/io/mrarm/irc/onboarding/OnboardingActivity.java");
+        String identity = read("src/main/java/io/mrarm/irc/config/IdentitySettings.java");
+        assertTrue(java.contains("onboarding_nickname_missing_body"));
+        assertTrue(java.contains("IdentitySettings.createAutomaticIdentity()"));
+        assertTrue(identity.contains("TIARCA%04d"));
+        assertTrue(identity.contains("nextInt(10000)"));
+    }
+
+    @Test
+    public void onboardingReusesExistingChannelListWorkflow() throws IOException {
+        String xml = read("src/main/res/layout/activity_onboarding.xml");
+        String java = read("src/main/java/io/mrarm/irc/onboarding/OnboardingActivity.java");
+        assertTrue(xml.contains("onboarding_channel_list"));
+        assertTrue(xml.contains("onboarding_channels"));
+        assertTrue(java.contains("TemporaryChannelListConnection"));
+        assertTrue(java.contains("ChannelListActivity.getPickerIntent"));
+        assertTrue(java.contains("RESULT_SELECTED_CHANNELS"));
+    }
+
+    @Test
+    public void serviceMessageRoutingIsNullPrefixSafe() throws IOException {
+        String java = read("src/main/java/io/mrarm/irc/irc/ServiceMessageCommandHandler.java");
+        assertTrue(java.contains("String user = prefix == null ? null : prefix.getUser()"));
+        assertTrue(java.contains("String host = prefix == null ? null : prefix.getHost()"));
+        assertTrue(java.contains("if (prefix != null && direct && !ctcp"));
+        assertFalse(java.contains("connection.isTrustedService(nick, prefix.getUser(), prefix.getHost())"));
     }
 
     @Test
@@ -85,10 +130,14 @@ public class OnboardingStructureTest {
         assertTrue(state.contains("SIMOSNAP_UUID"));
     }
 
-    private static String read(String relative) throws IOException {
+    private static Path path(String relative) {
         Path path = Paths.get(relative);
         if (!Files.exists(path))
             path = Paths.get("app").resolve(relative);
-        return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+        return path;
+    }
+
+    private static String read(String relative) throws IOException {
+        return new String(Files.readAllBytes(path(relative)), StandardCharsets.UTF_8);
     }
 }
