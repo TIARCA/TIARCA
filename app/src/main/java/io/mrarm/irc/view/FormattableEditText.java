@@ -4,13 +4,19 @@ import android.content.Context;
 import android.graphics.Rect;
 import androidx.appcompat.widget.AppCompatEditText;
 import android.text.Editable;
+import android.text.Layout;
 import android.text.NoCopySpan;
 import android.text.Spanned;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
+import android.view.View;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import io.mrarm.irc.R;
+import io.mrarm.irc.util.MessageBuilder;
 
 public class FormattableEditText extends AppCompatEditText {
 
@@ -98,6 +104,97 @@ public class FormattableEditText extends AppCompatEditText {
                 mSettingText = false;
             }
         });
+    }
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        int presetButtonId = getLegacyPresetButtonId(getId());
+        if (presetButtonId == 0)
+            return;
+        View presetButton = getRootView().findViewById(presetButtonId);
+        if (presetButton != null)
+            presetButton.setVisibility(View.GONE);
+        // These editors no longer reserve trailing space for the removed whole-format preset arrow.
+        setPaddingRelative(getPaddingStart(), getPaddingTop(), 0, getPaddingBottom());
+    }
+
+    static int getLegacyPresetButtonId(int editTextId) {
+        if (editTextId == R.id.message_format_normal)
+            return R.id.message_format_normal_preset;
+        if (editTextId == R.id.message_format_normal_mention)
+            return R.id.message_format_normal_mention_preset;
+        if (editTextId == R.id.message_format_action)
+            return R.id.message_format_action_preset;
+        if (editTextId == R.id.message_format_action_mention)
+            return R.id.message_format_action_mention_preset;
+        if (editTextId == R.id.message_format_notice)
+            return R.id.message_format_notice_preset;
+        if (editTextId == R.id.message_format_event)
+            return R.id.message_format_event_preset;
+        return 0;
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        boolean handled = super.onTouchEvent(event);
+        if (event.getActionMasked() != MotionEvent.ACTION_UP)
+            return handled;
+
+        Layout layout = getLayout();
+        Editable text = getText();
+        if (layout == null || text == null || text.length() == 0)
+            return handled;
+
+        float x = event.getX() - getTotalPaddingLeft() + getScrollX();
+        int y = Math.round(event.getY() - getTotalPaddingTop() + getScrollY());
+        if (x < 0 || y < 0)
+            return handled;
+
+        int line = layout.getLineForVertical(y);
+        MessageBuilder.MetaChipSpan chip = findMetaChipAtPosition(layout, text, line, x);
+        if (chip == null)
+            return handled;
+
+        int start = text.getSpanStart(chip);
+        int end = text.getSpanEnd(chip);
+        if (start < 0 || end <= start)
+            return handled;
+
+        requestFocus();
+        setSelection(start, end);
+        return true;
+    }
+
+    static MessageBuilder.MetaChipSpan findMetaChipAtOffset(Spanned text, int offset) {
+        if (text == null || text.length() == 0)
+            return null;
+        int safeOffset = Math.max(0, Math.min(offset, text.length() - 1));
+        for (MessageBuilder.MetaChipSpan chip : text.getSpans(0, text.length(),
+                MessageBuilder.MetaChipSpan.class)) {
+            int start = text.getSpanStart(chip);
+            int end = text.getSpanEnd(chip);
+            if (start >= 0 && end > start && safeOffset >= start && safeOffset < end)
+                return chip;
+        }
+        return null;
+    }
+
+    private static MessageBuilder.MetaChipSpan findMetaChipAtPosition(Layout layout, Spanned text,
+                                                                       int line, float x) {
+        for (MessageBuilder.MetaChipSpan chip : text.getSpans(0, text.length(),
+                MessageBuilder.MetaChipSpan.class)) {
+            int start = text.getSpanStart(chip);
+            int end = text.getSpanEnd(chip);
+            if (start < 0 || end <= start || layout.getLineForOffset(start) != line)
+                continue;
+            float left = layout.getPrimaryHorizontal(start);
+            float right = layout.getPrimaryHorizontal(end);
+            if (x >= Math.min(left, right) && x <= Math.max(left, right))
+                return chip;
+        }
+        int offset = layout.getOffsetForHorizontal(line, x);
+        return findMetaChipAtOffset(text, offset);
     }
 
     @Override
