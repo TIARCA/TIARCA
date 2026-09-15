@@ -185,17 +185,18 @@ public final class AppearancePresetManager {
                 ? FONT_ATKINSON_HYPERLEGIBLE_NEXT : "default";
         int fontSize = colorBlind ? 16 : graphic ? 14 : terminal ? 10 : 12;
         boolean avatars = graphic || colorBlind;
-        boolean monochrome = terminal || colorBlind;
+        boolean botMonochrome = terminal || colorBlind;
+        boolean eventMonochrome = terminal || graphic;
 
         preferences.edit()
                 .putString(ChatSettings.PREF_FONT, font)
                 .putInt(ChatSettings.PREF_FONT_SIZE, fontSize)
                 .putString(ChatSettings.PREF_APPBAR_COMPACT_MODE, "auto")
-                .putBoolean(AutomatedSenderSettings.PREF_MONOCHROME_BOTS, monochrome)
-                .putBoolean(EventDisplaySettings.PREF_MONOCHROME_MODE, monochrome)
-                .putBoolean(EventDisplaySettings.PREF_MONOCHROME_KICK, monochrome)
-                .putBoolean(EventDisplaySettings.PREF_MONOCHROME_QUIT, monochrome)
-                .putBoolean(EventDisplaySettings.PREF_MONOCHROME_JOIN_PART, monochrome)
+                .putBoolean(AutomatedSenderSettings.PREF_MONOCHROME_BOTS, botMonochrome)
+                .putBoolean(EventDisplaySettings.PREF_MONOCHROME_MODE, eventMonochrome)
+                .putBoolean(EventDisplaySettings.PREF_MONOCHROME_KICK, eventMonochrome)
+                .putBoolean(EventDisplaySettings.PREF_MONOCHROME_QUIT, eventMonochrome)
+                .putBoolean(EventDisplaySettings.PREF_MONOCHROME_JOIN_PART, eventMonochrome)
                 .putBoolean(MessageFormatSettings.PREF_MESSAGE_AVATARS, avatars)
                 .putBoolean(MessageFormatSettings.PREF_MESSAGE_CUSTOM_AVATARS, avatars)
                 .putBoolean(RightClockSettings.PREF_MESSAGE_TIME_RIGHT, graphic)
