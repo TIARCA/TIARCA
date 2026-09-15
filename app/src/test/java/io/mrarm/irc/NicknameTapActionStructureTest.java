@@ -45,6 +45,17 @@ public class NicknameTapActionStructureTest {
         assertTrue(adapter.contains("openDirectConversationForSharing"));
     }
 
+    @Test
+    public void avatarTapAndNicknameLongPressKeepExistingBehavior() throws IOException {
+        String adapter = read(
+                "app/src/main/java/io/mrarm/irc/chat/ChatMessagesAdapter.java",
+                "src/main/java/io/mrarm/irc/chat/ChatMessagesAdapter.java");
+        assertTrue(adapter.contains("mAvatar.setOnClickListener"));
+        assertTrue(adapter.contains("showUserDetails(view, (String) tag)"));
+        assertTrue(adapter.contains("public boolean onLongClick(@NonNull View widget)"));
+        assertTrue(adapter.contains("NicknameContextMenu.show(widget.getContext()"));
+    }
+
     private static String read(String rootPath, String modulePath) throws IOException {
         Path path = Paths.get(rootPath);
         if (!Files.exists(path))
