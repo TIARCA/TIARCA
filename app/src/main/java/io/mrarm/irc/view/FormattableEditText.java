@@ -10,10 +10,12 @@ import android.text.Spanned;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
+import android.view.View;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import io.mrarm.irc.R;
 import io.mrarm.irc.util.MessageBuilder;
 
 public class FormattableEditText extends AppCompatEditText {
@@ -102,6 +104,35 @@ public class FormattableEditText extends AppCompatEditText {
                 mSettingText = false;
             }
         });
+    }
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        int presetButtonId = getLegacyPresetButtonId(getId());
+        if (presetButtonId == 0)
+            return;
+        View presetButton = getRootView().findViewById(presetButtonId);
+        if (presetButton != null)
+            presetButton.setVisibility(View.GONE);
+        // These editors no longer reserve trailing space for the removed whole-format preset arrow.
+        setPaddingRelative(getPaddingStart(), getPaddingTop(), 0, getPaddingBottom());
+    }
+
+    static int getLegacyPresetButtonId(int editTextId) {
+        if (editTextId == R.id.message_format_normal)
+            return R.id.message_format_normal_preset;
+        if (editTextId == R.id.message_format_normal_mention)
+            return R.id.message_format_normal_mention_preset;
+        if (editTextId == R.id.message_format_action)
+            return R.id.message_format_action_preset;
+        if (editTextId == R.id.message_format_action_mention)
+            return R.id.message_format_action_mention_preset;
+        if (editTextId == R.id.message_format_notice)
+            return R.id.message_format_notice_preset;
+        if (editTextId == R.id.message_format_event)
+            return R.id.message_format_event_preset;
+        return 0;
     }
 
     @Override
