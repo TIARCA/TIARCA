@@ -2,6 +2,8 @@ package io.mrarm.irc.util.theme;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.graphics.Typeface;
 import android.text.SpannableString;
 import android.text.Spanned;
@@ -54,11 +56,25 @@ public final class AppearancePresetManager {
             };
 
     AppearancePresetManager(Context context) {
+        this(context, isFreshInstall(context));
+    }
+
+    AppearancePresetManager(Context context, boolean freshInstall) {
         this.context = context.getApplicationContext();
         preferences = DefaultPreferences.get(this.context);
         migrateLegacyFixedWidthPreference();
-        initializeStoredPreset();
+        initializeStoredPreset(freshInstall);
         preferences.registerOnSharedPreferenceChangeListener(preferenceListener);
+    }
+
+    private static boolean isFreshInstall(Context context) {
+        try {
+            PackageInfo packageInfo = context.getPackageManager()
+                    .getPackageInfo(context.getPackageName(), 0);
+            return packageInfo.firstInstallTime == packageInfo.lastUpdateTime;
+        } catch (PackageManager.NameNotFoundException e) {
+            return false;
+        }
     }
 
     private void migrateLegacyFixedWidthPreference() {
@@ -66,9 +82,13 @@ public final class AppearancePresetManager {
             preferences.edit().remove(MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH).apply();
     }
 
-    private void initializeStoredPreset() {
+    private void initializeStoredPreset(boolean freshInstall) {
         if (preferences.contains(PREF_APPEARANCE_PRESET))
             return;
+        if (freshInstall) {
+            applyPreset(AppearancePreset.GRAPHIC_LIGHT);
+            return;
+        }
         AppearancePreset initial = detectUnmodifiedHistoricalDefault();
         preferences.edit().putString(PREF_APPEARANCE_PRESET, initial.getId()).apply();
     }
