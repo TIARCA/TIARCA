@@ -46,12 +46,56 @@ public class AppearancePresetManagerTest {
         SettingsHelper.getInstance(context);
         preferences = DefaultPreferences.get(context);
         preferences.edit().clear().commit();
-        manager = new AppearancePresetManager(context);
+        manager = new AppearancePresetManager(context, false);
     }
 
     @After
     public void tearDown() {
         manager.closeForTests();
+    }
+
+    @Test
+    public void freshInstallDefaultsToGraphicLight() {
+        manager.closeForTests();
+        preferences.edit().clear().commit();
+
+        manager = new AppearancePresetManager(context, true);
+
+        assertEquals(AppearancePreset.GRAPHIC_LIGHT, manager.getCurrentPreset());
+        assertEquals("default", preferences.getString(AppSettings.PREF_THEME, null));
+        assertEquals("default", preferences.getString(ChatSettings.PREF_FONT, null));
+        assertEquals(14, preferences.getInt(ChatSettings.PREF_FONT_SIZE, -1));
+        assertTrue(preferences.getBoolean(MessageFormatSettings.PREF_MESSAGE_AVATARS, false));
+        assertTrue(preferences.getBoolean(MessageFormatSettings.PREF_MESSAGE_CUSTOM_AVATARS, false));
+        assertTrue(preferences.getBoolean(RightClockSettings.PREF_MESSAGE_TIME_RIGHT, false));
+    }
+
+    @Test
+    public void storedPresetIsNotOverwrittenOnFreshInstallCheck() {
+        manager.closeForTests();
+        preferences.edit().clear()
+                .putString(AppearancePresetManager.PREF_APPEARANCE_PRESET,
+                        AppearancePreset.IRC_DARK.getId())
+                .putString(AppSettings.PREF_THEME, "default_dark")
+                .commit();
+
+        manager = new AppearancePresetManager(context, true);
+
+        assertEquals(AppearancePreset.IRC_DARK, manager.getCurrentPreset());
+        assertEquals("default_dark", preferences.getString(AppSettings.PREF_THEME, null));
+    }
+
+    @Test
+    public void upgradeWithoutPresetKeepsHistoricalDefaultDetection() {
+        manager.closeForTests();
+        preferences.edit().clear()
+                .putString(AppSettings.PREF_THEME, "default_dark")
+                .commit();
+
+        manager = new AppearancePresetManager(context, false);
+
+        assertEquals(AppearancePreset.IRC_DARK, manager.getCurrentPreset());
+        assertFalse(preferences.contains(MessageFormatSettings.PREF_MESSAGE_AVATARS));
     }
 
     @Test
@@ -185,7 +229,7 @@ public class AppearancePresetManagerTest {
                 .putBoolean(MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH, false)
                 .commit();
 
-        manager = new AppearancePresetManager(context);
+        manager = new AppearancePresetManager(context, false);
         assertFalse(preferences.contains(MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH));
 
         preferences.edit()
