@@ -409,7 +409,11 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         private void handleNicknameTap(View source, String nick) {
             String action = ChatSettings.getNickTapAction();
             if ("insert_nick".equals(action)) {
-                mFragment.getSendMessageHelper().insertNicknameAsTabCompletion(nick);
+                if (mFragment.getParentFragment() instanceof ChatFragment) {
+                    ChatFragment parent = (ChatFragment) mFragment.getParentFragment();
+                    if (parent.getSendMessageHelper() != null)
+                        parent.getSendMessageHelper().insertNicknameAsTabCompletion(nick);
+                }
                 return;
             }
             if ("private".equals(action)) {
