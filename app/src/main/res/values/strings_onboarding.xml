@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_title">Initial setup</string>
+    <string name="onboarding_welcome_title">Welcome to TIARCA</string>
+    <string name="onboarding_welcome_body">In a few steps we will set your IRC identity, appearance and first network. You can change these choices later in Settings.</string>
+    <string name="onboarding_identity_title">Your IRC identity</string>
+    <string name="onboarding_identity_body">Your nickname is the name other people will see. Advanced users can also set ident and real name now; all of these values remain editable later.</string>
+    <string name="onboarding_nickname">Nickname</string>
+    <string name="onboarding_ident">Ident (optional)</string>
+    <string name="onboarding_realname">Real name (optional)</string>
+    <string name="onboarding_apply_existing">Apply this identity to already configured networks</string>
+    <string name="onboarding_appearance_title">Choose your style</string>
+    <string name="onboarding_appearance_body">Choose TIARCA's initial appearance. Advanced options for colours, fonts, background, message format and more are available later in Settings → Interface.</string>
+    <string name="onboarding_import_preset">Import a preset</string>
+    <string name="onboarding_imported_preset">Imported preset: %1$s</string>
+    <string name="onboarding_network_title">Choose an IRC network</string>
+    <string name="onboarding_network_body">Use Simosnap, already configured, or choose another IRC network from TIARCA's offline catalogue. You can also enter a server manually.</string>
+    <string name="onboarding_network_simosnap">Simosnap</string>
+    <string name="onboarding_network_simosnap_summary">irc.simosnap.org · TLS · 6697</string>
+    <string name="onboarding_choose_other_network">Choose another server</string>
+    <string name="onboarding_selected_network">Selected network: %1$s</string>
+    <string name="onboarding_manual_network">Manual server</string>
+    <string name="onboarding_network_name">Network name</string>
+    <string name="onboarding_server_address">Server address</string>
+    <string name="onboarding_server_port">Port</string>
+    <string name="onboarding_server_tls">Use TLS/SSL</string>
+    <string name="onboarding_authenticate">I need to authenticate to this server</string>
+    <string name="onboarding_sasl_user">SASL user/account</string>
+    <string name="onboarding_sasl_password">SASL password</string>
+    <string name="onboarding_auth_hint">The SASL user is initially copied from your nickname and stays editable. Other authentication methods remain available in the server settings.</string>
+    <string name="onboarding_back">Back</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_enter">Enter TIARCA</string>
+    <string name="onboarding_step">Step %1$d of %2$d</string>
+    <string name="onboarding_error_nickname">Enter a nickname to continue.</string>
+    <string name="onboarding_error_server">Enter a network name, server address and valid port.</string>
+    <string name="onboarding_error_auth">Enter both SASL user and password.</string>
+    <string name="onboarding_settings_title">Initial setup</string>
+    <string name="onboarding_settings_summary">Run the guided setup again</string>
+    <string name="onboarding_reset_confirm_title">Restart initial setup?</string>
+    <string name="onboarding_reset_confirm_body">Do you want to overwrite the current setup and configure TIARCA again? Existing servers will not be deleted; settings changed by the wizard will be updated.</string>
+    <string name="onboarding_reset_confirm_action">Restart setup</string>
+    <string name="onboarding_import_error">The selected preset could not be imported.</string>
+</resources>
