@@ -238,7 +238,8 @@ public final class AppearancePresetManager {
         builder.setNoticeMessageFormat(notice);
         builder.setEventMessageFormat(MessageFormatSettingsActivity
                 .buildEventPresetMessageFormat(context, graphic || colorBlind ? 1 : 0));
-        builder.setEventMessageShowHostname(false);
+        // Terminal is intentionally verbose: include the user's host by default in channel events.
+        builder.setEventMessageShowHostname(terminal);
         builder.setMessageTimeFormat(colorBlind ? "HH:mm" : terminal ? "[HH:mm:ss]"
                 : graphic ? "HH:mm" : "[HH:mm.ss]");
         builder.setMessageAvatars(graphic || colorBlind);
