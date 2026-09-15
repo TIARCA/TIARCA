@@ -1,0 +1,167 @@
+name: Prepare TIARCA 0.9.9
+
+on:
+  push:
+    branches:
+      - release/0.9.9
+    paths:
+      - .github/workflows/prepare-0.9.9.yml
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release branch
+        uses: actions/checkout@v5
+        with:
+          ref: release/0.9.9
+          fetch-depth: 0
+
+      - name: Prepare version, changelog, home and documentation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          version = "0.9.9"
+          version_code = "90900"
+
+          build = Path("app/build.gradle")
+          text = build.read_text(encoding="utf-8")
+          text, c1 = re.subn(r'versionCode\s+90800', f'versionCode {version_code}', text, count=1)
+          text, c2 = re.subn(r'versionName\s+"0\.9\.8"', f'versionName "{version}"', text, count=1)
+          if c1 != 1 or c2 != 1:
+              raise SystemExit("Unexpected current version in app/build.gradle")
+          build.write_text(text, encoding="utf-8")
+
+          changelog = Path("CHANGELOG.md")
+          text = changelog.read_text(encoding="utf-8")
+          if "## v0.9.9" in text:
+              raise SystemExit("v0.9.9 already exists in CHANGELOG.md")
+          notes = '''## v0.9.9
+
+          - Introdotti sei **preset grafici completi** (Grafico chiaro/scuro, IRC chiaro/scuro, Terminale e Daltonismo) che applicano in modo coerente tema, palette, font, dimensioni, avatar, timestamp e formato dei messaggi; le modifiche manuali alle opzioni gestite fanno passare il preset a **Personalizzato**. I nuovi installati partono da Grafico chiaro.
+          - Aggiunto l'opt-in **Usa questo font in tutta l'app** e rifiniti i preset: nickname in grassetto, Daltonismo più leggibile senza corsivo eventi, Terminale più compatto, hostname eventi attivo nel Terminale e valori monocromatici corretti per Grafico/Terminale/Daltonismo.
+          - Evoluti i preset portatili `.ircpreset` fino allo **schema v5** con migrazioni deterministiche, supporto multi-asset, font personalizzati e sfondi; restano importabili i precedenti `.irctheme`. I preset importati vengono memorizzati, applicati subito e possono essere rinominati o eliminati.
+          - Aggiunti **sfondi chat portatili** con editor WYSIWYG: immagine, trascinamento, pinch-to-zoom e opacità 0–100%; l'immagine originale viene conservata nello storage privato e incorporata nei preset quando necessario.
+          - Ridisegnato e rifinito l'**editor Formato del messaggio** con anteprima WYSIWYG, chip meta interattivi (Tempo, Rientro, Mittente, Messaggio, Prefisso), maggiore contrasto, comandi avanzati più chiari e rimozione dei vecchi selettori che coprivano l'anteprima. Il timestamp a sinistra usa ora una colonna automatica e l'opzione manuale “Larghezza fissa” è stata ritirata.
+          - Aggiunta la nuova **Configurazione iniziale guidata** in quattro passaggi (Benvenuto, Identità, Aspetto, Rete), con scelta/import preset, SASL sincronizzato al nickname finché non viene modificato manualmente, Lista canali riutilizzata dal flusso server e possibilità di rilanciare il wizard da Impostazioni → Interfaccia senza cancellare le reti esistenti.
+          - Rafforzato l'onboarding dopo i test su dispositivo: conferma per nickname vuoto con generazione `TIARCAxxxx`, navigazione sempre visibile sopra la tastiera, matching deterministico delle reti, gestione dei canali e anteprime finali 1200×400 dedicate a ogni preset.
+          - Migliorata la UI quotidiana: il nome server apre il relativo menu senza cambiare scheda, le icone azione della toolbar chat/PVT restano bianche anche in modalità chiara e le modifiche alle impostazioni Interfaccia aggiornano correttamente le chat già aperte.
+          - Aggiunta una **modalità diagnostica nascosta** (7 tap su Informazioni su TIARCA) con log privato e sanitizzato, condivisione/cancellazione/disattivazione e protezioni contro credenziali, token, email e indirizzi sensibili; resa più compatta e scrollabile anche la schermata Informazioni.
+          - Corretti inoltre i cambi tema su Android recenti rimuovendo i `ResourcesLoader` obsoleti e reso null-safe il routing dei messaggi di servizio IRC per evitare il crash osservato con `MessagePrefix` assente.
+
+          '''
+          text = text.replace("# TIARCA — Changelog\n\n", "# TIARCA — Changelog\n\n" + notes, 1)
+          changelog.write_text(text, encoding="utf-8")
+
+          docs_index = Path("docs/README.md")
+          text = docs_index.read_text(encoding="utf-8")
+          text = re.sub(r"Complete user documentation for TIARCA [0-9.]+ and current development builds\.",
+                        f"Complete user documentation for TIARCA {version} and current development builds.", text, count=1)
+          text = text.replace(
+              "The guides cover installation, server and SASL configuration, channels and private messages, WHOIS/WHOWAS, user and channel modes, MONITOR, caller-ID/ACCEPT, moderation, search and mentions, file sharing, commands and quick commands, appearance and themes, updates, backup, compatibility, privacy and troubleshooting.",
+              "The guides cover guided first-run setup, server and SASL configuration, channels and private messages, WHOIS/WHOWAS, user and channel modes, MONITOR, caller-ID/ACCEPT, moderation, search and mentions, file sharing, commands and quick commands, appearance presets, portable `.ircpreset` files, chat backgrounds, message formatting, diagnostics, updates, backup, compatibility, privacy and troubleshooting."
+          )
+          docs_index.write_text(text, encoding="utf-8")
+
+          # Keep visible guide-version headings synchronized across all maintained languages.
+          for guide in Path("docs").glob("*/README.md"):
+              text = guide.read_text(encoding="utf-8")
+              lines = text.splitlines()
+              if lines:
+                  lines[0] = re.sub(r"\b0\.9\.[0-9A-Za-z.]+\b", version, lines[0], count=1)
+                  text = "\n".join(lines) + ("\n" if text.endswith("\n") else "")
+              guide.write_text(text, encoding="utf-8")
+
+          it = Path("docs/it/README.md")
+          text = it.read_text(encoding="utf-8")
+          text = re.sub(
+              r"Questa guida descrive la versione stabile [0-9.]+ e le funzioni già presenti nei build di sviluppo successivi\.",
+              f"Questa guida descrive la versione stabile {version} e le funzioni già presenti nei build di sviluppo successivi.",
+              text,
+              count=1,
+          )
+          old_first = "Scarica l'APK firmato dalla sezione Releases del repository e installalo su Android. Al primo avvio puoi creare una nuova configurazione server/network. TIARCA supporta più server e mantiene separati configurazione, conversazioni e stato delle diverse connessioni."
+          new_first = "Scarica l'APK firmato dalla sezione Releases del repository e installalo su Android. Su una nuova installazione TIARCA apre una configurazione guidata in quattro passaggi: **Benvenuto**, **Identità**, **Aspetto** e **Rete**. Puoi impostare nickname/ident/real name, scegliere uno dei sei preset grafici o importarne uno, configurare la prima rete e l'eventuale SASL e selezionare i canali. Se lasci vuoto il nickname, prima di continuare TIARCA chiede conferma e può generare un nome nel formato `TIARCAxxxx`. La configurazione iniziale può essere rilanciata da **Impostazioni → Interfaccia → Configurazione iniziale** senza cancellare indiscriminatamente le reti già presenti."
+          if old_first not in text:
+              raise SystemExit("Italian first-run paragraph not found")
+          text = text.replace(old_first, new_first, 1)
+
+          old_pvt = "I PVT sono conversazioni dirette con un nickname. Nella toolbar sono disponibili azioni rapide **Invia** per file/media e **Ignora**, oltre al menu `…`. Quando sei in caller-ID mode `+g` e apri volontariamente un PVT, TIARCA gestisce automaticamente `ACCEPT +nickname`, permettendo all'interlocutore di rispondere senza un passaggio manuale aggiuntivo."
+          new_pvt = "I PVT sono conversazioni dirette con un nickname. La toolbar espone le azioni rapide **Invia**, **ACCEPT +/-** quando il proprio `+g` è attivo, **Ignora** e **Chiudi conversazione**, oltre al menu `…`; le icone restano ad alto contrasto anche con aspetto chiaro. Quando sei in caller-ID mode `+g` e apri volontariamente un PVT, TIARCA gestisce automaticamente `ACCEPT +nickname`, permettendo all'interlocutore di rispondere senza un passaggio manuale aggiuntivo."
+          if old_pvt not in text:
+              raise SystemExit("Italian PVT paragraph not found")
+          text = text.replace(old_pvt, new_pvt, 1)
+
+          start = text.index("## 16. Aspetto, temi, preset e formato dei messaggi")
+          end = text.index("## 17. Aggiornamenti", start)
+          appearance = '''## 16. Aspetto, temi, preset e formato dei messaggi
+
+          TIARCA distingue il **Tema**, che fornisce la base chiara/scura e le risorse cromatiche, dal **Preset grafico**, che applica una configurazione completa dell'aspetto della chat. I preset integrati sono **Grafico chiaro**, **Grafico scuro**, **IRC chiaro**, **IRC scuro**, **Terminale** e **Daltonismo**; quando modifichi manualmente una preferenza gestita dal preset, lo stato diventa **Personalizzato**.
+
+          In **Impostazioni → Interfaccia** puoi personalizzare colori, font e dimensione del testo, scegliere se usare lo stesso font in tutta l'app, avatar, timestamp, monocromia di bot/eventi, autocorrezione, campo di scrittura, barra superiore e formato dei messaggi. La **lingua dell'app resta separata** e non viene inclusa nei preset.
+
+          **Formato del messaggio** usa un'anteprima WYSIWYG e un editor avanzato a chip: **Tempo**, **Rientro**, **Mittente**, **Messaggio** e **Prefisso** possono essere selezionati e formattati direttamente. Il Rientro resta il punto di ancoraggio del testo quando una riga va a capo. Il timestamp può stare a sinistra o a destra; a sinistra la larghezza viene gestita automaticamente e non esiste più un'opzione utente separata “Larghezza fissa”.
+
+          Il comando **Salva preset** crea un file `.ircpreset` portabile. Il formato corrente è versionato (schema v5) e può includere tema/palette, font anche incorporati, dimensioni, avatar, monocromia, formati messaggio, timestamp, preferenze dell'interfaccia e asset aggiuntivi. Restano importabili anche i precedenti `.irctheme` e i preset delle versioni precedenti vengono migrati in modo deterministico.
+
+          I preset importati vengono conservati come preset utente, applicati immediatamente e possono essere rinominati o eliminati. Un file `.ircpreset` può inoltre essere aperto direttamente dal file manager Android scegliendo TIARCA.
+
+          La sezione **Sfondo** consente di usare un colore oppure un'immagine. Per le immagini è disponibile un editor WYSIWYG con trascinamento, pinch-to-zoom e opacità 0–100%; l'immagine viene copiata nello storage privato dell'app e, quando salvi un preset, può essere incorporata come asset così da rendere lo sfondo realmente portabile.
+
+          ![impostazioni interfaccia](../images/10_impostazioni_interfaccia.jpg)
+          ![personalizzazione colori](../images/13_personalizzazione_colori.jpg)
+          ![formato messaggi](../images/11_formato_messaggi.jpg)
+
+          '''.replace("          ", "")
+          text = text[:start] + appearance + text[end:]
+
+          marker = "## 21. Privacy e sicurezza"
+          diagnostic = '''### Diagnostica avanzata
+
+          Per i report difficili da riprodurre esiste una modalità diagnostica nascosta: tocca sette volte **Informazioni su TIARCA** per mostrare i controlli di debug. Il log è separato da Logcat, è disattivato finché non viene abilitato e applica sanitizzazione/pseudonimizzazione prima della condivisione. Usa comunque sempre prudenza e controlla il file prima di pubblicarlo in una issue.
+
+          '''.replace("          ", "")
+          if marker not in text:
+              raise SystemExit("Italian privacy marker not found")
+          text = text.replace(marker, diagnostic + marker, 1)
+          it.write_text(text, encoding="utf-8")
+
+          # Enhance the repository home while keeping release-specific fields maintained by sync_release_home.py.
+          readme = Path("README.md")
+          text = readme.read_text(encoding="utf-8")
+          anchor = "## What TIARCA offers\n\n"
+          additions = (
+              "- Guided first-run setup for identity, appearance, network/SASL and channel selection.\n"
+              "- Six complete built-in appearance presets plus portable `.ircpreset` files and legacy `.irctheme` import.\n"
+              "- Portable chat backgrounds with a WYSIWYG image editor, pan/zoom and opacity.\n"
+              "- Hidden opt-in sanitized diagnostic logging for reproducible bug reports.\n"
+          )
+          if additions not in text:
+              text = text.replace(anchor, anchor + additions, 1)
+          text = text.replace(
+              "The detailed guide explains configuration and connection, channels, private chats, WHOIS/WHOWAS, user and channel modes, caller-ID `+g`, MONITOR, moderation, search, mentions, quick commands, appearance, updates and troubleshooting.",
+              "The detailed guide explains guided setup, configuration and connection, channels, private chats, WHOIS/WHOWAS, user and channel modes, caller-ID `+g`, MONITOR, moderation, search, mentions, quick commands, appearance presets, portable preset/background files, diagnostics, updates and troubleshooting."
+          )
+          readme.write_text(text, encoding="utf-8")
+          PY
+
+          python3 tools/sync_release_home.py
+          python3 tools/sync_release_home.py --check
+          git diff --check
+
+      - name: Commit release preparation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/build.gradle CHANGELOG.md README.md docs
+          git commit -m "Prepare TIARCA 0.9.9"
+          git push origin HEAD:release/0.9.9
