@@ -35,6 +35,8 @@ public final class ServiceMessageCommandHandler implements CommandHandler {
         String target = CommandHandler.getParamOrNull(params, 0);
         String text = CommandHandler.getParamOrNull(params, 1);
         String nick = prefix == null ? null : prefix.getNick();
+        String user = prefix == null ? null : prefix.getUser();
+        String host = prefix == null ? null : prefix.getHost();
         boolean direct = target != null && target.equalsIgnoreCase(data.getUserNick());
         boolean ctcp = text != null && text.length() > 1 && text.charAt(0) == '\u0001';
 
@@ -42,12 +44,15 @@ public final class ServiceMessageCommandHandler implements CommandHandler {
         // Observe those before normal message routing so ACCEPT state does not depend on
         // which server-status view is currently visible.
         boolean serverNotice = "NOTICE".equalsIgnoreCase(command) && direct && !ctcp &&
-                prefix != null && prefix.getUser() == null && prefix.getHost() == null;
+                prefix != null && user == null && host == null;
         if (serverNotice)
             CallerIdAcceptManager.observeServerNotice(connection, text);
 
-        if (direct && !ctcp && !connection.hasOpenConversation(nick) &&
-                connection.isTrustedService(nick, prefix.getUser(), prefix.getHost())) {
+        // A syntactically unusual server line may have no prefix. It cannot be classified as a
+        // trusted service user, but it still belongs to the normal delegate path and must never
+        // terminate the IRC connection handler thread.
+        if (prefix != null && direct && !ctcp && !connection.hasOpenConversation(nick) &&
+                connection.isTrustedService(nick, user, host)) {
             connection.rememberServiceNick(nick);
             data.getServerStatusData().addMessage(new StatusMessageInfo(nick, new Date(),
                     StatusMessageInfo.MessageType.NOTICE, text));
