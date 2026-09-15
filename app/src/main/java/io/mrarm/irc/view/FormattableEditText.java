@@ -115,14 +115,13 @@ public class FormattableEditText extends AppCompatEditText {
         if (layout == null || text == null || text.length() == 0)
             return handled;
 
-        int x = Math.round(event.getX() - getTotalPaddingLeft() + getScrollX());
+        float x = event.getX() - getTotalPaddingLeft() + getScrollX();
         int y = Math.round(event.getY() - getTotalPaddingTop() + getScrollY());
         if (x < 0 || y < 0)
             return handled;
 
         int line = layout.getLineForVertical(y);
-        int offset = layout.getOffsetForHorizontal(line, x);
-        MessageBuilder.MetaChipSpan chip = findMetaChipAtOffset(text, offset);
+        MessageBuilder.MetaChipSpan chip = findMetaChipAtPosition(layout, text, line, x);
         if (chip == null)
             return handled;
 
@@ -139,15 +138,32 @@ public class FormattableEditText extends AppCompatEditText {
     static MessageBuilder.MetaChipSpan findMetaChipAtOffset(Spanned text, int offset) {
         if (text == null || text.length() == 0)
             return null;
-        int safeOffset = Math.max(0, Math.min(offset, text.length()));
+        int safeOffset = Math.max(0, Math.min(offset, text.length() - 1));
         for (MessageBuilder.MetaChipSpan chip : text.getSpans(0, text.length(),
                 MessageBuilder.MetaChipSpan.class)) {
             int start = text.getSpanStart(chip);
             int end = text.getSpanEnd(chip);
-            if (start >= 0 && end > start && safeOffset >= start && safeOffset <= end)
+            if (start >= 0 && end > start && safeOffset >= start && safeOffset < end)
                 return chip;
         }
         return null;
+    }
+
+    private static MessageBuilder.MetaChipSpan findMetaChipAtPosition(Layout layout, Spanned text,
+                                                                       int line, float x) {
+        for (MessageBuilder.MetaChipSpan chip : text.getSpans(0, text.length(),
+                MessageBuilder.MetaChipSpan.class)) {
+            int start = text.getSpanStart(chip);
+            int end = text.getSpanEnd(chip);
+            if (start < 0 || end <= start || layout.getLineForOffset(start) != line)
+                continue;
+            float left = layout.getPrimaryHorizontal(start);
+            float right = layout.getPrimaryHorizontal(end);
+            if (x >= Math.min(left, right) && x <= Math.max(left, right))
+                return chip;
+        }
+        int offset = layout.getOffsetForHorizontal(line, x);
+        return findMetaChipAtOffset(text, offset);
     }
 
     @Override
