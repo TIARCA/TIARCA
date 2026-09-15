@@ -54,6 +54,10 @@ public class MessageFormatPreviewView extends LinearLayout
         super(context, attrs);
         setOrientation(HORIZONTAL);
         setGravity(Gravity.TOP);
+        // Keep the sample visually separated from the controls below it even when the body wraps
+        // to a second line. This also prevents the next section title from feeling clipped into the
+        // preview on compact screens.
+        setMinimumHeight(dp(96));
 
         mLeftClock = createTextView(context);
         mLeftClock.setTextColor(ContextCompat.getColor(context, R.color.messageTimestamp));
