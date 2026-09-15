@@ -10,8 +10,10 @@ import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
+import io.mrarm.irc.R;
 import io.mrarm.irc.util.MessageBuilder;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 
@@ -34,5 +36,22 @@ public class FormattableEditTextMetaChipTest {
         assertSame(time, FormattableEditText.findMetaChipAtOffset(text, 0));
         assertNull(FormattableEditText.findMetaChipAtOffset(text, 1));
         assertSame(sender, FormattableEditText.findMetaChipAtOffset(text, 2));
+    }
+
+    @Test
+    public void advancedMessageEditorsMapToTheirLegacyPresetArrowsOnly() {
+        assertEquals(R.id.message_format_normal_preset,
+                FormattableEditText.getLegacyPresetButtonId(R.id.message_format_normal));
+        assertEquals(R.id.message_format_normal_mention_preset,
+                FormattableEditText.getLegacyPresetButtonId(R.id.message_format_normal_mention));
+        assertEquals(R.id.message_format_action_preset,
+                FormattableEditText.getLegacyPresetButtonId(R.id.message_format_action));
+        assertEquals(R.id.message_format_action_mention_preset,
+                FormattableEditText.getLegacyPresetButtonId(R.id.message_format_action_mention));
+        assertEquals(R.id.message_format_notice_preset,
+                FormattableEditText.getLegacyPresetButtonId(R.id.message_format_notice));
+        assertEquals(R.id.message_format_event_preset,
+                FormattableEditText.getLegacyPresetButtonId(R.id.message_format_event));
+        assertEquals(0, FormattableEditText.getLegacyPresetButtonId(R.id.date_format));
     }
 }
