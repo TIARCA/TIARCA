@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pref_header_chat_interactions">Chat interactions</string>
+    <string name="pref_title_nick_tap_action">Nickname tap action</string>
+    <string-array name="pref_entries_nick_tap_action">
+        <item>Show user information</item>
+        <item>Insert nickname in message</item>
+        <item>Open private conversation</item>
+    </string-array>
+    <string-array name="pref_entry_values_nick_tap_action" translatable="false">
+        <item>details</item>
+        <item>insert_nick</item>
+        <item>private</item>
+    </string-array>
+</resources>

@@ -28,6 +28,8 @@ import io.mrarm.chatlib.dto.MessageInfo;
 import io.mrarm.irc.NotificationManager;
 import io.mrarm.irc.MainActivity;
 import io.mrarm.irc.R;
+import io.mrarm.irc.config.ChatSettings;
+import io.mrarm.irc.irc.CallerIdAcceptManager;
 import io.mrarm.irc.util.AlignToPointSpan;
 import io.mrarm.irc.util.MessageBuilder;
 import io.mrarm.irc.dialog.UserBottomSheetDialog;
@@ -386,7 +388,7 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             return new LongClickableSpan() {
                 @Override
                 public void onClick(@NonNull View widget) {
-                    showUserDetails(widget, nick);
+                    handleNicknameTap(widget, nick);
                 }
 
                 @Override
@@ -402,6 +404,25 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                     ds.setUnderlineText(false);
                 }
             };
+        }
+
+        private void handleNicknameTap(View source, String nick) {
+            String action = ChatSettings.getNickTapAction();
+            if ("insert_nick".equals(action)) {
+                mFragment.getSendMessageHelper().insertNicknameAsTabCompletion(nick);
+                return;
+            }
+            if ("private".equals(action)) {
+                CallerIdAcceptManager.acceptOutgoingPrivateConversation(
+                        mFragment.getConnectionInfo(), nick);
+                if (source.getContext() instanceof MainActivity)
+                    ((MainActivity) source.getContext()).openDirectConversationForSharing(
+                            mFragment.getConnectionInfo(), nick);
+                else
+                    mFragment.getConnectionInfo().addStoredConversation(nick);
+                return;
+            }
+            showUserDetails(source, nick);
         }
 
         private void showUserDetails(View source, String nick) {

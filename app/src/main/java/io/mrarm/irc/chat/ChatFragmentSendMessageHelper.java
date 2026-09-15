@@ -226,6 +226,11 @@ public class ChatFragmentSendMessageHelper implements SendMessageHelper.Callback
         mSendText.setText(text);
     }
 
+    /** Inserts a nickname exactly as if that nickname had been chosen by TAB completion. */
+    public void insertNicknameAsTabCompletion(String nick) {
+        mSendText.insertCompletedNickname(nick);
+    }
+
     /** Inserts a channel mention without changing the current conversation or sending it. */
     public void insertMention(String nick) {
         if (nick == null || nick.trim().isEmpty() || mCurrentChannel == null)

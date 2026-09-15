@@ -174,6 +174,20 @@ public class ChatAutoCompleteEditText extends FormattableEditText implements
         performFiltering(true);
     }
 
+    /** Inserts a known nickname using the same token rules as TAB completion. */
+    public void insertCompletedNickname(String nick) {
+        if (nick == null || nick.trim().isEmpty())
+            return;
+        CharSequence value = terminateNickToken(nick.trim());
+        int start = findTokenStart();
+        int end = findTokenEnd();
+        clearComposingText();
+        getText().replace(start, end, value);
+        setSelection(Math.min(start + value.length(), getText().length()));
+        dismissDropDown();
+        requestFocus();
+    }
+
     public void dismissDropDown() {
         mSuggestionsContainer.setVisibility(View.GONE);
         if (mSuggestionsList.getAdapter() instanceof SelectableRecyclerViewAdapter)

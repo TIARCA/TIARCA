@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pref_header_chat_interactions">Interacțiuni în chat</string>
+    <string name="pref_title_nick_tap_action">Acțiune la atingerea pseudonimului</string>
+    <string-array name="pref_entries_nick_tap_action">
+        <item>Afișează informațiile utilizatorului</item>
+        <item>Inserează pseudonimul în mesaj</item>
+        <item>Deschide conversația privată</item>
+    </string-array>
+</resources>
