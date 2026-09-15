@@ -1,6 +1,6 @@
 # TIARCA Documentation
 
-Complete user documentation for TIARCA 0.9.5 and current development builds.
+Complete user documentation for TIARCA 0.9.9 and current development builds.
 
 Choose your language:
 
@@ -14,7 +14,7 @@ Choose your language:
 - [Suomi](fi/README.md)
 - [Română](ro/README.md)
 
-The guides cover installation, server and SASL configuration, channels and private messages, WHOIS/WHOWAS, user and channel modes, MONITOR, caller-ID/ACCEPT, moderation, search and mentions, file sharing, commands and quick commands, appearance and themes, updates, backup, compatibility, privacy and troubleshooting.
+The guides cover guided first-run setup, server and SASL configuration, channels and private messages, WHOIS/WHOWAS, user and channel modes, MONITOR, caller-ID/ACCEPT, moderation, search and mentions, file sharing, commands and quick commands, appearance presets, portable `.ircpreset` files, chat backgrounds, message formatting, diagnostics, updates, backup, compatibility, privacy and troubleshooting.
 
 The Italian guide is the primary reference while features are being actively developed and includes the newest theme-format and interface changes first. Other translations are kept structurally aligned and are updated as the corresponding strings/documentation are translated.
 
