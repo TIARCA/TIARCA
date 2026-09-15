@@ -56,8 +56,10 @@ public abstract class SettingsListFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        if (mAdapter == null)
+        if (mAdapter == null) {
             mAdapter = createAdapter();
+            OnboardingSettingsInjector.inject(this, mAdapter);
+        }
         View view = inflater.inflate(R.layout.simple_list, container, false);
         mRecyclerView = view.findViewById(R.id.items);
         mRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -71,6 +73,7 @@ public abstract class SettingsListFragment extends Fragment {
         if (mItemDecoration != null)
             mRecyclerView.removeItemDecoration(mItemDecoration);
         mAdapter = createAdapter();
+        OnboardingSettingsInjector.inject(this, mAdapter);
         mRecyclerView.setAdapter(mAdapter);
         mItemDecoration = mAdapter.createItemDecoration();
         mRecyclerView.addItemDecoration(mItemDecoration);

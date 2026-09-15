@@ -33,12 +33,21 @@ import io.mrarm.irc.util.SimpleTextWatcher;
 /** Offline, release-vetted IRC network catalogue. */
 public class NetworkCatalogActivity extends ThemedActivity {
 
+    public static final String ARG_PICK_ONLY = "pick_only";
+    public static final String RESULT_MANUAL = "manual";
+    public static final String RESULT_NAME = "name";
+    public static final String RESULT_ADDRESSES = "addresses";
+    public static final String RESULT_PORT = "port";
+    public static final String RESULT_TLS = "tls";
+
     private NetworkAdapter mAdapter;
     private ActivityResultLauncher<Intent> mEditServerLauncher;
+    private boolean mPickOnly;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mPickOnly = getIntent().getBooleanExtra(ARG_PICK_ONLY, false);
         mEditServerLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(), result -> {
                     if (result.getResultCode() == RESULT_OK)
@@ -86,6 +95,12 @@ public class NetworkCatalogActivity extends ThemedActivity {
     }
 
     private void openManualEditor() {
+        if (mPickOnly) {
+            Intent result = new Intent().putExtra(RESULT_MANUAL, true);
+            setResult(RESULT_OK, result);
+            finish();
+            return;
+        }
         mEditServerLauncher.launch(new Intent(this, EditServerActivity.class));
     }
 
@@ -101,14 +116,26 @@ public class NetworkCatalogActivity extends ThemedActivity {
                         endpoint.host, endpoint.port, security))
                 .setNegativeButton(R.string.action_cancel, null)
                 .setPositiveButton(R.string.network_catalog_continue, (dialog, which) -> {
-                    Intent intent = new Intent(this, EditServerActivity.class);
-                    intent.putExtra(EditServerActivity.ARG_NAME, network.name);
-                    intent.putExtra(EditServerActivity.ARG_ADDRESS, endpoint.host);
                     ArrayList<String> addresses = new ArrayList<>();
                     for (Endpoint candidate : network.endpoints) {
                         if (candidate.port == endpoint.port && candidate.tls == endpoint.tls)
                             addresses.add(candidate.host);
                     }
+                    if (mPickOnly) {
+                        Intent result = new Intent()
+                                .putExtra(RESULT_MANUAL, false)
+                                .putExtra(RESULT_NAME, network.name)
+                                .putStringArrayListExtra(RESULT_ADDRESSES, addresses)
+                                .putExtra(RESULT_PORT, endpoint.port)
+                                .putExtra(RESULT_TLS, endpoint.tls);
+                        setResult(RESULT_OK, result);
+                        finish();
+                        return;
+                    }
+
+                    Intent intent = new Intent(this, EditServerActivity.class);
+                    intent.putExtra(EditServerActivity.ARG_NAME, network.name);
+                    intent.putExtra(EditServerActivity.ARG_ADDRESS, endpoint.host);
                     intent.putStringArrayListExtra(EditServerActivity.ARG_ADDRESSES, addresses);
                     intent.putExtra(EditServerActivity.ARG_PORT, endpoint.port);
                     intent.putExtra(EditServerActivity.ARG_SSL, endpoint.tls);
