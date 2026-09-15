@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pref_header_chat_interactions">Interactions du chat</string>
+    <string name="pref_title_nick_tap_action">Action lors d’un appui sur le pseudo</string>
+    <string-array name="pref_entries_nick_tap_action">
+        <item>Afficher les informations utilisateur</item>
+        <item>Insérer le pseudo dans le message</item>
+        <item>Ouvrir une conversation privée</item>
+    </string-array>
+</resources>
