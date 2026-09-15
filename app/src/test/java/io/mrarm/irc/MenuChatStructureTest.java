@@ -63,6 +63,15 @@ public class MenuChatStructureTest {
     }
 
     @Test
+    public void pvtToolbarActionIconsAreAlwaysWhite() throws IOException {
+        String xml = readMenu();
+        assertToolbarIconTint(xml, "@+id/action_send_media");
+        assertToolbarIconTint(xml, "@+id/action_callerid_accept_toggle");
+        assertToolbarIconTint(xml, "@+id/action_direct_ignore");
+        assertToolbarIconTint(xml, "@+id/action_close_private_conversation");
+    }
+
+    @Test
     public void closePrivateConversationIsToolbarActionHiddenByDefault() throws IOException {
         String xml = readMenu();
         int start = xml.indexOf("@+id/action_close_private_conversation");
@@ -74,6 +83,16 @@ public class MenuChatStructureTest {
                 item.contains("android:visible=\"false\""));
         assertTrue("Close private conversation must be a toolbar action",
                 item.contains("app:showAsAction=\"always\""));
+    }
+
+    private static void assertToolbarIconTint(String xml, String itemId) {
+        int start = xml.indexOf(itemId);
+        assertTrue(itemId + " is missing", start >= 0);
+        int end = xml.indexOf("/>", start);
+        assertTrue(itemId + " item is malformed", end > start);
+        String item = xml.substring(start, end);
+        assertTrue(itemId + " must force a white toolbar icon tint",
+                item.contains("app:iconTint=\"@android:color/white\""));
     }
 
     private static void assertImmediatelyOrdered(String xml, String first, String second) {
