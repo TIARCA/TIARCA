@@ -1,14 +1,14 @@
-# Guida completa a TIARCA 0.9.5
+# Guida completa a TIARCA 0.9.9
 
 [← Indice lingue](../README.md)
 
 TIARCA è un client IRC per Android pensato sia per l'uso quotidiano sia per chi vuole accedere alle funzioni IRC più avanzate senza rinunciare a un'interfaccia moderna.
 
-Questa guida descrive la versione stabile 0.9.5 e le funzioni già presenti nei build di sviluppo successivi. Quando una funzione dipende dal server IRC, dalla sua implementazione o dai privilegi dell'utente, viene indicato esplicitamente.
+Questa guida descrive la versione stabile 0.9.9 e le funzioni già presenti nei build di sviluppo successivi. Quando una funzione dipende dal server IRC, dalla sua implementazione o dai privilegi dell'utente, viene indicato esplicitamente.
 
 ## 1. Installazione e primo avvio
 
-Scarica l'APK firmato dalla sezione Releases del repository e installalo su Android. Al primo avvio puoi creare una nuova configurazione server/network. TIARCA supporta più server e mantiene separati configurazione, conversazioni e stato delle diverse connessioni.
+Scarica l'APK firmato dalla sezione Releases del repository e installalo su Android. Su una nuova installazione TIARCA apre una configurazione guidata in quattro passaggi: **Benvenuto**, **Identità**, **Aspetto** e **Rete**. Puoi impostare nickname/ident/real name, scegliere uno dei sei preset grafici o importarne uno, configurare la prima rete e l'eventuale SASL e selezionare i canali. Se lasci vuoto il nickname, prima di continuare TIARCA chiede conferma e può generare un nome nel formato `TIARCAxxxx`. La configurazione iniziale può essere rilanciata da **Impostazioni → Interfaccia → Configurazione iniziale** senza cancellare indiscriminatamente le reti già presenti.
 
 ![configurazione server](../images/12_configurazione_server.jpg)
 
@@ -32,7 +32,7 @@ Una volta entrato in un canale puoi leggere e inviare messaggi, usare autocomple
 
 ## 5. Conversazioni private (PVT)
 
-I PVT sono conversazioni dirette con un nickname. Nella toolbar sono disponibili azioni rapide **Invia** per file/media e **Ignora**, oltre al menu `…`. Quando sei in caller-ID mode `+g` e apri volontariamente un PVT, TIARCA gestisce automaticamente `ACCEPT +nickname`, permettendo all'interlocutore di rispondere senza un passaggio manuale aggiuntivo.
+I PVT sono conversazioni dirette con un nickname. La toolbar espone le azioni rapide **Invia**, **ACCEPT +/-** quando il proprio `+g` è attivo, **Ignora** e **Chiudi conversazione**, oltre al menu `…`; le icone restano ad alto contrasto anche con aspetto chiaro. Quando sei in caller-ID mode `+g` e apri volontariamente un PVT, TIARCA gestisce automaticamente `ACCEPT +nickname`, permettendo all'interlocutore di rispondere senza un passaggio manuale aggiuntivo.
 
 ![PVT](../images/03_chat_privata_pvt.jpg)
 
@@ -96,23 +96,17 @@ I **Comandi rapidi** sono scorciatoie configurabili che trasformano parole di at
 
 ## 16. Aspetto, temi, preset e formato dei messaggi
 
-TIARCA distingue il **Tema**, che definisce la base chiara/scura, i colori e le risorse grafiche, dal **Preset grafico**, che descrive una configurazione più ampia dell'aspetto della chat. Le impostazioni di **Interfaccia** permettono inoltre di scegliere font, dimensione del testo, applicazione del font all'intera app, autocorrezione, modalità compatta della barra superiore, opzioni monocromatiche, campo di scrittura e formato dei messaggi. La **lingua dell'app resta separata** e non viene inclusa nei preset.
+TIARCA distingue il **Tema**, che fornisce la base chiara/scura e le risorse cromatiche, dal **Preset grafico**, che applica una configurazione completa dell'aspetto della chat. I preset integrati sono **Grafico chiaro**, **Grafico scuro**, **IRC chiaro**, **IRC scuro**, **Terminale** e **Daltonismo**; quando modifichi manualmente una preferenza gestita dal preset, lo stato diventa **Personalizzato**.
 
-Il comando **Salva preset** crea un file `.ircpreset` che rende portabile la configurazione persistente di **Impostazioni → Interfaccia** e del sottomenu **Formato del messaggio**, con l'esclusione della lingua. Il preset può includere:
+In **Impostazioni → Interfaccia** puoi personalizzare colori, font e dimensione del testo, scegliere se usare lo stesso font in tutta l'app, avatar, timestamp, monocromia di bot/eventi, autocorrezione, campo di scrittura, barra superiore e formato dei messaggi. La **lingua dell'app resta separata** e non viene inclusa nei preset.
 
-- identità del preset grafico selezionato;
-- tema base, colori e proprietà grafiche personalizzate;
-- font, dimensione del testo e opzione per usare lo stesso font in tutta l'app;
-- autocorrezione e campo di scrittura sempre multilinea;
-- modalità compatta della barra superiore;
-- avatar e opzioni monocromatiche per bot ed eventi;
-- formato dei messaggi normali, mention, action `/me`, notice ed eventi, compresi gli stili incorporati;
-- formato, larghezza fissa e posizione del timestamp;
-- eventuale font personalizzato incorporato come asset.
+**Formato del messaggio** usa un'anteprima WYSIWYG e un editor avanzato a chip: **Tempo**, **Rientro**, **Mittente**, **Messaggio** e **Prefisso** possono essere selezionati e formattati direttamente. Il Rientro resta il punto di ancoraggio del testo quando una riga va a capo. Il timestamp può stare a sinistra o a destra; a sinistra la larghezza viene gestita automaticamente e non esiste più un'opzione utente separata “Larghezza fissa”.
 
-Il file `.ircpreset` è un contenitore versionato con `theme.json` e, quando necessario, una cartella `assets/`. Per compatibilità, TIARCA continua a importare anche i precedenti file `.irctheme` v2 e i vecchi temi JSON v1; i campi mancanti nei formati precedenti vengono semplicemente lasciati invariati.
+Il comando **Salva preset** crea un file `.ircpreset` portabile. Il formato corrente è versionato (schema v5) e può includere tema/palette, font anche incorporati, dimensioni, avatar, monocromia, formati messaggio, timestamp, preferenze dell'interfaccia e asset aggiuntivi. Restano importabili anche i precedenti `.irctheme` e i preset delle versioni precedenti vengono migrati in modo deterministico.
 
-In **Impostazioni → Interfaccia** trovi quindi **Importa preset** e **Salva preset**. I controlli dell'editor che rappresentano soltanto uno stato temporaneo della schermata e non una preferenza dell'app non vengono inclusi nel file.
+I preset importati vengono conservati come preset utente, applicati immediatamente e possono essere rinominati o eliminati. Un file `.ircpreset` può inoltre essere aperto direttamente dal file manager Android scegliendo TIARCA.
+
+La sezione **Sfondo** consente di usare un colore oppure un'immagine. Per le immagini è disponibile un editor WYSIWYG con trascinamento, pinch-to-zoom e opacità 0–100%; l'immagine viene copiata nello storage privato dell'app e, quando salvi un preset, può essere incorporata come asset così da rendere lo sfondo realmente portabile.
 
 ![impostazioni interfaccia](../images/10_impostazioni_interfaccia.jpg)
 ![personalizzazione colori](../images/13_personalizzazione_colori.jpg)
@@ -140,6 +134,10 @@ IRC non è un unico server software: network differenti possono usare InspIRCd, 
 **Un comando restituisce errore:** disponibilità e sintassi possono variare in base al server.  
 **Non ricevo aggiornamenti:** controlla che il controllo aggiornamenti sia abilitato e che il dispositivo possa raggiungere GitHub.  
 **Devo segnalare un bug:** indica versione TIARCA, versione Android, server IRC/implementazione se nota e i passaggi per riprodurlo; rimuovi password, token, IP/host personali e altri dati sensibili.
+
+### Diagnostica avanzata
+
+Per i report difficili da riprodurre esiste una modalità diagnostica nascosta: tocca sette volte **Informazioni su TIARCA** per mostrare i controlli di debug. Il log è separato da Logcat, è disattivato finché non viene abilitato e applica sanitizzazione/pseudonimizzazione prima della condivisione. Usa comunque sempre prudenza e controlla il file prima di pubblicarlo in una issue.
 
 ## 21. Privacy e sicurezza
 

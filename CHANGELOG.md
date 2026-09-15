@@ -1,5 +1,18 @@
 # TIARCA — Changelog
 
+## v0.9.9
+
+- Introdotti sei **preset grafici completi** (Grafico chiaro/scuro, IRC chiaro/scuro, Terminale e Daltonismo) che applicano in modo coerente tema, palette, font, dimensioni, avatar, timestamp e formato dei messaggi; le modifiche manuali alle opzioni gestite fanno passare il preset a **Personalizzato**. I nuovi installati partono da Grafico chiaro.
+- Aggiunto l'opt-in **Usa questo font in tutta l'app** e rifiniti i preset: nickname in grassetto, Daltonismo più leggibile senza corsivo eventi, Terminale più compatto, hostname eventi attivo nel Terminale e valori monocromatici corretti per Grafico/Terminale/Daltonismo.
+- Evoluti i preset portatili `.ircpreset` fino allo **schema v5** con migrazioni deterministiche, supporto multi-asset, font personalizzati e sfondi; restano importabili i precedenti `.irctheme`. I preset importati vengono memorizzati, applicati subito e possono essere rinominati o eliminati.
+- Aggiunti **sfondi chat portatili** con editor WYSIWYG: immagine, trascinamento, pinch-to-zoom e opacità 0–100%; l'immagine originale viene conservata nello storage privato e incorporata nei preset quando necessario.
+- Ridisegnato e rifinito l'**editor Formato del messaggio** con anteprima WYSIWYG, chip meta interattivi (Tempo, Rientro, Mittente, Messaggio, Prefisso), maggiore contrasto, comandi avanzati più chiari e rimozione dei vecchi selettori che coprivano l'anteprima. Il timestamp a sinistra usa ora una colonna automatica e l'opzione manuale “Larghezza fissa” è stata ritirata.
+- Aggiunta la nuova **Configurazione iniziale guidata** in quattro passaggi (Benvenuto, Identità, Aspetto, Rete), con scelta/import preset, SASL sincronizzato al nickname finché non viene modificato manualmente, Lista canali riutilizzata dal flusso server e possibilità di rilanciare il wizard da Impostazioni → Interfaccia senza cancellare le reti esistenti.
+- Rafforzato l'onboarding dopo i test su dispositivo: conferma per nickname vuoto con generazione `TIARCAxxxx`, navigazione sempre visibile sopra la tastiera, matching deterministico delle reti, gestione dei canali e anteprime finali 1200×400 dedicate a ogni preset.
+- Migliorata la UI quotidiana: il nome server apre il relativo menu senza cambiare scheda, le icone azione della toolbar chat/PVT restano bianche anche in modalità chiara e le modifiche alle impostazioni Interfaccia aggiornano correttamente le chat già aperte.
+- Aggiunta una **modalità diagnostica nascosta** (7 tap su Informazioni su TIARCA) con log privato e sanitizzato, condivisione/cancellazione/disattivazione e protezioni contro credenziali, token, email e indirizzi sensibili; resa più compatta e scrollabile anche la schermata Informazioni.
+- Corretti inoltre i cambi tema su Android recenti rimuovendo i `ResourcesLoader` obsoleti e reso null-safe il routing dei messaggi di servizio IRC per evitare il crash osservato con `MessagePrefix` assente.
+
 ## v0.9.8
 
 - Aggiunto nei PVT il controllo rapido della lista `ACCEPT` per le reti con caller-ID/modalità utente `+g`: il pulsante `+/-` compare solo quando il proprio `+g` è attivo, invia `ACCEPT +nick` / `ACCEPT -nick` e riflette lo stato confermato dal server anziché assumere localmente l'esito del comando.

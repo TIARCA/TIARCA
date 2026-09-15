@@ -4,18 +4,22 @@
 
 TIARCA keeps the speed and directness of classic IRC while adding a modern Android interface, current Android compatibility, richer moderation and user tools, configurable appearance, MONITOR support, structured IRC information, search, mentions, quick commands and an integrated update flow.
 
-> **Current stable version: 0.9.8** · Android 9+ · Open source · GPLv3
+> **Current stable version: 0.9.9** · Android 9+ · Open source · GPLv3
 
-[Download TIARCA 0.9.8](https://github.com/TIARCA/TIARCA/releases/download/v0.9.8/TIARCA-v0.9.8.apk) · [Release notes](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.8) · [Changelog](CHANGELOG.md) · [Documentation](docs/README.md)
+[Download TIARCA 0.9.9](https://github.com/TIARCA/TIARCA/releases/download/v0.9.9/TIARCA-v0.9.9.apk) · [Release notes](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.9) · [Changelog](CHANGELOG.md) · [Documentation](docs/README.md)
 
 ---
 
-## What's new in 0.9.8
+## What's new in 0.9.9
 
-See the full [0.9.8 release notes](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.8) and [changelog](CHANGELOG.md).
+See the full [0.9.9 release notes](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.9) and [changelog](CHANGELOG.md).
 
 ## What TIARCA offers
 
+- Guided first-run setup for identity, appearance, network/SASL and channel selection.
+- Six complete built-in appearance presets plus portable `.ircpreset` files and legacy `.irctheme` import.
+- Portable chat backgrounds with a WYSIWYG image editor, pan/zoom and opacity.
+- Hidden opt-in sanitized diagnostic logging for reproducible bug reports.
 - Multiple IRC networks and servers, TLS/SSL and SASL authentication.
 - Channels and private conversations with persistent history and unread counters.
 - Channel topic editing directly from the right drawer, with explicit confirmation before sending the native IRC `TOPIC` command.
@@ -46,7 +50,7 @@ The following screens use privacy-safe demonstration data.
 
 ## Documentation / Wiki
 
-The detailed guide explains configuration and connection, channels, private chats, WHOIS/WHOWAS, user and channel modes, caller-ID `+g`, MONITOR, moderation, search, mentions, quick commands, appearance, updates and troubleshooting.
+The detailed guide explains guided setup, configuration and connection, channels, private chats, WHOIS/WHOWAS, user and channel modes, caller-ID `+g`, MONITOR, moderation, search, mentions, quick commands, appearance presets, portable preset/background files, diagnostics, updates and troubleshooting.
 
 Documentation is available in every language currently supported by TIARCA:
 
@@ -56,7 +60,7 @@ Documentation is available in every language currently supported by TIARCA:
 
 Download the signed APK from the latest GitHub Release. Android may ask you to allow installation from the browser or file manager used to open the APK. Official TIARCA APKs are distributed through this repository's **Releases** section.
 
-TIARCA is not distributed through Google Play. Version 0.9.8 is the current stable release. TIARCA is under review for inclusion in the official F-Droid repository; recent release-engineering work targets F-Droid policy compliance and reproducible verification. Availability on F-Droid still depends on completion of the F-Droid review and build process.
+TIARCA is not distributed through Google Play. Version 0.9.9 is the current stable release. TIARCA is under review for inclusion in the official F-Droid repository; recent release-engineering work targets F-Droid policy compliance and reproducible verification. Availability on F-Droid still depends on completion of the F-Droid review and build process.
 
 ## Building from source
 
