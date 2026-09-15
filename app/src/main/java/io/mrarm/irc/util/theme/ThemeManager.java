@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.WeakHashMap;
 
 import io.mrarm.irc.R;
 import io.mrarm.irc.config.AppSettings;
@@ -60,6 +61,10 @@ public class ThemeManager {
     private ThemeInfo currentCustomTheme;
     private Theme currentCustomThemePatcher;
     private ResourcesLoader currentCustomThemeLoader;
+    // Android 11+ keeps ResourcesLoader overlays attached to a Resources instance until they are
+    // explicitly removed. Track the loader actually applied to each live Resources object so a
+    // custom-dark -> light/base transition cannot leave stale white text resources behind.
+    private final Map<Resources, ResourcesLoader> appliedCustomThemeLoaders = new WeakHashMap<>();
     private List<ThemeChangeListener> themeChangeListeners = new ArrayList<>();
     private BaseTheme fallbackTheme;
     private Map<String, BaseTheme> baseThemes = new HashMap<>();
@@ -338,8 +343,19 @@ public class ThemeManager {
                 currentCustomThemePatcher = new Theme(context, themeFile.getAbsolutePath());
             }
         }
-        if (currentCustomThemeLoader != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
-            Api30ThemeLoader.addTo(activity.getResources(), currentCustomThemeLoader);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Resources resources = activity.getResources();
+            ResourcesLoader appliedLoader = appliedCustomThemeLoaders.get(resources);
+            if (appliedLoader != null && appliedLoader != currentCustomThemeLoader) {
+                Api30ThemeLoader.removeFrom(resources, appliedLoader);
+                appliedCustomThemeLoaders.remove(resources);
+                appliedLoader = null;
+            }
+            if (currentCustomThemeLoader != null && appliedLoader != currentCustomThemeLoader) {
+                Api30ThemeLoader.addTo(resources, currentCustomThemeLoader);
+                appliedCustomThemeLoaders.put(resources, currentCustomThemeLoader);
+            }
+        }
         ThemeResInfo currentBaseTheme = currentTheme;
         if (currentCustomTheme != null)
             currentBaseTheme = currentCustomTheme.baseThemeInfo;
@@ -388,6 +404,10 @@ public class ThemeManager {
 
         static void addTo(Resources resources, ResourcesLoader loader) {
             resources.addLoaders(loader);
+        }
+
+        static void removeFrom(Resources resources, ResourcesLoader loader) {
+            resources.removeLoaders(loader);
         }
     }
 
@@ -448,6 +468,7 @@ public class ThemeManager {
         }
 
     }
+
 
     public static class BaseTheme extends ThemeResInfo {
 
