@@ -350,8 +350,8 @@ public class OnboardingActivity extends ThemedActivity {
             mPresetPreview.setVisibility(View.GONE);
             return;
         }
-        mPresetPreview.renderPreview();
         mPresetPreview.setVisibility(View.VISIBLE);
+        mPresetPreview.renderPreview();
     }
 
     private void syncSaslUserFromNickname() {
