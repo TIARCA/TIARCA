@@ -8,33 +8,45 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-/** Regression coverage for the per-preset onboarding preview resources. */
+/** Regression coverage for the runtime-rendered onboarding preset preview. */
 public class OnboardingPreviewResourcesTest {
 
     @Test
-    public void onboardingUsesDedicatedPreviewViewAndAllSixResources() throws IOException {
+    public void onboardingUsesRuntimeChatPreviewWithoutPreviewImages() throws IOException {
         String layout = read("src/main/res/layout/activity_onboarding.xml");
+        String activity = read("src/main/java/io/mrarm/irc/onboarding/OnboardingActivity.java");
         String previewView = read("src/main/java/io/mrarm/irc/view/OnboardingPresetPreviewView.java");
 
         assertTrue(layout.contains("io.mrarm.irc.view.OnboardingPresetPreviewView"));
+        assertTrue(activity.contains("mPresetPreview.renderPreview()"));
+        assertTrue(previewView.contains("R.layout.chat_message"));
+        assertTrue(previewView.contains("new MessageBuilder(getContext())"));
+        assertTrue(previewView.contains("new NickPrefixList(prefix)"));
+        assertTrue(previewView.contains("Lætitia!"));
+        assertTrue(previewView.contains("Frederick! At last! 😄"));
+        assertTrue(previewView.contains("aunt Augusta"));
+        assertTrue(previewView.contains("22, 48, 41"));
 
-        String[] names = {
+        String[] obsoleteImages = {
                 "onboarding_preset_graphic_light",
                 "onboarding_preset_graphic_dark",
                 "onboarding_preset_irc_light",
                 "onboarding_preset_irc_dark",
                 "onboarding_preset_terminal",
-                "onboarding_preset_color_blind"
+                "onboarding_preset_color_blind",
+                "onboarding_preset_previews"
         };
-        for (String name : names) {
+        for (String name : obsoleteImages) {
             Path image = path("src/main/res/drawable-nodpi/" + name + ".webp");
-            assertTrue("Missing dedicated onboarding preview: " + name, Files.exists(image));
-            assertTrue("Onboarding preview is unexpectedly empty: " + name,
-                    Files.size(image) > 2000);
-            assertTrue("Preview view does not map resource: " + name,
+            assertFalse("Obsolete onboarding preview image still present: " + name,
+                    Files.exists(image));
+            assertFalse("Runtime preview still references obsolete image: " + name,
                     previewView.contains("R.drawable." + name));
+            assertFalse("Onboarding activity still references obsolete image: " + name,
+                    activity.contains("R.drawable." + name));
         }
     }
 
