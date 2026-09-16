@@ -35,9 +35,8 @@ import io.mrarm.irc.util.StyledAttributesHelper;
  * Renders the onboarding appearance preview from the same chat-row layout and message formatter
  * used by real conversations.
  *
- * OnboardingActivity still feeds this view a frame from the old compact sprite. The bitmap itself
- * is intentionally ignored: keeping this interception point makes the change local and reversible
- * while the preview is generated at runtime from deterministic, entirely local demo messages.
+ * The preview is generated at runtime from deterministic, entirely local demo messages and does
+ * not depend on packaged screenshots or preview bitmap assets.
  */
 public class OnboardingPresetPreviewView extends AppCompatImageView {
 
@@ -58,9 +57,9 @@ public class OnboardingPresetPreviewView extends AppCompatImageView {
         super(context, attrs, defStyleAttr);
     }
 
-    @Override
-    public void setImageBitmap(Bitmap ignored) {
+    public void renderPreview() {
         mRenderRequested = true;
+        mLastRenderedWidth = -1;
         post(this::renderPreviewIfReady);
     }
 
