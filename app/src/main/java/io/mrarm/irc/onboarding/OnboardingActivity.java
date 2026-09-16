@@ -5,8 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
@@ -16,7 +14,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.RadioButton;
@@ -60,6 +57,7 @@ import io.mrarm.irc.util.theme.ThemeInfo;
 import io.mrarm.irc.util.theme.ThemeManager;
 import io.mrarm.irc.util.theme.UserPresetStore;
 import io.mrarm.irc.view.ChipsEditText;
+import io.mrarm.irc.view.OnboardingPresetPreviewView;
 
 /** Four-step first-run wizard. Existing configuration is updated, never wholesale deleted. */
 public class OnboardingActivity extends ThemedActivity {
@@ -72,7 +70,6 @@ public class OnboardingActivity extends ThemedActivity {
     private static final int STEP_APPEARANCE = 2;
     private static final int STEP_NETWORK = 3;
     private static final int STEP_COUNT = 4;
-    private static final int PREVIEW_FRAME_COUNT = 6;
 
     private static final String STATE_STEP = "step";
     private static final String STATE_IMPORTED_PRESET = "imported_preset";
@@ -104,7 +101,7 @@ public class OnboardingActivity extends ThemedActivity {
     private EditText mRealname;
     private CheckBox mApplyExisting;
     private RadioGroup mPresetGroup;
-    private ImageView mPresetPreview;
+    private OnboardingPresetPreviewView mPresetPreview;
     private TextView mImportedPreset;
     private RadioButton mSimosnap;
     private TextView mSelectedNetwork;
@@ -121,7 +118,6 @@ public class OnboardingActivity extends ThemedActivity {
     private Button mBack;
     private Button mNext;
 
-    private Bitmap mPresetPreviewSprite;
     private TemporaryChannelListConnection mTemporaryChannelListConnection;
     private AlertDialog mChannelListProgressDialog;
 
@@ -344,40 +340,17 @@ public class OnboardingActivity extends ThemedActivity {
         }
     }
 
-    private int presetPreviewIndex(AppearancePreset preset) {
-        switch (preset) {
-            case GRAPHIC_LIGHT: return 0;
-            case GRAPHIC_DARK: return 1;
-            case IRC_LIGHT: return 2;
-            case IRC_DARK: return 3;
-            case TERMINAL: return 4;
-            case COLOR_BLIND: return 5;
-            default: return -1;
-        }
-    }
-
     private void updatePresetPreview(AppearancePreset preset) {
         if (mPresetPreview == null || mImportedPresetName != null) {
             if (mPresetPreview != null)
                 mPresetPreview.setVisibility(View.GONE);
             return;
         }
-        int index = presetPreviewIndex(preset);
-        if (index < 0) {
+        if (presetViewId(preset) == View.NO_ID) {
             mPresetPreview.setVisibility(View.GONE);
             return;
         }
-        if (mPresetPreviewSprite == null)
-            mPresetPreviewSprite = BitmapFactory.decodeResource(
-                    getResources(), R.drawable.onboarding_preset_previews);
-        if (mPresetPreviewSprite == null || mPresetPreviewSprite.getHeight() < PREVIEW_FRAME_COUNT) {
-            mPresetPreview.setVisibility(View.GONE);
-            return;
-        }
-        int frameHeight = mPresetPreviewSprite.getHeight() / PREVIEW_FRAME_COUNT;
-        Bitmap frame = Bitmap.createBitmap(mPresetPreviewSprite, 0, index * frameHeight,
-                mPresetPreviewSprite.getWidth(), frameHeight);
-        mPresetPreview.setImageBitmap(frame);
+        mPresetPreview.renderPreview();
         mPresetPreview.setVisibility(View.VISIBLE);
     }
 
