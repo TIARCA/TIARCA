@@ -15,11 +15,13 @@ import static org.junit.Assert.assertTrue;
 public class OnboardingPreviewResourcesTest {
 
     @Test
-    public void onboardingUsesRuntimeChatPreviewWithoutDedicatedScreenshots() throws IOException {
+    public void onboardingUsesRuntimeChatPreviewWithoutPreviewImages() throws IOException {
         String layout = read("src/main/res/layout/activity_onboarding.xml");
+        String activity = read("src/main/java/io/mrarm/irc/onboarding/OnboardingActivity.java");
         String previewView = read("src/main/java/io/mrarm/irc/view/OnboardingPresetPreviewView.java");
 
         assertTrue(layout.contains("io.mrarm.irc.view.OnboardingPresetPreviewView"));
+        assertTrue(activity.contains("mPresetPreview.renderPreview()"));
         assertTrue(previewView.contains("R.layout.chat_message"));
         assertTrue(previewView.contains("new MessageBuilder(getContext())"));
         assertTrue(previewView.contains("new NickPrefixList(prefix)"));
@@ -28,26 +30,24 @@ public class OnboardingPreviewResourcesTest {
         assertTrue(previewView.contains("aunt Augusta"));
         assertTrue(previewView.contains("22, 48, 41"));
 
-        String[] obsoleteScreenshots = {
+        String[] obsoleteImages = {
                 "onboarding_preset_graphic_light",
                 "onboarding_preset_graphic_dark",
                 "onboarding_preset_irc_light",
                 "onboarding_preset_irc_dark",
                 "onboarding_preset_terminal",
-                "onboarding_preset_color_blind"
+                "onboarding_preset_color_blind",
+                "onboarding_preset_previews"
         };
-        for (String name : obsoleteScreenshots) {
+        for (String name : obsoleteImages) {
             Path image = path("src/main/res/drawable-nodpi/" + name + ".webp");
-            assertFalse("Obsolete dedicated onboarding preview still present: " + name,
+            assertFalse("Obsolete onboarding preview image still present: " + name,
                     Files.exists(image));
-            assertFalse("Runtime preview still references obsolete screenshot: " + name,
+            assertFalse("Runtime preview still references obsolete image: " + name,
                     previewView.contains("R.drawable." + name));
+            assertFalse("Onboarding activity still references obsolete image: " + name,
+                    activity.contains("R.drawable." + name));
         }
-
-        // OnboardingActivity still decodes the old compact sprite before calling setImageBitmap().
-        // The custom preview view ignores that bitmap; keeping this tiny trigger avoids widening
-        // the first experiment into an unrelated onboarding-activity refactor.
-        assertTrue(Files.exists(path("src/main/res/drawable-nodpi/onboarding_preset_previews.webp")));
     }
 
     private static Path path(String relative) {
