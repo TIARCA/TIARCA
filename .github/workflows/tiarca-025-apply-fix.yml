@@ -1,0 +1,30 @@
+name: Apply TIARCA 025 patch
+
+on:
+  push:
+    branches:
+      - fix/tiarca-025-jump-to-latest
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: fix/tiarca-025-jump-to-latest
+          fetch-depth: 0
+      - name: Apply fix
+        run: python3 tools/tiarca_025_apply.py
+      - name: Commit clean result
+        shell: bash
+        run: |
+          rm -f tools/tiarca_025_apply.py .github/workflows/tiarca-025-apply-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "TIARCA-025: stabilize jump to latest"
+          git push origin HEAD:fix/tiarca-025-jump-to-latest
