@@ -46,6 +46,26 @@ public final class UserPresetStore {
                 .contains(theme.uuid.toString());
     }
 
+    public static Set<String> snapshotMarkedPresetIds(Context context) {
+        return new HashSet<>(prefs(context).getStringSet(KEY_IDS,
+                java.util.Collections.emptySet()));
+    }
+
+    public static void replaceMarkedPresetIds(Context context, Collection<String> ids) {
+        Set<String> validIds = new HashSet<>();
+        if (ids != null) {
+            for (String id : ids) {
+                if (id == null)
+                    continue;
+                try {
+                    validIds.add(UUID.fromString(id).toString());
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+        }
+        prefs(context).edit().putStringSet(KEY_IDS, validIds).commit();
+    }
+
     public static Set<UUID> snapshotThemeIds(ThemeManager manager) {
         Set<UUID> result = new HashSet<>();
         if (manager == null)

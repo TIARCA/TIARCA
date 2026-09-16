@@ -36,6 +36,7 @@ import io.mrarm.irc.ServerConnectionManager;
 import io.mrarm.irc.setting.ListWithCustomSetting;
 import io.mrarm.irc.util.theme.ThemeInfo;
 import io.mrarm.irc.util.theme.ThemeManager;
+import io.mrarm.irc.util.theme.UserPresetStore;
 
 public class BackupManager {
 
@@ -50,6 +51,7 @@ public class BackupManager {
     private static final String NOTIFICATION_COUNT_DB_PATH = "notification-count.db";
     private static final String BACKUP_THEME_PREFIX = "themes/theme-";
     private static final String BACKUP_THEME_SUFFIX = ".json";
+    private static final String BACKUP_USER_PRESETS_PATH = "user_presets.json";
 
     public static void createBackup(Context context, File file, String password) throws IOException {
         try {
@@ -117,6 +119,12 @@ public class BackupManager {
                 params.setFileNameInZip(BACKUP_THEME_PREFIX + themeInfo.uuid + BACKUP_THEME_SUFFIX);
                 zipFile.addFile(themeManager.getThemePath(themeInfo.uuid), params);
             }
+
+            params.setFileNameInZip(BACKUP_USER_PRESETS_PATH);
+            String[] importedPresetIds = UserPresetStore.snapshotMarkedPresetIds(context)
+                    .toArray(new String[0]);
+            zipFile.addStream(new ByteArrayInputStream(
+                    SettingsHelper.getGson().toJson(importedPresetIds).getBytes()), params);
         } catch (ZipException e) {
             throw new IOException(e);
         }
@@ -173,6 +181,10 @@ public class BackupManager {
             }
             themeDir.mkdir();
 
+            // The imported-preset registry lives outside DefaultPreferences. Clear it before
+            // restoring so legacy backups cannot inherit stale flags from the current install.
+            UserPresetStore.replaceMarkedPresetIds(context, java.util.Collections.emptySet());
+
             for (Object header : zipFile.getFileHeaders()) {
                 if (!(header instanceof FileHeader))
                     continue;
@@ -223,6 +235,14 @@ public class BackupManager {
                     } catch (IllegalArgumentException e) {
                         Log.w("BackupManager", "Failed to restore theme " + uuid);
                     }
+                }
+                if (BACKUP_USER_PRESETS_PATH.equals(fileHeader.getFileName())) {
+                    reader = new BufferedReader(new InputStreamReader(zipFile.getInputStream(
+                            fileHeader)));
+                    String[] ids = SettingsHelper.getGson().fromJson(reader, String[].class);
+                    reader.close();
+                    UserPresetStore.replaceMarkedPresetIds(context, ids == null ?
+                            java.util.Collections.emptySet() : java.util.Arrays.asList(ids));
                 }
             }
 

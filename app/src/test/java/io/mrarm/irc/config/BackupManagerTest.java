@@ -23,6 +23,8 @@ import java.util.zip.ZipOutputStream;
 
 import io.mrarm.irc.ServerConnectionManager;
 import io.mrarm.irc.irc.MonitoredUsersManager;
+import io.mrarm.irc.util.theme.ThemeInfo;
+import io.mrarm.irc.util.theme.UserPresetStore;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -43,6 +45,7 @@ public class BackupManagerTest {
         context = ApplicationProvider.getApplicationContext();
         ServerConfigManager.getInstance(context).deleteAllServers(true);
         NotificationRuleManager.saveUserRuleSettings(context);
+        UserPresetStore.replaceMarkedPresetIds(context, java.util.Collections.emptySet());
     }
 
     @Test
@@ -143,6 +146,23 @@ public class BackupManagerTest {
     }
 
     @Test
+    public void roundTripBackupAndRestorePreservesImportedPresetRegistry() throws Exception {
+        ThemeInfo importedPreset = new ThemeInfo();
+        importedPreset.uuid = UUID.randomUUID();
+        UserPresetStore.mark(context, importedPreset);
+
+        File backupFile = new File(temporaryFolder.getRoot(), "preset_backup.zip");
+        BackupManager.createBackup(context, backupFile, null);
+
+        UserPresetStore.unmark(context, importedPreset);
+        assertTrue(!UserPresetStore.contains(context, importedPreset));
+
+        BackupManager.restoreBackup(context, backupFile, null);
+
+        assertTrue(UserPresetStore.contains(context, importedPreset));
+    }
+
+    @Test
     public void restoresOldBackupWithoutMonitorListGracefully() throws Exception {
         File zipFile = new File(temporaryFolder.getRoot(), "old_backup.zip");
         StringWriter rulesWriter = new StringWriter();
@@ -170,6 +190,11 @@ public class BackupManagerTest {
 
         assertTrue(BackupManager.verifyBackupFile(zipFile));
 
+        ThemeInfo stalePreset = new ThemeInfo();
+        stalePreset.uuid = UUID.randomUUID();
+        UserPresetStore.mark(context, stalePreset);
+        assertTrue(UserPresetStore.contains(context, stalePreset));
+
         ServerConfigManager configManager = ServerConfigManager.getInstance(context);
         configManager.deleteAllServers(true);
 
@@ -182,5 +207,6 @@ public class BackupManagerTest {
         assertEquals("LegacyServer", legacyServer.name);
         MonitoredUsersManager manager = new MonitoredUsersManager(legacyServer);
         assertTrue(manager.getMonitoredUsers().isEmpty());
+        assertTrue(!UserPresetStore.contains(context, stalePreset));
     }
 }
