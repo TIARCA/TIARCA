@@ -1,0 +1,117 @@
+name: Apply TIARCA 027 patch
+
+on:
+  push:
+    branches:
+      - fix/tiarca-027-backup-imported-presets
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: fix/tiarca-027-backup-imported-presets
+          fetch-depth: 0
+
+      - name: Apply backup registry fix
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new, label):
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected exactly one match, got {count}')
+              p.write_text(text.replace(old, new, 1))
+
+          # UserPresetStore: expose a safe snapshot/replace API for the separate registry.
+          replace_once(
+              'app/src/main/java/io/mrarm/irc/util/theme/UserPresetStore.java',
+              '''    public static boolean contains(Context context, ThemeInfo theme) {\n        return theme != null && theme.uuid != null && prefs(context)\n                .getStringSet(KEY_IDS, java.util.Collections.emptySet())\n                .contains(theme.uuid.toString());\n    }\n\n''',
+              '''    public static boolean contains(Context context, ThemeInfo theme) {\n        return theme != null && theme.uuid != null && prefs(context)\n                .getStringSet(KEY_IDS, java.util.Collections.emptySet())\n                .contains(theme.uuid.toString());\n    }\n\n    public static Set<String> snapshotMarkedPresetIds(Context context) {\n        return new HashSet<>(prefs(context).getStringSet(KEY_IDS,\n                java.util.Collections.emptySet()));\n    }\n\n    public static void replaceMarkedPresetIds(Context context, Collection<String> ids) {\n        Set<String> validIds = new HashSet<>();\n        if (ids != null) {\n            for (String id : ids) {\n                if (id == null)\n                    continue;\n                try {\n                    validIds.add(UUID.fromString(id).toString());\n                } catch (IllegalArgumentException ignored) {\n                }\n            }\n        }\n        prefs(context).edit().putStringSet(KEY_IDS, validIds).commit();\n    }\n\n''',
+              'UserPresetStore backup API')
+
+          # BackupManager: include the separate imported-preset registry as an optional entry.
+          replace_once(
+              'app/src/main/java/io/mrarm/irc/config/BackupManager.java',
+              '''import io.mrarm.irc.util.theme.ThemeInfo;\nimport io.mrarm.irc.util.theme.ThemeManager;\n''',
+              '''import io.mrarm.irc.util.theme.ThemeInfo;\nimport io.mrarm.irc.util.theme.ThemeManager;\nimport io.mrarm.irc.util.theme.UserPresetStore;\n''',
+              'BackupManager import')
+
+          replace_once(
+              'app/src/main/java/io/mrarm/irc/config/BackupManager.java',
+              '''    private static final String BACKUP_THEME_PREFIX = "themes/theme-";\n    private static final String BACKUP_THEME_SUFFIX = ".json";\n''',
+              '''    private static final String BACKUP_THEME_PREFIX = "themes/theme-";\n    private static final String BACKUP_THEME_SUFFIX = ".json";\n    private static final String BACKUP_USER_PRESETS_PATH = "user_presets.json";\n''',
+              'BackupManager registry path')
+
+          replace_once(
+              'app/src/main/java/io/mrarm/irc/config/BackupManager.java',
+              '''            ThemeManager themeManager = ThemeManager.getInstance(context);\n            for (ThemeInfo themeInfo : themeManager.getCustomThemes()) {\n                params.setFileNameInZip(BACKUP_THEME_PREFIX + themeInfo.uuid + BACKUP_THEME_SUFFIX);\n                zipFile.addFile(themeManager.getThemePath(themeInfo.uuid), params);\n            }\n''',
+              '''            ThemeManager themeManager = ThemeManager.getInstance(context);\n            for (ThemeInfo themeInfo : themeManager.getCustomThemes()) {\n                params.setFileNameInZip(BACKUP_THEME_PREFIX + themeInfo.uuid + BACKUP_THEME_SUFFIX);\n                zipFile.addFile(themeManager.getThemePath(themeInfo.uuid), params);\n            }\n\n            params.setFileNameInZip(BACKUP_USER_PRESETS_PATH);\n            String[] importedPresetIds = UserPresetStore.snapshotMarkedPresetIds(context)\n                    .toArray(new String[0]);\n            zipFile.addStream(new ByteArrayInputStream(\n                    SettingsHelper.getGson().toJson(importedPresetIds).getBytes()), params);\n''',
+              'BackupManager backup registry')
+
+          replace_once(
+              'app/src/main/java/io/mrarm/irc/config/BackupManager.java',
+              '''            themeDir.mkdir();\n\n            for (Object header : zipFile.getFileHeaders()) {\n''',
+              '''            themeDir.mkdir();\n\n            // The imported-preset registry lives outside DefaultPreferences. Clear it before\n            // restoring so legacy backups cannot inherit stale flags from the current install.\n            UserPresetStore.replaceMarkedPresetIds(context, java.util.Collections.emptySet());\n\n            for (Object header : zipFile.getFileHeaders()) {\n''',
+              'BackupManager clear registry')
+
+          replace_once(
+              'app/src/main/java/io/mrarm/irc/config/BackupManager.java',
+              '''                if (fileHeader.getFileName().startsWith(BACKUP_THEME_PREFIX) &&\n                        fileHeader.getFileName().endsWith(BACKUP_THEME_SUFFIX)) {\n                    String uuid = fileHeader.getFileName();\n                    uuid = uuid.substring(BACKUP_THEME_PREFIX.length(), uuid.length() -\n                            BACKUP_THEME_SUFFIX.length());\n                    try {\n                        File extractTo = themeManager.getThemePath(UUID.fromString(uuid));\n                        zipFile.extractFile(fileHeader, extractTo.getParentFile().getAbsolutePath(),\n                                null, extractTo.getName());\n                    } catch (IllegalArgumentException e) {\n                        Log.w("BackupManager", "Failed to restore theme " + uuid);\n                    }\n                }\n''',
+              '''                if (fileHeader.getFileName().startsWith(BACKUP_THEME_PREFIX) &&\n                        fileHeader.getFileName().endsWith(BACKUP_THEME_SUFFIX)) {\n                    String uuid = fileHeader.getFileName();\n                    uuid = uuid.substring(BACKUP_THEME_PREFIX.length(), uuid.length() -\n                            BACKUP_THEME_SUFFIX.length());\n                    try {\n                        File extractTo = themeManager.getThemePath(UUID.fromString(uuid));\n                        zipFile.extractFile(fileHeader, extractTo.getParentFile().getAbsolutePath(),\n                                null, extractTo.getName());\n                    } catch (IllegalArgumentException e) {\n                        Log.w("BackupManager", "Failed to restore theme " + uuid);\n                    }\n                }\n                if (BACKUP_USER_PRESETS_PATH.equals(fileHeader.getFileName())) {\n                    reader = new BufferedReader(new InputStreamReader(zipFile.getInputStream(\n                            fileHeader)));\n                    String[] ids = SettingsHelper.getGson().fromJson(reader, String[].class);\n                    reader.close();\n                    UserPresetStore.replaceMarkedPresetIds(context, ids == null ?\n                            java.util.Collections.emptySet() : java.util.Arrays.asList(ids));\n                }\n''',
+              'BackupManager restore registry')
+
+          # Backup regression coverage.
+          replace_once(
+              'app/src/test/java/io/mrarm/irc/config/BackupManagerTest.java',
+              '''import io.mrarm.irc.ServerConnectionManager;\nimport io.mrarm.irc.irc.MonitoredUsersManager;\n''',
+              '''import io.mrarm.irc.ServerConnectionManager;\nimport io.mrarm.irc.irc.MonitoredUsersManager;\nimport io.mrarm.irc.util.theme.ThemeInfo;\nimport io.mrarm.irc.util.theme.UserPresetStore;\n''',
+              'BackupManagerTest imports')
+
+          replace_once(
+              'app/src/test/java/io/mrarm/irc/config/BackupManagerTest.java',
+              '''        ServerConfigManager.getInstance(context).deleteAllServers(true);\n        NotificationRuleManager.saveUserRuleSettings(context);\n''',
+              '''        ServerConfigManager.getInstance(context).deleteAllServers(true);\n        NotificationRuleManager.saveUserRuleSettings(context);\n        UserPresetStore.replaceMarkedPresetIds(context, java.util.Collections.emptySet());\n''',
+              'BackupManagerTest setup')
+
+          replace_once(
+              'app/src/test/java/io/mrarm/irc/config/BackupManagerTest.java',
+              '''    @Test\n    public void restoresOldBackupWithoutMonitorListGracefully() throws Exception {\n''',
+              '''    @Test\n    public void roundTripBackupAndRestorePreservesImportedPresetRegistry() throws Exception {\n        ThemeInfo importedPreset = new ThemeInfo();\n        importedPreset.uuid = UUID.randomUUID();\n        UserPresetStore.mark(context, importedPreset);\n\n        File backupFile = new File(temporaryFolder.getRoot(), "preset_backup.zip");\n        BackupManager.createBackup(context, backupFile, null);\n\n        UserPresetStore.unmark(context, importedPreset);\n        assertTrue(!UserPresetStore.contains(context, importedPreset));\n\n        BackupManager.restoreBackup(context, backupFile, null);\n\n        assertTrue(UserPresetStore.contains(context, importedPreset));\n    }\n\n    @Test\n    public void restoresOldBackupWithoutMonitorListGracefully() throws Exception {\n''',
+              'BackupManagerTest round-trip registry test')
+
+          replace_once(
+              'app/src/test/java/io/mrarm/irc/config/BackupManagerTest.java',
+              '''        assertTrue(BackupManager.verifyBackupFile(zipFile));\n\n        ServerConfigManager configManager = ServerConfigManager.getInstance(context);\n''',
+              '''        assertTrue(BackupManager.verifyBackupFile(zipFile));\n\n        ThemeInfo stalePreset = new ThemeInfo();\n        stalePreset.uuid = UUID.randomUUID();\n        UserPresetStore.mark(context, stalePreset);\n        assertTrue(UserPresetStore.contains(context, stalePreset));\n\n        ServerConfigManager configManager = ServerConfigManager.getInstance(context);\n''',
+              'BackupManagerTest legacy stale setup')
+
+          replace_once(
+              'app/src/test/java/io/mrarm/irc/config/BackupManagerTest.java',
+              '''        MonitoredUsersManager manager = new MonitoredUsersManager(legacyServer);\n        assertTrue(manager.getMonitoredUsers().isEmpty());\n''',
+              '''        MonitoredUsersManager manager = new MonitoredUsersManager(legacyServer);\n        assertTrue(manager.getMonitoredUsers().isEmpty());\n        assertTrue(!UserPresetStore.contains(context, stalePreset));\n''',
+              'BackupManagerTest legacy stale assertion')
+          PY
+
+      - name: Run focused tests
+        run: ./gradlew :app:testDebugUnitTest --tests io.mrarm.irc.config.BackupManagerTest --tests io.mrarm.irc.util.theme.UserPresetStoreTest
+
+      - name: Commit clean result
+        shell: bash
+        run: |
+          rm -f .github/workflows/tiarca-027-apply-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "TIARCA-027: preserve imported presets in backups"
+          git push origin HEAD:fix/tiarca-027-backup-imported-presets
