@@ -95,6 +95,7 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
     private MessageListAfterIdentifier mLoadOlderIdentifier;
     private MessageListAfterIdentifier mLoadNewerIdentifier;
     private boolean mIsLoadingMore;
+    private volatile int mMessageWindowGeneration;
     private MessageFilterOptions mMessageFilterOptions;
     private View mUnreadCtr;
     private TextView mUnreadText;
@@ -272,10 +273,13 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
                         return;
                     Log.i(TAG, "Load more (older): " + mChannelName);
                     mIsLoadingMore = true;
+                    final int generation = mMessageWindowGeneration;
                     mConnection.getApiInstance().getMessageStorageApi().getMessages(mChannelName,
                             100, getFilterOptions(), mLoadOlderIdentifier,
                             (MessageList messages) -> {
                                 updateMessageList(() -> {
+                                    if (generation != mMessageWindowGeneration)
+                                        return;
                                     mAdapter.addMessagesToTop(messages.getMessages(),
                                             messages.getMessageIds());
                                     mLoadOlderIdentifier = messages.getOlder();
@@ -290,10 +294,13 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
                         return;
                     Log.i(TAG, "Load more (newer): " + mChannelName);
                     mIsLoadingMore = true;
+                    final int generation = mMessageWindowGeneration;
                     mConnection.getApiInstance().getMessageStorageApi().getMessages(mChannelName,
                             100, getFilterOptions(), mLoadNewerIdentifier,
                             (MessageList messages) -> {
                                 updateMessageList(() -> {
+                                    if (generation != mMessageWindowGeneration)
+                                        return;
                                     mAdapter.addMessagesToBottom(messages.getMessages(),
                                             messages.getMessageIds());
                                     mLoadNewerIdentifier = messages.getNewer();
@@ -557,14 +564,23 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
             mMessageFilterOptions = sFilterJoinParts;
         else
             mMessageFilterOptions = null;
+        final int generation = ++mMessageWindowGeneration;
+        // A full window reload supersedes any older/newer pagination still in flight.
+        mLoadOlderIdentifier = null;
+        mLoadNewerIdentifier = null;
+        mIsLoadingMore = false;
         mUnreadCheckedFirst = -1;
         mUnreadCheckedLast = -1;
         mAdapter.setNewMessagesStart(mConnection.getNotificationManager()
                 .getChannelManager(mChannelName, true).getFirstUnreadMessage());
         ResponseCallback<MessageList> cb = (MessageList messages) -> {
+            if (generation != mMessageWindowGeneration)
+                return;
             Log.i(TAG, "Got message list for " + mChannelName + ": " +
                     messages.getMessages().size() + " messages");
             updateMessageList(() -> {
+                if (generation != mMessageWindowGeneration)
+                    return;
                 mAdapter.setMessages(messages.getMessages(), messages.getMessageIds());
                 if (mRecyclerView != null) {
                     int nearIndex = nearMessage == null ? -1 : mAdapter.findMessageWithId(nearMessage);
@@ -585,6 +601,8 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
                     mRecyclerView.post(this::updateReadPosition);
                 }
                 mLoadOlderIdentifier = messages.getOlder();
+                mLoadNewerIdentifier = nearMessage == null ? null : messages.getNewer();
+                mIsLoadingMore = false;
             });
 
             if (!mNeedsUnsubscribeMessages) {
@@ -595,12 +613,7 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
         MessageStorageApi storage = mConnection.getApiInstance().getMessageStorageApi();
         if (nearMessage != null) {
             storage.getMessagesNear(mChannelName, nearMessage,
-                    getFilterOptions(), (MessageList messages) -> {
-                        cb.onResponse(messages);
-                        updateMessageList(() -> {
-                            mLoadNewerIdentifier = messages.getNewer();
-                        });
-                    }, null);
+                    getFilterOptions(), cb, null);
         } else {
             mConnection.getApiInstance().getMessageStorageApi().getMessages(mChannelName, 100,
                     getFilterOptions(), null, cb, null);
