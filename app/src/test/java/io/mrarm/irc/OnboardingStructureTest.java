@@ -31,6 +31,7 @@ public class OnboardingStructureTest {
     @Test
     public void wizardShowsAllBuiltInStylesImportAndPreview() throws IOException {
         String xml = read("src/main/res/layout/activity_onboarding.xml");
+        String java = read("src/main/java/io/mrarm/irc/onboarding/OnboardingActivity.java");
         assertTrue(xml.contains("onboarding_preset_graphic_light"));
         assertTrue(xml.contains("onboarding_preset_graphic_dark"));
         assertTrue(xml.contains("onboarding_preset_irc_light"));
@@ -39,10 +40,9 @@ public class OnboardingStructureTest {
         assertTrue(xml.contains("onboarding_preset_color_blind"));
         assertTrue(xml.contains("onboarding_import_preset"));
         assertTrue(xml.contains("onboarding_preset_preview"));
-
-        Path preview = path("src/main/res/drawable-nodpi/onboarding_preset_previews.webp");
-        assertTrue("Real-device preset preview sprite must be packaged", Files.exists(preview));
-        assertTrue("Preview sprite must not be empty", Files.size(preview) > 1000);
+        assertTrue(xml.contains("io.mrarm.irc.view.OnboardingPresetPreviewView"));
+        assertTrue(java.contains("mPresetPreview.renderPreview()"));
+        assertFalse(java.contains("onboarding_preset_previews"));
     }
 
     @Test
