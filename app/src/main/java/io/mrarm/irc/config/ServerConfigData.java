@@ -22,6 +22,8 @@ import io.mrarm.irc.util.SimpleWildcardPattern;
 public class ServerConfigData {
 
     private static final String AUTH_LEGACY_PASSWORD = "password";
+    private static final String SIMOSNAP_DEPRECATED_ADDRESS = "irc.simosnap.org";
+    private static final String SIMOSNAP_OFFICIAL_ADDRESS = "irc.simosnap.com";
     public static final String AUTH_SASL = "sasl";
     public static final String AUTH_SASL_EXTERNAL = "sasl_external";
 
@@ -67,13 +69,14 @@ public class ServerConfigData {
             authPass = null;
             authMode = null;
         }
-        if (address != null && "irc.simosnap.com".equalsIgnoreCase(address.trim())) {
-            address = "irc.simosnap.org";
+        if (address != null && SIMOSNAP_DEPRECATED_ADDRESS.equalsIgnoreCase(address.trim())) {
+            address = SIMOSNAP_OFFICIAL_ADDRESS;
         }
         if (addresses != null) {
             for (int i = 0; i < addresses.size(); i++) {
-                if (addresses.get(i) != null && "irc.simosnap.com".equalsIgnoreCase(addresses.get(i).trim())) {
-                    addresses.set(i, "irc.simosnap.org");
+                if (addresses.get(i) != null &&
+                        SIMOSNAP_DEPRECATED_ADDRESS.equalsIgnoreCase(addresses.get(i).trim())) {
+                    addresses.set(i, SIMOSNAP_OFFICIAL_ADDRESS);
                 }
             }
         }
@@ -95,12 +98,14 @@ public class ServerConfigData {
         ArrayList<String> result = new ArrayList<>();
         if (addresses != null) {
             for (String value : addresses) {
-                if (value != null && !value.trim().isEmpty() && !result.contains(value.trim()))
-                    result.add(value.trim());
+                String normalized = normalizeConnectionAddress(value);
+                if (normalized != null && !normalized.isEmpty() && !result.contains(normalized))
+                    result.add(normalized);
             }
         }
-        if (address != null && !address.trim().isEmpty() && !result.contains(address.trim()))
-            result.add(0, address.trim());
+        String primary = normalizeConnectionAddress(address);
+        if (primary != null && !primary.isEmpty() && !result.contains(primary))
+            result.add(0, primary);
         return result;
     }
 
@@ -108,17 +113,24 @@ public class ServerConfigData {
         ArrayList<String> normalized = new ArrayList<>();
         if (values != null) {
             for (String value : values) {
-                if (value == null)
-                    continue;
-                String trimmed = value.trim();
-                if (!trimmed.isEmpty() && !normalized.contains(trimmed))
-                    normalized.add(trimmed);
+                String canonical = normalizeConnectionAddress(value);
+                if (canonical != null && !canonical.isEmpty() && !normalized.contains(canonical))
+                    normalized.add(canonical);
             }
         }
         // Do not call getConnectionAddresses() here: it also reads the legacy primary field and
         // would silently prepend the old address after the user has replaced or reordered it.
         addresses = normalized;
         address = normalized.isEmpty() ? null : normalized.get(0);
+    }
+
+    private static String normalizeConnectionAddress(String value) {
+        if (value == null)
+            return null;
+        String trimmed = value.trim();
+        if (SIMOSNAP_DEPRECATED_ADDRESS.equalsIgnoreCase(trimmed))
+            return SIMOSNAP_OFFICIAL_ADDRESS;
+        return trimmed;
     }
 
     public X509Certificate getAuthCert() {
