@@ -71,4 +71,36 @@ public class SimosnapVerificationManagerTest {
         assertNotNull(challenge);
         assertEquals("9", challenge.suggestedAnswer);
     }
+
+    @Test
+    public void includesPreviousChallengeNoticesInDisplayedMessage() {
+        SimosnapVerificationManager.Challenge challenge =
+                SimosnapVerificationManager.parseChallenge(
+                        "*** Puoi inserire la tua risposta utilizzando /QUOTE SOLVE <risposta>");
+
+        challenge = SimosnapVerificationManager.withContext(challenge,
+                "*** Prima di poter inviare messaggi è necessario risolvere il seguente problema:",
+                "*** Quanto fa 3 + 8?");
+
+        assertNotNull(challenge);
+        assertEquals(
+                "*** Prima di poter inviare messaggi è necessario risolvere il seguente problema:\n"
+                        + "*** Quanto fa 3 + 8?\n"
+                        + "*** Puoi inserire la tua risposta utilizzando /QUOTE SOLVE <risposta>",
+                challenge.message);
+        assertNull(challenge.suggestedAnswer);
+    }
+
+    @Test
+    public void contextFormattingIsNormalizedToo() {
+        SimosnapVerificationManager.Challenge challenge =
+                SimosnapVerificationManager.parseChallenge(
+                        "/quote solve <answer>");
+
+        challenge = SimosnapVerificationManager.withContext(challenge,
+                "\u0002Question:\u000f Quanto fa 7 + 4?");
+
+        assertNotNull(challenge);
+        assertEquals("Question: Quanto fa 7 + 4?\n/quote solve <answer>", challenge.message);
+    }
 }
