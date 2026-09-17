@@ -18,6 +18,7 @@ import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.TimeZone;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
@@ -27,7 +28,7 @@ import io.mrarm.irc.BuildConfig;
  * Opt-in diagnostic logger for user-shareable troubleshooting logs.
  *
  * The logger is deliberately independent from Logcat: when disabled it performs no file I/O and
- * lazy message suppliers are not evaluated. When enabled it writes a small rotating private log,
+ * lazy message suppliers are not evaluated. When enabled it writes a rotating private log,
  * applying a final sanitization pass in addition to the rule that callers must never pass chat
  * contents or credentials in the first place.
  */
@@ -38,8 +39,12 @@ public final class DiagnosticLog {
     private static final String DIR_NAME = "diagnostics";
     private static final String LOG_NAME = "tiarca-debug.log";
     private static final String OLD_LOG_NAME = "tiarca-debug.1.log";
-    private static final long MAX_LOG_BYTES = 512L * 1024L;
-    private static final int MAX_MESSAGE_CHARS = 2000;
+    // Diagnostics are opt-in and normally enabled only while reproducing a bug. Keep enough
+    // history for verbose subsystem traces without losing the beginning of a reproduction.
+    private static final long MAX_LOG_BYTES = 4L * 1024L * 1024L;
+    private static final int MAX_MESSAGE_CHARS = 4000;
+    private static final int MAX_STACK_FRAMES = 24;
+    private static final int MAX_CAUSE_DEPTH = 3;
 
     private static final Pattern EMAIL = Pattern.compile(
             "\\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\b",
@@ -110,6 +115,34 @@ public final class DiagnosticLog {
     public static void e(Context context, String category, Supplier<String> messageSupplier,
                          Throwable error) {
         log(context, "E", category, messageSupplier, error);
+    }
+
+    /**
+     * Context-free overloads for application-layer helpers that do not own an Android Context.
+     * They intentionally do nothing until the application has initialized diagnostics.
+     */
+    public static void d(String category, Supplier<String> messageSupplier) {
+        logCurrent("D", category, messageSupplier, null);
+    }
+
+    public static void i(String category, Supplier<String> messageSupplier) {
+        logCurrent("I", category, messageSupplier, null);
+    }
+
+    public static void w(String category, Supplier<String> messageSupplier, Throwable error) {
+        logCurrent("W", category, messageSupplier, error);
+    }
+
+    public static void e(String category, Supplier<String> messageSupplier, Throwable error) {
+        logCurrent("E", category, messageSupplier, error);
+    }
+
+    private static void logCurrent(String level, String category,
+                                   Supplier<String> messageSupplier, Throwable error) {
+        Context context = sContext;
+        if (context == null || !sInitialized)
+            return;
+        log(context, level, category, messageSupplier, error);
     }
 
     private static void log(Context context, String level, String category,
@@ -194,7 +227,9 @@ public final class DiagnosticLog {
                 writer.print(level);
                 writer.print('/');
                 writer.print(sanitizeCategory(category));
-                writer.print(' ');
+                writer.print(" [");
+                writer.print(sanitizeThreadName(Thread.currentThread().getName()));
+                writer.print("] ");
                 writer.println(sanitize(message));
                 if (error != null)
                     writeSafeStackTrace(writer, error);
@@ -216,7 +251,12 @@ public final class DiagnosticLog {
                 writer.println("TIARCA diagnostic log");
                 writer.println("Version: " + BuildConfig.VERSION_NAME + " (" +
                         BuildConfig.VERSION_CODE + ")");
-                writer.println("Android SDK: " + Build.VERSION.SDK_INT);
+                writer.println("Android: " + Build.VERSION.RELEASE + " (SDK " +
+                        Build.VERSION.SDK_INT + ")");
+                writer.println("Device: " + safeHeaderValue(Build.MANUFACTURER) + " " +
+                        safeHeaderValue(Build.MODEL));
+                writer.println("Locale: " + Locale.getDefault().toLanguageTag());
+                writer.println("Timezone: " + TimeZone.getDefault().getID());
                 writer.println("Privacy: chat contents and credentials are intentionally excluded; " +
                         "logged values also pass through a redaction filter.");
                 writer.println();
@@ -226,13 +266,25 @@ public final class DiagnosticLog {
     }
 
     private static void writeSafeStackTrace(PrintWriter writer, Throwable error) {
-        writer.println("  exception=" + error.getClass().getName());
-        StackTraceElement[] stack = error.getStackTrace();
-        int count = Math.min(stack.length, 12);
-        for (int i = 0; i < count; i++)
-            writer.println("    at " + stack[i]);
-        if (stack.length > count)
-            writer.println("    ... " + (stack.length - count) + " more");
+        Throwable current = error;
+        int depth = 0;
+        while (current != null && depth < MAX_CAUSE_DEPTH) {
+            writer.println((depth == 0 ? "  exception=" : "  causedBy=") +
+                    current.getClass().getName());
+            StackTraceElement[] stack = current.getStackTrace();
+            int count = Math.min(stack.length, MAX_STACK_FRAMES);
+            for (int i = 0; i < count; i++)
+                writer.println("    at " + stack[i]);
+            if (stack.length > count)
+                writer.println("    ... " + (stack.length - count) + " more");
+            Throwable next = current.getCause();
+            if (next == current)
+                break;
+            current = next;
+            depth++;
+        }
+        if (current != null)
+            writer.println("    ... additional cause(s) omitted");
     }
 
     static String sanitizeForTests(String value) {
@@ -258,6 +310,19 @@ public final class DiagnosticLog {
         if (value == null || value.trim().isEmpty())
             return "GENERAL";
         return value.replaceAll("[^A-Za-z0-9_.-]", "_");
+    }
+
+    private static String sanitizeThreadName(String value) {
+        if (value == null || value.trim().isEmpty())
+            return "unknown";
+        String sanitized = value.replaceAll("[^A-Za-z0-9_.-]", "_");
+        return sanitized.length() <= 80 ? sanitized : sanitized.substring(0, 80);
+    }
+
+    private static String safeHeaderValue(String value) {
+        if (value == null || value.trim().isEmpty())
+            return "unknown";
+        return value.replace('\r', ' ').replace('\n', ' ').trim();
     }
 
     private static void ensureInitialized(Context context) {

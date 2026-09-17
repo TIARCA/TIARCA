@@ -9,7 +9,6 @@ import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.security.spec.EncodedKeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.List;
 import java.util.ArrayList;
@@ -17,6 +16,7 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 import io.mrarm.irc.R;
+import io.mrarm.irc.util.DiagnosticLog;
 import io.mrarm.irc.util.SimpleWildcardPattern;
 
 public class ServerConfigData {
@@ -131,6 +131,8 @@ public class ServerConfigData {
         } catch (CertificateException e) {
             Log.e("ServerConfigData", "Failed to load cert data");
             e.printStackTrace();
+            DiagnosticLog.e("TLS", () -> diagnosticId() +
+                    " client certificate decode failed bytes=" + authCertData.length, e);
         }
         return null;
     }
@@ -145,8 +147,16 @@ public class ServerConfigData {
         } catch (GeneralSecurityException e) {
             Log.w("ServerConfigData", "Failed to load private key");
             e.printStackTrace();
+            DiagnosticLog.e("TLS", () -> diagnosticId() +
+                    " client private key decode failed algorithm=" +
+                    (authCertPrivKeyType == null ? "unknown" : authCertPrivKeyType) +
+                    ", bytes=" + authCertPrivKey.length, e);
         }
         return null;
+    }
+
+    private String diagnosticId() {
+        return DiagnosticLog.pseudonym("server-config", uuid == null ? "unknown" : uuid.toString());
     }
 
     public static class IgnoreEntry {

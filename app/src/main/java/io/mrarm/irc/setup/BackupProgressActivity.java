@@ -3,7 +3,6 @@ package io.mrarm.irc.setup;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -29,6 +28,7 @@ import java.util.Locale;
 import io.mrarm.irc.config.BackupManager;
 import io.mrarm.irc.R;
 import io.mrarm.irc.util.AppExecutors;
+import io.mrarm.irc.util.DiagnosticLog;
 
 public class BackupProgressActivity extends SetupProgressActivity {
 
@@ -48,11 +48,15 @@ public class BackupProgressActivity extends SetupProgressActivity {
 
         if (getIntent().getBooleanExtra(ARG_RESTORE_MODE, false)) {
             mRestoreMode = true;
+            DiagnosticLog.i(this, "BACKUP", () -> "Restore flow started");
             setTitle(R.string.title_activity_backup_progress_restore);
             askOpenBackup();
         } else {
             BackupRequest request = new BackupRequest();
             request.password = getIntent().getStringExtra(ARG_USER_PASSWORD);
+            final boolean passwordProtected = request.password != null && !request.password.isEmpty();
+            DiagnosticLog.i(this, "BACKUP", () ->
+                    "Backup flow started passwordProtected=" + passwordProtected);
             acquireExitLock();
             new BackupTask(this).execute(request);
         }
@@ -69,6 +73,9 @@ public class BackupProgressActivity extends SetupProgressActivity {
         if (mCompletionScheduled)
             return;
         mCompletionScheduled = true;
+        DiagnosticLog.i(this, "BACKUP", () ->
+                "Backup flow completion scheduled restoreMode=" + mRestoreMode +
+                        ", resultResId=" + resId);
         releaseExitLock();
         // Activity results can be delivered while DocumentsUI is still completing its close
         // transition. Starting the completion activity immediately leaves the old progress
@@ -86,6 +93,7 @@ public class BackupProgressActivity extends SetupProgressActivity {
     }
 
     public void askOpenBackup() {
+        DiagnosticLog.d(this, "BACKUP", () -> "Opening document picker for restore source");
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType(MimeTypeMap.getSingleton().getMimeTypeFromExtension("zip"));
@@ -95,9 +103,12 @@ public class BackupProgressActivity extends SetupProgressActivity {
 
     public void onBackupDone(File file) {
         if (file == null) {
+            DiagnosticLog.w(this, "BACKUP", () -> "Backup creation returned no file", null);
             setDone(R.string.error_generic);
             return;
         }
+        DiagnosticLog.i(this, "BACKUP", () ->
+                "Backup archive created bytes=" + file.length() + "; requesting destination");
         mBackupFile = file;
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -109,6 +120,8 @@ public class BackupProgressActivity extends SetupProgressActivity {
     }
 
     public void onRestoreDone(Integer result) {
+        final int restoreResult = result == null ? -1 : result;
+        DiagnosticLog.i(this, "BACKUP", () -> "Restore task completed result=" + restoreResult);
         if (result == RestoreTask.RESULT_OK) {
             setDone(R.string.backup_restored);
         } else if (result == RestoreTask.RESULT_ERROR) {
@@ -122,13 +135,21 @@ public class BackupProgressActivity extends SetupProgressActivity {
     }
 
     public void onBackupCopyDone(boolean success) {
+        DiagnosticLog.i(this, "BACKUP", () ->
+                "Backup document copy completed success=" + success +
+                        ", restoreMode=" + mRestoreMode);
         if (success) {
             if (mRestoreMode) {
-                if (!BackupManager.verifyBackupFile(mBackupFile)) {
+                boolean valid = BackupManager.verifyBackupFile(mBackupFile);
+                DiagnosticLog.d(this, "BACKUP", () -> "Restore archive validation valid=" + valid);
+                if (!valid) {
                     mBackupFile.delete();
                     setDone(R.string.backup_restore_invalid);
                 } else if (BackupManager.isBackupPasswordProtected(mBackupFile)) {
-                    Intent intent = new Intent(BackupProgressActivity.this, BackupPasswordActivity.class);
+                    DiagnosticLog.i(this, "BACKUP", () ->
+                            "Restore archive is password protected; requesting password");
+                    Intent intent = new Intent(BackupProgressActivity.this,
+                            BackupPasswordActivity.class);
                     intent.putExtra(BackupPasswordActivity.ARG_RESTORE_MODE, true);
                     mBackupPasswordLauncher.launch(intent);
                 } else {
@@ -143,6 +164,9 @@ public class BackupProgressActivity extends SetupProgressActivity {
     }
 
     public void startRestoreTask(String password) {
+        final boolean passwordProvided = password != null && !password.isEmpty();
+        DiagnosticLog.i(this, "BACKUP", () ->
+                "Starting restore task passwordProvided=" + passwordProvided);
         acquireExitLock();
         RestoreRequest request = new RestoreRequest();
         request.file = mBackupFile;
@@ -151,6 +175,8 @@ public class BackupProgressActivity extends SetupProgressActivity {
     }
 
     public void cancel() {
+        DiagnosticLog.i(this, "BACKUP", () ->
+                "Backup flow cancelled restoreMode=" + mRestoreMode);
         if (mBackupFile != null)
             mBackupFile.delete();
         setDone(mRestoreMode ? R.string.backup_restore_cancelled : R.string.backup_cancelled);
@@ -160,12 +186,14 @@ public class BackupProgressActivity extends SetupProgressActivity {
     private void handleBackupFileResult(ActivityResult result) {
         Intent data = result.getData();
         if (data == null || data.getData() == null) {
+            DiagnosticLog.d(this, "BACKUP", () -> "Document picker returned no URI");
             cancel();
             return;
         }
         try {
             Uri uri = data.getData();
             if (mRestoreMode) {
+                DiagnosticLog.d(this, "BACKUP", () -> "Opening selected restore source");
                 ParcelFileDescriptor desc = getContentResolver().openFileDescriptor(uri, "r");
                 if (desc == null)
                     throw new IOException("Unable to open backup for reading");
@@ -175,6 +203,7 @@ public class BackupProgressActivity extends SetupProgressActivity {
                 FileOutputStream fos = new FileOutputStream(mBackupFile);
                 new CopyFileTask(this).execute(new CopyRequest(fis, fos, desc));
             } else {
+                DiagnosticLog.d(this, "BACKUP", () -> "Opening selected backup destination");
                 ParcelFileDescriptor desc = getContentResolver().openFileDescriptor(uri, "w");
                 if (desc == null)
                     throw new IOException("Unable to open backup destination");
@@ -184,6 +213,8 @@ public class BackupProgressActivity extends SetupProgressActivity {
             }
         } catch (IOException e) {
             e.printStackTrace();
+            DiagnosticLog.e(this, "BACKUP", () ->
+                    "Unable to open backup source/destination restoreMode=" + mRestoreMode, e);
             setDone(R.string.error_generic);
         }
     }
@@ -191,8 +222,10 @@ public class BackupProgressActivity extends SetupProgressActivity {
     private void handleBackupPasswordResult(ActivityResult result) {
         Intent data = result.getData();
         if (result.getResultCode() == BackupPasswordActivity.RESULT_CODE_PASSWORD && data != null) {
+            DiagnosticLog.d(this, "BACKUP", () -> "Restore password supplied by user");
             startRestoreTask(data.getStringExtra(BackupPasswordActivity.RET_PASSWORD));
         } else {
+            DiagnosticLog.d(this, "BACKUP", () -> "Restore password prompt cancelled");
             cancel();
         }
     }
@@ -211,6 +244,7 @@ public class BackupProgressActivity extends SetupProgressActivity {
         }
 
         public void execute(BackupRequest request) {
+            DiagnosticLog.d(mContext, "BACKUP", () -> "Backup worker scheduled");
             AppExecutors.IO.execute(() -> {
                 File file = createBackup(request);
                 new Handler(Looper.getMainLooper()).post(() -> {
@@ -227,9 +261,13 @@ public class BackupProgressActivity extends SetupProgressActivity {
                 backupFile.delete();
             backupFile.deleteOnExit(); // in case something fails
             try {
+                DiagnosticLog.d(mContext, "BACKUP", () -> "Creating backup archive");
                 BackupManager.createBackup(mContext, backupFile, request.password);
+                DiagnosticLog.i(mContext, "BACKUP", () ->
+                        "Backup archive generation succeeded bytes=" + backupFile.length());
             } catch (IOException e) {
                 e.printStackTrace();
+                DiagnosticLog.e(mContext, "BACKUP", () -> "Backup archive generation failed", e);
                 backupFile.delete();
                 return null;
             }
@@ -258,6 +296,7 @@ public class BackupProgressActivity extends SetupProgressActivity {
         }
 
         public void execute(RestoreRequest request) {
+            DiagnosticLog.d(mContext, "BACKUP", () -> "Restore worker scheduled");
             AppExecutors.IO.execute(() -> {
                 int result = restoreBackup(request);
                 new Handler(Looper.getMainLooper()).post(() -> {
@@ -270,15 +309,22 @@ public class BackupProgressActivity extends SetupProgressActivity {
 
         private int restoreBackup(RestoreRequest request) {
             try {
+                DiagnosticLog.d(mContext, "BACKUP", () -> "Restoring backup archive");
                 BackupManager.restoreBackup(mContext, request.file, request.password);
                 if (request.deleteFile)
                     request.file.delete();
+                DiagnosticLog.i(mContext, "BACKUP", () -> "Restore archive applied successfully");
                 return RESULT_OK;
             } catch (IOException e) {
                 e.printStackTrace();
-                if (e.getCause() != null && e.getCause() instanceof ZipException &&
-                        ((ZipException) e.getCause()).getCode() == ZipExceptionConstants.WRONG_PASSWORD)
+                if (e.getCause() instanceof ZipException &&
+                        ((ZipException) e.getCause()).getCode() ==
+                                ZipExceptionConstants.WRONG_PASSWORD) {
+                    DiagnosticLog.w(mContext, "BACKUP", () ->
+                            "Restore failed because archive password was rejected", e);
                     return RESULT_INVALID_PASSWORD;
+                }
+                DiagnosticLog.e(mContext, "BACKUP", () -> "Restore archive failed", e);
                 if (request.deleteFile)
                     request.file.delete();
                 return RESULT_ERROR;
@@ -301,12 +347,15 @@ public class BackupProgressActivity extends SetupProgressActivity {
 
     private static class CopyFileTask {
         private WeakReference<BackupProgressActivity> mActivity;
+        private Context mContext;
 
         public CopyFileTask(BackupProgressActivity activity) {
             mActivity = new WeakReference<>(activity);
+            mContext = activity.getApplicationContext();
         }
 
         public void execute(CopyRequest request) {
+            DiagnosticLog.d(mContext, "BACKUP", () -> "Document copy worker scheduled");
             AppExecutors.IO.execute(() -> {
                 boolean success = copyFile(request);
                 new Handler(Looper.getMainLooper()).post(() -> {
@@ -318,6 +367,7 @@ public class BackupProgressActivity extends SetupProgressActivity {
         }
 
         private boolean copyFile(CopyRequest request) {
+            long total = 0;
             try {
                 FileInputStream fis = request.fis;
                 FileOutputStream fos = request.fos;
@@ -325,17 +375,26 @@ public class BackupProgressActivity extends SetupProgressActivity {
                 int c;
                 while ((c = fis.read(buf, 0, buf.length)) > 0) {
                     fos.write(buf, 0, c);
+                    total += c;
                 }
                 fis.close();
                 fos.close();
+                final long copiedBytes = total;
+                DiagnosticLog.i(mContext, "BACKUP", () ->
+                        "Document copy succeeded bytes=" + copiedBytes);
             } catch (Exception e) {
                 e.printStackTrace();
+                final long copiedBytes = total;
+                DiagnosticLog.e(mContext, "BACKUP", () ->
+                        "Document copy failed afterBytes=" + copiedBytes, e);
                 return false;
             } finally {
                 try {
                     if (request.fd != null)
                         request.fd.close();
-                } catch (Exception ignored) {
+                } catch (Exception e) {
+                    DiagnosticLog.w(mContext, "BACKUP", () ->
+                            "Closing document descriptor failed", e);
                 }
             }
             return true;

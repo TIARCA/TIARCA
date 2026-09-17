@@ -84,11 +84,40 @@ public class DiagnosticLogTest {
         String content = new String(Files.readAllBytes(shared.toPath()), StandardCharsets.UTF_8);
 
         assertTrue(content.contains("TIARCA diagnostic log"));
+        assertTrue(content.contains("Android:"));
+        assertTrue(content.contains("Device:"));
+        assertTrue(content.contains("Locale:"));
+        assertTrue(content.contains("Timezone:"));
         assertTrue(content.contains("AUTH"));
+        assertTrue(content.contains("["));
         assertFalse(content.contains("mySecret"));
         assertFalse(content.contains("abc123"));
         assertFalse(content.contains("user@example.com"));
         assertFalse(content.contains("10.0.0.8"));
+    }
+
+    @Test
+    public void contextFreeLoggerWorksAfterInitialization() throws Exception {
+        DiagnosticLog.setEnabled(context, true);
+
+        DiagnosticLog.i("DCC", () -> "context-free diagnostic");
+
+        File shared = DiagnosticLog.createShareFile(context);
+        String content = new String(Files.readAllBytes(shared.toPath()), StandardCharsets.UTF_8);
+        assertTrue(content.contains("I/DCC"));
+        assertTrue(content.contains("context-free diagnostic"));
+    }
+
+    @Test
+    public void contextFreeLoggerDoesNothingBeforeInitialization() {
+        AtomicBoolean evaluated = new AtomicBoolean(false);
+
+        DiagnosticLog.i("TEST", () -> {
+            evaluated.set(true);
+            return "should not run";
+        });
+
+        assertFalse(evaluated.get());
     }
 
     @Test

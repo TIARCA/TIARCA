@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import io.mrarm.irc.ServerConnectionManager;
+import io.mrarm.irc.util.DiagnosticLog;
 
 public class ServerConfigManager {
 
@@ -44,6 +45,7 @@ public class ServerConfigManager {
     }
 
     public static synchronized void destroyInstance() {
+        DiagnosticLog.d("CONFIG", () -> "ServerConfigManager instance destroyed");
         mInstance = null;
     }
 
@@ -66,13 +68,20 @@ public class ServerConfigManager {
                 : mFallbackServerLogsPath;
         mServerLogsPath.mkdirs();
 
+        DiagnosticLog.i(mContext, "CONFIG", () ->
+                "Server configuration manager initializing externalFilesAvailable=" +
+                        (externalFilesDir != null));
         if (externalFilesDir != null && mFallbackServerLogsPath.exists()) {
+            DiagnosticLog.i(mContext, "CONFIG", () -> "Migrating legacy chat-log storage");
             migrateServerLogs(mFallbackServerLogsPath, mServerLogsPath);
             mFallbackServerLogsPath.delete();
+            DiagnosticLog.i(mContext, "CONFIG", () -> "Legacy chat-log migration completed");
         }
 
         loadServers();
         initializeBundledServers();
+        DiagnosticLog.i(mContext, "CONFIG", () ->
+                "Server configuration manager ready serverCount=" + mServers.size());
     }
 
     /**
@@ -81,10 +90,14 @@ public class ServerConfigManager {
      */
     private void initializeBundledServers() {
         if (mContext.getSharedPreferences(BUNDLED_SERVERS_PREFS, Context.MODE_PRIVATE)
-                .getBoolean(BUNDLED_SERVERS_INITIALIZED, false))
+                .getBoolean(BUNDLED_SERVERS_INITIALIZED, false)) {
+            DiagnosticLog.d(mContext, "CONFIG", () -> "Bundled server initialization already done");
             return;
+        }
 
         if (mServers.isEmpty()) {
+            DiagnosticLog.i(mContext, "CONFIG", () ->
+                    "No saved servers found; creating bundled starter server");
             ServerConfigData simosnap = new ServerConfigData();
             simosnap.name = "Simosnap";
             simosnap.uuid = UUID.nameUUIDFromBytes(
@@ -99,35 +112,63 @@ public class ServerConfigManager {
                 saveServer(simosnap);
             } catch (IOException e) {
                 Log.e(TAG, "Failed to create bundled Simosnap server", e);
+                DiagnosticLog.e(mContext, "CONFIG", () ->
+                        "Bundled starter server creation failed", e);
                 return;
             }
         }
 
         mContext.getSharedPreferences(BUNDLED_SERVERS_PREFS, Context.MODE_PRIVATE)
                 .edit().putBoolean(BUNDLED_SERVERS_INITIALIZED, true).apply();
+        DiagnosticLog.d(mContext, "CONFIG", () -> "Bundled server initialization marked complete");
     }
 
     // NOTE: This is not synchronized; don't call it outside of the constructor
     private void loadServers() {
         File[] files = mServersPath.listFiles();
-        if (files == null)
+        if (files == null) {
+            DiagnosticLog.d(mContext, "CONFIG", () -> "Server configuration directory is empty");
             return;
+        }
+        int loadedCount = 0;
+        int failedCount = 0;
         for (File f : files) {
-            if (!f.isFile() || !f.getName().startsWith(SERVER_FILE_PREFIX) || !f.getName().endsWith(SERVER_FILE_SUFFIX))
+            if (!f.isFile() || !f.getName().startsWith(SERVER_FILE_PREFIX) ||
+                    !f.getName().endsWith(SERVER_FILE_SUFFIX))
                 continue;
             try {
-                ServerConfigData data = SettingsHelper.getGson().fromJson(new BufferedReader(new FileReader(f)), ServerConfigData.class);
+                ServerConfigData data = SettingsHelper.getGson().fromJson(
+                        new BufferedReader(new FileReader(f)), ServerConfigData.class);
                 data.migrateLegacyProperties(ChatSettings.shouldHideJoinPartMessages());
                 mServers.add(data);
                 mServersMap.put(data.uuid, data);
-            } catch (IOException e) {
+                loadedCount++;
+                final String serverId = diagnosticId(data.uuid);
+                final int addressCount = data.getConnectionAddresses().size();
+                final boolean ssl = data.ssl;
+                final int port = data.port;
+                final String authMode = data.authMode == null ? "none" : data.authMode;
+                DiagnosticLog.d(mContext, "CONFIG", () ->
+                        serverId + " loaded ssl=" + ssl + ", port=" + port +
+                                ", addresses=" + addressCount + ", authMode=" + authMode);
+            } catch (Exception e) {
                 Log.e(TAG, "Failed to load server data");
                 e.printStackTrace();
+                failedCount++;
+                DiagnosticLog.e(mContext, "CONFIG", () ->
+                        "Loading one server configuration failed", e);
             }
         }
+        final int finalLoadedCount = loadedCount;
+        final int finalFailedCount = failedCount;
+        DiagnosticLog.i(mContext, "CONFIG", () ->
+                "Server configurations loaded count=" + finalLoadedCount +
+                        ", failed=" + finalFailedCount);
         List<UUID> savedOrder = loadSavedServerOrder();
         if (savedOrder != null && !savedOrder.isEmpty()) {
             applyServerOrder(savedOrder);
+            DiagnosticLog.d(mContext, "CONFIG", () ->
+                    "Saved server order applied entries=" + savedOrder.size());
         }
     }
 
@@ -139,16 +180,23 @@ public class ServerConfigManager {
             ServerOrderData orderData = SettingsHelper.getGson().fromJson(reader, ServerOrderData.class);
             if (orderData != null && orderData.order != null) {
                 List<UUID> uuids = new ArrayList<>();
+                int invalid = 0;
                 for (String idStr : orderData.order) {
                     try {
                         uuids.add(UUID.fromString(idStr));
                     } catch (IllegalArgumentException ignored) {
+                        invalid++;
                     }
                 }
+                final int count = uuids.size();
+                final int invalidCount = invalid;
+                DiagnosticLog.d(mContext, "CONFIG", () ->
+                        "Saved server order loaded entries=" + count + ", invalid=" + invalidCount);
                 return uuids;
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             Log.e(TAG, "Failed to load server order data", e);
+            DiagnosticLog.e(mContext, "CONFIG", () -> "Loading server order failed", e);
         }
         return null;
     }
@@ -171,15 +219,23 @@ public class ServerConfigManager {
     }
 
     public void saveServerOrder(List<UUID> newOrder) throws IOException {
+        DiagnosticLog.i(mContext, "CONFIG", () ->
+                "Saving server order requested entries=" + (newOrder == null ? 0 : newOrder.size()));
         synchronized (this) {
             applyServerOrder(newOrder);
         }
-        persistServerOrder();
+        try {
+            persistServerOrder();
+        } catch (IOException e) {
+            DiagnosticLog.e(mContext, "CONFIG", () -> "Persisting server order failed", e);
+            throw e;
+        }
         synchronized (mListeners) {
             for (ConnectionsListener listener : mListeners)
                 listener.onServerOrderChanged();
         }
         ServerConnectionManager.getInstance(mContext).reorderConnections();
+        DiagnosticLog.i(mContext, "CONFIG", () -> "Server order saved successfully");
     }
 
     public void persistServerOrder() throws IOException {
@@ -193,10 +249,13 @@ public class ServerConfigManager {
             mServersPath.mkdirs();
             ServerOrderData orderData = new ServerOrderData();
             orderData.order = orderStr;
-            BufferedWriter writer = new BufferedWriter(new FileWriter(new File(mServersPath, SERVER_ORDER_FILENAME)));
+            BufferedWriter writer = new BufferedWriter(
+                    new FileWriter(new File(mServersPath, SERVER_ORDER_FILENAME)));
             SettingsHelper.getGson().toJson(orderData, writer);
             writer.close();
         }
+        DiagnosticLog.d(mContext, "CONFIG", () ->
+                "Server order persisted entries=" + orderStr.size());
     }
 
     private void migrateServerLogs(File from, File to) {
@@ -221,6 +280,8 @@ public class ServerConfigManager {
                     fis.close();
                     fos.close();
                 } catch (IOException e) {
+                    DiagnosticLog.e(mContext, "CONFIG", () ->
+                            "Legacy chat-log migration failed", e);
                     throw new RuntimeException("Migration failed", e);
                 }
                 if (toFile.exists())
@@ -256,6 +317,15 @@ public class ServerConfigManager {
     }
 
     private void saveServer(ServerConfigData data, boolean notifyListeners) throws IOException {
+        final String serverId = diagnosticId(data == null ? null : data.uuid);
+        final boolean ssl = data != null && data.ssl;
+        final int port = data == null ? -1 : data.port;
+        final int addressCount = data == null ? 0 : data.getConnectionAddresses().size();
+        final String authMode = data == null || data.authMode == null ? "none" : data.authMode;
+        DiagnosticLog.i(mContext, "CONFIG", () ->
+                serverId + " save requested notifyListeners=" + notifyListeners +
+                        ", ssl=" + ssl + ", port=" + port + ", addresses=" + addressCount +
+                        ", authMode=" + authMode);
         boolean existed = false;
         synchronized (this) {
             if (mServersMap.containsKey(data.uuid)) {
@@ -271,16 +341,27 @@ public class ServerConfigManager {
             }
             mServersMap.put(data.uuid, data);
         }
-        File orderFile = new File(mServersPath, SERVER_ORDER_FILENAME);
-        if (orderFile.exists()) {
-            persistServerOrder();
+        try {
+            File orderFile = new File(mServersPath, SERVER_ORDER_FILENAME);
+            if (orderFile.exists()) {
+                persistServerOrder();
+            }
+            synchronized (mIOLock) {
+                mServersPath.mkdirs();
+                BufferedWriter writer = new BufferedWriter(new FileWriter(
+                        new File(mServersPath, SERVER_FILE_PREFIX + data.uuid.toString() +
+                                SERVER_FILE_SUFFIX)));
+                SettingsHelper.getGson().toJson(data, writer);
+                writer.close();
+            }
+        } catch (IOException e) {
+            DiagnosticLog.e(mContext, "CONFIG", () -> serverId + " save failed", e);
+            throw e;
         }
-        synchronized (mIOLock) {
-            mServersPath.mkdirs();
-            BufferedWriter writer = new BufferedWriter(new FileWriter(new File(mServersPath, SERVER_FILE_PREFIX + data.uuid.toString() + SERVER_FILE_SUFFIX)));
-            SettingsHelper.getGson().toJson(data, writer);
-            writer.close();
-        }
+        final boolean wasExisting = existed;
+        DiagnosticLog.i(mContext, "CONFIG", () ->
+                serverId + " saved existed=" + wasExisting +
+                        ", notifyListeners=" + notifyListeners);
         if (!notifyListeners)
             return;
         synchronized (mListeners) {
@@ -295,6 +376,9 @@ public class ServerConfigManager {
     }
 
     public void deleteServer(ServerConfigData data, boolean deleteLogs) {
+        final String serverId = diagnosticId(data == null ? null : data.uuid);
+        DiagnosticLog.i(mContext, "CONFIG", () ->
+                serverId + " delete requested deleteLogs=" + deleteLogs);
         ServerConnectionManager.getInstance(mContext).killDisconnectingConnection(data.uuid);
         synchronized (this) {
             mServers.remove(data);
@@ -303,34 +387,51 @@ public class ServerConfigManager {
         File orderFile = new File(mServersPath, SERVER_ORDER_FILENAME);
         if (orderFile.exists()) {
             if (mServers.isEmpty()) {
-                orderFile.delete();
+                boolean removed = orderFile.delete();
+                final boolean orderRemoved = removed;
+                DiagnosticLog.d(mContext, "CONFIG", () ->
+                        "Removed empty server order file success=" + orderRemoved);
             } else {
                 try {
                     persistServerOrder();
-                } catch (IOException ignored) {
+                } catch (IOException e) {
+                    DiagnosticLog.w(mContext, "CONFIG", () ->
+                            serverId + " order persistence failed during delete", e);
                 }
             }
         }
         synchronized (mIOLock) {
             File file = new File(mServersPath, SERVER_FILE_PREFIX + data.uuid.toString() + SERVER_FILE_SUFFIX);
-            file.delete();
+            boolean configDeleted = file.delete();
             file = getServerSSLCertsFile(data.uuid);
-            file.delete();
+            boolean certDeleted = !file.exists() || file.delete();
+            int logFilesDeleted = 0;
             if (deleteLogs) {
                 file = getServerChatLogDir(data.uuid);
                 if (file.exists()) {
                     File[] files = file.listFiles();
-                    for (File f : files)
-                        f.delete();
+                    if (files != null) {
+                        for (File f : files) {
+                            if (f.delete())
+                                logFilesDeleted++;
+                        }
+                    }
                     file.delete();
                 }
             }
+            final boolean configRemoved = configDeleted;
+            final boolean certRemoved = certDeleted;
+            final int deletedLogs = logFilesDeleted;
+            DiagnosticLog.d(mContext, "CONFIG", () ->
+                    serverId + " files deleted config=" + configRemoved +
+                            ", certStore=" + certRemoved + ", logFiles=" + deletedLogs);
         }
         synchronized (mListeners) {
             for (ConnectionsListener listener : mListeners)
                 listener.onConnectionRemoved(data);
         }
         NotificationCountStorage.getInstance(mContext).requestRemoveServerCounters(data.uuid);
+        DiagnosticLog.i(mContext, "CONFIG", () -> serverId + " delete completed");
     }
 
     public void deleteServer(ServerConfigData data) {
@@ -338,6 +439,9 @@ public class ServerConfigManager {
     }
 
     public void deleteAllServers(boolean deleteLogs) {
+        final int count = mServers.size();
+        DiagnosticLog.i(mContext, "CONFIG", () ->
+                "Deleting all servers count=" + count + ", deleteLogs=" + deleteLogs);
         synchronized (this) {
             while (mServers.size() > 0)
                 deleteServer(mServers.get(mServers.size() - 1), deleteLogs);
@@ -346,6 +450,7 @@ public class ServerConfigManager {
         if (orderFile.exists()) {
             orderFile.delete();
         }
+        DiagnosticLog.i(mContext, "CONFIG", () -> "Delete all servers completed");
     }
 
     public File getServerSSLCertsFile(UUID uuid) {
@@ -374,6 +479,10 @@ public class ServerConfigManager {
         synchronized (mListeners) {
             mListeners.remove(listener);
         }
+    }
+
+    private static String diagnosticId(UUID uuid) {
+        return DiagnosticLog.pseudonym("server-config", uuid == null ? "unknown" : uuid.toString());
     }
 
     public interface ConnectionsListener {
