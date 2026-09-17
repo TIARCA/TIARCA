@@ -11,6 +11,8 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.NotificationCompat;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -30,7 +32,12 @@ public final class SimosnapVerificationManager {
             "(?i)/(?:raw\\s+)?(?:quote\\s+)?solve\\s+([^\\s\\u0000-\\u001f]+)");
     private static final Pattern TRAILING_PUNCTUATION = Pattern.compile("[.,;:!?)\\]}>\\\"']+$");
 
+    private static final int MAX_CONTEXT_NOTICES = 2;
+    private static final long CONTEXT_MAX_AGE_MS = 15_000L;
+
     private final ServerConnectionInfo connection;
+    private final Deque<RecentNotice> recentNotices = new ArrayDeque<>();
+    private String recentNoticeServer;
     private VerificationWarning activeWarning;
 
     public SimosnapVerificationManager(ServerConnectionInfo connection) {
@@ -40,18 +47,46 @@ public final class SimosnapVerificationManager {
     public void observeServerNotice(String serverName, String text) {
         if (!isSimosnapServerName(serverName))
             return;
-        Challenge challenge = parseChallenge(text);
-        if (challenge == null)
+        String normalized = normalizeNotice(text);
+        if (normalized.isEmpty())
             return;
 
+        Challenge parsed = parseChallenge(normalized);
         VerificationWarning warning;
         synchronized (this) {
+            long now = System.currentTimeMillis();
+            if (recentNoticeServer == null || !recentNoticeServer.equalsIgnoreCase(serverName)) {
+                recentNotices.clear();
+                recentNoticeServer = serverName;
+            }
+            pruneRecentNotices(now);
+
+            if (parsed == null) {
+                recentNotices.addLast(new RecentNotice(normalized, now));
+                while (recentNotices.size() > MAX_CONTEXT_NOTICES)
+                    recentNotices.removeFirst();
+                return;
+            }
+
+            String[] context = new String[recentNotices.size()];
+            int i = 0;
+            for (RecentNotice notice : recentNotices)
+                context[i++] = notice.text;
+            recentNotices.clear();
+
+            Challenge challenge = withContext(parsed, context);
             if (activeWarning != null)
                 return;
             warning = new VerificationWarning(challenge);
             activeWarning = warning;
         }
         WarningHelper.showWarning(warning);
+    }
+
+    private void pruneRecentNotices(long now) {
+        while (!recentNotices.isEmpty() &&
+                now - recentNotices.peekFirst().timestamp > CONTEXT_MAX_AGE_MS)
+            recentNotices.removeFirst();
     }
 
     private synchronized void onWarningDismissed(VerificationWarning warning) {
@@ -68,9 +103,9 @@ public final class SimosnapVerificationManager {
     }
 
     static Challenge parseChallenge(String text) {
-        if (text == null)
+        String normalized = normalizeNotice(text);
+        if (normalized.isEmpty())
             return null;
-        String normalized = IRC_FORMATTING.matcher(text).replaceAll("").trim();
         Matcher matcher = SOLVE_COMMAND.matcher(normalized);
         if (!matcher.find())
             return null;
@@ -83,6 +118,32 @@ public final class SimosnapVerificationManager {
         return new Challenge(normalized, answer);
     }
 
+    static Challenge withContext(Challenge challenge, String... previousNotices) {
+        if (challenge == null)
+            return null;
+        StringBuilder message = new StringBuilder();
+        if (previousNotices != null) {
+            for (String notice : previousNotices) {
+                String normalized = normalizeNotice(notice);
+                if (normalized.isEmpty())
+                    continue;
+                if (message.length() > 0)
+                    message.append('\n');
+                message.append(normalized);
+            }
+        }
+        if (message.length() > 0)
+            message.append('\n');
+        message.append(challenge.message);
+        return new Challenge(message.toString(), challenge.suggestedAnswer);
+    }
+
+    private static String normalizeNotice(String text) {
+        if (text == null)
+            return "";
+        return IRC_FORMATTING.matcher(text).replaceAll("").trim();
+    }
+
     private static boolean isPlaceholder(String answer) {
         if (answer == null || answer.isEmpty())
             return true;
@@ -90,6 +151,16 @@ public final class SimosnapVerificationManager {
         return answer.charAt(0) == '<' || answer.charAt(0) == '[' || answer.charAt(0) == '{' ||
                 lower.contains("answer") || lower.contains("risposta") ||
                 lower.contains("result") || lower.contains("solution");
+    }
+
+    private static final class RecentNotice {
+        final String text;
+        final long timestamp;
+
+        RecentNotice(String text, long timestamp) {
+            this.text = text;
+            this.timestamp = timestamp;
+        }
     }
 
     static final class Challenge {
