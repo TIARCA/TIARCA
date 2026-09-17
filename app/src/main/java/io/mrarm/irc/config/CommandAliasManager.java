@@ -54,6 +54,7 @@ public class CommandAliasManager {
 
         sDefaultAliases = new ArrayList<>();
         sDefaultAliases.add(CommandAlias.raw("raw", "<command...>", "${command}"));
+        sDefaultAliases.add(CommandAlias.raw("quote", "<command...>", "${command}"));
         CommandAlias joinAlias = CommandAlias.raw("join", "<channels> [keys]", "JOIN ${channels} ${keys}");
         joinAlias.disableArgAutocomplete = true;
         sDefaultAliases.add(joinAlias);
