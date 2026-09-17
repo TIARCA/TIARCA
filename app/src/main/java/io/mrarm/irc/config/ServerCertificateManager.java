@@ -36,6 +36,7 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
 import io.mrarm.irc.util.ColoredTextBuilder;
+import io.mrarm.irc.util.DiagnosticLog;
 
 public class ServerCertificateManager {
 
@@ -72,8 +73,10 @@ public class ServerCertificateManager {
         if (keyStoreFile != null && keyStoreFile.exists()) {
             try {
                 loadKeyStore(new FileInputStream(mKeyStoreFile));
+                DiagnosticLog.d("TLS", () -> "Certificate exception store loaded");
             } catch (Exception e) {
                 Log.w(TAG, "Failed to load keystore");
+                DiagnosticLog.e("TLS", () -> "Certificate exception store load failed", e);
                 mKeyStore = null;
             }
         }
@@ -82,10 +85,12 @@ public class ServerCertificateManager {
     @Override
     protected void finalize() throws Throwable {
         synchronized (mInstances) {
-            String path = mKeyStoreFile.getAbsolutePath();
-            if (mInstances.containsKey(path)) {
-                if (mInstances.get(path).get() == this)
-                    mInstances.remove(path);
+            if (mKeyStoreFile != null) {
+                String path = mKeyStoreFile.getAbsolutePath();
+                if (mInstances.containsKey(path)) {
+                    if (mInstances.get(path).get() == this)
+                        mInstances.remove(path);
+                }
             }
         }
         super.finalize();
@@ -105,6 +110,7 @@ public class ServerCertificateManager {
             if (mKeyStore == null) {
                 mKeyStore = KeyStore.getInstance(KeyStore.getDefaultType());
                 mKeyStore.load(null, null);
+                DiagnosticLog.d("TLS", () -> "Created empty certificate exception store");
             }
         }
     }
@@ -120,6 +126,7 @@ public class ServerCertificateManager {
     public void saveKeyStore() throws KeyStoreException, IOException, CertificateException,
             NoSuchAlgorithmException {
         saveKeyStore(new FileOutputStream(mKeyStoreFile));
+        DiagnosticLog.d("TLS", () -> "Certificate exception store saved");
     }
 
     public void addCertificateException(X509Certificate certificate) {
@@ -129,9 +136,11 @@ public class ServerCertificateManager {
                 mKeyStore.setCertificateEntry("cert-" + UUID.randomUUID(), certificate);
                 if (mKeyStoreFile != null)
                     saveKeyStore();
+                DiagnosticLog.i("TLS", () -> "Certificate exception added");
             } catch (Exception e) {
                 Log.e(TAG, "Failed to add certificate exception");
                 e.printStackTrace();
+                DiagnosticLog.e("TLS", () -> "Adding certificate exception failed", e);
             }
         }
     }
@@ -144,9 +153,11 @@ public class ServerCertificateManager {
                 mKeyStore.deleteEntry(alias);
                 if (mKeyStoreFile != null)
                     saveKeyStore();
+                DiagnosticLog.i("TLS", () -> "Certificate exception removed");
             } catch (Exception e) {
                 Log.e(TAG, "Failed to remove certificate");
                 e.printStackTrace();
+                DiagnosticLog.e("TLS", () -> "Removing certificate exception failed", e);
             }
         }
     }
@@ -156,8 +167,12 @@ public class ServerCertificateManager {
             if (mKeyStore == null)
                 return null;
             try {
-                return Collections.list(mKeyStore.aliases());
+                List<String> aliases = Collections.list(mKeyStore.aliases());
+                final int count = aliases.size();
+                DiagnosticLog.d("TLS", () -> "Certificate exception aliases loaded count=" + count);
+                return aliases;
             } catch (KeyStoreException e) {
+                DiagnosticLog.w("TLS", () -> "Reading certificate exception aliases failed", e);
                 return null;
             }
         }
@@ -168,6 +183,7 @@ public class ServerCertificateManager {
             try {
                 return (X509Certificate) mKeyStore.getCertificate(alias);
             } catch (KeyStoreException e) {
+                DiagnosticLog.w("TLS", () -> "Reading certificate exception failed", e);
                 return null;
             }
         }
@@ -184,8 +200,15 @@ public class ServerCertificateManager {
         synchronized (this) {
             if (mKeyStoreTrustManager == null && mKeyStore != null)
                 mKeyStoreTrustManager = createKeyStoreTrustManager(mKeyStore);
-            if (mKeyStoreTrustManager == null)
-                    throw new CertificateException("Key store is null");
+            if (mKeyStoreTrustManager == null) {
+                DiagnosticLog.w("TLS", () ->
+                        "Certificate exception trust check unavailable: key store is empty", null);
+                throw new CertificateException("Key store is null");
+            }
+            final int chainLength = chain == null ? 0 : chain.length;
+            DiagnosticLog.d("TLS", () ->
+                    "Checking server certificate against exception store chainLength=" +
+                            chainLength + ", authType=" + authType);
             mKeyStoreTrustManager.checkServerTrusted(chain, authType);
         }
     }
@@ -228,6 +251,7 @@ public class ServerCertificateManager {
                 }
             }
         } catch (CertificateParsingException ignored) {
+            DiagnosticLog.w("TLS", () -> "Certificate subjectAltName parsing failed", ignored);
         }
 
         if (elements.size() == 0)
@@ -245,8 +269,10 @@ public class ServerCertificateManager {
                     return (X509TrustManager) manager;
             }
         } catch (NoSuchAlgorithmException | KeyStoreException e) {
+            DiagnosticLog.e("TLS", () -> "Creating certificate exception trust manager failed", e);
             throw new RuntimeException(e);
         }
+        DiagnosticLog.w("TLS", () -> "No X509 trust manager available for exception store", null);
         return null;
     }
 
