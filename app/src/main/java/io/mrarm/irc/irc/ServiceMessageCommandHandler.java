@@ -16,11 +16,13 @@ public final class ServiceMessageCommandHandler implements CommandHandler {
 
     private final CommandHandler delegate;
     private final ServerConnectionInfo connection;
+    private final SimosnapVerificationManager simosnapVerification;
 
     public ServiceMessageCommandHandler(CommandHandler delegate,
                                         ServerConnectionInfo connection) {
         this.delegate = delegate;
         this.connection = connection;
+        this.simosnapVerification = new SimosnapVerificationManager(connection);
     }
 
     @Override
@@ -40,11 +42,18 @@ public final class ServiceMessageCommandHandler implements CommandHandler {
         boolean direct = target != null && target.equalsIgnoreCase(data.getUserNick());
         boolean ctcp = text != null && text.length() > 1 && text.charAt(0) == '\u0001';
 
-        // InspIRCd confirms successful ACCEPT add/remove operations using server NOTICEs.
+        // Observe server-origin NOTICEs before normal routing. SimosNap's guest verification can
+        // target a pseudo-client such as AUTH while the connection is still being established,
+        // so it must not depend on the target already matching our final nickname.
+        boolean serverOriginNotice = "NOTICE".equalsIgnoreCase(command) && !ctcp &&
+                prefix != null && user == null && host == null;
+        if (serverOriginNotice)
+            simosnapVerification.observeServerNotice(prefix.getServerName(), text);
+
+        // InspIRCd confirms successful ACCEPT add/remove operations using direct server NOTICEs.
         // Observe those before normal message routing so ACCEPT state does not depend on
         // which server-status view is currently visible.
-        boolean serverNotice = "NOTICE".equalsIgnoreCase(command) && direct && !ctcp &&
-                prefix != null && user == null && host == null;
+        boolean serverNotice = serverOriginNotice && direct;
         if (serverNotice)
             CallerIdAcceptManager.observeServerNotice(connection, text);
 
