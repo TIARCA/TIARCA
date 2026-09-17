@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="simosnap_verification_title">SimosNap verification</string>
+    <string name="simosnap_verification_message">SimosNap requires a human verification before you can continue.\n\nServer message:\n%1$s\n\nEnter the requested answer below. TIARCA will send it as the SOLVE command.</string>
+    <string name="simosnap_verification_answer_hint">Answer</string>
+    <string name="simosnap_verification_action">Verify</string>
+    <string name="simosnap_verification_answer_error">Enter the answer requested by SimosNap</string>
+    <string name="simosnap_verification_send_failed">Could not send the verification response</string>
+    <string name="simosnap_verification_sent">Verification response sent</string>
+    <string name="simosnap_verification_notification">SimosNap is waiting for a verification answer</string>
+</resources>

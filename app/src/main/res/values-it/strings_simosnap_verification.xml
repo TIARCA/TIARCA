@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="simosnap_verification_title">Verifica SimosNap</string>
+    <string name="simosnap_verification_message">SimosNap richiede una verifica umana prima di continuare.\n\nMessaggio del server:\n%1$s\n\nInserisci la risposta richiesta. TIARCA la invierà come comando SOLVE.</string>
+    <string name="simosnap_verification_answer_hint">Risposta</string>
+    <string name="simosnap_verification_action">Verifica</string>
+    <string name="simosnap_verification_answer_error">Inserisci la risposta richiesta da SimosNap</string>
+    <string name="simosnap_verification_send_failed">Impossibile inviare la risposta di verifica</string>
+    <string name="simosnap_verification_sent">Risposta di verifica inviata</string>
+    <string name="simosnap_verification_notification">SimosNap attende una risposta di verifica</string>
+</resources>
