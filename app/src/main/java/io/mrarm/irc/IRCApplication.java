@@ -29,6 +29,7 @@ public class IRCApplication extends Application implements Application.ActivityL
         super.onCreate();
         SettingsHelper.getInstance(this);
         DiagnosticLog.initialize(this);
+        installDiagnosticCrashHandler();
         DiagnosticLog.i(this, "APP", () -> "Application process started");
         clearSessionRestoreAfterIntentionalExit();
         AppLocaleManager.applyStoredLanguage(this);
@@ -39,10 +40,23 @@ public class IRCApplication extends Application implements Application.ActivityL
         registerActivityLifecycleCallbacks(this);
     }
 
+    private void installDiagnosticCrashHandler() {
+        Thread.UncaughtExceptionHandler previous = Thread.getDefaultUncaughtExceptionHandler();
+        Thread.setDefaultUncaughtExceptionHandler((thread, error) -> {
+            String threadName = thread == null ? "unknown" : thread.getName();
+            DiagnosticLog.e(this, "CRASH", () ->
+                    "Uncaught exception thread=" + threadName, error);
+            if (previous != null)
+                previous.uncaughtException(thread, error);
+        });
+    }
+
     private void clearSessionRestoreAfterIntentionalExit() {
         SharedPreferences preferences = SettingsHelper.getPreferences();
         if (!preferences.getBoolean(PREF_INTENTIONAL_EXIT, false))
             return;
+        DiagnosticLog.d(this, "APP", () ->
+                "Clearing session restore state after intentional exit");
         clearConnectedServersFile();
         preferences.edit().remove(PREF_INTENTIONAL_EXIT).apply();
     }
@@ -50,8 +64,11 @@ public class IRCApplication extends Application implements Application.ActivityL
     private void clearConnectedServersFile() {
         File connectedServers = new File(getFilesDir(),
                 ServerConnectionManager.CONNECTED_SERVERS_FILE_PATH);
-        if (connectedServers.exists())
-            connectedServers.delete();
+        if (connectedServers.exists()) {
+            boolean deleted = connectedServers.delete();
+            DiagnosticLog.d(this, "APP", () ->
+                    "Connected-server recovery file deleted=" + deleted);
+        }
     }
 
     private void migrateDefaultThemeForV18() {
@@ -63,6 +80,7 @@ public class IRCApplication extends Application implements Application.ActivityL
         if (theme == null || "default".equals(theme) || "default_dark".equals(theme))
             editor.putString("theme", "default_dark");
         editor.putBoolean(PREF_V18_THEME_MIGRATED, true).apply();
+        DiagnosticLog.d(this, "APP", () -> "Legacy default theme migration applied");
     }
 
     public void addPreExitCallback(PreExitCallback c) {
@@ -83,8 +101,10 @@ public class IRCApplication extends Application implements Application.ActivityL
 
     public boolean requestExit() {
         for (PreExitCallback exitCallback : mPreExitCallbacks) {
-            if (!exitCallback.onAppPreExit())
+            if (!exitCallback.onAppPreExit()) {
+                DiagnosticLog.d(this, "APP", () -> "Explicit app exit vetoed by callback");
                 return false;
+            }
         }
         DiagnosticLog.i(this, "APP", () -> "Explicit app exit requested");
         SettingsHelper.getPreferences().edit().putBoolean(PREF_INTENTIONAL_EXIT, true).commit();
@@ -104,19 +124,29 @@ public class IRCApplication extends Application implements Application.ActivityL
     @Override
     public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
         mActivities.add(activity);
+        DiagnosticLog.d(this, "LIFECYCLE", () ->
+                activity.getClass().getSimpleName() + " created restored=" +
+                        (savedInstanceState != null));
     }
 
     @Override
     public void onActivityDestroyed(Activity activity) {
+        DiagnosticLog.d(this, "LIFECYCLE", () ->
+                activity.getClass().getSimpleName() + " destroyed changingConfigurations=" +
+                        activity.isChangingConfigurations());
         mActivities.remove(activity);
     }
 
     @Override
     public void onActivityStarted(Activity activity) {
+        DiagnosticLog.d(this, "LIFECYCLE", () ->
+                activity.getClass().getSimpleName() + " started");
     }
 
     @Override
     public void onActivityResumed(Activity activity) {
+        DiagnosticLog.d(this, "LIFECYCLE", () ->
+                activity.getClass().getSimpleName() + " resumed");
         if (activity instanceof MainActivity) {
             // Interface settings are edited in a separate Activity while MainActivity remains
             // paused underneath it. Recreate only after the user has actually left the Interface
@@ -125,8 +155,11 @@ public class IRCApplication extends Application implements Application.ActivityL
             if (InterfaceSettingsRefreshState.consumeRefreshPending()) {
                 MainActivity mainActivity = (MainActivity) activity;
                 // Theme changes already schedule their own recreation in ThemedActivity.onStart().
-                if (!mainActivity.hasThemeChanged())
+                if (!mainActivity.hasThemeChanged()) {
+                    DiagnosticLog.d(this, "LIFECYCLE", () ->
+                            "MainActivity recreating after interface settings change");
                     mainActivity.recreate();
+                }
                 return;
             }
             UpdateManager.maybePromptAndCheck(activity);
@@ -135,14 +168,20 @@ public class IRCApplication extends Application implements Application.ActivityL
 
     @Override
     public void onActivityPaused(Activity activity) {
+        DiagnosticLog.d(this, "LIFECYCLE", () ->
+                activity.getClass().getSimpleName() + " paused");
     }
 
     @Override
     public void onActivityStopped(Activity activity) {
+        DiagnosticLog.d(this, "LIFECYCLE", () ->
+                activity.getClass().getSimpleName() + " stopped");
     }
 
     @Override
     public void onActivitySaveInstanceState(Activity activity, Bundle outState) {
+        DiagnosticLog.d(this, "LIFECYCLE", () ->
+                activity.getClass().getSimpleName() + " saving instance state");
     }
 
 
