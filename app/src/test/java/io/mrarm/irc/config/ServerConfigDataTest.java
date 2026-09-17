@@ -14,13 +14,24 @@ public class ServerConfigDataTest {
         assertEquals(Arrays.asList("irc.example.net"), data.getConnectionAddresses());
     }
 
-    @Test public void migratesLegacySimosnapHostname() {
+    @Test public void migratesDeprecatedSimosnapHostname() {
         ServerConfigData data = new ServerConfigData();
-        data.address = "irc.simosnap.com";
-        data.addresses = Arrays.asList("irc.simosnap.com", "fallback.simosnap.com");
+        data.address = "irc.simosnap.org";
+        data.addresses = Arrays.asList("irc.simosnap.org", "fallback.simosnap.com");
         data.migrateLegacyProperties();
-        assertEquals("irc.simosnap.org", data.address);
-        assertEquals(Arrays.asList("irc.simosnap.org", "fallback.simosnap.com"), data.getConnectionAddresses());
+        assertEquals("irc.simosnap.com", data.address);
+        assertEquals(Arrays.asList("irc.simosnap.com", "fallback.simosnap.com"),
+                data.getConnectionAddresses());
+    }
+
+    @Test public void canonicalizesDeprecatedSimosnapHostnameWithoutMigration() {
+        ServerConfigData data = new ServerConfigData();
+        data.address = "irc.simosnap.org";
+        assertEquals(Arrays.asList("irc.simosnap.com"), data.getConnectionAddresses());
+
+        data.setConnectionAddresses(Arrays.asList("irc.simosnap.org"));
+        assertEquals("irc.simosnap.com", data.address);
+        assertEquals(Arrays.asList("irc.simosnap.com"), data.getConnectionAddresses());
     }
 
     @Test public void keepsOrderedUniqueFallbacks() {

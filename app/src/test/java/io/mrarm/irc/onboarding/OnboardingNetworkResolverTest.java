@@ -16,7 +16,17 @@ public class OnboardingNetworkResolverTest {
 
     @Test
     public void sameNameAndServerReusesExistingNetwork() {
-        ServerConfigData existing = server("Simosnap", "irc.simosnap.org");
+        ServerConfigData existing = server("Simosnap", "irc.simosnap.com");
+        OnboardingNetworkResolver.Resolution resolution = OnboardingNetworkResolver.resolve(
+                Collections.singletonList(existing), "Simosnap",
+                Collections.singletonList("irc.simosnap.com"));
+        assertSame(existing, resolution.existing);
+        assertEquals("Simosnap", resolution.name);
+    }
+
+    @Test
+    public void deprecatedSimosnapHostStillReusesExistingOfficialNetwork() {
+        ServerConfigData existing = server("Simosnap", "irc.simosnap.com");
         OnboardingNetworkResolver.Resolution resolution = OnboardingNetworkResolver.resolve(
                 Collections.singletonList(existing), "Simosnap",
                 Collections.singletonList("irc.simosnap.org"));
@@ -26,17 +36,17 @@ public class OnboardingNetworkResolverTest {
 
     @Test
     public void sameServerWithDifferentNameCreatesRequestedNetwork() {
-        ServerConfigData existing = server("Simosnap pippo", "irc.simosnap.org");
+        ServerConfigData existing = server("Simosnap pippo", "irc.simosnap.com");
         OnboardingNetworkResolver.Resolution resolution = OnboardingNetworkResolver.resolve(
                 Collections.singletonList(existing), "Simosnap",
-                Collections.singletonList("irc.simosnap.org"));
+                Collections.singletonList("irc.simosnap.com"));
         assertNull(resolution.existing);
         assertEquals("Simosnap", resolution.name);
     }
 
     @Test
     public void sameNameWithDifferentServerUsesHostAsNewName() {
-        ServerConfigData existing = server("Simosnap", "irc.simosnap.org");
+        ServerConfigData existing = server("Simosnap", "irc.simosnap.com");
         OnboardingNetworkResolver.Resolution resolution = OnboardingNetworkResolver.resolve(
                 Collections.singletonList(existing), "Simosnap",
                 Collections.singletonList("pippo.simosnap.org"));

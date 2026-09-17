@@ -8,6 +8,9 @@ import io.mrarm.irc.config.ServerConfigData;
 /** Matching rules for networks created or updated by the onboarding wizard. */
 final class OnboardingNetworkResolver {
 
+    private static final String SIMOSNAP_DEPRECATED_ADDRESS = "irc.simosnap.org";
+    private static final String SIMOSNAP_OFFICIAL_ADDRESS = "irc.simosnap.com";
+
     static final class Resolution {
         final ServerConfigData existing;
         final String name;
@@ -91,7 +94,10 @@ final class OnboardingNetworkResolver {
     }
 
     private static String normalizeHost(String value) {
-        return clean(value).toLowerCase(Locale.ROOT);
+        String host = clean(value).toLowerCase(Locale.ROOT);
+        if (SIMOSNAP_DEPRECATED_ADDRESS.equals(host))
+            return SIMOSNAP_OFFICIAL_ADDRESS;
+        return host;
     }
 
     private static String clean(String value) {
