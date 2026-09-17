@@ -12,6 +12,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.mrarm.chatlib.irc.ServerConnectionData;
+import io.mrarm.irc.util.SimpleTextVariableList;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -119,6 +122,16 @@ public class CommandAliasManagerTest {
             count++;
         }
         assertEquals(1, count);
+    }
+
+    @Test
+    public void quoteForwardsItsArgumentsAsRawCommand() {
+        CommandAliasManager.ProcessCommandResult result = manager.processCommand(
+                new ServerConnectionData(), "quote solve 8", new SimpleTextVariableList());
+
+        assertNotNull(result);
+        assertEquals(CommandAliasManager.CommandAlias.MODE_RAW, result.mode);
+        assertEquals("solve 8", result.text);
     }
 
 }
