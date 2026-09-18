@@ -684,12 +684,9 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
                         .setTitle(R.string.action_close_direct)
                         .setMessage(getString(R.string.close_private_conversation_confirm, nick))
                         .setNegativeButton(R.string.action_cancel, null)
-                        .setPositiveButton(R.string.action_close, (d, which) -> {
-                            ServerConnectionInfo connection = fragment.getConnectionInfo();
-                            connection.closePrivateConversation(nick,
-                                    AppSettings.getDefaultPartMessage());
-                            fragment.selectTabToLeftAfterClose();
-                        })
+                        .setPositiveButton(R.string.action_close, (d, which) ->
+                                fragment.closePrivateConversationAndSelectAdjacent(nick,
+                                        AppSettings.getDefaultPartMessage()))
                         .show();
             }
         } else if (id == R.id.action_callerid_accept_toggle) {
@@ -732,9 +729,8 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
                         !((ServerConnectionApi) api).getServerConnectionData().getSupportList()
                                 .getSupportedChannelTypes().contains(channel.charAt(0));
                 if (directConversation) {
-                    connection.closePrivateConversation(channel,
+                    fragment.closePrivateConversationAndSelectAdjacent(channel,
                             AppSettings.getDefaultPartMessage());
-                    fragment.selectTabToLeftAfterClose();
                 } else {
                     api.leaveChannel(channel, AppSettings.getDefaultPartMessage(), null, null);
                 }
