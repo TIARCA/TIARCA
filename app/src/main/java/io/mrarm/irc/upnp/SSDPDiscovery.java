@@ -82,7 +82,7 @@ public class SSDPDiscovery {
                 continue;
             }
 
-            int i = 19;
+            int i = decoded.indexOf("\r\n") + 2;
             Map<String, String> headers = new HashMap<>();
             while (true) {
                 int j = decoded.indexOf("\r\n", i);
