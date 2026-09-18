@@ -42,7 +42,8 @@ public class SSDPDiscovery {
     }
 
     public void close() {
-        mDiscoverySocket.close();
+        if (mDiscoverySocket != null)
+            mDiscoverySocket.close();
     }
 
     public void sendSearch(String deviceType, int waitSeconds) throws IOException {
