@@ -9,6 +9,7 @@ import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -45,7 +46,7 @@ public class SSDPDiscovery {
     }
 
     public void sendSearch(String deviceType, int waitSeconds) throws IOException {
-        byte[] request = buildSearchRequest(deviceType, waitSeconds).getBytes("UTF-8");
+        byte[] request = buildSearchRequest(deviceType, waitSeconds).getBytes(StandardCharsets.UTF_8);
         mDiscoverySocket.send(new DatagramPacket(request, request.length, BROADCAST_ADDR));
     }
 
@@ -57,34 +58,45 @@ public class SSDPDiscovery {
     }
 
     public Response receive() throws IOException {
-        int timeout = 0;
-        if (mReceiveTimeout > 0)
-            timeout = Math.max((int) (mReceiveTimeout - System.currentTimeMillis()), 1);
-        mDiscoverySocket.setSoTimeout(timeout);
-        try {
-            mDiscoverySocket.receive(mReceivePacket);
-        } catch (SocketTimeoutException ignored) {
-            return null;
-        }
-        String decoded = new String(mReceiveBuffer, "UTF-8");
-        if (!decoded.startsWith("HTTP/1.1 200 OK\r\n")) {
-            Log.w("SSDP", "Invalid response");
-            return null;
-        }
-        int i = 19;
-        Map<String, String> headers = new HashMap<>();
         while (true) {
-            int j = decoded.indexOf("\r\n", i);
-            if (j == -1)
-                break;
-            String ent = decoded.substring(i, j);
-            int s = ent.indexOf(": ");
-            if (s != -1) {
-                headers.put(ent.substring(0, s).toUpperCase(), ent.substring(s + 2));
+            int timeout = 0;
+            if (mReceiveTimeout > 0) {
+                long remaining = mReceiveTimeout - System.currentTimeMillis();
+                if (remaining <= 0)
+                    return null;
+                timeout = Math.max((int) remaining, 1);
             }
-            i = j + 2;
+            mDiscoverySocket.setSoTimeout(timeout);
+            mReceivePacket.setLength(mReceiveBuffer.length);
+            try {
+                mDiscoverySocket.receive(mReceivePacket);
+            } catch (SocketTimeoutException ignored) {
+                return null;
+            }
+
+            String decoded = new String(mReceivePacket.getData(), mReceivePacket.getOffset(),
+                    mReceivePacket.getLength(), StandardCharsets.UTF_8);
+            if (!decoded.startsWith("HTTP/1.1 200 OK\r\n")) {
+                Log.w("SSDP", "Ignoring invalid response");
+                continue;
+            }
+
+            int i = 19;
+            Map<String, String> headers = new HashMap<>();
+            while (true) {
+                int j = decoded.indexOf("\r\n", i);
+                if (j == -1)
+                    break;
+                String ent = decoded.substring(i, j);
+                int s = ent.indexOf(':');
+                if (s != -1) {
+                    headers.put(ent.substring(0, s).trim().toUpperCase(),
+                            ent.substring(s + 1).trim());
+                }
+                i = j + 2;
+            }
+            return new Response(headers);
         }
-        return new Response(headers);
     }
 
     public static class Response {
