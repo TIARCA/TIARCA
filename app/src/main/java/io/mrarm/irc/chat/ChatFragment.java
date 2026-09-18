@@ -396,16 +396,27 @@ public class ChatFragment extends Fragment implements
         return mSectionsPagerAdapter.getChannel(mViewPager.getCurrentItem());
     }
 
-    /** Selects the tab immediately to the left after the current private query is closed. */
-    public void selectTabToLeftAfterClose() {
-        final int targetPosition = Math.max(0, mViewPager.getCurrentItem() - 1);
+    /**
+     * Closes the current private query and keeps focus on the immediately adjacent tab to its left.
+     *
+     * Capture the destination before removing the query: removing the rightmost page can make
+     * ViewPager2 move left on its own, and deriving the destination afterwards would skip another
+     * tab.
+     */
+    public void closePrivateConversationAndSelectAdjacent(String channel, String reason) {
+        final int targetPosition = targetPositionAfterClose(mViewPager.getCurrentItem());
+        mConnectionInfo.closePrivateConversation(channel, reason);
         mViewPager.post(() -> {
             if (!isAdded() || mSectionsPagerAdapter == null)
                 return;
-            mSectionsPagerAdapter.updateChannelList();
-            mViewPager.setCurrentItem(Math.min(targetPosition,
-                    mSectionsPagerAdapter.getItemCount() - 1), false);
+            int itemCount = mSectionsPagerAdapter.getItemCount();
+            if (itemCount > 0)
+                mViewPager.setCurrentItem(Math.min(targetPosition, itemCount - 1), false);
         });
+    }
+
+    static int targetPositionAfterClose(int closingPosition) {
+        return Math.max(0, closingPosition - 1);
     }
 
     private ChatMessagesFragment getCurrentMessagesFragment() {
