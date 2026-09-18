@@ -29,121 +29,138 @@ public class PortMapper {
                 ", internalPort=" + request.mInternalPort + ", preferredExternalPort=" +
                 request.mPreferredExternalPort);
         SSDPDiscovery discovery = new SSDPDiscovery();
-        discovery.bind();
-        discovery.setReceiveTimeout(1);
-        discovery.sendSearch(UPnPTypes.UPNP_INTERNET_GATEWAY_DEVICE_V1, 1);
-        DiagnosticLog.d("UPNP", () -> "SSDP search sent");
-        SSDPDiscovery.Response response;
         int deviceCount = 0;
-        while ((response = discovery.receive()) != null) {
-            deviceCount++;
-            final int currentDevice = deviceCount;
-            DiagnosticLog.d("UPNP", () -> "SSDP response received index=" + currentDevice);
-            Log.d("PortMapper", "Found device using SSDP: " +
-                    response.getDescriptionLocation());
-            UPnPDeviceDescription.Service service = getWANService(response);
-            if (service == null) {
-                Log.d("PortMapper", "Skipping device");
-                DiagnosticLog.d("UPNP", () -> "Gateway candidate skipped: no supported WAN service");
-                continue;
-            }
-            final String serviceType = service.getServiceType();
-            DiagnosticLog.d("UPNP", () -> "Supported WAN service found type=" + serviceType);
-            Log.d("DCCManager", "Found a valid service: " + service.getControlURL());
-
-            URL controlDescURL = new URL(new URL(response.getDescriptionLocation()),
-                    service.getSCPDURL());
-            UPnPServiceControlDescription controlDescription =
-                    new UPnPServiceControlDescription();
-            try {
-                controlDescription.loadFromUrl(controlDescURL.toString());
-                DiagnosticLog.d("UPNP", () -> "Service control description loaded");
-            } catch (IOException | SAXException e) {
-                Log.w("PortMapper", "Failed to fetch service control description");
-                e.printStackTrace();
-                DiagnosticLog.w("UPNP", () ->
-                        "Service control description unavailable; continuing with fallback mapping",
-                        e);
-                controlDescription = null;
-            }
-
-            URL serviceURL = new URL(new URL(response.getDescriptionLocation()),
-                    service.getControlURL());
-            String localIP = resolveLocalIP(serviceURL);
-            DiagnosticLog.d("UPNP", () -> "Local gateway route resolved");
-            String externalIP;
-            try {
-                GetExternalIPAddressCall call =
-                        new GetExternalIPAddressCall(service.getServiceType());
-                GetExternalIPAddressResponse resp = call.send(serviceURL);
-                externalIP = resp.getNewExternalIPAddress();
-                DiagnosticLog.d("UPNP", () -> "External address query succeeded");
-            } catch (Exception e) {
-                Log.w("PortMapper", "Failed to send GetExternalIPAddressCall request");
-                e.printStackTrace();
-                DiagnosticLog.w("UPNP", () -> "External address query failed", e);
-                continue;
-            }
-
-            // First try to bind using AddAnyPortMapping
-            if (controlDescription != null &&
-                    controlDescription.findAction(AddAnyPortMappingCall.ACTION_NAME) != null) {
-                DiagnosticLog.d("UPNP", () -> "Trying AddAnyPortMapping");
-                try {
-                    AddAnyPortMappingCall call =
-                            new AddAnyPortMappingCall(service.getServiceType());
-                    fillInCallData(call, request, localIP);
-                    AddAnyPortMappingResponse resp = call.send(serviceURL);
-                    final int reservedPort = resp.getNewReservedPort();
-                    DiagnosticLog.i("UPNP", () ->
-                            "AddAnyPortMapping succeeded externalPort=" + reservedPort);
-                    return new PortMappingResult(request, externalIP, reservedPort,
-                            service.getServiceType(), serviceURL);
-                } catch (Exception e) {
-                    Log.w("PortMapper", "Failed to send AddAnyPortMapping request");
-                    e.printStackTrace();
-                    DiagnosticLog.w("UPNP", () -> "AddAnyPortMapping failed", e);
-                }
-            }
-            // Then try to bind using AddPortMapping on the desired point, and if that fails try to
-            // use 2 different random ports
-            int attempt = 0;
-            do {
-                final int currentAttempt = attempt + 1;
+        try {
+            discovery.bind();
+            final int discoveryAttempts = 2;
+            for (int discoveryAttempt = 1; discoveryAttempt <= discoveryAttempts;
+                 discoveryAttempt++) {
+                final int currentDiscoveryAttempt = discoveryAttempt;
+                discovery.setReceiveTimeout(3);
+                discovery.sendSearch(UPnPTypes.UPNP_INTERNET_GATEWAY_DEVICE_V2, 2);
+                discovery.sendSearch(UPnPTypes.UPNP_INTERNET_GATEWAY_DEVICE_V1, 2);
                 DiagnosticLog.d("UPNP", () ->
-                        "Trying AddPortMapping attempt=" + currentAttempt);
-                try {
-                    AddPortMappingCall call =
-                            new AddPortMappingCall(service.getServiceType());
-                    fillInCallData(call, request, localIP);
-                    if (attempt != 0)
-                        call.setNewExternalPort(1024 + new Random().nextInt(65535 - 1024));
-                    call.send(serviceURL);
-                    final int externalPort = call.getNewExternalPort();
-                    DiagnosticLog.i("UPNP", () ->
-                            "AddPortMapping succeeded attempt=" + currentAttempt +
-                                    ", externalPort=" + externalPort);
-                    return new PortMappingResult(request, externalIP, externalPort,
-                            service.getServiceType(), serviceURL);
-                } catch (Exception e) {
-                    if (e instanceof UPnPRPCError) {
-                        int errorCode = ((UPnPRPCError) e).getErrorCode();
-                        Log.w("PortMapper", "UPnP Error: " + errorCode + " " +
-                                ((UPnPRPCError) e).getErrorDescription());
-                        DiagnosticLog.w("UPNP", () ->
-                                "AddPortMapping RPC failure attempt=" + currentAttempt +
-                                        ", code=" + errorCode, e);
-                    } else {
-                        DiagnosticLog.w("UPNP", () ->
-                                "AddPortMapping failed attempt=" + currentAttempt, e);
+                        "SSDP search sent attempt=" + currentDiscoveryAttempt +
+                                " targets=IGDv2,IGDv1");
+
+                SSDPDiscovery.Response response;
+                while ((response = discovery.receive()) != null) {
+                    deviceCount++;
+                    final int currentDevice = deviceCount;
+                    DiagnosticLog.d("UPNP", () ->
+                            "SSDP response received index=" + currentDevice);
+                    Log.d("PortMapper", "Found device using SSDP: " +
+                            response.getDescriptionLocation());
+                    UPnPDeviceDescription.Service service = getWANService(response);
+                    if (service == null) {
+                        Log.d("PortMapper", "Skipping device");
+                        DiagnosticLog.d("UPNP", () ->
+                                "Gateway candidate skipped: no supported WAN service");
+                        continue;
                     }
-                    Log.w("PortMapper", "Failed to send AddPortMapping request");
-                    e.printStackTrace();
+                    final String serviceType = service.getServiceType();
+                    DiagnosticLog.d("UPNP", () ->
+                            "Supported WAN service found type=" + serviceType);
+                    Log.d("DCCManager", "Found a valid service: " + service.getControlURL());
+
+                    URL controlDescURL = new URL(new URL(response.getDescriptionLocation()),
+                            service.getSCPDURL());
+                    UPnPServiceControlDescription controlDescription =
+                            new UPnPServiceControlDescription();
+                    try {
+                        controlDescription.loadFromUrl(controlDescURL.toString());
+                        DiagnosticLog.d("UPNP", () ->
+                                "Service control description loaded");
+                    } catch (IOException | SAXException e) {
+                        Log.w("PortMapper", "Failed to fetch service control description");
+                        e.printStackTrace();
+                        DiagnosticLog.w("UPNP", () ->
+                                "Service control description unavailable; continuing with fallback mapping",
+                                e);
+                        controlDescription = null;
+                    }
+
+                    URL serviceURL = new URL(new URL(response.getDescriptionLocation()),
+                            service.getControlURL());
+                    String localIP = resolveLocalIP(serviceURL);
+                    DiagnosticLog.d("UPNP", () -> "Local gateway route resolved");
+                    String externalIP;
+                    try {
+                        GetExternalIPAddressCall call =
+                                new GetExternalIPAddressCall(service.getServiceType());
+                        GetExternalIPAddressResponse resp = call.send(serviceURL);
+                        externalIP = resp.getNewExternalIPAddress();
+                        DiagnosticLog.d("UPNP", () -> "External address query succeeded");
+                    } catch (Exception e) {
+                        Log.w("PortMapper", "Failed to send GetExternalIPAddressCall request");
+                        e.printStackTrace();
+                        DiagnosticLog.w("UPNP", () -> "External address query failed", e);
+                        continue;
+                    }
+
+                    if (controlDescription != null &&
+                            controlDescription.findAction(AddAnyPortMappingCall.ACTION_NAME) !=
+                                    null) {
+                        DiagnosticLog.d("UPNP", () -> "Trying AddAnyPortMapping");
+                        try {
+                            AddAnyPortMappingCall call =
+                                    new AddAnyPortMappingCall(service.getServiceType());
+                            fillInCallData(call, request, localIP);
+                            AddAnyPortMappingResponse resp = call.send(serviceURL);
+                            final int reservedPort = resp.getNewReservedPort();
+                            DiagnosticLog.i("UPNP", () ->
+                                    "AddAnyPortMapping succeeded externalPort=" + reservedPort);
+                            return new PortMappingResult(request, externalIP, reservedPort,
+                                    service.getServiceType(), serviceURL);
+                        } catch (Exception e) {
+                            Log.w("PortMapper", "Failed to send AddAnyPortMapping request");
+                            e.printStackTrace();
+                            DiagnosticLog.w("UPNP", () -> "AddAnyPortMapping failed", e);
+                        }
+                    }
+
+                    int attempt = 0;
+                    do {
+                        final int currentAttempt = attempt + 1;
+                        DiagnosticLog.d("UPNP", () ->
+                                "Trying AddPortMapping attempt=" + currentAttempt);
+                        try {
+                            AddPortMappingCall call =
+                                    new AddPortMappingCall(service.getServiceType());
+                            fillInCallData(call, request, localIP);
+                            if (attempt != 0)
+                                call.setNewExternalPort(1024 +
+                                        new Random().nextInt(65535 - 1024));
+                            call.send(serviceURL);
+                            final int externalPort = call.getNewExternalPort();
+                            DiagnosticLog.i("UPNP", () ->
+                                    "AddPortMapping succeeded attempt=" + currentAttempt +
+                                            ", externalPort=" + externalPort);
+                            return new PortMappingResult(request, externalIP, externalPort,
+                                    service.getServiceType(), serviceURL);
+                        } catch (Exception e) {
+                            if (e instanceof UPnPRPCError) {
+                                int errorCode = ((UPnPRPCError) e).getErrorCode();
+                                Log.w("PortMapper", "UPnP Error: " + errorCode + " " +
+                                        ((UPnPRPCError) e).getErrorDescription());
+                                DiagnosticLog.w("UPNP", () ->
+                                        "AddPortMapping RPC failure attempt=" + currentAttempt +
+                                                ", code=" + errorCode, e);
+                            } else {
+                                DiagnosticLog.w("UPNP", () ->
+                                        "AddPortMapping failed attempt=" + currentAttempt, e);
+                            }
+                            Log.w("PortMapper", "Failed to send AddPortMapping request");
+                            e.printStackTrace();
+                        }
+                        attempt++;
+                    } while (attempt < 3);
                 }
-                attempt++;
-            } while (attempt < 3);
+            }
+        } finally {
+            discovery.close();
         }
-        discovery.close();
+
         final int finalDeviceCount = deviceCount;
         DiagnosticLog.w("UPNP", () ->
                 "Port mapping failed: no supported gateway succeeded; responses=" +
@@ -193,7 +210,10 @@ public class PortMapper {
             return null;
         }
         UPnPDeviceDescription wanDevice = description
-                .findDeviceByType(UPnPTypes.UPNP_WAN_CONNECTION_DEVICE_V1);
+                .findDeviceByType(UPnPTypes.UPNP_WAN_CONNECTION_DEVICE_V2);
+        if (wanDevice == null)
+            wanDevice = description.findDeviceByType(
+                    UPnPTypes.UPNP_WAN_CONNECTION_DEVICE_V1);
         if (wanDevice == null) {
             Log.d("PortMapper", "Root device has no WAN connection device");
             DiagnosticLog.d("UPNP", () -> "Gateway has no WAN connection device");
