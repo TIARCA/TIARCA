@@ -545,8 +545,16 @@ public class DCCManager implements DCCServerManager.UploadListener, DCCClient.Cl
                     DiagnosticLog.i(mContext, "DCC", () ->
                             transferId + " reverse upload registered id=" + reverseId +
                                     " reason=direct_setup_failed");
+                    String reverseAddress = getLocalIP();
+                    if (reverseAddress == null) {
+                        DiagnosticLog.e(mContext, "DCC", () ->
+                                transferId + " reverse upload setup failed: no local IPv4 address",
+                                null);
+                        mServer.cancelUpload(upload);
+                        return;
+                    }
                     server.getApiInstance().sendMessage(channel, DCCUtils.buildSendMessage(
-                            "127.0.0.1", fileName, 0, fileSize, reverseId),
+                            reverseAddress, fileName, 0, fileSize, reverseId),
                             null, null);
                     DiagnosticLog.i(mContext, "DCC", () ->
                             transferId + " DCC SEND offer sent mode=reverse");
@@ -560,9 +568,17 @@ public class DCCManager implements DCCServerManager.UploadListener, DCCClient.Cl
             DiagnosticLog.i(mContext, "DCC", () ->
                     transferId + " reverse upload registered id=" + reverseId +
                             " reason=not_wifi");
+            String reverseAddress = getLocalIP();
+            if (reverseAddress == null) {
+                DiagnosticLog.e(mContext, "DCC", () ->
+                        transferId + " reverse upload setup failed: no local IPv4 address", null);
+                mServer.cancelUpload(upload);
+                mHandler.post(() -> Toast
+                        .makeText(mContext, R.string.error_generic, Toast.LENGTH_SHORT).show());
+                return;
+            }
             server.getApiInstance().sendMessage(channel, DCCUtils.buildSendMessage(
-                    "0.0.0.0", fileName, 0, fileSize,
-                    reverseId),
+                    reverseAddress, fileName, 0, fileSize, reverseId),
                     null, null);
             DiagnosticLog.i(mContext, "DCC", () ->
                     transferId + " DCC SEND offer sent mode=reverse");
@@ -791,7 +807,10 @@ public class DCCManager implements DCCServerManager.UploadListener, DCCClient.Cl
                     final int listenerPort = port;
                     DiagnosticLog.i(mContext, "DCC", () ->
                             diagnosticId() + " reverse download listener ready port=" + listenerPort);
-                    String message = DCCUtils.buildSendMessage(getLocalIP(), mFileName, port,
+                    String reverseAddress = getLocalIP();
+                    if (reverseAddress == null)
+                        throw new IOException("No local IPv4 address available for reverse DCC");
+                    String message = DCCUtils.buildSendMessage(reverseAddress, mFileName, port,
                             mFileSize, mReverseUploadId);
                     connection.getApiInstance().sendMessage(mSender.getNick(), message, null, null);
                     DiagnosticLog.i(mContext, "DCC", () ->
@@ -1159,7 +1178,8 @@ public class DCCManager implements DCCServerManager.UploadListener, DCCClient.Cl
                 Enumeration<InetAddress> addrs = iface.getInetAddresses();
                 while (addrs.hasMoreElements()) {
                     InetAddress addr = addrs.nextElement();
-                    if (addr.isLoopbackAddress())
+                    if (addr.isLoopbackAddress() || addr.isAnyLocalAddress() ||
+                            addr.isLinkLocalAddress() || addr.isMulticastAddress())
                         continue;
                     String hostAddr = addr.getHostAddress();
                     if (hostAddr.indexOf(':') != -1) { // IPv6
