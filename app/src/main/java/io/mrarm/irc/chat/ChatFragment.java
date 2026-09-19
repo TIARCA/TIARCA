@@ -117,6 +117,9 @@ public class ChatFragment extends Fragment implements
                 if (channel != null)
                     DirectShareManager.publishConversation(requireContext(), mConnectionInfo,
                             channel);
+                // PVT toolbar actions depend on the selected page. Refresh them immediately
+                // instead of waiting for an unrelated unread/status callback.
+                ((MainActivity) getActivity()).invalidateOptionsMenu();
                 ChatMessagesFragment fragment = getCurrentMessagesFragment();
                 if (fragment != null)
                     fragment.updateParentCurrentChannel();
