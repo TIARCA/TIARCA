@@ -85,6 +85,18 @@ public class MenuChatStructureTest {
                 item.contains("app:showAsAction=\"always\""));
     }
 
+    @Test
+    public void changingChatPageImmediatelyRefreshesToolbarActions() throws IOException {
+        String source = readChatFragment();
+        int start = source.indexOf("public void onPageSelected(int i)");
+        assertTrue("ViewPager page-selection callback is missing", start >= 0);
+        int end = source.indexOf("mViewPager.registerOnPageChangeCallback", start);
+        assertTrue("ViewPager page-selection callback is malformed", end > start);
+        String callback = source.substring(start, end);
+        assertTrue("Changing tabs must immediately invalidate the toolbar menu",
+                callback.contains("invalidateOptionsMenu()"));
+    }
+
     private static void assertToolbarIconTint(String xml, String itemId) {
         int start = xml.indexOf(itemId);
         assertTrue(itemId + " is missing", start >= 0);
@@ -115,6 +127,13 @@ public class MenuChatStructureTest {
         Path path = Paths.get("src/main/res/menu/menu_chat.xml");
         if (!Files.exists(path))
             path = Paths.get("app/src/main/res/menu/menu_chat.xml");
+        return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+    }
+
+    private static String readChatFragment() throws IOException {
+        Path path = Paths.get("src/main/java/io/mrarm/irc/chat/ChatFragment.java");
+        if (!Files.exists(path))
+            path = Paths.get("app/src/main/java/io/mrarm/irc/chat/ChatFragment.java");
         return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
     }
 }

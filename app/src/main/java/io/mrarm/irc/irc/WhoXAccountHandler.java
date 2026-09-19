@@ -3,7 +3,6 @@ package io.mrarm.irc.irc;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -13,7 +12,13 @@ import io.mrarm.chatlib.irc.InvalidMessageException;
 import io.mrarm.chatlib.irc.MessagePrefix;
 import io.mrarm.chatlib.irc.ServerConnectionData;
 
-/** Collects nick-to-account mappings from a channel-wide WHOX request. */
+/**
+ * Collects nick-to-account mappings from channel-wide WHOX requests.
+ *
+ * Historical mappings deliberately survive a transport reconnect so TIARCA can reconcile a
+ * private query whose user changed nickname while the client was offline. The separate current
+ * map is cleared on disconnect and contains only identities observed on the active connection.
+ */
 public final class WhoXAccountHandler implements CommandDisconnectHandler {
 
     private static final int RPL_WHOSPCRPL = 354;
@@ -22,12 +27,17 @@ public final class WhoXAccountHandler implements CommandDisconnectHandler {
 
     private static final int MAX_ACCOUNTS = 2048;
     private static final int MAX_REQUESTS = 32;
-    private final Map<String, String> accounts = new LinkedHashMap<String, String>(128, .75f, true) {
-        @Override protected boolean removeEldestEntry(Map.Entry<String, String> eldest) {
-            return size() > MAX_ACCOUNTS;
-        }
-    };
+    private final Map<String, String> accounts = newAccountMap();
+    private final Map<String, String> currentAccounts = newAccountMap();
     private final Map<String, Request> requests = new LinkedHashMap<>();
+
+    private static Map<String, String> newAccountMap() {
+        return new LinkedHashMap<String, String>(128, .75f, true) {
+            @Override protected boolean removeEldestEntry(Map.Entry<String, String> eldest) {
+                return size() > MAX_ACCOUNTS;
+            }
+        };
+    }
 
     @Override public Object[] getHandledCommands() {
         return new Object[] { RPL_WHOSPCRPL, RPL_ENDOFWHO };
@@ -47,14 +57,35 @@ public final class WhoXAccountHandler implements CommandDisconnectHandler {
     }
 
     public synchronized String getAccount(String nick) {
-        return nick == null ? null : accounts.get(nick.toLowerCase(Locale.ROOT));
+        return getCaseInsensitive(accounts, nick);
     }
 
     public synchronized void remember(String nick, String account) {
         if (nick == null || account == null || account.isEmpty() ||
                 "0".equals(account) || "*".equals(account))
             return;
-        accounts.put(nick.toLowerCase(Locale.ROOT), account);
+        putCaseInsensitive(accounts, nick, account);
+        putCaseInsensitive(currentAccounts, nick, account);
+    }
+
+    /** Keeps account identity attached to an observed live NICK change. */
+    public synchronized void renameNick(String oldNick, String newNick) {
+        if (oldNick == null || newNick == null || oldNick.equalsIgnoreCase(newNick))
+            return;
+        String account = getCaseInsensitive(accounts, oldNick);
+        removeCaseInsensitive(currentAccounts, oldNick);
+        if (account == null)
+            return;
+        putCaseInsensitive(accounts, newNick, account);
+        putCaseInsensitive(currentAccounts, newNick, account);
+    }
+
+    public synchronized Map<String, String> snapshotKnownAccounts() {
+        return new LinkedHashMap<>(accounts);
+    }
+
+    public synchronized Map<String, String> snapshotCurrentAccounts() {
+        return new LinkedHashMap<>(currentAccounts);
     }
 
     @Override
@@ -95,8 +126,39 @@ public final class WhoXAccountHandler implements CommandDisconnectHandler {
     }
 
     @Override public synchronized void onDisconnected() {
-        accounts.clear();
+        // Keep historical nick -> account identity for reconnect reconciliation, but never treat it
+        // as current presence. Current identities are rebuilt by WHOX on the next connection.
+        currentAccounts.clear();
         requests.clear();
+    }
+
+    private static String getCaseInsensitive(Map<String, String> values, String nick) {
+        if (nick == null)
+            return null;
+        for (Map.Entry<String, String> entry : values.entrySet()) {
+            if (entry.getKey().equalsIgnoreCase(nick))
+                return entry.getValue();
+        }
+        return null;
+    }
+
+    private static void putCaseInsensitive(Map<String, String> values, String nick, String account) {
+        removeCaseInsensitive(values, nick);
+        values.put(nick, account);
+    }
+
+    private static void removeCaseInsensitive(Map<String, String> values, String nick) {
+        if (nick == null)
+            return;
+        String found = null;
+        for (String key : values.keySet()) {
+            if (key.equalsIgnoreCase(nick)) {
+                found = key;
+                break;
+            }
+        }
+        if (found != null)
+            values.remove(found);
     }
 
     private static final class Request {

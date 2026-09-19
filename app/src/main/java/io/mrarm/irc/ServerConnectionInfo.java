@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import io.mrarm.chatlib.ChannelListListener;
 import io.mrarm.chatlib.ChatApi;
@@ -38,6 +39,7 @@ import io.mrarm.irc.util.IgnoreListMessageFilter;
 import io.mrarm.irc.util.StubMessageStorageApi;
 import io.mrarm.irc.util.UserAutoRunCommandHelper;
 import io.mrarm.irc.irc.ChannelModeSnapshotHandler;
+import io.mrarm.irc.irc.PrivateConversationReconnectReconciler;
 import io.mrarm.irc.irc.WhoXAccountHandler;
 import io.mrarm.irc.irc.WhowasCommandHandler;
 import io.mrarm.irc.irc.MonitoredUsersManager;
@@ -75,6 +77,8 @@ public class ServerConnectionInfo {
     private final Set<String> mServiceNicks = new LinkedHashSet<>();
     /** Old query nick -> current nick, for stale channel-list callbacks after NICK. */
     private final Map<String, String> mQueryNickAliases = new LinkedHashMap<>();
+    /** Private nicks already WHOISed on this transport connection. */
+    private final Set<String> mPrivateIdentityLookups = new LinkedHashSet<>();
     private final MonitoredUsersManager mMonitoredUsers;
     private final MonitoredUsersNotificationManager mMonitoredUsersNotifications;
 
@@ -183,6 +187,7 @@ public class ServerConnectionInfo {
             WhowasCommandHandler.getOrInstall(monitoredConnectionData);
             connection.getUserInfoApi().subscribeNickChanges((info, oldNick, newNick) -> {
                 renameServiceNick(oldNick, newNick);
+                rememberPrivateConversationNickChange(oldNick, newNick);
                 renamePrivateConversation(oldNick, newNick);
                 mMonitoredUsers.onNickChanged(monitoredConnectionData, oldNick, newNick);
             }, null, null);
@@ -238,8 +243,17 @@ public class ServerConnectionInfo {
                 joinChannels.addAll(mServerConfig.autojoinChannels);
             if (rejoinChannels != null && mServerConfig.rejoinChannels)
                 joinChannels.addAll(rejoinChannels);
-            if (joinChannels.size() > 0)
-                fConnection.joinChannels(joinChannels, null, null);
+            if (joinChannels.size() > 0) {
+                fConnection.joinChannels(joinChannels, ignored -> {
+                    capturePrivateConversationIdentities(rejoinChannels);
+                    reconcilePrivateConversationsAfterReconnect(
+                            fConnection, rejoinChannels, joinChannels);
+                }, null);
+            } else {
+                capturePrivateConversationIdentities(rejoinChannels);
+                reconcilePrivateConversationsAfterReconnect(
+                        fConnection, rejoinChannels, joinChannels);
+            }
 
         }, (Exception e) -> {
             if (e instanceof UserOverrideTrustManager.UserRejectedCertificateException ||
@@ -316,6 +330,7 @@ public class ServerConnectionInfo {
     private void notifyDisconnected() {
         mMonitoredUsers.onDisconnected();
         synchronized (this) {
+            mPrivateIdentityLookups.clear();
             // A failed socket can report both the connect error callback and the disconnect
             // listener. Process that failure once, otherwise two callbacks would skip an
             // endpoint or unexpectedly queue another reconnect after a user disconnect.
@@ -526,6 +541,149 @@ public class ServerConnectionInfo {
         }
     }
 
+    private WhoXAccountHandler getWhoXAccountHandler() {
+        ChatApi api = getApiInstance();
+        if (!(api instanceof IRCConnection))
+            return null;
+        return ((IRCConnection) api).getServerConnectionData().getCommandHandlerList()
+                .getHandler(WhoXAccountHandler.class);
+    }
+
+    private boolean isPrivateConversationName(String name) {
+        ChatApi api = getApiInstance();
+        if (name == null || name.isEmpty() || !(api instanceof ServerConnectionApi))
+            return false;
+        return !((ServerConnectionApi) api).getServerConnectionData().getSupportList()
+                .getSupportedChannelTypes().contains(name.charAt(0));
+    }
+
+    private void rememberPrivateConversationNickChange(String oldNick, String newNick) {
+        WhoXAccountHandler handler = getWhoXAccountHandler();
+        if (handler != null)
+            handler.renameNick(oldNick, newNick);
+    }
+
+    /**
+     * Captures a stable IRC account for private queries while their current nickname is known.
+     * This is intentionally best-effort and never blocks opening the conversation.
+     */
+    private void capturePrivateConversationIdentities(List<String> channels) {
+        if (!isConnected() || channels == null)
+            return;
+        for (String channel : channels)
+            capturePrivateConversationIdentity(channel);
+    }
+
+    private void capturePrivateConversationIdentity(String nick) {
+        if (!isConnected() || !isPrivateConversationName(nick))
+            return;
+        WhoXAccountHandler handler = getWhoXAccountHandler();
+        if (handler == null || handler.getAccount(nick) != null)
+            return;
+
+        String key = nick.toLowerCase(Locale.ROOT);
+        synchronized (this) {
+            if (!mPrivateIdentityLookups.add(key))
+                return;
+        }
+        ChatApi api = getApiInstance();
+        if (api == null)
+            return;
+        api.sendWhois(nick, info -> {
+            if (info != null)
+                handler.remember(info.getNick(), info.getLoggedInAsAccount());
+        }, error -> {
+            // A user without an account, or a nick that disappeared meanwhile, is simply left
+            // unresolved. The lookup may be retried on a later transport connection.
+        });
+    }
+
+    /**
+     * Reconciles PVT tabs after reconnect without guessing from nickname spelling. Historical
+     * nick -> account identity is matched against fresh WHOX data from the channels we rejoin.
+     */
+    private void reconcilePrivateConversationsAfterReconnect(IRCConnection connection,
+                                                              List<String> previousChannels,
+                                                              List<String> joinedChannels) {
+        WhoXAccountHandler handler = getWhoXAccountHandler();
+        if (handler == null || previousChannels == null || joinedChannels == null)
+            return;
+
+        Map<String, String> knownAccounts = handler.snapshotKnownAccounts();
+        List<String> privateQueries = new ArrayList<>();
+        for (String item : previousChannels) {
+            if (isPrivateConversationName(item) && getAccountIgnoreCase(knownAccounts, item) != null)
+                privateQueries.add(item);
+        }
+        if (privateQueries.isEmpty())
+            return;
+
+        List<String> scanChannels = new ArrayList<>();
+        for (String item : joinedChannels) {
+            if (item == null || item.isEmpty() || isPrivateConversationName(item))
+                continue;
+            boolean duplicate = false;
+            for (String existing : scanChannels) {
+                if (existing.equalsIgnoreCase(item)) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate)
+                scanChannels.add(item);
+        }
+        if (scanChannels.isEmpty())
+            return;
+
+        AtomicInteger pending = new AtomicInteger(scanChannels.size());
+        Runnable scanFinished = () -> {
+            if (pending.decrementAndGet() == 0)
+                applyPrivateConversationReconnectMatches(
+                        handler, privateQueries, knownAccounts);
+        };
+        for (String channel : scanChannels) {
+            String token = handler.begin(channel, scanFinished);
+            connection.sendCommandRaw("WHO " + channel + " %tna," + token, null,
+                    error -> scanFinished.run());
+        }
+    }
+
+    private void applyPrivateConversationReconnectMatches(WhoXAccountHandler handler,
+                                                           List<String> privateQueries,
+                                                           Map<String, String> knownAccounts) {
+        Map<String, String> renames = PrivateConversationReconnectReconciler.findRenames(
+                privateQueries, knownAccounts, handler.snapshotCurrentAccounts());
+        for (Map.Entry<String, String> rename : renames.entrySet()) {
+            String oldNick = rename.getKey();
+            String newNick = rename.getValue();
+            if (!hasOpenConversation(oldNick))
+                continue;
+
+            // WHOX/account matching identifies the likely current nick. Confirm that the old nick
+            // itself is no longer online before changing the visible query.
+            ChatApi api = getApiInstance();
+            if (api == null)
+                continue;
+            api.sendWhois(oldNick, info -> {
+                if (info != null)
+                    handler.remember(info.getNick(), info.getLoggedInAsAccount());
+            }, error -> {
+                if (isConnected() && hasOpenConversation(oldNick))
+                    renamePrivateConversation(oldNick, newNick);
+            });
+        }
+    }
+
+    private static String getAccountIgnoreCase(Map<String, String> accounts, String nick) {
+        if (accounts == null || nick == null)
+            return null;
+        for (Map.Entry<String, String> entry : accounts.entrySet()) {
+            if (entry.getKey() != null && entry.getKey().equalsIgnoreCase(nick))
+                return entry.getValue();
+        }
+        return null;
+    }
+
     /** Follows a user's NICK change instead of opening a second private-query tab. */
     private void renamePrivateConversation(String oldNick, String newNick) {
         if (oldNick == null || newNick == null || oldNick.equalsIgnoreCase(newNick) ||
@@ -608,6 +766,7 @@ public class ServerConnectionInfo {
                 .contains(target.charAt(0)))
             return;
         mApi.joinChannels(Collections.singletonList(target), ignored -> {
+            capturePrivateConversationIdentity(target);
             if (onRegistered != null)
                 onRegistered.run();
         }, null);
@@ -623,6 +782,7 @@ public class ServerConnectionInfo {
         }
         channels.add(channel);
         setChannels(channels);
+        capturePrivateConversationIdentity(channel);
     }
 
     /** Removes a locally opened query, such as a service conversation. */
@@ -691,6 +851,7 @@ public class ServerConnectionInfo {
         synchronized (this) {
             mChannels = normalized;
         }
+        capturePrivateConversationIdentities(normalized);
         synchronized (mChannelsListeners) {
             mManager.notifyChannelListChanged(this, normalized);
             mManager.saveAutoconnectListAsync();
