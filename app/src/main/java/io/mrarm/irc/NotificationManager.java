@@ -158,9 +158,13 @@ public class NotificationManager {
 
     private String normalizeRuleChannel(ServerConnectionInfo connection, String channel) {
         ChatApi api = connection.getApiInstance();
-        if (api instanceof ServerConnectionApi && channel != null && channel.length() > 0 &&
-                !((ServerConnectionApi) api).getServerConnectionData().getSupportList()
-                        .getSupportedChannelTypes().contains(channel.charAt(0)))
+        if (!(api instanceof ServerConnectionApi) || channel == null || channel.isEmpty())
+            return channel;
+        ServerConnectionData data = ((ServerConnectionApi) api).getServerConnectionData();
+        String statusChannel = data.getSupportList().getStatusMessageChannel(channel);
+        if (statusChannel != null)
+            return statusChannel;
+        if (!data.getSupportList().getSupportedChannelTypes().contains(channel.charAt(0)))
             return null;
         return channel;
     }
