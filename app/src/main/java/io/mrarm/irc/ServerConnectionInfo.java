@@ -33,6 +33,7 @@ import io.mrarm.chatlib.irc.handlers.ModeCommandHandler;
 import io.mrarm.chatlib.message.MessageStorageApi;
 import io.mrarm.irc.chat.ChatUIData;
 import io.mrarm.irc.config.AppSettings;
+import io.mrarm.irc.config.ChatSettings;
 import io.mrarm.irc.config.ServerConfigData;
 import io.mrarm.irc.config.ServerConfigManager;
 import io.mrarm.irc.util.IgnoreListMessageFilter;
@@ -164,6 +165,8 @@ public class ServerConnectionInfo {
                     new ZNCPlaybackMessageFilter(connection.getServerConnectionData()));
             MessageCommandHandler messageHandler = connection.getServerConnectionData()
                     .getCommandHandlerList().getHandler(MessageCommandHandler.class);
+            connection.getServerConnectionData().setSeparateStatusMessageTargetsSupplier(
+                    ChatSettings::isSeparateStatusMessages);
             DCCManager dccManager = DCCManager.getInstance(getConnectionManager().getContext());
             messageHandler.setDCCServerManager(dccManager.getServer());
             messageHandler.setDCCClientManager(dccManager.createClient(this));
