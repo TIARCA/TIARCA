@@ -7,4 +7,6 @@
         <item>Wstaw nick do wiadomości</item>
         <item>Otwórz rozmowę prywatną</item>
     </string-array>
+    <string name="pref_title_separate_status_messages">Wiadomości uprzywilejowane w osobnej karcie</string>
+    <string name="pref_summary_separate_status_messages">Wyświetla wiadomości kierowane przez serwer do uprzywilejowanych członków kanału (np. @#kanał) w osobnej karcie zamiast w kanale źródłowym.</string>
 </resources>
