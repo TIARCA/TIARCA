@@ -15,6 +15,8 @@ import androidx.appcompat.app.AlertDialog;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import io.mrarm.chatlib.ChatApi;
+import io.mrarm.chatlib.dto.WhoisInfo;
 import io.mrarm.irc.R;
 import io.mrarm.irc.ServerConnectionInfo;
 import io.mrarm.irc.config.ServerConfigData;
@@ -33,6 +35,8 @@ public final class IgnoreUserDialog {
         if (server == null)
             return;
         ServerConfigData.IgnoreEntry entry = findEntry(server, nick, user, host);
+        final String[] resolvedUser = { user };
+        final String[] resolvedHost = { host };
         View view = LayoutInflater.from(context).inflate(R.layout.dialog_ignore_user, null);
         CheckBox nickBox = view.findViewById(R.id.nick);
         CheckBox userBox = view.findViewById(R.id.user);
@@ -48,12 +52,12 @@ public final class IgnoreUserDialog {
 
         nickBox.setChecked(entry == null || entry.nick != null);
         nickBox.setText(context.getString(R.string.ignore_nickname_value, nick));
-        userBox.setEnabled(!isBlank(user));
-        hostBox.setEnabled(!isBlank(host));
+        userBox.setEnabled(!isBlank(resolvedUser[0]));
+        hostBox.setEnabled(!isBlank(resolvedHost[0]));
         if (userBox.isEnabled())
-            userBox.setText(context.getString(R.string.ignore_ident_value, user));
+            userBox.setText(context.getString(R.string.ignore_ident_value, resolvedUser[0]));
         if (hostBox.isEnabled())
-            hostBox.setText(context.getString(R.string.ignore_host_value, host));
+            hostBox.setText(context.getString(R.string.ignore_host_value, resolvedHost[0]));
         userBox.setChecked(entry != null && entry.user != null && userBox.isEnabled());
         hostBox.setChecked(entry != null && entry.host != null && hostBox.isEnabled());
         channelMessages.setChecked(entry == null || entry.matchChannelMessages);
@@ -106,8 +110,8 @@ public final class IgnoreUserDialog {
                     server.ignoreList.add(target);
                 }
                 target.nick = nickBox.isChecked() ? nick : null;
-                target.user = userBox.isChecked() ? user : null;
-                target.host = hostBox.isChecked() ? host : null;
+                target.user = userBox.isChecked() ? resolvedUser[0] : null;
+                target.host = hostBox.isChecked() ? resolvedHost[0] : null;
                 target.matchChannelMessages = channelMessages.isChecked();
                 target.matchDirectMessages = directMessages.isChecked();
                 target.matchChannelNotices = channelNotices.isChecked();
@@ -126,6 +130,38 @@ public final class IgnoreUserDialog {
             }
         });
         dialog.show();
+        resolveMissingIdentity(context, connection, nick, dialog, view, userBox, hostBox,
+                resolvedUser, resolvedHost);
+    }
+
+    private static void resolveMissingIdentity(Context context, ServerConnectionInfo connection,
+                                               String nick, AlertDialog dialog, View view,
+                                               CheckBox userBox, CheckBox hostBox,
+                                               String[] resolvedUser, String[] resolvedHost) {
+        if ((!isBlank(resolvedUser[0]) && !isBlank(resolvedHost[0])) ||
+                connection.getApiInstance() == null)
+            return;
+        ChatApi api = connection.getApiInstance();
+        api.sendWhois(nick, (WhoisInfo info) -> {
+            if (info == null)
+                return;
+            view.post(() -> {
+                if (!dialog.isShowing())
+                    return;
+                if (isBlank(resolvedUser[0]) && !isBlank(info.getUser())) {
+                    resolvedUser[0] = info.getUser();
+                    userBox.setText(context.getString(R.string.ignore_ident_value,
+                            resolvedUser[0]));
+                    userBox.setEnabled(true);
+                }
+                if (isBlank(resolvedHost[0]) && !isBlank(info.getHost())) {
+                    resolvedHost[0] = info.getHost();
+                    hostBox.setText(context.getString(R.string.ignore_host_value,
+                            resolvedHost[0]));
+                    hostBox.setEnabled(true);
+                }
+            });
+        }, error -> { });
     }
 
     private static ServerConfigData.IgnoreEntry findEntry(ServerConfigData server, String nick,
