@@ -7,4 +7,6 @@
         <item>Inserează pseudonimul în mesaj</item>
         <item>Deschide conversația privată</item>
     </string-array>
+    <string name="pref_title_separate_status_messages">Mesaje privilegiate într-o filă separată</string>
+    <string name="pref_summary_separate_status_messages">Afișează mesajele adresate de server membrilor privilegiați ai canalului (de exemplu @#canal) într-o filă separată, în locul canalului original.</string>
 </resources>

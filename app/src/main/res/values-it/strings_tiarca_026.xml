@@ -7,4 +7,6 @@
         <item>Inserisci nickname nel messaggio</item>
         <item>Apri conversazione privata</item>
     </string-array>
+    <string name="pref_title_separate_status_messages">Messaggi riservati agli operatori in una scheda separata</string>
+    <string name="pref_summary_separate_status_messages">Mostra i messaggi che il server indirizza agli utenti privilegiati del canale (ad es. @#canale) in una scheda separata invece che nel canale originale.</string>
 </resources>

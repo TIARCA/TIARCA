@@ -7,4 +7,6 @@
         <item>Lisää nimimerkki viestiin</item>
         <item>Avaa yksityiskeskustelu</item>
     </string-array>
+    <string name="pref_title_separate_status_messages">Etuoikeutetut viestit erillisellä välilehdellä</string>
+    <string name="pref_summary_separate_status_messages">Näyttää palvelimen etuoikeutetuille kanavan jäsenille osoittamat viestit (esim. @#kanava) erillisellä välilehdellä alkuperäisen kanavan sijaan.</string>
 </resources>

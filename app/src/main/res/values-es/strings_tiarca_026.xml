@@ -7,4 +7,6 @@
         <item>Insertar apodo en el mensaje</item>
         <item>Abrir conversación privada</item>
     </string-array>
+    <string name="pref_title_separate_status_messages">Mensajes privilegiados en una pestaña separada</string>
+    <string name="pref_summary_separate_status_messages">Muestra los mensajes que el servidor dirige a miembros privilegiados del canal (por ejemplo, @#canal) en una pestaña separada en lugar del canal original.</string>
 </resources>

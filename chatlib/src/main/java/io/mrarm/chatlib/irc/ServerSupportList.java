@@ -8,6 +8,7 @@ public class ServerSupportList {
     private NickPrefixList nickPrefixes = new NickPrefixList("@+");
     private ModeList nickPrefixModes = new ModeList("ov");
     private ModeList channelTypes = new ModeList("#");
+    private ModeList statusMessagePrefixes = new ModeList("");
     private ModeList channelModesList = new ModeList("b"); // has add&remove param
     private ModeList channelModesValueExactUnset = new ModeList("k"); // single value, has add&remove param
     private ModeList channelModesValue = new ModeList("l"); // single value, has add param
@@ -40,6 +41,22 @@ public class ServerSupportList {
         return channelTypes;
     }
 
+    public ModeList getSupportedStatusMessagePrefixes() {
+        return statusMessagePrefixes;
+    }
+
+    /**
+     * Returns the underlying channel for a STATUSMSG target (for example @#channel), or null
+     * when the target is not a server-advertised status-message channel target.
+     */
+    public String getStatusMessageChannel(String target) {
+        if (target == null || target.length() < 2 ||
+                !statusMessagePrefixes.contains(target.charAt(0)))
+            return null;
+        String channel = target.substring(1);
+        return !channel.isEmpty() && channelTypes.contains(channel.charAt(0)) ? channel : null;
+    }
+
     public ModeList getSupportedListChannelModes() {
         return channelModesList;
     }
@@ -70,6 +87,10 @@ public class ServerSupportList {
 
     public void setSupportedChannelTypes(ModeList channelTypes) {
         this.channelTypes = channelTypes;
+    }
+
+    public void setSupportedStatusMessagePrefixes(ModeList statusMessagePrefixes) {
+        this.statusMessagePrefixes = statusMessagePrefixes == null ? new ModeList("") : statusMessagePrefixes;
     }
 
     public void setSupportedChannelModes(ModeList a, ModeList b, ModeList c, ModeList d) {

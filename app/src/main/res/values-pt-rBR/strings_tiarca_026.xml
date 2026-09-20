@@ -7,4 +7,6 @@
         <item>Inserir apelido na mensagem</item>
         <item>Abrir conversa privada</item>
     </string-array>
+    <string name="pref_title_separate_status_messages">Mensagens privilegiadas em uma aba separada</string>
+    <string name="pref_summary_separate_status_messages">Mostra em uma aba separada as mensagens que o servidor envia aos membros privilegiados do canal (por exemplo, @#canal), em vez de exibi-las no canal original.</string>
 </resources>

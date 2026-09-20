@@ -23,6 +23,7 @@ import io.mrarm.chatlib.ChatApi;
 import io.mrarm.chatlib.dto.MessageId;
 import io.mrarm.chatlib.dto.MessageInfo;
 import io.mrarm.chatlib.irc.ServerConnectionApi;
+import io.mrarm.chatlib.irc.ServerConnectionData;
 import io.mrarm.irc.config.NotificationRule;
 import io.mrarm.irc.config.NotificationRuleManager;
 import io.mrarm.irc.config.NotificationCountStorage;
@@ -158,9 +159,13 @@ public class NotificationManager {
 
     private String normalizeRuleChannel(ServerConnectionInfo connection, String channel) {
         ChatApi api = connection.getApiInstance();
-        if (api instanceof ServerConnectionApi && channel != null && channel.length() > 0 &&
-                !((ServerConnectionApi) api).getServerConnectionData().getSupportList()
-                        .getSupportedChannelTypes().contains(channel.charAt(0)))
+        if (!(api instanceof ServerConnectionApi) || channel == null || channel.isEmpty())
+            return channel;
+        ServerConnectionData data = ((ServerConnectionApi) api).getServerConnectionData();
+        String statusChannel = data.getSupportList().getStatusMessageChannel(channel);
+        if (statusChannel != null)
+            return statusChannel;
+        if (!data.getSupportList().getSupportedChannelTypes().contains(channel.charAt(0)))
             return null;
         return channel;
     }

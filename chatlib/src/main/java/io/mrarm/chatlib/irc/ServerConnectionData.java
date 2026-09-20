@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.function.BooleanSupplier;
 
 import io.mrarm.chatlib.ChannelListListener;
 import io.mrarm.chatlib.NoSuchChannelException;
@@ -30,6 +31,7 @@ public class ServerConnectionData {
     private CommandHandlerList commandHandlerList = new CommandHandlerList();
     private CapabilityManager capabilityManager = new CapabilityManager(this);
     private final List<ChannelListListener> channelListListeners = new ArrayList<>();
+    private BooleanSupplier separateStatusMessageTargetsSupplier = () -> false;
 
     public ServerConnectionData() {
         commandHandlerList.addDefaultHandlers();
@@ -99,6 +101,14 @@ public class ServerConnectionData {
 
     public ServerSupportList getSupportList() {
         return supportList;
+    }
+
+    public synchronized void setSeparateStatusMessageTargetsSupplier(BooleanSupplier supplier) {
+        separateStatusMessageTargetsSupplier = supplier == null ? () -> false : supplier;
+    }
+
+    public synchronized boolean shouldSeparateStatusMessageTargets() {
+        return separateStatusMessageTargetsSupplier.getAsBoolean();
     }
 
     public CommandHandlerList getCommandHandlerList() {

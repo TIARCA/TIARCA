@@ -172,6 +172,9 @@ public class InterfaceSettingsFragment extends SettingsListFragment
                 getResources().getStringArray(R.array.pref_entries_nick_tap_action),
                 getResources().getStringArray(R.array.pref_entry_values_nick_tap_action))
                 .linkSetting(prefs, ChatSettings.PREF_NICK_TAP_ACTION));
+        a.add(new CheckBoxSetting(getString(R.string.pref_title_separate_status_messages),
+                getString(R.string.pref_summary_separate_status_messages))
+                .linkSetting(prefs, ChatSettings.PREF_SEPARATE_STATUS_MESSAGES));
 
         MessageSenderInfo testSender = new MessageSenderInfo(
                 getString(R.string.message_example_sender), "", "", null, null);

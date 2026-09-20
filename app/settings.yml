@@ -56,6 +56,7 @@ ChatSettings:
       pref: chat_text_autocorrect
     - spec: String nickTapAction = "details"
       enum: ["details", "insert_nick", "private"]
+    - spec: boolean separateStatusMessages = false
 
     - spec: boolean hideJoinPartMessages = true
       getter: shouldHideJoinPartMessages

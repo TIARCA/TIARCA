@@ -72,7 +72,8 @@ public class MessageCommandHandler implements CommandHandler {
                 text = text.substring(0, ctcpS) + text.substring(ctcpE + 1, text.length());
             }
 
-            for (String channel : targetChannels) {
+            for (String rawChannel : targetChannels) {
+                String channel = resolveStatusMessageTarget(connection, rawChannel);
                 ChannelData channelData = null;
                 try {
                     channelData = connection.getJoinedChannelData(channel);
@@ -121,7 +122,8 @@ public class MessageCommandHandler implements CommandHandler {
         String command = iof == -1 ? data : data.substring(0, iof);
         String args = data.substring(iof + 1);
         if (command.equals("ACTION")) {
-            for (String channel : targetChannels) {
+            for (String rawChannel : targetChannels) {
+                String channel = resolveStatusMessageTarget(connection, rawChannel);
                 ChannelData channelData = getChannelData(connection, sender, channel);
                 if (channelData == null)
                     continue;
@@ -215,6 +217,13 @@ public class MessageCommandHandler implements CommandHandler {
             return true;
         }
         return (++ctcpSecondReplyCount <= 3);
+    }
+
+    private String resolveStatusMessageTarget(ServerConnectionData connection, String target) {
+        if (target == null || target.length() < 2 || connection.shouldSeparateStatusMessageTargets())
+            return target;
+        String channel = connection.getSupportList().getStatusMessageChannel(target);
+        return channel == null ? target : channel;
     }
 
     private ChannelData getChannelData(ServerConnectionData connection, MessagePrefix sender,
