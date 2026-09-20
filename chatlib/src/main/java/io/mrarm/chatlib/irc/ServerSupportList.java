@@ -8,6 +8,7 @@ public class ServerSupportList {
     private NickPrefixList nickPrefixes = new NickPrefixList("@+");
     private ModeList nickPrefixModes = new ModeList("ov");
     private ModeList channelTypes = new ModeList("#");
+    private ModeList statusMessagePrefixes = new ModeList("");
     private ModeList channelModesList = new ModeList("b"); // has add&remove param
     private ModeList channelModesValueExactUnset = new ModeList("k"); // single value, has add&remove param
     private ModeList channelModesValue = new ModeList("l"); // single value, has add param
@@ -40,6 +41,10 @@ public class ServerSupportList {
         return channelTypes;
     }
 
+    public ModeList getSupportedStatusMessagePrefixes() {
+        return statusMessagePrefixes;
+    }
+
     public ModeList getSupportedListChannelModes() {
         return channelModesList;
     }
@@ -70,6 +75,10 @@ public class ServerSupportList {
 
     public void setSupportedChannelTypes(ModeList channelTypes) {
         this.channelTypes = channelTypes;
+    }
+
+    public void setSupportedStatusMessagePrefixes(ModeList statusMessagePrefixes) {
+        this.statusMessagePrefixes = statusMessagePrefixes == null ? new ModeList("") : statusMessagePrefixes;
     }
 
     public void setSupportedChannelModes(ModeList a, ModeList b, ModeList c, ModeList d) {
