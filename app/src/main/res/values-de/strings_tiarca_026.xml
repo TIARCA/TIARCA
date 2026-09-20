@@ -7,4 +7,6 @@
         <item>Nickname in Nachricht einfügen</item>
         <item>Privatgespräch öffnen</item>
     </string-array>
+    <string name="pref_title_separate_status_messages">Privilegierte Nachrichten in einem separaten Tab</string>
+    <string name="pref_summary_separate_status_messages">Zeigt Nachrichten, die der Server an privilegierte Kanalmitglieder richtet (z. B. @#kanal), in einem separaten Tab statt im ursprünglichen Kanal.</string>
 </resources>
