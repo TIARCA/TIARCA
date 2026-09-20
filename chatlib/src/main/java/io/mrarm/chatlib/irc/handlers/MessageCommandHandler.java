@@ -222,14 +222,8 @@ public class MessageCommandHandler implements CommandHandler {
     private String resolveStatusMessageTarget(ServerConnectionData connection, String target) {
         if (target == null || target.length() < 2 || connection.shouldSeparateStatusMessageTargets())
             return target;
-        ServerSupportList support = connection.getSupportList();
-        if (!support.getSupportedStatusMessagePrefixes().contains(target.charAt(0)))
-            return target;
-        String channel = target.substring(1);
-        if (channel.isEmpty() ||
-                !support.getSupportedChannelTypes().contains(channel.charAt(0)))
-            return target;
-        return channel;
+        String channel = connection.getSupportList().getStatusMessageChannel(target);
+        return channel == null ? target : channel;
     }
 
     private ChannelData getChannelData(ServerConnectionData connection, MessagePrefix sender,
