@@ -22,6 +22,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import io.mrarm.irc.ServerConnectionManager;
+import io.mrarm.irc.util.DefaultPreferences;
 import io.mrarm.irc.irc.MonitoredUsersManager;
 import io.mrarm.irc.util.theme.ThemeInfo;
 import io.mrarm.irc.util.theme.UserPresetStore;
@@ -143,6 +144,24 @@ public class BackupManagerTest {
         assertNotNull(restoredB1);
         assertTrue(!restoredB1.notifyOnline);
         assertTrue(restoredB1.notifyOffline);
+    }
+
+    @Test
+    public void roundTripBackupAndRestorePreservesStatusMessageRoutingPreference() throws Exception {
+        DefaultPreferences.get(context).edit()
+                .putBoolean(ChatSettings.PREF_SEPARATE_STATUS_MESSAGES, true)
+                .commit();
+
+        File backupFile = new File(temporaryFolder.getRoot(), "statusmsg_backup.zip");
+        BackupManager.createBackup(context, backupFile, null);
+
+        DefaultPreferences.get(context).edit()
+                .putBoolean(ChatSettings.PREF_SEPARATE_STATUS_MESSAGES, false)
+                .commit();
+        BackupManager.restoreBackup(context, backupFile, null);
+
+        assertTrue(DefaultPreferences.get(context).getBoolean(
+                ChatSettings.PREF_SEPARATE_STATUS_MESSAGES, false));
     }
 
     @Test
