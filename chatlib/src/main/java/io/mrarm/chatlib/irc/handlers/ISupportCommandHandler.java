@@ -13,6 +13,7 @@ public class ISupportCommandHandler implements CommandHandler {
 
     public static final String PARAM_PREFIX_LIST = "PREFIX";
     public static final String PARAM_CHANTYPES = "CHANTYPES";
+    public static final String PARAM_STATUSMSG = "STATUSMSG";
     public static final String PARAM_CHANMODES = "CHANMODES";
     public static final String PARAM_EXCEPTS = "EXCEPTS";
     public static final String PARAM_MONITOR = "MONITOR";
@@ -57,6 +58,9 @@ public class ISupportCommandHandler implements CommandHandler {
             supportList.setSupportedNickPrefixes(new NickPrefixList(value));
         } else if (param.equals(PARAM_CHANTYPES)) {
             supportList.setSupportedChannelTypes(new ModeList(value));
+        } else if (param.equals(PARAM_STATUSMSG)) {
+            supportList.setSupportedStatusMessagePrefixes(new ModeList(
+                    remove || value == null ? "" : value));
         } else if (param.equals(PARAM_CHANMODES)) {
             String[] modes = value.split(",", -1);
             supportList.setSupportedChannelModes(new ModeList(modes[0]), new ModeList(modes[1]), new ModeList(modes[2]),
