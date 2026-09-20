@@ -7,4 +7,6 @@
         <item>Insérer le pseudo dans le message</item>
         <item>Ouvrir une conversation privée</item>
     </string-array>
+    <string name="pref_title_separate_status_messages">Messages privilégiés dans un onglet séparé</string>
+    <string name="pref_summary_separate_status_messages">Affiche les messages que le serveur adresse aux membres privilégiés du canal (par exemple @#canal) dans un onglet séparé plutôt que dans le canal d’origine.</string>
 </resources>
