@@ -45,6 +45,18 @@ public class ServerSupportList {
         return statusMessagePrefixes;
     }
 
+    /**
+     * Returns the underlying channel for a STATUSMSG target (for example @#channel), or null
+     * when the target is not a server-advertised status-message channel target.
+     */
+    public String getStatusMessageChannel(String target) {
+        if (target == null || target.length() < 2 ||
+                !statusMessagePrefixes.contains(target.charAt(0)))
+            return null;
+        String channel = target.substring(1);
+        return !channel.isEmpty() && channelTypes.contains(channel.charAt(0)) ? channel : null;
+    }
+
     public ModeList getSupportedListChannelModes() {
         return channelModesList;
     }
