@@ -556,8 +556,10 @@ public class ServerConnectionInfo {
         ChatApi api = getApiInstance();
         if (name == null || name.isEmpty() || !(api instanceof ServerConnectionApi))
             return false;
-        return !((ServerConnectionApi) api).getServerConnectionData().getSupportList()
-                .getSupportedChannelTypes().contains(name.charAt(0));
+        ServerConnectionData data = ((ServerConnectionApi) api).getServerConnectionData();
+        if (data.getSupportList().getStatusMessageChannel(name) != null)
+            return false;
+        return !data.getSupportList().getSupportedChannelTypes().contains(name.charAt(0));
     }
 
     private void rememberPrivateConversationNickChange(String oldNick, String newNick) {
