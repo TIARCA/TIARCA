@@ -87,7 +87,7 @@ public class CommandHandlerList {
         synchronized (handlersLock) {
             for (CommandHandler handler : handlers.values()) {
                 if (handler.getClass().equals(cl))
-                    return (T) handler;
+                    return cl.cast(handler);
             }
             return null;
         }
