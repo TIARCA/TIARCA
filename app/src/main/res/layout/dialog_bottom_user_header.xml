@@ -90,7 +90,7 @@
         android:background="?attr/actionBarItemBackground"
         android:contentDescription="@string/action_ignore_user"
         app:tint="@color/abc_primary_text_material_dark"
-        app:srcCompat="@drawable/ic_close" />
+        app:srcCompat="@drawable/ic_block" />
 
     <ImageButton
         android:id="@+id/file_button"
