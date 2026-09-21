@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   prepare-release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     outputs:
       tag: ${{ steps.version.outputs.tag }}
       version: ${{ steps.version.outputs.version }}
@@ -61,7 +61,7 @@ jobs:
   verify-reproducible:
     needs: prepare-release
     if: needs.prepare-release.outputs.publish_release == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     env:
@@ -160,7 +160,7 @@ jobs:
       - prepare-release
       - verify-reproducible
     if: ${{ always() && needs.prepare-release.result == 'success' && (github.event_name == 'workflow_dispatch' || needs.verify-reproducible.result == 'success') }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Checkout repository
