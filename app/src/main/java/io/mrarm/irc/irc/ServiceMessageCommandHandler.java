@@ -62,6 +62,10 @@ public final class ServiceMessageCommandHandler implements CommandHandler {
         // terminate the IRC connection handler thread.
         if (prefix != null && direct && !ctcp && !connection.hasOpenConversation(nick) &&
                 connection.isTrustedService(nick, user, host)) {
+            // The delegate normally publishes server-origin NOTICEs. If this wrapper consumes
+            // one as trusted service traffic, publish it here so observers still see it once.
+            if (serverOriginNotice)
+                data.notifyServerNotice(text);
             connection.rememberServiceNick(nick);
             data.getServerStatusData().addMessage(new StatusMessageInfo(nick, new Date(),
                     StatusMessageInfo.MessageType.NOTICE, text));

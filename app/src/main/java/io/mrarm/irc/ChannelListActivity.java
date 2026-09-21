@@ -194,7 +194,8 @@ public class ChannelListActivity extends ThemedActivity {
     }
 
     private void onServerNotice(String text) {
-        if (mConnectionData == null || !SecureListSupport.isBlockingNotice(text))
+        if (mSecureListBlocked || mConnectionData == null ||
+                !SecureListSupport.isBlockingNotice(text))
             return;
         int waitSeconds = mConnectionData.getSupportList().getSecureListWaitSeconds();
         if (waitSeconds < 0)
