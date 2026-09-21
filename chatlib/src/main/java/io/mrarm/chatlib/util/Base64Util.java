@@ -16,8 +16,8 @@ public class Base64Util {
 
     static {
         try {
-            Class c = Class.forName("io.mrarm.chatlib.util.Base64UtilImpl");
-            sImplementation = (Base64Util) c.newInstance();
+            Class<?> c = Class.forName("io.mrarm.chatlib.util.Base64UtilImpl");
+            sImplementation = (Base64Util) c.getDeclaredConstructor().newInstance();
         } catch (Throwable e) {
             sImplementation = new Base64Util();
         }
