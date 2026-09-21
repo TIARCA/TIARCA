@@ -9,4 +9,9 @@
     </string-array>
     <string name="pref_title_separate_status_messages">Wiadomości uprzywilejowane w osobnej karcie</string>
     <string name="pref_summary_separate_status_messages">Wyświetla wiadomości kierowane przez serwer do uprzywilejowanych członków kanału (np. @#kanał) w osobnej karcie zamiast w kanale źródłowym.</string>
+    <plurals name="channel_list_secure_wait">
+        <item quantity="one">Ze względu na ustawienia bezpieczeństwa serwera lista kanałów będzie dostępna za %1$d sekundę.</item>
+        <item quantity="other">Ze względu na ustawienia bezpieczeństwa serwera lista kanałów będzie dostępna za %1$d sekund.</item>
+    </plurals>
+    <string name="channel_list_secure_auth_required">Ze względu na ustawienia bezpieczeństwa serwera lista kanałów będzie dostępna po uwierzytelnieniu.</string>
 </resources>
