@@ -4,7 +4,7 @@ plugins {
 
 tasks.withType(JavaCompile).configureEach {
     // Keep chatlib compatible with Java 8 without passing obsolete -source/-target flags to JDK 21.
-    options.release = 8
+    options.release.set(8)
 }
 
 sourceSets {
