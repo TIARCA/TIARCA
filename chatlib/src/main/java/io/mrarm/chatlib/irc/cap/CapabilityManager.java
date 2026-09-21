@@ -37,7 +37,7 @@ public class CapabilityManager {
         for (List<Capability> cl : supportedCapabilities.values()) {
             for (Capability c : cl) {
                 if (c.getClass().equals(type))
-                    return (T) c;
+                    return type.cast(c);
             }
         }
         return null;
