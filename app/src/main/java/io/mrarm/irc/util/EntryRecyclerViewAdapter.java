@@ -82,6 +82,10 @@ public class EntryRecyclerViewAdapter extends RecyclerView.Adapter<EntryRecycler
             bind(mEntry);
         }
 
+        private void clearEntry() {
+            mEntry = null;
+        }
+
         public void unbind() {
         }
 
@@ -146,7 +150,7 @@ public class EntryRecyclerViewAdapter extends RecyclerView.Adapter<EntryRecycler
     @Override
     public void onViewRecycled(EntryHolder viewHolder) {
         viewHolder.unbind();
-        viewHolder.mEntry = null;
+        viewHolder.clearEntry();
     }
 
     @Override
