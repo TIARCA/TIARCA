@@ -14,4 +14,9 @@
     </string-array>
     <string name="pref_title_separate_status_messages">Privileged messages in a separate tab</string>
     <string name="pref_summary_separate_status_messages">Show messages addressed by the server to privileged channel members (for example @#channel) in a separate tab instead of the original channel.</string>
+    <plurals name="channel_list_secure_wait">
+        <item quantity="one">Due to server security settings, the channel list will be available in %1$d second.</item>
+        <item quantity="other">Due to server security settings, the channel list will be available in %1$d seconds.</item>
+    </plurals>
+    <string name="channel_list_secure_auth_required">Due to server security settings, the channel list will be available after authentication.</string>
 </resources>
