@@ -65,6 +65,8 @@ public class ChannelListActivity extends ThemedActivity {
     private TextView mSecureListMessage;
     private ServerConnectionData mConnectionData;
     private final Handler mSecureListHandler = new Handler(Looper.getMainLooper());
+    private final ServerConnectionData.ServerNoticeListener mServerNoticeListener =
+            this::onServerNotice;
     private volatile boolean mSecureListBlocked;
     private long mSecureListRetryAtMillis;
 
@@ -135,7 +137,7 @@ public class ChannelListActivity extends ThemedActivity {
             if (mConnection.getApiInstance() instanceof ServerConnectionApi) {
                 mConnectionData = ((ServerConnectionApi) mConnection.getApiInstance())
                         .getServerConnectionData();
-                mConnectionData.addServerNoticeListener(this::onServerNotice);
+                mConnectionData.addServerNoticeListener(mServerNoticeListener);
             }
         }
 
@@ -257,7 +259,7 @@ public class ChannelListActivity extends ThemedActivity {
     protected void onDestroy() {
         mSecureListHandler.removeCallbacks(mSecureListCountdown);
         if (mConnectionData != null)
-            mConnectionData.removeServerNoticeListener(this::onServerNotice);
+            mConnectionData.removeServerNoticeListener(mServerNoticeListener);
         super.onDestroy();
     }
 
