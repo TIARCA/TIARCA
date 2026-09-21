@@ -101,11 +101,10 @@ public class ThemeArchiveTest {
                 imported.theme.assets.get(ThemeInfo.ASSET_CHAT_BACKGROUND));
         assertArrayEquals(font, imported.assets.get("assets/font.ttf"));
         assertArrayEquals(background, imported.assets.get("assets/background.webp"));
-        assertArrayEquals(font, imported.fontData);
-        assertEquals("assets/font.ttf", imported.fontEntryName);
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     public void v2ArchiveStillImportsLegacyFontWithoutAssetManifest() throws Exception {
         String json = "{\"formatVersion\":2,\"name\":\"V2\","
                 + "\"base\":\"default_dark\",\"colors\":{},\"properties\":{},"
