@@ -2,6 +2,7 @@ package io.mrarm.irc.util;
 
 import android.content.Context;
 import android.content.res.Configuration;
+import android.content.res.Resources;
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -33,11 +34,15 @@ public class MessageBuilderModeTest {
         context = ApplicationProvider.getApplicationContext();
     }
 
+    @SuppressWarnings("deprecation")
     private void setLocale(Locale locale) {
         Locale.setDefault(locale);
-        Configuration config = new Configuration(context.getResources().getConfiguration());
+        Resources res = context.getResources();
+        Configuration config = res.getConfiguration();
         config.setLocale(locale);
-        context = context.createConfigurationContext(config);
+        // Robolectric's resource table used by this regression test follows the legacy update
+        // path more faithfully than createConfigurationContext; keep the compatibility call local.
+        res.updateConfiguration(config, res.getDisplayMetrics());
     }
 
     private ChannelModeMessageInfo.Entry nickEntry(char mode, String nick, boolean isRemoved) {
