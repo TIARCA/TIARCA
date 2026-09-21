@@ -76,6 +76,12 @@ public class EntryRecyclerViewAdapter extends RecyclerView.Adapter<EntryRecycler
 
         public abstract void bind(T entry);
 
+        @SuppressWarnings("unchecked")
+        private void bindUntyped(Entry entry) {
+            mEntry = (T) entry;
+            bind(mEntry);
+        }
+
         public void unbind() {
         }
 
@@ -134,15 +140,7 @@ public class EntryRecyclerViewAdapter extends RecyclerView.Adapter<EntryRecycler
 
     @Override
     public void onBindViewHolder(EntryHolder viewHolder, int i) {
-        bindEntry(viewHolder, mEntries.get(i));
-    }
-
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    private static void bindEntry(EntryHolder holder, Entry entry) {
-        // Holder classes are registered together with their matching Entry type. Java reflection
-        // erases that pairing, so keep the unavoidable bridge in one audited helper.
-        holder.mEntry = entry;
-        holder.bind(entry);
+        viewHolder.bindUntyped(mEntries.get(i));
     }
 
     @Override
