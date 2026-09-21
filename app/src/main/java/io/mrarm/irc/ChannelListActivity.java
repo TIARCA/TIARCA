@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -32,6 +34,9 @@ import java.util.Set;
 import java.util.UUID;
 
 import io.mrarm.chatlib.dto.ChannelList;
+import io.mrarm.chatlib.irc.ServerConnectionApi;
+import io.mrarm.chatlib.irc.ServerConnectionData;
+import io.mrarm.irc.irc.SecureListSupport;
 import io.mrarm.irc.view.RecyclerViewScrollbar;
 import io.mrarm.irc.view.OpaqueStatusBarRelativeLayout;
 import io.mrarm.irc.util.AppExecutors;
@@ -56,6 +61,12 @@ public class ChannelListActivity extends ThemedActivity {
     private View mSearchAppBar;
     private SearchView mSearchView;
     private ListAdapter mListAdapter;
+    private View mListContainer;
+    private TextView mSecureListMessage;
+    private ServerConnectionData mConnectionData;
+    private final Handler mSecureListHandler = new Handler(Looper.getMainLooper());
+    private volatile boolean mSecureListBlocked;
+    private long mSecureListRetryAtMillis;
 
     private String mFilterQuery;
     private int mSortMode = SORT_MEMBER_COUNT;
@@ -95,6 +106,8 @@ public class ChannelListActivity extends ThemedActivity {
         mMainAppBar = findViewById(R.id.appbar);
         mSearchAppBar = findViewById(R.id.search_appbar);
         mSearchView = findViewById(R.id.search_view);
+        mListContainer = findViewById(R.id.list_container);
+        mSecureListMessage = findViewById(R.id.secure_list_message);
 
         String pickerToken = getIntent().getStringExtra(ARG_PICKER_TOKEN);
         if (pickerToken != null) {
@@ -118,6 +131,11 @@ public class ChannelListActivity extends ThemedActivity {
             if (mConnection == null) {
                 finish();
                 return;
+            }
+            if (mConnection.getApiInstance() instanceof ServerConnectionApi) {
+                mConnectionData = ((ServerConnectionApi) mConnection.getApiInstance())
+                        .getServerConnectionData();
+                mConnectionData.addServerNoticeListener(this::onServerNotice);
             }
         }
 
@@ -144,19 +162,103 @@ public class ChannelListActivity extends ThemedActivity {
         if (mPickerMode) {
             requestListUpdate();
         } else {
-            mConnection.getApiInstance().listChannels((ChannelList list) -> {
-                synchronized (mAppendEntries) {
-                    mAppendEntries.clear();
-                    mAssignEntries = list.getEntries();
-                }
-                runOnUiThread(this::requestListUpdate);
-            }, (ChannelList.Entry entry) -> {
-                synchronized (mAppendEntries) {
-                    mAppendEntries.add(entry);
-                }
-                runOnUiThread(this::requestListUpdate);
-            }, null);
+            requestServerChannelList();
         }
+    }
+
+    private void requestServerChannelList() {
+        if (mConnection == null)
+            return;
+        mSecureListBlocked = false;
+        mConnection.getApiInstance().listChannels((ChannelList list) -> {
+            if (mSecureListBlocked)
+                return;
+            synchronized (mAppendEntries) {
+                mAppendEntries.clear();
+                mAssignEntries = list.getEntries();
+            }
+            runOnUiThread(() -> {
+                hideSecureListMessage();
+                requestListUpdate();
+            });
+        }, (ChannelList.Entry entry) -> {
+            if (mSecureListBlocked)
+                return;
+            synchronized (mAppendEntries) {
+                mAppendEntries.add(entry);
+            }
+            runOnUiThread(this::requestListUpdate);
+        }, null);
+    }
+
+    private void onServerNotice(String text) {
+        if (mConnectionData == null || !SecureListSupport.isBlockingNotice(text))
+            return;
+        int waitSeconds = mConnectionData.getSupportList().getSecureListWaitSeconds();
+        if (waitSeconds < 0)
+            return;
+        mSecureListBlocked = true;
+        runOnUiThread(() -> showSecureListBlocked(waitSeconds));
+    }
+
+    private void showSecureListBlocked(int waitSeconds) {
+        synchronized (mAppendEntries) {
+            mAppendEntries.clear();
+            mAssignEntries = null;
+        }
+        mEntries.clear();
+        mFilteredEntries = new ArrayList<>();
+        if (mListAdapter != null)
+            mListAdapter.notifyDataSetChanged();
+        if (mListContainer != null)
+            mListContainer.setVisibility(View.GONE);
+        if (mSecureListMessage == null)
+            return;
+        mSecureListMessage.setVisibility(View.VISIBLE);
+        mSecureListHandler.removeCallbacks(mSecureListCountdown);
+        if (waitSeconds == 0) {
+            mSecureListRetryAtMillis = -1L;
+            mSecureListMessage.setText(R.string.channel_list_secure_auth_required);
+            return;
+        }
+        long now = System.currentTimeMillis();
+        mSecureListRetryAtMillis = SecureListSupport.getRetryAtMillis(waitSeconds,
+                mConnectionData.getRegistrationTimeMillis(), now);
+        updateSecureListCountdown();
+    }
+
+    private final Runnable mSecureListCountdown = this::updateSecureListCountdown;
+
+    private void updateSecureListCountdown() {
+        if (mSecureListRetryAtMillis <= 0L || isFinishing() || isDestroyed())
+            return;
+        int remaining = SecureListSupport.getRemainingSeconds(
+                mSecureListRetryAtMillis, System.currentTimeMillis());
+        if (remaining <= 0) {
+            hideSecureListMessage();
+            requestServerChannelList();
+            return;
+        }
+        mSecureListMessage.setText(getResources().getQuantityString(
+                R.plurals.channel_list_secure_wait, remaining, remaining));
+        mSecureListHandler.postDelayed(mSecureListCountdown, 1000L);
+    }
+
+    private void hideSecureListMessage() {
+        mSecureListHandler.removeCallbacks(mSecureListCountdown);
+        mSecureListRetryAtMillis = -1L;
+        if (mSecureListMessage != null)
+            mSecureListMessage.setVisibility(View.GONE);
+        if (mListContainer != null)
+            mListContainer.setVisibility(View.VISIBLE);
+    }
+
+    @Override
+    protected void onDestroy() {
+        mSecureListHandler.removeCallbacks(mSecureListCountdown);
+        if (mConnectionData != null)
+            mConnectionData.removeServerNoticeListener(this::onServerNotice);
+        super.onDestroy();
     }
 
     private static boolean filterEntry(ChannelList.Entry entry, String query) {
