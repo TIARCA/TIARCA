@@ -9,4 +9,9 @@
     </string-array>
     <string name="pref_title_separate_status_messages">Etuoikeutetut viestit erillisellä välilehdellä</string>
     <string name="pref_summary_separate_status_messages">Näyttää palvelimen etuoikeutetuille kanavan jäsenille osoittamat viestit (esim. @#kanava) erillisellä välilehdellä alkuperäisen kanavan sijaan.</string>
+    <plurals name="channel_list_secure_wait">
+        <item quantity="one">Palvelimen suojausasetusten vuoksi kanavaluettelo on käytettävissä %1$d sekunnin kuluttua.</item>
+        <item quantity="other">Palvelimen suojausasetusten vuoksi kanavaluettelo on käytettävissä %1$d sekunnin kuluttua.</item>
+    </plurals>
+    <string name="channel_list_secure_auth_required">Palvelimen suojausasetusten vuoksi kanavaluettelo on käytettävissä tunnistautumisen jälkeen.</string>
 </resources>
