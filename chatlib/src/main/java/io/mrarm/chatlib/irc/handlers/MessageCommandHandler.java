@@ -58,6 +58,10 @@ public class MessageCommandHandler implements CommandHandler {
             String[] targetChannels = CommandHandler.getParamWithCheck(params, 0).split(",");
 
             String text = CommandHandler.getParamWithCheck(params, 1);
+            if ("NOTICE".equals(command) && sender != null &&
+                    sender.getUser() == null && sender.getHost() == null) {
+                connection.notifyServerNotice(text);
+            }
             if (text.indexOf('\20') != -1)
                 text = lowDequote(text);
             int ctcpS = text.indexOf('\01');
