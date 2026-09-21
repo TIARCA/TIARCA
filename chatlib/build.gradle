@@ -2,9 +2,9 @@ plugins {
     id 'java-library'
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+tasks.withType(JavaCompile).configureEach {
+    // Keep chatlib compatible with Java 8 without passing obsolete -source/-target flags to JDK 21.
+    options.release = 8
 }
 
 sourceSets {
