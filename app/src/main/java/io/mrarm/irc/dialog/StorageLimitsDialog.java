@@ -95,16 +95,22 @@ public class StorageLimitsDialog extends Dialog {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Window window = getWindow();
-        if (window != null) {
-            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-            window.setStatusBarColor(StyledAttributesHelper.getColor(getContext(),
-                    R.attr.colorPrimaryDark, 0));
-            window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT);
-            window.setBackgroundDrawable(null);
-            window.setWindowAnimations(R.style.Animation_AppCompat_Dialog);
-        }
+        if (window != null)
+            configureCompatWindow(window);
+    }
+
+    @SuppressWarnings("deprecation")
+    private void configureCompatWindow(Window window) {
+        // Preserve the established full-screen dialog behavior on Android 9/10 while newer
+        // versions transition toward edge-to-edge system bars.
+        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        window.setStatusBarColor(StyledAttributesHelper.getColor(getContext(),
+                R.attr.colorPrimaryDark, 0));
+        window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT);
+        window.setBackgroundDrawable(null);
+        window.setWindowAnimations(R.style.Animation_AppCompat_Dialog);
     }
 
     @Override
