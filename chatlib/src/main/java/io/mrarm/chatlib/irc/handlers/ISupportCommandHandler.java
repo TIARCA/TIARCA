@@ -17,6 +17,7 @@ public class ISupportCommandHandler implements CommandHandler {
     public static final String PARAM_CHANMODES = "CHANMODES";
     public static final String PARAM_EXCEPTS = "EXCEPTS";
     public static final String PARAM_MONITOR = "MONITOR";
+    public static final String PARAM_SECURELIST = "SECURELIST";
     public static final String PARAM_CASEMAPPING = "CASEMAPPING";
 
     @Override
@@ -88,6 +89,13 @@ public class ISupportCommandHandler implements CommandHandler {
         } else if (param.equals(PARAM_MONITOR)) {
             try { supportList.setMonitorLimit(remove ? -1 : Integer.parseInt(value)); }
             catch (NumberFormatException | NullPointerException ignored) { supportList.setMonitorLimit(-1); }
+        } else if (param.equals(PARAM_SECURELIST)) {
+            try {
+                supportList.setSecureListWaitSeconds(remove ? -1 :
+                        Math.max(0, Integer.parseInt(value)));
+            } catch (NumberFormatException | NullPointerException ignored) {
+                supportList.setSecureListWaitSeconds(-1);
+            }
         } else if (param.equals(PARAM_CASEMAPPING)) {
             supportList.setCaseMapping(remove ? IRCCaseMapping.RFC1459 :
                     IRCCaseMapping.fromISupportValue(value));
