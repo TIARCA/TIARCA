@@ -204,6 +204,7 @@ public class ServerConnectionData {
         synchronized (this) {
             registrationTimeMillis = 0L;
         }
+        supportList.setSecureListWaitSeconds(-1);
         getCapabilityManager().reset();
         try {
             getUserInfoApi().clearAllUsersChannelPresences(null, null).get();
