@@ -9,4 +9,9 @@
     </string-array>
     <string name="pref_title_separate_status_messages">Messages privilégiés dans un onglet séparé</string>
     <string name="pref_summary_separate_status_messages">Affiche les messages que le serveur adresse aux membres privilégiés du canal (par exemple @#canal) dans un onglet séparé plutôt que dans le canal d’origine.</string>
+    <plurals name="channel_list_secure_wait">
+        <item quantity="one">En raison des paramètres de sécurité du serveur, la liste des canaux sera disponible dans %1$d seconde.</item>
+        <item quantity="other">En raison des paramètres de sécurité du serveur, la liste des canaux sera disponible dans %1$d secondes.</item>
+    </plurals>
+    <string name="channel_list_secure_auth_required">En raison des paramètres de sécurité du serveur, la liste des canaux sera disponible après authentification.</string>
 </resources>
