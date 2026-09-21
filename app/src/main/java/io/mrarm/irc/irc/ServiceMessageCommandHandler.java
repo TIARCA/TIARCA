@@ -47,8 +47,13 @@ public final class ServiceMessageCommandHandler implements CommandHandler {
         // so it must not depend on the target already matching our final nickname.
         boolean serverOriginNotice = "NOTICE".equalsIgnoreCase(command) && !ctcp &&
                 prefix != null && user == null && host == null;
-        if (serverOriginNotice)
+        if (serverOriginNotice) {
             simosnapVerification.observeServerNotice(prefix.getServerName(), text);
+            // Publish server NOTICEs even when this wrapper consumes them as trusted service
+            // traffic. The chatlib delegate also publishes ordinary server NOTICEs; listeners
+            // are expected to make their state transitions idempotent.
+            data.notifyServerNotice(text);
+        }
 
         // InspIRCd confirms successful ACCEPT add/remove operations using direct server NOTICEs.
         // Observe those before normal message routing so ACCEPT state does not depend on
