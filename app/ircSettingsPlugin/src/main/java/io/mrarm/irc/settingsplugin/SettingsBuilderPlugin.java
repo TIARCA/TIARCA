@@ -12,9 +12,14 @@ import java.io.File;
 public class SettingsBuilderPlugin implements Plugin<Project> {
 
     @Override
+    @SuppressWarnings("deprecation")
     public void apply(Project project) {
+        // This small build-only plugin still uses AGP's legacy variant hook to register generated
+        // settings sources. Keep the suppression local until the generator is migrated wholesale
+        // to the Android Components sources API.
         AppExtension android = project.getExtensions().getByType(AppExtension.class);
-        File generatedDirectory = new File(project.getBuildDir(), "generated/source/settings");
+        File generatedDirectory = project.getLayout().getBuildDirectory()
+                .dir("generated/source/settings").get().getAsFile();
         Task generateTask = project.getTasks().create("generateSettings");
         generateTask.doLast(task -> {
             try {
