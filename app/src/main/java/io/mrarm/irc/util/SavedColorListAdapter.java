@@ -203,10 +203,15 @@ public class SavedColorListAdapter extends RecyclerView.Adapter {
 
         @Override
         public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
+            int sourceAdapterPosition = viewHolder.getBindingAdapterPosition();
+            int targetAdapterPosition = target.getBindingAdapterPosition();
+            if (sourceAdapterPosition == RecyclerView.NO_POSITION ||
+                    targetAdapterPosition == RecyclerView.NO_POSITION)
+                return false;
             int colorsStart = getColorsStart();
-            int fromPosition = viewHolder.getAdapterPosition() - colorsStart;
-            int toPosition = Math.max(Math.min(target.getAdapterPosition() - colorsStart, mColors.size() - 1), 0);
-            mDragDelete = (target.getAdapterPosition() == 0);
+            int fromPosition = sourceAdapterPosition - colorsStart;
+            int toPosition = Math.max(Math.min(targetAdapterPosition - colorsStart, mColors.size() - 1), 0);
+            mDragDelete = (targetAdapterPosition == 0);
             if (fromPosition < toPosition) {
                 for (int i = fromPosition; i < toPosition; i++)
                     Collections.swap(mColors, i, i + 1);
@@ -222,8 +227,11 @@ public class SavedColorListAdapter extends RecyclerView.Adapter {
         public void clearView(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
             super.clearView(recyclerView, viewHolder);
             if (mDragDelete) {
-                mColors.remove(viewHolder.getAdapterPosition() - getColorsStart());
-                notifyItemRemoved(viewHolder.getAdapterPosition());
+                int position = viewHolder.getBindingAdapterPosition();
+                if (position != RecyclerView.NO_POSITION) {
+                    mColors.remove(position - getColorsStart());
+                    notifyItemRemoved(position);
+                }
             }
             mDragDelete = false;
         }
