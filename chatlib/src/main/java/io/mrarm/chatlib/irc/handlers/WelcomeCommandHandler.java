@@ -32,6 +32,7 @@ public class WelcomeCommandHandler implements CommandHandler {
         switch (numeric) {
             case RPL_WELCOME:
                 connection.setUserNick(CommandHandler.getParamWithCheck(params, 0));
+                connection.markRegistered();
                 break;
             case RPL_YOURHOST:
                 type = StatusMessageInfo.MessageType.YOUR_HOST_TEXT;
