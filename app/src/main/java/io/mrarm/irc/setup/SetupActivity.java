@@ -30,6 +30,7 @@ public class SetupActivity extends AppCompatActivity {
         setSlideAnimation(true);
     }
 
+    @SuppressWarnings("deprecation")
     protected void setSlideAnimation(boolean fromRight) {
         if (ViewCompat.getLayoutDirection(getWindow().getDecorView())
                 == ViewCompat.LAYOUT_DIRECTION_RTL)
