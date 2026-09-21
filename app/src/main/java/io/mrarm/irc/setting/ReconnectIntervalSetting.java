@@ -191,15 +191,18 @@ public class ReconnectIntervalSetting extends SimpleSetting {
                     MenuInflater inflater = menu.getMenuInflater();
                     inflater.inflate(R.menu.menu_reconnect_rule, menu.getMenu());
                     menu.setOnMenuItemClickListener((MenuItem item) -> {
+                        int position = getBindingAdapterPosition();
+                        if (position == RecyclerView.NO_POSITION)
+                            return false;
                         if (item.getItemId() == R.id.action_add) {
-                            mAdapter.mRules.add(getAdapterPosition() + 1, new Rule());
-                            mAdapter.notifyItemInserted(getAdapterPosition() + 1);
+                            mAdapter.mRules.add(position + 1, new Rule());
+                            mAdapter.notifyItemInserted(position + 1);
                             mAdapter.updateDialogOkButtonState(false);
                             return true;
                         } else if (item.getItemId() == R.id.action_delete) {
                             if (mAdapter.mRules.size() > 1) {
-                                mAdapter.mRules.remove(getAdapterPosition());
-                                mAdapter.notifyItemRemoved(getAdapterPosition());
+                                mAdapter.mRules.remove(position);
+                                mAdapter.notifyItemRemoved(position);
                                 mAdapter.updateDialogOkButtonState(true);
                             }
                             return true;
@@ -212,8 +215,8 @@ public class ReconnectIntervalSetting extends SimpleSetting {
 
             private void updateReconnectDelay() {
                 int delay = IntervalSetting.getInterval(mReconnectDelaySpinner, mReconnectDelayText);
-                int pos = getAdapterPosition();
-                if (pos == -1)
+                int pos = getBindingAdapterPosition();
+                if (pos == RecyclerView.NO_POSITION)
                     return;
                 Rule rule = mAdapter.mRules.get(pos);
                 rule.reconnectDelay = delay;
@@ -249,20 +252,23 @@ public class ReconnectIntervalSetting extends SimpleSetting {
             };
 
             private SimpleTextWatcher mRepeatCountTextListener = new SimpleTextWatcher((Editable s) -> {
-                Rule rule = mAdapter.mRules.get(getAdapterPosition());
+                int position = getBindingAdapterPosition();
+                if (position == RecyclerView.NO_POSITION)
+                    return;
+                Rule rule = mAdapter.mRules.get(position);
                 try {
                     rule.repeatCount = Integer.parseInt(mRepeatCountText.getText().toString());
                 } catch (NumberFormatException e) {
                     rule.repeatCount = -1;
                 }
 
-                if (getAdapterPosition() == mAdapter.mRules.size() - 1) { // last item
+                if (position == mAdapter.mRules.size() - 1) { // last item
                     if (mRepeatCountText.getText().length() > 0) {
                         // add a new empty item
-                        mAdapter.mRules.add(getAdapterPosition() + 1, new Rule());
-                        mAdapter.notifyItemInserted(getAdapterPosition() + 1);
+                        mAdapter.mRules.add(position + 1, new Rule());
+                        mAdapter.notifyItemInserted(position + 1);
                     }
-                } else if (getAdapterPosition() == mAdapter.mRules.size() - 2) {
+                } else if (position == mAdapter.mRules.size() - 2) {
                     int ii = mAdapter.mRules.size() - 1;
                     Rule lastRule = mAdapter.mRules.get(ii);
                     if (lastRule.reconnectDelay == -1 && lastRule.repeatCount == -1) {

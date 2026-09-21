@@ -368,9 +368,7 @@ public class ThemeManager {
             if (currentBaseTheme instanceof BaseTheme && ((BaseTheme) currentBaseTheme).isDark)
                 c.uiMode |= Configuration.UI_MODE_NIGHT_YES;
             Resources r = currentCustomThemeLoader != null ? activity.getResources() :
-                    new Resources(currentCustomThemePatcher != null ?
-                            currentCustomThemePatcher.getAssetManager() : context.getAssets(),
-                            new DisplayMetrics(), c);
+                    createThemeResources(c);
             Resources.Theme t = r.newTheme();
             ThemeResInfo resInfo = currentTheme != null ? currentTheme : fallbackTheme;
             t.applyStyle(resInfo.getThemeResId(), true);
@@ -384,6 +382,20 @@ public class ThemeManager {
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
         else
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+    }
+
+    private Resources createThemeResources(Configuration configuration) {
+        if (currentCustomThemePatcher == null)
+            return context.createConfigurationContext(configuration).getResources();
+        return createLegacyPatchedResources(configuration);
+    }
+
+    @SuppressWarnings("deprecation")
+    private Resources createLegacyPatchedResources(Configuration configuration) {
+        // ThemeMonkey supplies a custom AssetManager on Android 9/10. The public replacement
+        // (ResourcesLoader) only exists on Android 11+, where TIARCA already uses it instead.
+        return new Resources(currentCustomThemePatcher.getAssetManager(),
+                new DisplayMetrics(), configuration);
     }
 
     /** Uses Android's public dynamic-resource API on Android 11 and newer. */

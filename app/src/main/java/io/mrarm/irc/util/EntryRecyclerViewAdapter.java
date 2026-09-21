@@ -76,6 +76,16 @@ public class EntryRecyclerViewAdapter extends RecyclerView.Adapter<EntryRecycler
 
         public abstract void bind(T entry);
 
+        @SuppressWarnings("unchecked")
+        private void bindUntyped(Entry entry) {
+            mEntry = (T) entry;
+            bind(mEntry);
+        }
+
+        private void clearEntry() {
+            mEntry = null;
+        }
+
         public void unbind() {
         }
 
@@ -132,17 +142,15 @@ public class EntryRecyclerViewAdapter extends RecyclerView.Adapter<EntryRecycler
         }
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public void onBindViewHolder(EntryHolder viewHolder, int i) {
-        viewHolder.mEntry = mEntries.get(i);
-        viewHolder.bind(viewHolder.mEntry);
+        viewHolder.bindUntyped(mEntries.get(i));
     }
 
     @Override
     public void onViewRecycled(EntryHolder viewHolder) {
         viewHolder.unbind();
-        viewHolder.mEntry = null;
+        viewHolder.clearEntry();
     }
 
     @Override

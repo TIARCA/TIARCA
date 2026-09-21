@@ -39,6 +39,13 @@ android {
             }
         }
     }
+    packagingOptions {
+        jniLibs {
+            // CameraX ships these libraries in a form the Android strip task cannot process.
+            // They were already packaged unchanged; declaring that explicitly avoids a noisy build notice.
+            keepDebugSymbols += ['**/libimage_processing_util_jni.so', '**/libsurface_util_jni.so']
+        }
+    }
     buildTypes {
         release {
             minifyEnabled true

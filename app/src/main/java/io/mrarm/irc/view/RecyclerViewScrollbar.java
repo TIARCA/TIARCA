@@ -233,7 +233,7 @@ public class RecyclerViewScrollbar extends View {
             RecyclerView.ViewHolder holder = mRecyclerView.getRecycledViewPool().getRecycledView(viewType);
             if (holder == null)
                 holder = mRecyclerView.getAdapter().createViewHolder(mRecyclerView, viewType);
-            mRecyclerView.getAdapter().bindViewHolder(holder, i);
+            bindViewHolder(mRecyclerView.getAdapter(), holder, i);
             holder.itemView.requestLayout();
             mRecyclerView.getLayoutManager().measureChild(holder.itemView, 0, 0);
             totalHeight += mRecyclerView.getLayoutManager().getDecoratedMeasuredHeight(holder.itemView);
@@ -243,6 +243,14 @@ public class RecyclerViewScrollbar extends View {
         }
         mBottomItemsHeight = itemCount;
         return itemCount;
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static void bindViewHolder(RecyclerView.Adapter<?> adapter,
+                                       RecyclerView.ViewHolder holder, int position) {
+        // RecyclerView's recycled-view pool erases the holder's generic type. The holder came from
+        // this adapter/viewType pair, so restoring the captured type here is safe.
+        ((RecyclerView.Adapter) adapter).bindViewHolder(holder, position);
     }
 
     private int getScrollbarHeight() {

@@ -259,7 +259,7 @@ public class ThemeAppearanceTest {
             theme.messageLayout.timeFixedWidth = false;
             ThemeAppearance.apply(context, theme);
 
-            assertFalse(preferences.contains(MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH));
+            assertFalse(preferences.contains(MessageFormatSettings.LEGACY_MESSAGE_TIME_FIXED_WIDTH));
         } finally {
             manager.closeForTests();
         }

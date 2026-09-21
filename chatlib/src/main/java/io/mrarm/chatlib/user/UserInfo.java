@@ -22,7 +22,7 @@ public class UserInfo {
         this.connected = userInfo.connected;
         this.away = userInfo.away;
         this.awayMessage = userInfo.awayMessage;
-        this.channels = (HashSet<String>) userInfo.channels.clone();
+        this.channels = new HashSet<>(userInfo.channels);
     }
 
     void setCurrentNick(String nick) {

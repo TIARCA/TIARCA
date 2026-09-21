@@ -48,7 +48,6 @@ public class MessageFormatSettingsActivity extends ThemedActivity {
     private EditText mDateFormat;
     private TextInputLayout mDateFormatCtr;
     private View mDateFormatPresetButton;
-    private CheckBox mDateFixedWidth;
     private FormattableEditText mMessageFormatNormal;
     private TextView mMessageFormatNormalExample;
     private FormattableEditText mMessageFormatNormalMention;
@@ -141,13 +140,6 @@ public class MessageFormatSettingsActivity extends ThemedActivity {
                 return false;
             });
             menu.show();
-        });
-
-        mDateFixedWidth = findViewById(R.id.date_fixed_width);
-        mDateFixedWidth.setChecked(mMessageBuilder.isMessageTimeFixedWidth());
-        mDateFixedWidth.setOnCheckedChangeListener((CompoundButton btn, boolean checked) -> {
-            mMessageBuilder.setMessageTimeFixedWidth(checked);
-            refreshExamples();
         });
 
         mMessageFormatNormal = findViewById(R.id.message_format_normal);
@@ -420,7 +412,6 @@ public class MessageFormatSettingsActivity extends ThemedActivity {
     public void save() {
         MessageBuilder global = MessageBuilder.getInstance(this);
         global.setMessageTimeFormat(mMessageBuilder.getMessageTimeFormat().toPattern());
-        global.setMessageTimeFixedWidth(mMessageBuilder.isMessageTimeFixedWidth());
         global.setMessageFormat(mMessageBuilder.getMessageFormat());
         global.setMentionMessageFormat(mMessageBuilder.getMentionMessageFormat());
         global.setActionMessageFormat(mMessageBuilder.getActionMessageFormat());

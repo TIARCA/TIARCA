@@ -34,11 +34,14 @@ public class MessageBuilderModeTest {
         context = ApplicationProvider.getApplicationContext();
     }
 
+    @SuppressWarnings("deprecation")
     private void setLocale(Locale locale) {
         Locale.setDefault(locale);
         Resources res = context.getResources();
         Configuration config = res.getConfiguration();
         config.setLocale(locale);
+        // Robolectric's resource table used by this regression test follows the legacy update
+        // path more faithfully than createConfigurationContext; keep the compatibility call local.
         res.updateConfiguration(config, res.getDisplayMetrics());
     }
 

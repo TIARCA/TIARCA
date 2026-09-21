@@ -3,12 +3,14 @@ package io.mrarm.irc.dialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.app.Activity;
 import android.content.DialogInterface;
 import android.text.InputType;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.core.content.ContextCompat;
@@ -751,7 +753,9 @@ public class UserBottomSheetDialog {
             if (reason.getVisibility() != View.VISIBLE || !reason.isFocused() ||
                     !reason.hasWindowFocus() || reason.getWindowToken() == null)
                 return;
-            WindowInsetsControllerCompat controller = ViewCompat.getWindowInsetsController(reason);
+            WindowInsetsControllerCompat controller = mContext instanceof Activity
+                    ? WindowCompat.getInsetsController(((Activity) mContext).getWindow(), reason)
+                    : null;
             if (controller != null)
                 controller.show(WindowInsetsCompat.Type.ime());
             InputMethodManager inputMethodManager = (InputMethodManager) mContext

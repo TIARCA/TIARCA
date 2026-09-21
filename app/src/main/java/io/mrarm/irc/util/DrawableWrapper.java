@@ -111,6 +111,7 @@ public class DrawableWrapper extends Drawable implements Drawable.Callback {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public void setColorFilter(int color, @NonNull PorterDuff.Mode mode) {
         mDrawable.setColorFilter(color, mode);
     }
@@ -218,6 +219,7 @@ public class DrawableWrapper extends Drawable implements Drawable.Callback {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public int getOpacity() {
         return mDrawable.getOpacity();
     }

@@ -42,7 +42,7 @@ public final class AppearancePresetManager {
 
     private final SharedPreferences.OnSharedPreferenceChangeListener preferenceListener =
             (preferences, key) -> {
-                if (MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH.equals(key)) {
+                if (MessageFormatSettings.LEGACY_MESSAGE_TIME_FIXED_WIDTH.equals(key)) {
                     if (preferences.contains(key))
                         preferences.edit().remove(key).apply();
                     return;
@@ -78,8 +78,8 @@ public final class AppearancePresetManager {
     }
 
     private void migrateLegacyFixedWidthPreference() {
-        if (preferences.contains(MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH))
-            preferences.edit().remove(MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH).apply();
+        if (preferences.contains(MessageFormatSettings.LEGACY_MESSAGE_TIME_FIXED_WIDTH))
+            preferences.edit().remove(MessageFormatSettings.LEGACY_MESSAGE_TIME_FIXED_WIDTH).apply();
     }
 
     private void initializeStoredPreset(boolean freshInstall) {

@@ -62,6 +62,7 @@ public class StatusBarColorBottomSheetDialog extends ProperHeightBottomSheetDial
         });
     }
 
+    @SuppressWarnings("deprecation")
     private void updateActivityStatusBar(boolean dialogOpen) {
         if (getOwnerActivity() == null)
             return;

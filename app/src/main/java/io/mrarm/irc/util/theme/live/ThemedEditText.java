@@ -8,6 +8,7 @@ import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.core.graphics.ColorUtils;
 import androidx.core.view.ViewCompat;
 import androidx.annotation.RequiresApi;
@@ -115,8 +116,8 @@ public class ThemedEditText extends AppCompatEditText {
         if (drawable == null) {
             return null;
         }
-        Drawable tinted = drawable.mutate();
-        tinted.setColorFilter(color, PorterDuff.Mode.SRC_IN);
+        Drawable tinted = DrawableCompat.wrap(drawable.mutate());
+        DrawableCompat.setTint(tinted, color);
         return tinted;
     }
 
@@ -151,8 +152,7 @@ public class ThemedEditText extends AppCompatEditText {
                 sFieldEditorCursorDrawable.setAccessible(true);
             }
             Drawable[] drawables = new Drawable[2];
-            drawables[0] = ContextCompat.getDrawable(editText.getContext(), res).mutate();
-            drawables[0].setColorFilter(color, PorterDuff.Mode.SRC_IN);
+            drawables[0] = tintDrawable(ContextCompat.getDrawable(editText.getContext(), res), color);
             drawables[1] = drawables[0];
             sFieldEditorCursorDrawable.set(editor, drawables);
         } catch (Throwable ignored) {
@@ -170,8 +170,8 @@ public class ThemedEditText extends AppCompatEditText {
                             EDITOR_SELECT_HANDLES_DRAWABLE_FIELDS[i]);
                     sFieldEditorSelectHandleDrawables[i].setAccessible(true);
                 }
-                Drawable drawable = ContextCompat.getDrawable(editText.getContext(), res);
-                drawable.setColorFilter(color, PorterDuff.Mode.SRC_IN);
+                Drawable drawable = tintDrawable(
+                        ContextCompat.getDrawable(editText.getContext(), res), color);
             } catch (Throwable ignored) {
                 ignored.printStackTrace();
             }

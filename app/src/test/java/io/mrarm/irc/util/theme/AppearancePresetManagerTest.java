@@ -226,19 +226,19 @@ public class AppearancePresetManagerTest {
     public void legacyFixedWidthPreferenceIsRemovedAndCannotPersist() {
         manager.closeForTests();
         preferences.edit()
-                .putBoolean(MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH, false)
+                .putBoolean(MessageFormatSettings.LEGACY_MESSAGE_TIME_FIXED_WIDTH, false)
                 .commit();
 
         manager = new AppearancePresetManager(context, false);
-        assertFalse(preferences.contains(MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH));
+        assertFalse(preferences.contains(MessageFormatSettings.LEGACY_MESSAGE_TIME_FIXED_WIDTH));
 
         preferences.edit()
-                .putBoolean(MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH, false)
+                .putBoolean(MessageFormatSettings.LEGACY_MESSAGE_TIME_FIXED_WIDTH, false)
                 .commit();
-        assertFalse(preferences.contains(MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH));
+        assertFalse(preferences.contains(MessageFormatSettings.LEGACY_MESSAGE_TIME_FIXED_WIDTH));
 
         manager.applyPreset(AppearancePreset.IRC_DARK);
-        assertFalse(preferences.contains(MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH));
+        assertFalse(preferences.contains(MessageFormatSettings.LEGACY_MESSAGE_TIME_FIXED_WIDTH));
     }
 
     private static void assertHasPrefixChip(CharSequence format) {
