@@ -118,7 +118,14 @@ public class ListSearchView extends FrameLayout {
             controller.setAppearanceLightStatusBars(isVisible);
         }
         if (mDialog != null)
-            mDialog.getWindow().setStatusBarColor(isVisible ? mStatusBarColor : 0);
+            setStatusBarColorCompat(mDialog, isVisible ? mStatusBarColor : 0);
+    }
+
+    @SuppressWarnings("deprecation")
+    private static void setStatusBarColorCompat(Dialog dialog, int color) {
+        // Android 15+ deprecates direct status-bar colors for edge-to-edge windows, but this
+        // dialog still needs the call on older supported releases.
+        dialog.getWindow().setStatusBarColor(color);
     }
 
     @Override
