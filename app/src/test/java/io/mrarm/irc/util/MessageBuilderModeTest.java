@@ -2,7 +2,6 @@ package io.mrarm.irc.util;
 
 import android.content.Context;
 import android.content.res.Configuration;
-import android.content.res.Resources;
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -36,10 +35,9 @@ public class MessageBuilderModeTest {
 
     private void setLocale(Locale locale) {
         Locale.setDefault(locale);
-        Resources res = context.getResources();
-        Configuration config = res.getConfiguration();
+        Configuration config = new Configuration(context.getResources().getConfiguration());
         config.setLocale(locale);
-        res.updateConfiguration(config, res.getDisplayMetrics());
+        context = context.createConfigurationContext(config);
     }
 
     private ChannelModeMessageInfo.Entry nickEntry(char mode, String nick, boolean isRemoved) {
