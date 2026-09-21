@@ -3,8 +3,11 @@ plugins {
 }
 
 tasks.withType(JavaCompile).configureEach {
-    // Keep chatlib compatible with Java 8 without passing obsolete -source/-target flags to JDK 21.
+    // Keep chatlib compatible with Java 8. JDK 21 still reports Gradle's Java 8
+    // compatibility flags as obsolete, so suppress only that compiler-options category.
+    // Unchecked/deprecation warnings remain enabled by the root build.
     options.release.set(8)
+    options.compilerArgs << "-Xlint:-options"
 }
 
 sourceSets {
