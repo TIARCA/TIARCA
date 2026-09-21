@@ -9,4 +9,9 @@
     </string-array>
     <string name="pref_title_separate_status_messages">Messaggi riservati agli operatori in una scheda separata</string>
     <string name="pref_summary_separate_status_messages">Mostra i messaggi che il server indirizza agli utenti privilegiati del canale (ad es. @#canale) in una scheda separata invece che nel canale originale.</string>
+    <plurals name="channel_list_secure_wait">
+        <item quantity="one">A causa delle impostazioni di sicurezza del server, la lista dei canali sarà disponibile tra %1$d secondo.</item>
+        <item quantity="other">A causa delle impostazioni di sicurezza del server, la lista dei canali sarà disponibile tra %1$d secondi.</item>
+    </plurals>
+    <string name="channel_list_secure_auth_required">A causa delle impostazioni di sicurezza del server, la lista dei canali sarà disponibile dopo l\'autenticazione.</string>
 </resources>

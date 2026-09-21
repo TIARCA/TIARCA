@@ -55,6 +55,7 @@
     </com.google.android.material.appbar.AppBarLayout>
 
     <io.mrarm.irc.view.RecyclerViewScrollbarLayout
+        android:id="@+id/list_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/search_appbar"
@@ -71,5 +72,17 @@
             android:layout_height="match_parent" />
 
     </io.mrarm.irc.view.RecyclerViewScrollbarLayout>
+
+    <TextView
+        android:id="@+id/secure_list_message"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/search_appbar"
+        android:layout_centerInParent="true"
+        android:gravity="center"
+        android:padding="@dimen/activity_horizontal_margin"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:visibility="gone"
+        tools:text="Due to server security settings, the channel list will be available in 42 seconds." />
 
 </io.mrarm.irc.view.OpaqueStatusBarRelativeLayout>

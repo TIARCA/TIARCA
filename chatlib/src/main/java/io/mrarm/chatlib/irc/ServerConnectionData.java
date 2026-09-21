@@ -31,6 +31,8 @@ public class ServerConnectionData {
     private CommandHandlerList commandHandlerList = new CommandHandlerList();
     private CapabilityManager capabilityManager = new CapabilityManager(this);
     private final List<ChannelListListener> channelListListeners = new ArrayList<>();
+    private final List<ServerNoticeListener> serverNoticeListeners = new ArrayList<>();
+    private long registrationTimeMillis;
     private BooleanSupplier separateStatusMessageTargetsSupplier = () -> false;
 
     public ServerConnectionData() {
@@ -44,6 +46,14 @@ public class ServerConnectionData {
 
     public synchronized String getUserNick() {
         return userNick;
+    }
+
+    public synchronized void markRegistered() {
+        registrationTimeMillis = System.currentTimeMillis();
+    }
+
+    public synchronized long getRegistrationTimeMillis() {
+        return registrationTimeMillis;
     }
 
     public synchronized void setUserExtraInfo(String user, String host) {
@@ -191,6 +201,10 @@ public class ServerConnectionData {
         synchronized (joinedChannels) {
             joinedChannels.clear();
         }
+        synchronized (this) {
+            registrationTimeMillis = 0L;
+        }
+        supportList.setSecureListWaitSeconds(-1);
         getCapabilityManager().reset();
         try {
             getUserInfoApi().clearAllUsersChannelPresences(null, null).get();
@@ -230,6 +244,34 @@ public class ServerConnectionData {
 
     public void unsubscribeChannelList(ChannelListListener listener) {
         channelListListeners.remove(listener);
+    }
+
+    public void addServerNoticeListener(ServerNoticeListener listener) {
+        if (listener == null)
+            return;
+        synchronized (serverNoticeListeners) {
+            if (!serverNoticeListeners.contains(listener))
+                serverNoticeListeners.add(listener);
+        }
+    }
+
+    public void removeServerNoticeListener(ServerNoticeListener listener) {
+        synchronized (serverNoticeListeners) {
+            serverNoticeListeners.remove(listener);
+        }
+    }
+
+    public void notifyServerNotice(String text) {
+        List<ServerNoticeListener> listeners;
+        synchronized (serverNoticeListeners) {
+            listeners = new ArrayList<>(serverNoticeListeners);
+        }
+        for (ServerNoticeListener listener : listeners)
+            listener.onServerNotice(text);
+    }
+
+    public interface ServerNoticeListener {
+        void onServerNotice(String text);
     }
     
 }

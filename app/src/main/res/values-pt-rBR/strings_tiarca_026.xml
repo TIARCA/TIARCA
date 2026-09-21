@@ -9,4 +9,9 @@
     </string-array>
     <string name="pref_title_separate_status_messages">Mensagens privilegiadas em uma aba separada</string>
     <string name="pref_summary_separate_status_messages">Mostra em uma aba separada as mensagens que o servidor envia aos membros privilegiados do canal (por exemplo, @#canal), em vez de exibi-las no canal original.</string>
+    <plurals name="channel_list_secure_wait">
+        <item quantity="one">Devido às configurações de segurança do servidor, a lista de canais estará disponível em %1$d segundo.</item>
+        <item quantity="other">Devido às configurações de segurança do servidor, a lista de canais estará disponível em %1$d segundos.</item>
+    </plurals>
+    <string name="channel_list_secure_auth_required">Devido às configurações de segurança do servidor, a lista de canais estará disponível após a autenticação.</string>
 </resources>

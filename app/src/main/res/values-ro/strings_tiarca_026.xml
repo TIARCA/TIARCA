@@ -9,4 +9,9 @@
     </string-array>
     <string name="pref_title_separate_status_messages">Mesaje privilegiate într-o filă separată</string>
     <string name="pref_summary_separate_status_messages">Afișează mesajele adresate de server membrilor privilegiați ai canalului (de exemplu @#canal) într-o filă separată, în locul canalului original.</string>
+    <plurals name="channel_list_secure_wait">
+        <item quantity="one">Din cauza setărilor de securitate ale serverului, lista canalelor va fi disponibilă în %1$d secundă.</item>
+        <item quantity="other">Din cauza setărilor de securitate ale serverului, lista canalelor va fi disponibilă în %1$d secunde.</item>
+    </plurals>
+    <string name="channel_list_secure_auth_required">Din cauza setărilor de securitate ale serverului, lista canalelor va fi disponibilă după autentificare.</string>
 </resources>

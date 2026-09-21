@@ -9,6 +9,7 @@ import io.mrarm.chatlib.dto.MessageFilterOptions;
 import io.mrarm.chatlib.dto.ModeList;
 import io.mrarm.chatlib.irc.handlers.ISupportCommandHandler;
 import io.mrarm.chatlib.irc.handlers.MessageCommandHandler;
+import io.mrarm.chatlib.irc.handlers.WelcomeCommandHandler;
 import io.mrarm.chatlib.message.SimpleMessageStorageApi;
 import io.mrarm.chatlib.user.SimpleUserInfoApi;
 
@@ -36,6 +37,48 @@ public class StatusMessageRoutingTest {
 
         assertFalse(connection.getSupportList().getSupportedStatusMessagePrefixes().contains('@'));
         assertFalse(connection.getSupportList().getSupportedStatusMessagePrefixes().contains('+'));
+    }
+
+    @Test
+    public void isupportTracksSecureListWait() throws Exception {
+        ServerConnectionData connection = createConnection();
+        ISupportCommandHandler handler = new ISupportCommandHandler();
+
+        handler.handle(connection, new MessagePrefix("irc.example"), "005",
+                Arrays.asList("SECURELIST=60", "are supported by this server"),
+                Collections.emptyMap());
+        assertEquals(60, connection.getSupportList().getSecureListWaitSeconds());
+
+        handler.handle(connection, new MessagePrefix("irc.example"), "005",
+                Arrays.asList("-SECURELIST", "are supported by this server"),
+                Collections.emptyMap());
+        assertEquals(-1, connection.getSupportList().getSecureListWaitSeconds());
+    }
+
+    @Test
+    public void welcomeRecordsRegistrationTime() throws Exception {
+        ServerConnectionData connection = createConnection();
+        long before = System.currentTimeMillis();
+
+        new WelcomeCommandHandler().handle(connection, new MessagePrefix("irc.example"), "001",
+                Arrays.asList("self", "Welcome"), Collections.emptyMap());
+
+        assertTrue(connection.getRegistrationTimeMillis() >= before);
+    }
+
+    @Test
+    public void serverNoticeIsPublishedToObservers() throws Exception {
+        ServerConnectionData connection = createConnection();
+        final String[] observed = new String[1];
+        connection.addServerNoticeListener(text -> observed[0] = text);
+
+        new MessageCommandHandler().handle(connection, new MessagePrefix("irc.example"), "NOTICE",
+                Arrays.asList("self",
+                        "*** You cannot view the channel list right now. Please try again in 42 seconds."),
+                Collections.emptyMap());
+
+        assertEquals("*** You cannot view the channel list right now. Please try again in 42 seconds.",
+                observed[0]);
     }
 
     @Test
