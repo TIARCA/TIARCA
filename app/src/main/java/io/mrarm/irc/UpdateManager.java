@@ -348,7 +348,7 @@ public final class UpdateManager {
                     json.append(line);
             }
 
-            JsonObject root = new JsonParser().parse(json.toString()).getAsJsonObject();
+            JsonObject root = JsonParser.parseString(json.toString()).getAsJsonObject();
             String tag = root.get("tag_name").getAsString();
             String version = tag.startsWith("v") ? tag.substring(1) : tag;
             String body = root.has("body") && !root.get("body").isJsonNull()
