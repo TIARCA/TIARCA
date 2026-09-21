@@ -29,9 +29,16 @@ public class LiveThemeManager {
                     activity.findViewById(R.id.action_bar_container).invalidateOutline();
             });
         addColorProperty(R.attr.colorPrimaryDark,
-                (c) -> activity.getWindow().setStatusBarColor(c));
+                (c) -> setStatusBarColorCompat(activity, c));
         addColorProperty(android.R.attr.colorBackground, (c) ->
                 activity.getWindow().setBackgroundDrawable(new ColorDrawable(c)));
+    }
+
+    @SuppressWarnings("deprecation")
+    private static void setStatusBarColorCompat(Activity activity, int color) {
+        // Kept for supported pre-edge-to-edge Android releases; on newer Android versions the
+        // system may ignore direct status-bar colors.
+        activity.getWindow().setStatusBarColor(color);
     }
 
     public int getColor(int res) {
