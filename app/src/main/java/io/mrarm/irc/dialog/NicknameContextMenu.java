@@ -62,7 +62,7 @@ public final class NicknameContextMenu {
                     });
         }
         if (!self && !service) {
-            menu.addItem(R.string.action_ignore, R.drawable.ic_close, item -> {
+            menu.addItem(R.string.action_ignore, R.drawable.ic_block, item -> {
                 IgnoreUserDialog.show(context, connection, targetNick, null, null);
                 return true;
             });
