@@ -46,5 +46,6 @@ public final class InitialAvatarDrawable extends Drawable {
     @Override public void setColorFilter(@Nullable ColorFilter filter) {
         background.setColorFilter(filter); text.setColorFilter(filter);
     }
-    @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
+    @Override @SuppressWarnings("deprecation")
+    public int getOpacity() { return PixelFormat.TRANSLUCENT; }
 }
