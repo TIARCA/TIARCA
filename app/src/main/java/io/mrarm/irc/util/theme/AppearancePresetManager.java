@@ -28,6 +28,8 @@ public final class AppearancePresetManager {
     public static final String FONT_ATKINSON_HYPERLEGIBLE_NEXT =
             "atkinson_hyperlegible_next";
 
+    private static final String LEGACY_MESSAGE_TIME_FIXED_WIDTH = "message_time_fixed_width";
+
     private static AppearancePresetManager instance;
 
     public static synchronized AppearancePresetManager getInstance(Context context) {
@@ -42,7 +44,7 @@ public final class AppearancePresetManager {
 
     private final SharedPreferences.OnSharedPreferenceChangeListener preferenceListener =
             (preferences, key) -> {
-                if (MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH.equals(key)) {
+                if (LEGACY_MESSAGE_TIME_FIXED_WIDTH.equals(key)) {
                     if (preferences.contains(key))
                         preferences.edit().remove(key).apply();
                     return;
@@ -78,8 +80,8 @@ public final class AppearancePresetManager {
     }
 
     private void migrateLegacyFixedWidthPreference() {
-        if (preferences.contains(MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH))
-            preferences.edit().remove(MessageFormatSettings.PREF_MESSAGE_TIME_FIXED_WIDTH).apply();
+        if (preferences.contains(LEGACY_MESSAGE_TIME_FIXED_WIDTH))
+            preferences.edit().remove(LEGACY_MESSAGE_TIME_FIXED_WIDTH).apply();
     }
 
     private void initializeStoredPreset(boolean freshInstall) {
