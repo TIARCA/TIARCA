@@ -470,7 +470,10 @@ public class ChatSelectTouchListener implements RecyclerView.OnItemTouchListener
             TextView textView = findTextViewIn(view);
             if (textView == null)
                 return;
-            view.getLocationOnScreen(mTmpLocation);
+            // Handle coordinates are screen-relative; convert them using the TextView origin,
+            // not the row origin. The row can include an avatar/timestamp before the message,
+            // which otherwise shifts the copied selection by several characters.
+            textView.getLocationOnScreen(mTmpLocation);
             int offset = textView.getOffsetForPosition(x - mTmpLocation[0],
                     y - mTmpLocation[1]);
 
