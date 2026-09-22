@@ -96,6 +96,20 @@ public class RightClockMessageTextViewTest {
     }
 
     @Test
+    public void selectableTextMatchesRenderedMessageBody() {
+        LinearLayout row = inflateRow();
+        RightClockMessageTextView message = row.findViewById(R.id.chat_message);
+        CharSequence source = message("10:16", "Guest9243:\nhttps://media.example/image.png");
+
+        message.setText(source);
+
+        assertEquals(message.getText().toString(),
+                RightClockMessageTextView.getDisplayedMessageText(mContext, source).toString());
+        assertEquals("Guest9243:\nhttps://media.example/image.png",
+                RightClockMessageTextView.getDisplayedMessageText(mContext, source).toString());
+    }
+
+    @Test
     public void rightClockStillUsesTrailingClockView() {
         LinearLayout row = inflateRow();
         TextView left = row.findViewById(R.id.chat_message_time_left);

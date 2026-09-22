@@ -41,6 +41,7 @@ import io.mrarm.irc.util.IRCColorUtils;
 import io.mrarm.irc.util.InitialAvatarDrawable;
 import io.mrarm.irc.util.SimosnapAvatarLoader;
 import io.mrarm.irc.util.SimosnapAvatarManager;
+import io.mrarm.irc.view.RightClockMessageTextView;
 
 public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
         implements ChatSelectTouchListener.AdapterInterface {
@@ -313,11 +314,21 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     @Override
     public CharSequence getTextAt(int position) {
         Object msg = getMessage(position);
-        if (msg instanceof MessageItem)
-            return MessageBuilder.getInstance(mFragment.getContext())
-                    .buildMessage(((MessageItem) msg).mMessage);
-        else if (msg instanceof DayMarkerItem)
+        if (msg instanceof MessageItem) {
+            MessageInfo message = ((MessageItem) msg).mMessage;
+            MessageBuilder builder = MessageBuilder.getInstance(mFragment.getContext());
+            CharSequence rendered;
+            if (NotificationManager.getInstance().shouldMessageUseMentionFormatting(
+                    mFragment.getConnectionInfo(), mFragment.getChannelName(), message)) {
+                rendered = builder.buildMessageWithMention(message);
+            } else {
+                rendered = builder.buildMessage(message);
+            }
+            return RightClockMessageTextView.getDisplayedMessageText(
+                    mFragment.getContext(), rendered);
+        } else if (msg instanceof DayMarkerItem) {
             return ((DayMarkerItem) msg).getMessageText(mFragment.getContext());
+        }
         return null;
     }
 

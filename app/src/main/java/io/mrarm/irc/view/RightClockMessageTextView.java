@@ -103,22 +103,15 @@ public class RightClockMessageTextView extends AppCompatTextView
                 return;
             }
 
-            TimestampRange range = findTimestampRange(source);
+            TimestampRange range = findTimestampRange(getContext(), source);
             if (range == null) {
                 restoreDefaultSpacing();
                 super.setText(source, type);
                 return;
             }
 
-            SpannableStringBuilder body = new SpannableStringBuilder(source);
-            CharSequence timestamp = new SpannableString(body.subSequence(range.start, range.end));
-            body.delete(range.start, range.end);
-
-            // Remove one separator space left behind by common formats, but never alter message text.
-            if (range.start < body.length() && body.charAt(range.start) == ' ')
-                body.delete(range.start, range.start + 1);
-            else if (range.start > 0 && body.charAt(range.start - 1) == ' ')
-                body.delete(range.start - 1, range.start);
+            SpannableStringBuilder body = removeTimestampFromBody(source, range);
+            CharSequence timestamp = new SpannableString(source.subSequence(range.start, range.end));
 
             boolean showAtRight = RightClockSettings.isEnabled(getContext());
             TextView clock = showAtRight ? rightClock : leftClock;
@@ -218,12 +211,40 @@ public class RightClockMessageTextView extends AppCompatTextView
         return null;
     }
 
-    private TimestampRange findTimestampRange(CharSequence source) {
+    /**
+     * Returns the same character sequence users see/select in the chat message body.
+     *
+     * The timestamp is rendered in a sibling clock view, so selection offsets are relative to the
+     * message body after that timestamp (and its separator) have been removed.
+     */
+    public static CharSequence getDisplayedMessageText(Context context, CharSequence source) {
+        if (source == null)
+            return "";
+        TimestampRange range = findTimestampRange(context, source);
+        if (range == null)
+            return source;
+        return new SpannableString(removeTimestampFromBody(source, range));
+    }
+
+    private static SpannableStringBuilder removeTimestampFromBody(CharSequence source,
+                                                                  TimestampRange range) {
+        SpannableStringBuilder body = new SpannableStringBuilder(source);
+        body.delete(range.start, range.end);
+
+        // Remove one separator space left behind by common formats, but never alter message text.
+        if (range.start < body.length() && body.charAt(range.start) == ' ')
+            body.delete(range.start, range.start + 1);
+        else if (range.start > 0 && body.charAt(range.start - 1) == ' ')
+            body.delete(range.start - 1, range.start);
+        return body;
+    }
+
+    private static TimestampRange findTimestampRange(Context context, CharSequence source) {
         if (!(source instanceof Spanned))
             return null;
         Spanned spanned = (Spanned) source;
         ForegroundColorSpan[] spans = spanned.getSpans(0, source.length(), ForegroundColorSpan.class);
-        int timestampColor = IRCColorUtils.getTimestampTextColor(getContext());
+        int timestampColor = IRCColorUtils.getTimestampTextColor(context);
         TimestampRange best = null;
         for (ForegroundColorSpan span : spans) {
             if (span.getForegroundColor() != timestampColor)
