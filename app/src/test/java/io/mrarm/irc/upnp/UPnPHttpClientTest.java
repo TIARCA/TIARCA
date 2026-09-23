@@ -21,7 +21,7 @@ public class UPnPHttpClientTest {
 
     @Test
     public void localHttpGetWorksWithoutGlobalCleartextOptIn() throws Exception {
-        try (ServerSocket server = new ServerSocket(0, 1, InetAddress.getLoopbackAddress())) {
+        try (ServerSocket server = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))) {
             FutureTask<Void> responder = startResponder(server,
                     "HTTP/1.1 200 OK\r\n" +
                             "Content-Length: 5\r\n" +
