@@ -237,7 +237,9 @@ public class PortMapper {
         DatagramSocket socket = null;
         try {
             socket = new DatagramSocket();
-            socket.connect(new InetSocketAddress(targetUrl.getHost(), targetUrl.getPort()));
+            socket.connect(new InetSocketAddress(
+                    UPnPHttpClient.resolveLocalAddress(targetUrl),
+                    UPnPHttpClient.getEffectivePort(targetUrl)));
             return socket.getLocalAddress().getHostAddress();
         } finally {
             if (socket != null)
