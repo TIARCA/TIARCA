@@ -141,7 +141,7 @@ public class DCCServerManager implements DCCServer.SessionListener {
         synchronized (this) {
             uploads.remove(upload.key);
             if (upload.portForwardKey != null)
-                uploads.remove(upload.portForwardKey);
+                portForwardedUploads.remove(upload.portForwardKey);
             if (upload.reverseId != -1 && reverseUploads.remove(upload.key) != null) {
                 reverseUploadIds.remove(upload.reverseId);
             }
@@ -156,7 +156,7 @@ public class DCCServerManager implements DCCServer.SessionListener {
         Random random = new Random();
         while (true) {
             int rand = random.nextInt() & Integer.MAX_VALUE;
-            if (reverseUploadIds.contains(rand))
+            if (rand == 0 || reverseUploadIds.contains(rand))
                 continue;
             return rand;
         }
