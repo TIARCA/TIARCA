@@ -7,13 +7,13 @@ import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.StringWriter;
-import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidParameterException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -24,6 +24,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import io.mrarm.irc.upnp.UPnPHttpClient;
 import io.mrarm.irc.upnp.XMLParseHelper;
 
 public abstract class UPnPRemoteCall {
@@ -37,38 +38,29 @@ public abstract class UPnPRemoteCall {
             throw new InvalidParameterException("Validation of the request failed");
         Document doc = buildDocument();
 
-        HttpURLConnection connection = (HttpURLConnection) serviceEndpoint.openConnection();
-        connection.setDoOutput(true);
-        connection.addRequestProperty("Content-Type", "text/xml; charset=\"utf-8\"");
-        connection.addRequestProperty("SOAPAction", "\"" + getSOAPAction() + "\"");
         Log.d("UPnPRemoteCall", "Request action: " + getSOAPAction());
-        connection.setRequestProperty("Connection", "close");
 
         Transformer transformer = TransformerFactory.newInstance().newTransformer();
         transformer.setOutputProperty(OutputKeys.METHOD, "xml");
         transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
-        //transformer.transform(new DOMSource(doc), new StreamResult(connection.getOutputStream()));
         StringWriter xmlWriter = new StringWriter();
         transformer.transform(new DOMSource(doc), new StreamResult(xmlWriter));
         String xmlBodyString = xmlWriter.toString();
         Log.d("UPnPRemoteCall", "Request body: " + xmlBodyString);
-        byte[] xmlBodyBytes = xmlBodyString.getBytes("UTF-8");
+        byte[] xmlBodyBytes = xmlBodyString.getBytes(StandardCharsets.UTF_8);
 
-        connection.setFixedLengthStreamingMode(xmlBodyBytes.length);
-        connection.getOutputStream().write(xmlBodyBytes);
-        Log.d("UPnPRemoteCall", "Response status: " + connection.getResponseCode());
+        Map<String, String> headers = new LinkedHashMap<>();
+        headers.put("Content-Type", "text/xml; charset=\"utf-8\"");
+        headers.put("SOAPAction", "\"" + getSOAPAction() + "\"");
+        UPnPHttpClient.Response response =
+                UPnPHttpClient.post(serviceEndpoint, headers, xmlBodyBytes);
+        Log.d("UPnPRemoteCall", "Response status: " + response.getStatusCode());
 
-        InputStream stream = connection.getErrorStream() != null ? connection.getErrorStream()
-                : connection.getInputStream();
-        ByteArrayOutputStream responseBytesBuilder = new ByteArrayOutputStream();
-        byte[] buf = new byte[1024 * 4];
-        int n;
-        while ((n = stream.read(buf)) >= 0) {
-            responseBytesBuilder.write(buf, 0, n);
-        }
-        byte[] responseBytes = responseBytesBuilder.toByteArray();
+        byte[] responseBytes = response.getBody();
+        if (responseBytes.length == 0)
+            throw new IOException("Empty UPnP RPC response");
         Log.d("UPnPRemoteCall", "Response: " +
-                new String(responseBytes, "UTF-8"));
+                new String(responseBytes, StandardCharsets.UTF_8));
 
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setNamespaceAware(true);

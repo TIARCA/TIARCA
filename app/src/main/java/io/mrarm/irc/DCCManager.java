@@ -511,18 +511,14 @@ public class DCCManager implements DCCServerManager.UploadListener, DCCClient.Cl
                     DiagnosticLog.i(mContext, "DCC", () ->
                             transferId + " UPnP mapping ready externalPort=" + externalPort);
                     mServer.setUploadPortForwarded(upload, externalPort);
-                    server.getApiInstance().sendMessage(channel, DCCUtils.buildSendMessage(
+                    sendDccOffer(server, channel, DCCUtils.buildSendMessage(
                             mapping.getExternalIP(), fileName, externalPort, fileSize),
-                            null, null);
-                    DiagnosticLog.i(mContext, "DCC", () ->
-                            transferId + " DCC SEND offer sent mode=direct");
+                            upload, transferId, "direct");
                 } catch (IOException e) {
                     e.printStackTrace();
                     DiagnosticLog.w(mContext, "DCC", () ->
                             transferId + " direct upload setup failed; falling back to reverse", e);
 
-                    mHandler.post(() -> Toast
-                            .makeText(mContext, R.string.error_generic, Toast.LENGTH_SHORT).show());
                     if (upload != null)
                         mServer.cancelUpload(upload);
                     if (mapping != null) {
@@ -551,13 +547,14 @@ public class DCCManager implements DCCServerManager.UploadListener, DCCClient.Cl
                                 transferId + " reverse upload setup failed: no local IPv4 address",
                                 null);
                         mServer.cancelUpload(upload);
+                        mHandler.post(() -> Toast
+                                .makeText(mContext, R.string.error_generic,
+                                        Toast.LENGTH_SHORT).show());
                         return;
                     }
-                    server.getApiInstance().sendMessage(channel, DCCUtils.buildSendMessage(
+                    sendDccOffer(server, channel, DCCUtils.buildSendMessage(
                             reverseAddress, fileName, 0, fileSize, reverseId),
-                            null, null);
-                    DiagnosticLog.i(mContext, "DCC", () ->
-                            transferId + " DCC SEND offer sent mode=reverse");
+                            upload, transferId, "reverse");
                 }
             });
         } else {
@@ -577,12 +574,28 @@ public class DCCManager implements DCCServerManager.UploadListener, DCCClient.Cl
                         .makeText(mContext, R.string.error_generic, Toast.LENGTH_SHORT).show());
                 return;
             }
-            server.getApiInstance().sendMessage(channel, DCCUtils.buildSendMessage(
+            sendDccOffer(server, channel, DCCUtils.buildSendMessage(
                     reverseAddress, fileName, 0, fileSize, reverseId),
-                    null, null);
-            DiagnosticLog.i(mContext, "DCC", () ->
-                    transferId + " DCC SEND offer sent mode=reverse");
+                    upload, transferId, "reverse");
         }
+    }
+
+    private void sendDccOffer(ServerConnectionInfo server, String target, String message,
+                              DCCServerManager.UploadEntry upload, String transferId,
+                              String mode) {
+        DiagnosticLog.d(mContext, "DCC", () ->
+                transferId + " queueing DCC SEND offer mode=" + mode);
+        server.getApiInstance().sendMessage(target, message,
+                response -> DiagnosticLog.i(mContext, "DCC", () ->
+                        transferId + " DCC SEND offer written to IRC transport mode=" + mode),
+                error -> {
+                    DiagnosticLog.e(mContext, "DCC", () ->
+                            transferId + " DCC SEND offer write failed mode=" + mode, error);
+                    if (upload != null && getUploadEntry(upload.getServer()) == upload)
+                        mServer.cancelUpload(upload);
+                    mHandler.post(() -> Toast
+                            .makeText(mContext, R.string.error_generic, Toast.LENGTH_SHORT).show());
+                });
     }
 
     private static String serverDiagnosticId(ServerConnectionInfo server) {

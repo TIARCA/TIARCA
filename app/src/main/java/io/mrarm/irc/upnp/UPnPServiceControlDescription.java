@@ -7,9 +7,9 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URL;
-import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,7 +21,8 @@ public class UPnPServiceControlDescription {
     private List<Action> mActionList;
 
     public void loadFromUrl(String url) throws IOException, SAXException {
-        URLConnection connection = new URL(url).openConnection();
+        UPnPHttpClient.Response response = UPnPHttpClient.get(new URL(url));
+        response.requireSuccess();
         XMLReader reader;
         try {
             reader = SAXParserFactory.newInstance().newSAXParser().getXMLReader();
@@ -29,7 +30,7 @@ public class UPnPServiceControlDescription {
             throw new RuntimeException(e);
         }
         reader.setContentHandler(new SAXRootParser(reader, this));
-        reader.parse(new InputSource(connection.getInputStream()));
+        reader.parse(new InputSource(new ByteArrayInputStream(response.getBody())));
     }
 
     public List<Action> getActionList() {
