@@ -11,6 +11,11 @@ import io.mrarm.irc.util.StyledAttributesHelper;
 
 public class TextSelectionHandleView extends View {
 
+    // Android positions the logical selection point slightly above the handle itself while it is
+    // dragged. Feeding the handle's top edge directly back into TextView makes multi-line
+    // selections cross a line boundary too early.
+    private static final float TOUCH_OFFSET_Y_FRACTION = -0.3f;
+
     public static Drawable getDrawable(Context context, boolean rightHandle) {
         int resId = StyledAttributesHelper.getResourceId(context, rightHandle ?
                 android.R.attr.textSelectHandleRight : android.R.attr.textSelectHandleLeft, -1);
@@ -68,7 +73,8 @@ public class TextSelectionHandleView extends View {
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
                 mMoveOffsetX = mHotspotX - event.getX();
-                mMoveOffsetY = -event.getY();
+                mMoveOffsetY = -event.getY() +
+                        TOUCH_OFFSET_Y_FRACTION * mDrawable.getIntrinsicHeight();
                 if (mMoveListener != null)
                     mMoveListener.onMoveStarted();
                 return true;
