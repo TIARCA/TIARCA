@@ -21,6 +21,7 @@ public class MessageCommandHandler implements CommandHandler {
     private String ctcpVersionReply = "Chatlib:unknown:unknown";
     private DCCServerManager dccServerManager;
     private DCCClientManager dccClientManager;
+    private CtcpCommandObserver ctcpCommandObserver;
 
     @Override
     public Object[] getHandledCommands() {
@@ -41,6 +42,10 @@ public class MessageCommandHandler implements CommandHandler {
 
     public void setDCCClientManager(DCCClientManager dccClientManager) {
         this.dccClientManager = dccClientManager;
+    }
+
+    public void setCtcpCommandObserver(CtcpCommandObserver observer) {
+        ctcpCommandObserver = observer;
     }
 
     @Override
@@ -125,6 +130,8 @@ public class MessageCommandHandler implements CommandHandler {
         int iof = data.indexOf(' ');
         String command = iof == -1 ? data : data.substring(0, iof);
         String args = data.substring(iof + 1);
+        if (ctcpCommandObserver != null)
+            ctcpCommandObserver.onCommand(command, notice);
         if (command.equals("ACTION")) {
             for (String rawChannel : targetChannels) {
                 String channel = resolveStatusMessageTarget(connection, rawChannel);
@@ -211,6 +218,10 @@ public class MessageCommandHandler implements CommandHandler {
                 dccClientManager.onFileOffered(connection, sender, filename, ip, port, size);
             }
         }
+    }
+
+    public interface CtcpCommandObserver {
+        void onCommand(String command, boolean notice);
     }
 
     private boolean rateLimitCtcpCommand() {
