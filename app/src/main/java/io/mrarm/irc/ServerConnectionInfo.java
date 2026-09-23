@@ -36,6 +36,7 @@ import io.mrarm.irc.config.AppSettings;
 import io.mrarm.irc.config.ChatSettings;
 import io.mrarm.irc.config.ServerConfigData;
 import io.mrarm.irc.config.ServerConfigManager;
+import io.mrarm.irc.util.DiagnosticLog;
 import io.mrarm.irc.util.IgnoreListMessageFilter;
 import io.mrarm.irc.util.StubMessageStorageApi;
 import io.mrarm.irc.util.UserAutoRunCommandHelper;
@@ -170,6 +171,12 @@ public class ServerConnectionInfo {
             DCCManager dccManager = DCCManager.getInstance(getConnectionManager().getContext());
             messageHandler.setDCCServerManager(dccManager.getServer());
             messageHandler.setDCCClientManager(dccManager.createClient(this));
+            final String diagnosticServerId =
+                    DiagnosticLog.pseudonym("server", getUUID().toString());
+            messageHandler.setCtcpCommandObserver((ctcpCommand, notice) ->
+                    DiagnosticLog.d(mManager.getContext(), "IRC", () ->
+                            diagnosticServerId + " CTCP received command=" + ctcpCommand +
+                                    ", notice=" + notice));
             messageHandler.setCtcpVersionReply(mManager.getContext()
                     .getString(R.string.app_name), BuildConfig.VERSION_NAME, "Android");
             connection.getServerConnectionData().getCommandHandlerList()
