@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.graphics.Rect;
+import android.text.Layout;
 import androidx.recyclerview.widget.RecyclerView;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
@@ -107,10 +108,12 @@ public class ChatSelectTouchListener implements RecyclerView.OnItemTouchListener
 
     private void showHandle(TextSelectionHandlePopup handle, long id, int offset) {
         TextView textView = findTextViewByItemId(id);
-        if (textView != null) {
-            int line = textView.getLayout().getLineForOffset(offset);
-            int y = textView.getLayout().getLineBottom(line);
-            float x = textView.getLayout().getPrimaryHorizontal(offset);
+        Layout layout = textView != null ? textView.getLayout() : null;
+        int safeOffset = clampLayoutOffset(layout, offset);
+        int line = getSafeLineForOffset(layout, safeOffset);
+        if (textView != null && line >= 0) {
+            int y = layout.getLineBottom(line);
+            float x = layout.getPrimaryHorizontal(safeOffset);
             handle.show(textView, (int) x, y);
         } else {
             handle.hide();
@@ -265,14 +268,21 @@ public class ChatSelectTouchListener implements RecyclerView.OnItemTouchListener
             else
                 builder.append('\n');
             CharSequence text = ((AdapterInterface) mRecyclerView.getAdapter()).getTextAt(i);
-            if (i == selStartIndex && i == selEndIndex)
-                builder.append(text.subSequence(mSelectionStartOffset, mSelectionEndOffset));
-            else if (i == selStartIndex)
-                builder.append(text.subSequence(mSelectionStartOffset, text.length()));
-            else if (i == selEndIndex)
-                builder.append(text.subSequence(0, mSelectionEndOffset));
-            else
+            if (text == null)
+                text = "";
+            int safeStartOffset = clampTextOffset(text, mSelectionStartOffset);
+            int safeEndOffset = clampTextOffset(text, mSelectionEndOffset);
+            if (i == selStartIndex && i == selEndIndex) {
+                int from = Math.min(safeStartOffset, safeEndOffset);
+                int to = Math.max(safeStartOffset, safeEndOffset);
+                builder.append(text.subSequence(from, to));
+            } else if (i == selStartIndex) {
+                builder.append(text.subSequence(safeStartOffset, text.length()));
+            } else if (i == selEndIndex) {
+                builder.append(text.subSequence(0, safeEndOffset));
+            } else {
                 builder.append(text);
+            }
         }
         return builder;
     }
@@ -392,6 +402,26 @@ public class ChatSelectTouchListener implements RecyclerView.OnItemTouchListener
         } else {
             TextSelectionHelper.removeSelection((Spannable) textView.getText());
         }
+    }
+
+
+    static int clampLayoutOffset(Layout layout, int offset) {
+        if (layout == null || layout.getText() == null)
+            return 0;
+        return Math.max(0, Math.min(offset, layout.getText().length()));
+    }
+
+    static int getSafeLineForOffset(Layout layout, int offset) {
+        if (layout == null || layout.getLineCount() <= 0)
+            return -1;
+        int line = layout.getLineForOffset(clampLayoutOffset(layout, offset));
+        return Math.max(0, Math.min(line, layout.getLineCount() - 1));
+    }
+
+    private static int clampTextOffset(CharSequence text, int offset) {
+        if (text == null)
+            return 0;
+        return Math.max(0, Math.min(offset, text.length()));
     }
 
 
@@ -588,31 +618,34 @@ public class ChatSelectTouchListener implements RecyclerView.OnItemTouchListener
 
             TextView textViewStart = findTextViewByItemId(mSelectionStartId);
             TextView textViewEnd = findTextViewByItemId(mSelectionEndId);
-            int lineStart = textViewStart != null ?
-                    textViewStart.getLayout().getLineForOffset(mSelectionStartOffset) : -1;
-            int lineEnd = textViewStart != null ?
-                    textViewStart.getLayout().getLineForOffset(mSelectionEndOffset) : -1;
+            Layout startLayout = textViewStart != null ? textViewStart.getLayout() : null;
+            Layout endLayout = textViewEnd != null ? textViewEnd.getLayout() : null;
+            int safeStartOffset = clampLayoutOffset(startLayout, mSelectionStartOffset);
+            int safeEndOffset = clampLayoutOffset(endLayout, mSelectionEndOffset);
+            int lineStart = getSafeLineForOffset(startLayout, safeStartOffset);
+            int lineEnd = getSafeLineForOffset(endLayout, safeEndOffset);
 
             outRect.top = 0;
-            if (textViewStart != null) {
+            if (textViewStart != null && startLayout != null && lineStart >= 0) {
                 textViewStart.getLocationOnScreen(mTmpLocation2);
                 outRect.top = mTmpLocation2[1] - mTmpLocation[1];
-                outRect.top += textViewStart.getLayout().getLineTop(lineStart);
+                outRect.top += startLayout.getLineTop(lineStart);
             }
             outRect.bottom = view.getHeight();
-            if (textViewEnd != null) {
+            if (textViewEnd != null && endLayout != null && lineEnd >= 0) {
                 textViewEnd.getLocationOnScreen(mTmpLocation2);
                 outRect.bottom = mTmpLocation2[1] - mTmpLocation[1];
-                outRect.bottom += textViewEnd.getLayout().getLineBottom(lineEnd);
+                outRect.bottom += endLayout.getLineBottom(lineEnd);
             }
             outRect.left = 0;
             outRect.right = view.getWidth();
-            if (textViewStart != null && textViewStart == textViewEnd && lineStart == lineEnd) {
+            if (textViewStart != null && textViewStart == textViewEnd &&
+                    startLayout != null && lineStart >= 0 && lineStart == lineEnd) {
                 textViewStart.getLocationOnScreen(mTmpLocation2);
                 outRect.left = mTmpLocation2[0] - mTmpLocation[0];
-                outRect.left += textViewStart.getLayout().getPrimaryHorizontal(mSelectionStartOffset);
+                outRect.left += startLayout.getPrimaryHorizontal(safeStartOffset);
                 outRect.right = mTmpLocation2[0] - mTmpLocation[0];
-                outRect.right += textViewStart.getLayout().getPrimaryHorizontal(mSelectionEndOffset);
+                outRect.right += startLayout.getPrimaryHorizontal(safeEndOffset);
             }
         }
     }
