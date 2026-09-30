@@ -46,6 +46,23 @@ final class PrivateConversationAliases {
         return resolved;
     }
 
+    static boolean hasVisibleConversationForCurrentNick(List<String> visibleChannels,
+                                                        Map<String, String> aliases,
+                                                        String currentNick) {
+        if (visibleChannels == null || aliases == null || currentNick == null)
+            return false;
+        for (String visible : visibleChannels) {
+            if (visible == null)
+                continue;
+            if (visible.equalsIgnoreCase(currentNick))
+                return true;
+            String resolved = resolve(aliases, visible);
+            if (resolved != null && resolved.equalsIgnoreCase(currentNick))
+                return true;
+        }
+        return false;
+    }
+
     static List<String> buildCloseTargets(Map<String, String> aliases, String visibleNick) {
         LinkedHashSet<String> targets = new LinkedHashSet<>();
         if (visibleNick == null || visibleNick.isEmpty())
