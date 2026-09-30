@@ -698,12 +698,39 @@ public class ServerConnectionInfo {
 
     /** Follows a user's NICK change instead of opening a second private-query tab. */
     private void renamePrivateConversation(String oldNick, String newNick) {
-        if (oldNick == null || newNick == null || oldNick.equalsIgnoreCase(newNick) ||
-                !hasOpenConversation(oldNick))
+        if (oldNick == null || newNick == null || oldNick.equalsIgnoreCase(newNick))
             return;
+
         synchronized (this) {
+            if (!PrivateConversationAliases.hasVisibleConversationForCurrentNick(
+                    mChannels, mQueryNickAliases, oldNick))
+                return;
             PrivateConversationAliases.recordNickChange(mQueryNickAliases, oldNick, newNick);
         }
+
+        MessageStorageApi storage = getApiInstance().getMessageStorageApi();
+        if (storage instanceof SQLiteMessageStorageApi) {
+            /*
+             * Keep the visible query on the old nickname until its persistent history has moved.
+             * ChatPagerAdapter creates a new ChatMessagesFragment when the visible nickname
+             * changes. Publishing that change first lets the new fragment load an empty history
+             * and it will not automatically reload when the asynchronous DB migration finishes.
+             *
+             * SQLiteMessageStorageApi is single-threaded, so rapid A -> B -> C nickname changes
+             * are migrated and finalized in the same order.
+             */
+            ((SQLiteMessageStorageApi) storage).renameChannel(oldNick, newNick,
+                    ignored -> finishPrivateConversationRename(oldNick, newNick),
+                    error -> {
+                        Log.w("ServerConnectionInfo", "Unable to rename query history", error);
+                        finishPrivateConversationRename(oldNick, newNick);
+                    });
+        } else {
+            finishPrivateConversationRename(oldNick, newNick);
+        }
+    }
+
+    private void finishPrivateConversationRename(String oldNick, String newNick) {
         List<String> renamed;
         synchronized (this) {
             renamed = mChannels == null ? new ArrayList<>() : new ArrayList<>(mChannels);
@@ -726,10 +753,6 @@ public class ServerConnectionInfo {
             }
         }
         mChatUIData.renameChannel(oldNick, newNick);
-        MessageStorageApi storage = getApiInstance().getMessageStorageApi();
-        if (storage instanceof SQLiteMessageStorageApi)
-            ((SQLiteMessageStorageApi) storage).renameChannel(oldNick, newNick, null,
-                    error -> Log.w("ServerConnectionInfo", "Unable to rename query history", error));
         mNotificationData.discardRenamedChannel(oldNick);
         setChannels(renamed);
     }
