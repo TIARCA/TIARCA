@@ -67,6 +67,25 @@ public class PrivateConversationAliasTest {
     }
 
     @Test
+    public void pendingRenameStillRecognizesTheCurrentNickname() {
+        Map<String, String> aliases = new LinkedHashMap<>();
+        PrivateConversationAliases.recordNickChange(aliases, "Alpha", "Beta");
+
+        assertEquals(true, PrivateConversationAliases.hasVisibleConversationForCurrentNick(
+                java.util.Collections.singletonList("Alpha"), aliases, "Beta"));
+    }
+
+    @Test
+    public void pendingRenameChainRecognizesLatestNickname() {
+        Map<String, String> aliases = new LinkedHashMap<>();
+        PrivateConversationAliases.recordNickChange(aliases, "Alpha", "Beta");
+        PrivateConversationAliases.recordNickChange(aliases, "Beta", "Gamma");
+
+        assertEquals(true, PrivateConversationAliases.hasVisibleConversationForCurrentNick(
+                java.util.Collections.singletonList("Alpha"), aliases, "Gamma"));
+    }
+
+    @Test
     public void normalPrivateConversationStillClosesNormally() {
         List<String> targets = PrivateConversationAliases
                 .buildCloseTargets(new LinkedHashMap<>(), "RegularNick");
