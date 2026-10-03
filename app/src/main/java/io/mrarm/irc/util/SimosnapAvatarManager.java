@@ -54,11 +54,16 @@ public final class SimosnapAvatarManager {
      */
     public static String resolveAccount(ServerConnectionInfo connection, String nick,
                                         String whoisAccount) {
-        if (whoisAccount != null && !whoisAccount.trim().isEmpty()) {
+        String account = chooseAccount(getAccount(connection, nick), whoisAccount);
+        if (whoisAccount != null && !whoisAccount.trim().isEmpty())
             rememberAccount(connection, nick, whoisAccount);
+        return account;
+    }
+
+    static String chooseAccount(String knownAccount, String whoisAccount) {
+        if (whoisAccount != null && !whoisAccount.trim().isEmpty())
             return whoisAccount;
-        }
-        return getAccount(connection, nick);
+        return knownAccount;
     }
 
     public static void requestChannelAccounts(ServerConnectionInfo connection, String channel,
