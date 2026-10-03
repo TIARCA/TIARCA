@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pref_quick_commands_usage">How to use the commands</string>
+    <string name="pref_quick_youtube_usage">%1$s search terms — e.g. %1$s Muse Uprising\nFinds a YouTube video and sends its title and link to the current chat.</string>
+    <string name="pref_quick_wiki_usage">%1$s topic — e.g. %1$s Rome\nSearches Italian Wikipedia and sends a short description and link to the chat.</string>
+    <string name="pref_quick_calc_usage">%1$s expression — e.g. %1$s (12+3)*2\nCalculates locally with +, −, *, /, %%, ^ and parentheses; sends the result to the chat.</string>
+    <string name="pref_quick_movie_usage">%1$s film title — e.g. %1$s Inception\nSearches TMDB and sends film details and a link to the chat; requires an API key.</string>
+    <string name="pref_quick_time_usage">%1$s [place] — e.g. %1$s Tokyo or %1$s Europe/Rome\nSends the date and time to the chat; without a place, uses the device time zone.</string>
+    <string name="pref_quick_dictionary_usage">%1$s word — e.g. %1$s casa\nSearches Italian Wiktionary and sends a definition and link to the chat.</string>
+    <string name="pref_tmdb_key_guide">How to obtain a TMDB API key</string>
+    <string name="pref_tmdb_key_guide_desc">Opens the official TMDB guide in your browser. Registration is easier on a PC.</string>
+</resources>

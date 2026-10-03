@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pref_quick_commands_usage">Jak używać poleceń</string>
+    <string name="pref_quick_youtube_usage">%1$s wyszukiwanie — np. %1$s Muse Uprising\nWyszukuje film YouTube i wysyła tytuł oraz link na bieżący czat.</string>
+    <string name="pref_quick_wiki_usage">%1$s temat — np. %1$s Roma\nPrzeszukuje włoską Wikipedię i wysyła krótki opis oraz link na czat.</string>
+    <string name="pref_quick_calc_usage">%1$s wyrażenie — np. %1$s (12+3)*2\nOblicza lokalnie za pomocą +, −, *, /, %%, ^ i nawiasów; wysyła wynik na czat.</string>
+    <string name="pref_quick_movie_usage">%1$s tytuł filmu — np. %1$s Inception\nWyszukuje w TMDB i wysyła informacje oraz link na czat; wymaga klucza API.</string>
+    <string name="pref_quick_time_usage">%1$s [miejsce] — np. %1$s Tokyo lub %1$s Europe/Rome\nWysyła datę i czas; bez miejsca używa strefy czasowej urządzenia.</string>
+    <string name="pref_quick_dictionary_usage">%1$s słowo — np. %1$s casa\nPrzeszukuje włoski Wikisłownik i wysyła definicję oraz link na czat.</string>
+    <string name="pref_tmdb_key_guide">Jak uzyskać klucz API TMDB</string>
+    <string name="pref_tmdb_key_guide_desc">Otwiera oficjalny poradnik TMDB w przeglądarce. Rejestracja jest łatwiejsza na komputerze.</string>
+</resources>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pref_quick_commands_usage">Komentojen käyttö</string>
+    <string name="pref_quick_youtube_usage">%1$s hakusanat — esim. %1$s Muse Uprising\nHakee YouTube-videon ja lähettää otsikon ja linkin nykyiseen keskusteluun.</string>
+    <string name="pref_quick_wiki_usage">%1$s aihe — esim. %1$s Roma\nHakee italiankielisestä Wikipediasta ja lähettää lyhyen kuvauksen ja linkin keskusteluun.</string>
+    <string name="pref_quick_calc_usage">%1$s lauseke — esim. %1$s (12+3)*2\nLaskee paikallisesti merkeillä +, −, *, /, %%, ^ ja sulkeilla; lähettää tuloksen keskusteluun.</string>
+    <string name="pref_quick_movie_usage">%1$s elokuvan nimi — esim. %1$s Inception\nHakee TMDB:stä ja lähettää elokuvan tiedot ja linkin keskusteluun; vaatii API-avaimen.</string>
+    <string name="pref_quick_time_usage">%1$s [paikka] — esim. %1$s Tokyo tai %1$s Europe/Rome\nLähettää päivämäärän ja ajan; ilman paikkaa käyttää laitteen aikavyöhykettä.</string>
+    <string name="pref_quick_dictionary_usage">%1$s sana — esim. %1$s casa\nHakee italiankielisestä Wikisanakirjasta ja lähettää määritelmän ja linkin keskusteluun.</string>
+    <string name="pref_tmdb_key_guide">TMDB-API-avaimen hankkiminen</string>
+    <string name="pref_tmdb_key_guide_desc">Avaa TMDB:n virallisen oppaan selaimessa. Rekisteröinti on helpompaa tietokoneella.</string>
+</resources>
