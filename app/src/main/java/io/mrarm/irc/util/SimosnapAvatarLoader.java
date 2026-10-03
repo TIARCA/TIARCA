@@ -168,7 +168,7 @@ public final class SimosnapAvatarLoader {
             connection.setInstanceFollowRedirects(true);
             connection.setRequestProperty("Accept", "image/png,image/*");
             int status = connection.getResponseCode();
-            if (status == HttpURLConnection.HTTP_NOT_FOUND)
+            if (isPermanentMissingStatus(status))
                 return DownloadResult.notFound();
             if (status != HttpURLConnection.HTTP_OK)
                 return DownloadResult.failed();
@@ -186,6 +186,10 @@ public final class SimosnapAvatarLoader {
             if (connection != null)
                 connection.disconnect();
         }
+    }
+
+    static boolean isPermanentMissingStatus(int status) {
+        return status == HttpURLConnection.HTTP_NOT_FOUND;
     }
 
     private static String md5(String value) {
