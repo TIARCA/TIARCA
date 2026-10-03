@@ -64,10 +64,19 @@ public final class SimosnapAvatarLoader {
         view.setImageDrawable(null);
         view.setVisibility(View.GONE);
 
-        Bitmap cached = findCached(urls);
+        // A cached thumbnail is only a fallback for a large request. Do not let it suppress a
+        // first attempt to fetch the full-size avatar.
+        Bitmap cached = CACHE.get(requestKey);
         if (cached != null) {
             showIfCurrent(view, requestKey, cached, callback);
             return;
+        }
+        if (urls.length > 1 && isRecentlyMissing(requestKey)) {
+            Bitmap fallbackCached = CACHE.get(urls[1]);
+            if (fallbackCached != null) {
+                showIfCurrent(view, requestKey, fallbackCached, callback);
+                return;
+            }
         }
 
         EXECUTOR.execute(() -> {
@@ -105,15 +114,6 @@ public final class SimosnapAvatarLoader {
         if (!large)
             return new String[] { small };
         return new String[] { LARGE_BASE + hash + ".png", small };
-    }
-
-    private static Bitmap findCached(String[] urls) {
-        for (String url : urls) {
-            Bitmap bitmap = CACHE.get(url);
-            if (bitmap != null)
-                return bitmap;
-        }
-        return null;
     }
 
     private static boolean isRecentlyMissing(String url) {
