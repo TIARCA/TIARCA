@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pref_quick_commands_usage">So verwenden Sie die Befehle</string>
+    <string name="pref_quick_youtube_usage">%1$s Suchbegriffe — z. B. %1$s Muse Uprising\nSucht ein YouTube-Video und sendet Titel und Link in den aktuellen Chat.</string>
+    <string name="pref_quick_wiki_usage">%1$s Thema — z. B. %1$s Roma\nSucht in der italienischen Wikipedia und sendet eine Kurzbeschreibung und einen Link in den Chat.</string>
+    <string name="pref_quick_calc_usage">%1$s Ausdruck — z. B. %1$s (12+3)*2\nRechnet lokal mit +, −, *, /, %%, ^ und Klammern; sendet das Ergebnis in den Chat.</string>
+    <string name="pref_quick_movie_usage">%1$s Filmtitel — z. B. %1$s Inception\nSucht bei TMDB und sendet Filminfos und einen Link in den Chat; benötigt einen API-Schlüssel.</string>
+    <string name="pref_quick_time_usage">%1$s [Ort] — z. B. %1$s Tokyo oder %1$s Europe/Rome\nSendet Datum und Uhrzeit in den Chat; ohne Ort gilt die Zeitzone des Geräts.</string>
+    <string name="pref_quick_dictionary_usage">%1$s Wort — z. B. %1$s casa\nSucht im italienischen Wiktionary und sendet eine Definition und einen Link in den Chat.</string>
+    <string name="pref_tmdb_key_guide">TMDB-API-Schlüssel erhalten</string>
+    <string name="pref_tmdb_key_guide_desc">Öffnet die offizielle TMDB-Anleitung im Browser. Die Registrierung ist am PC einfacher.</string>
+</resources>

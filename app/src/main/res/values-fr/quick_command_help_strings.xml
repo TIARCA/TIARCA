@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pref_quick_commands_usage">Comment utiliser les commandes</string>
+    <string name="pref_quick_youtube_usage">%1$s recherche — ex. %1$s Muse Uprising\nRecherche une vidéo YouTube et envoie son titre et son lien dans la discussion actuelle.</string>
+    <string name="pref_quick_wiki_usage">%1$s sujet — ex. %1$s Roma\nRecherche sur Wikipédia en italien et envoie une courte description et un lien dans la discussion.</string>
+    <string name="pref_quick_calc_usage">%1$s expression — ex. %1$s (12+3)*2\nCalcule localement avec +, −, *, /, %%, ^ et les parenthèses ; envoie le résultat dans la discussion.</string>
+    <string name="pref_quick_movie_usage">%1$s titre du film — ex. %1$s Inception\nRecherche sur TMDB et envoie les informations du film et un lien ; nécessite une clé API.</string>
+    <string name="pref_quick_time_usage">%1$s [lieu] — ex. %1$s Tokyo ou %1$s Europe/Rome\nEnvoie la date et l\'heure ; sans lieu, utilise le fuseau horaire de l\'appareil.</string>
+    <string name="pref_quick_dictionary_usage">%1$s mot — ex. %1$s casa\nRecherche sur le Wiktionnaire en italien et envoie une définition et un lien.</string>
+    <string name="pref_tmdb_key_guide">Obtenir une clé API TMDB</string>
+    <string name="pref_tmdb_key_guide_desc">Ouvre le guide officiel TMDB dans le navigateur. L\'inscription est plus facile sur PC.</string>
+</resources>

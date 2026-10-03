@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pref_quick_commands_usage">Cum se folosesc comenzile</string>
+    <string name="pref_quick_youtube_usage">%1$s căutare — ex. %1$s Muse Uprising\nCaută un videoclip YouTube și trimite titlul și linkul în conversația curentă.</string>
+    <string name="pref_quick_wiki_usage">%1$s subiect — ex. %1$s Roma\nCaută pe Wikipedia în italiană și trimite o scurtă descriere și un link în conversație.</string>
+    <string name="pref_quick_calc_usage">%1$s expresie — ex. %1$s (12+3)*2\nCalculează local cu +, −, *, /, %%, ^ și paranteze; trimite rezultatul în conversație.</string>
+    <string name="pref_quick_movie_usage">%1$s titlul filmului — ex. %1$s Inception\nCaută pe TMDB și trimite informații și un link în conversație; necesită o cheie API.</string>
+    <string name="pref_quick_time_usage">%1$s [loc] — ex. %1$s Tokyo sau %1$s Europe/Rome\nTrimite data și ora; fără loc folosește fusul orar al dispozitivului.</string>
+    <string name="pref_quick_dictionary_usage">%1$s cuvânt — ex. %1$s casa\nCaută pe Wikționar în italiană și trimite o definiție și un link în conversație.</string>
+    <string name="pref_tmdb_key_guide">Cum se obține o cheie API TMDB</string>
+    <string name="pref_tmdb_key_guide_desc">Deschide ghidul oficial TMDB în browser. Înregistrarea este mai ușoară pe un PC.</string>
+</resources>
