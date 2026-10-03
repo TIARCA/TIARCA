@@ -101,7 +101,7 @@ public class UserBottomSheetDialog {
 
     public void requestData(String nick, ChatApi connection) {
         mHost = null;
-        mAccount = null;
+        mAccount = SimosnapAvatarManager.resolveAccount(mConnection, nick, null);
         setUser(nick, null, null, false);
         connection.sendWhois(nick, (WhoisInfo info) -> {
             if (mRecyclerView != null)
@@ -115,8 +115,8 @@ public class UserBottomSheetDialog {
         mEntries.clear();
         mHistoricalData = false;
         mHost = info.getHost();
-        mAccount = info.getLoggedInAsAccount();
-        SimosnapAvatarManager.rememberAccount(mConnection, info.getNick(), mAccount);
+        mAccount = SimosnapAvatarManager.resolveAccount(
+                mConnection, info.getNick(), info.getLoggedInAsAccount());
         String awayMessage = info.getAwayMessage();
         boolean away = awayMessage != null;
         UserInfo knownUser = getKnownUser(info.getNick());
