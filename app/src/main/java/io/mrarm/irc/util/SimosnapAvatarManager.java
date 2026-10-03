@@ -47,6 +47,25 @@ public final class SimosnapAvatarManager {
             handler.remember(nick, account);
     }
 
+    /**
+     * Prefers the account reported by WHOIS, but falls back to the account already learned via
+     * WHOX. This keeps avatar resolution stable on servers that omit RPL_WHOISACCOUNT for some
+     * users while their channel WHOX data is still available.
+     */
+    public static String resolveAccount(ServerConnectionInfo connection, String nick,
+                                        String whoisAccount) {
+        String account = chooseAccount(getAccount(connection, nick), whoisAccount);
+        if (whoisAccount != null && !whoisAccount.trim().isEmpty())
+            rememberAccount(connection, nick, whoisAccount);
+        return account;
+    }
+
+    static String chooseAccount(String knownAccount, String whoisAccount) {
+        if (whoisAccount != null && !whoisAccount.trim().isEmpty())
+            return whoisAccount;
+        return knownAccount;
+    }
+
     public static void requestChannelAccounts(ServerConnectionInfo connection, String channel,
                                               Runnable callback) {
         if (!isSupported(connection) || channel == null ||
