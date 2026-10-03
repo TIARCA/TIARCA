@@ -931,7 +931,7 @@ public class UserBottomSheetDialog {
             }
             mNick.setText(UserBottomSheetDialog.this.mNick);
             mUser.setText(UserBottomSheetDialog.this.mUser);
-            SimosnapAvatarLoader.load(mAvatar, mAccount, true, loaded -> {
+            SimosnapAvatarLoader.load(mAvatar, mConnection, mAccount, true, loaded -> {
                 mAvatarLoaded = loaded;
                 updateAvatarLayout(loaded && mCurrentCollapse == 0 && !mCompactMode);
             });
