@@ -498,7 +498,7 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             mAvatar.setVisibility(View.VISIBLE);
             if (!formats.getMessageCustomAvatars()) return;
             String account = SimosnapAvatarManager.getAccount(mFragment.getConnectionInfo(), nick);
-            SimosnapAvatarLoader.load(mAvatar, account, false, loaded -> {
+            SimosnapAvatarLoader.load(mAvatar, mFragment.getConnectionInfo(), account, false, loaded -> {
                 if (!loaded) {
                     mAvatar.setImageDrawable(fallback);
                     mAvatar.setVisibility(View.VISIBLE);

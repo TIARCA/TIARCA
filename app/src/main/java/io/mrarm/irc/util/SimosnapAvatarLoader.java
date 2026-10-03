@@ -20,6 +20,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import io.mrarm.irc.R;
+import io.mrarm.irc.ServerConnectionInfo;
 
 /** Loads the public Simosnap account avatars without adding an image-loading dependency. */
 public final class SimosnapAvatarLoader {
@@ -52,7 +53,13 @@ public final class SimosnapAvatarLoader {
 
     private SimosnapAvatarLoader() { }
 
-    public static void load(ImageView view, String account, boolean large, Callback callback) {
+    public static void load(ImageView view, ServerConnectionInfo connection, String account,
+                            boolean large, Callback callback) {
+        // Check before URL construction and cache lookup, not just before downloading.
+        if (!SimosnapAvatarManager.isSupported(connection)) {
+            clear(view, callback);
+            return;
+        }
         String[] urls = getCandidateUrls(account, large);
         if (urls.length == 0) {
             clear(view, callback);

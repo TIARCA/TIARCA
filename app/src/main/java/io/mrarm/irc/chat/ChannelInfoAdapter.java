@@ -535,7 +535,7 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
             mText.setTag(nickWithPrefix.getNick());
             String account = SimosnapAvatarManager.getAccount(connection,
                     nickWithPrefix.getNick());
-            SimosnapAvatarLoader.load(mAvatar, account, false, null);
+            SimosnapAvatarLoader.load(mAvatar, connection, account, false, null);
         }
 
         private static boolean isAway(ServerConnectionInfo connection, String nick) {

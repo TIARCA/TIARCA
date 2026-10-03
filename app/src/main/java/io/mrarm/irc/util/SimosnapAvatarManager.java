@@ -28,12 +28,22 @@ public final class SimosnapAvatarManager {
     private SimosnapAvatarManager() { }
 
     public static boolean isSupported(ServerConnectionInfo connection) {
-        if (connection == null || connection.getServerAddress() == null)
+        return connection != null && isSupportedHost(connection.getServerAddress());
+    }
+
+    static boolean isSupportedHost(String address) {
+        if (address == null)
             return false;
-        return connection.getServerAddress().toLowerCase(Locale.ROOT).contains("simosnap");
+        String host = address.trim().toLowerCase(Locale.ROOT);
+        return host.equals("simosnap.org") || host.endsWith(".simosnap.org") ||
+                host.equals("simosnap.com") || host.endsWith(".simosnap.com");
     }
 
     public static String getAccount(ServerConnectionInfo connection, String nick) {
+        // WHOX accounts also serve private-chat identity tracking on other networks.
+        // They must never be interpreted as Simosnap avatar identities there.
+        if (!isSupported(connection))
+            return null;
         WhoXAccountHandler handler = getHandler(connection, false);
         return handler == null ? null : handler.getAccount(nick);
     }
@@ -54,6 +64,8 @@ public final class SimosnapAvatarManager {
      */
     public static String resolveAccount(ServerConnectionInfo connection, String nick,
                                         String whoisAccount) {
+        if (!isSupported(connection))
+            return null;
         String account = chooseAccount(getAccount(connection, nick), whoisAccount);
         if (whoisAccount != null && !whoisAccount.trim().isEmpty())
             rememberAccount(connection, nick, whoisAccount);
