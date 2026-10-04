@@ -945,7 +945,7 @@
     <string name="pref_quick_command_word_normalized">Cuvântul de activare a fost corectat. Foloseste! urmat de litere, cifre sau liniuțe de subliniere.</string>
     <string name="pref_quick_command_word_duplicate">Cuvântul de activare este deja folosit. Valoarea implicită a fost restabilită.</string>
     <string name="pref_tmdb_key">TMDb API cheie (v3)</string>
-    <string name="pref_tmdb_key_hint">Cheie de aplicație inclusă; atingeți pentru a utiliza o altă cheie</string>
+    <string name="pref_tmdb_key_hint">Introdu cheia API TMDb personală</string>
     <string name="quick_command_empty">Scrieți o căutare după comandă.</string>
     <string name="quick_command_no_target">Deschideți mai întâi un canal sau o conversație privată.</string>
     <string name="quick_command_progress">Se procesează comanda...</string>

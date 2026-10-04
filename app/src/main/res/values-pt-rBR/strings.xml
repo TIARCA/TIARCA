@@ -924,7 +924,7 @@
     <string name="pref_quick_command_word_normalized">A palavra de ativação foi corrigida. Usar ! seguido por letras, números ou sublinhados.</string>
     <string name="pref_quick_command_word_duplicate">Essa palavra de ativação já foi usada. O valor padrão foi restaurado.</string>
     <string name="pref_tmdb_key">Chave TMDb API (v3)</string>
-    <string name="pref_tmdb_key_hint">incluída; toque para usar uma tecla diferente</string>
+    <string name="pref_tmdb_key_hint">Insira sua chave de API pessoal do TMDb</string>
     <string name="quick_command_empty">Grave uma pesquisa após o comando.</string>
     <string name="quick_command_no_target">Abra primeiro um canal ou conversa privada.</string>
     <string name="quick_command_progress">Processando comando…</string>

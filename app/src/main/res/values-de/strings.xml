@@ -924,7 +924,7 @@
     <string name="pref_quick_command_word_normalized">Das Aktivierungswort wurde korrigiert. Verwenden ! gefolgt von Buchstaben, Zahlen oder Unterstrichen.</string>
     <string name="pref_quick_command_word_duplicate">Dieses Aktivierungswort wird bereits verwendet. Der Standardwert wurde wiederhergestellt.</string>
     <string name="pref_tmdb_key">TMDb API-Schlüssel (v3)</string>
-    <string name="pref_tmdb_key_hint">App-Schlüssel enthalten; Tippen Sie, um eine andere Taste zu verwenden</string>
+    <string name="pref_tmdb_key_hint">Persönlichen TMDb-API-Schlüssel eingeben</string>
     <string name="quick_command_empty">Schreiben Sie eine Suche nach dem Befehl.</string>
     <string name="quick_command_no_target">Öffnen Sie zuerst einen Kanal oder ein privates Gespräch.</string>
     <string name="quick_command_progress">Verarbeitungsbefehl…</string>

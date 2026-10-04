@@ -11,11 +11,6 @@ import java.util.Set;
 /** Preferences and validation for the locally handled ! commands. */
 public final class QuickCommandSettings {
 
-    // Application-level TMDb key. It is intentionally replaceable in Settings. As with every
-    // credential shipped in a mobile application, it must be considered publicly recoverable.
-    private static final String DEFAULT_TMDB_KEY_PART_1 = "ccce3f6bb0ed2801";
-    private static final String DEFAULT_TMDB_KEY_PART_2 = "8f3823fa6de32b33";
-
     public static final String PREF_ENABLED = "quick_commands_enabled";
     public static final String PREF_YOUTUBE_ENABLED = "quick_command_youtube_enabled";
     public static final String PREF_WIKI_ENABLED = "quick_command_wiki_enabled";
@@ -100,7 +95,7 @@ public final class QuickCommandSettings {
     }
 
     public static String getTmdbKey(Context context) {
-        String custom = prefs(context).getString(PREF_TMDB_KEY, "").trim();
-        return custom.isEmpty() ? DEFAULT_TMDB_KEY_PART_1 + DEFAULT_TMDB_KEY_PART_2 : custom;
+        // Keep the historical preference key so upgrades and backups retain personal keys.
+        return prefs(context).getString(PREF_TMDB_KEY, "").trim();
     }
 }

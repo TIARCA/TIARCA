@@ -1029,7 +1029,7 @@
     <string name="pref_quick_command_word_normalized">La parola è stata corretta. Usa ! seguito da lettere, numeri o trattini bassi.</string>
     <string name="pref_quick_command_word_duplicate">Questa parola è già utilizzata. È stato ripristinato il valore predefinito.</string>
     <string name="pref_tmdb_key">Chiave API TMDb (v3)</string>
-    <string name="pref_tmdb_key_hint">Chiave dell’app inclusa; tocca per usarne una diversa</string>
+    <string name="pref_tmdb_key_hint">Inserisci la tua chiave API TMDb personale</string>
     <string name="quick_command_empty">Scrivi una ricerca dopo il comando.</string>
     <string name="quick_command_no_target">Apri prima un canale o una conversazione privata.</string>
     <string name="quick_command_progress">Elaborazione del comando…</string>

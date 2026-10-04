@@ -21,6 +21,17 @@ android {
         }
         vectorDrawables.useSupportLibrary = true
     }
+    flavorDimensions 'distribution'
+    productFlavors {
+        standard {
+            dimension 'distribution'
+            buildConfigField 'boolean', 'GITHUB_UPDATER_ENABLED', 'true'
+        }
+        fdroid {
+            dimension 'distribution'
+            buildConfigField 'boolean', 'GITHUB_UPDATER_ENABLED', 'false'
+        }
+    }
     dependenciesInfo {
         includeInApk = false
         includeInBundle = false

@@ -924,7 +924,7 @@
     <string name="pref_quick_command_word_normalized">Aktivointisana korjattiin. Käytä! sen jälkeen kirjaimet, numerot tai alaviivat.</string>
     <string name="pref_quick_command_word_duplicate">Tämä aktivointisana on jo käytössä. Oletusarvo on palautettu.</string>
     <string name="pref_tmdb_key">TMDb API avain (v3)</string>
-    <string name="pref_tmdb_key_hint">App-avain mukana; napauta käyttääksesi toista näppäintä</string>
+    <string name="pref_tmdb_key_hint">Anna henkilökohtainen TMDb API -avaimesi</string>
     <string name="quick_command_empty">Kirjoita haku komennon jälkeen.</string>
     <string name="quick_command_no_target">Avaa ensin kanava tai yksityinen keskustelu.</string>
     <string name="quick_command_progress">Käsitellään komentoa…</string>
