@@ -924,7 +924,7 @@
     <string name="pref_quick_command_word_normalized">Le mot d\'activation a été corrigé. Utiliser ! suivi de lettres, de chiffres ou de traits de soulignement.</string>
     <string name="pref_quick_command_word_duplicate">Ce mot d\'activation est déjà utilisé. La valeur par défaut a été restaurée.</string>
     <string name="pref_tmdb_key">Clé TMDb API (v3)</string>
-    <string name="pref_tmdb_key_hint">incluse ; appuyez pour utiliser une autre clé</string>
+    <string name="pref_tmdb_key_hint">Saisissez votre clé API TMDb personnelle</string>
     <string name="quick_command_empty">Écrivez une recherche après la commande.</string>
     <string name="quick_command_no_target">Ouvrez d’abord une chaîne ou une conversation privée.</string>
     <string name="quick_command_progress">…</string>

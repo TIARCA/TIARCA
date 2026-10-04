@@ -1026,7 +1026,7 @@
     <string name="pref_quick_command_word_normalized">The activation word was corrected. Use ! followed by letters, numbers or underscores.</string>
     <string name="pref_quick_command_word_duplicate">That activation word is already used. The default value has been restored.</string>
     <string name="pref_tmdb_key">TMDb API key (v3)</string>
-    <string name="pref_tmdb_key_hint">App key included; tap to use a different key</string>
+    <string name="pref_tmdb_key_hint">Enter your personal TMDb API key</string>
     <string name="quick_command_empty">Write a search after the command.</string>
     <string name="quick_command_no_target">Open a channel or private conversation first.</string>
     <string name="quick_command_progress">Processing command…</string>

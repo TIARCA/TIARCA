@@ -9,6 +9,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        flavor: [Standard, Fdroid]
 
     steps:
       - name: Checkout
@@ -35,7 +38,10 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       - name: Run unit tests
-        run: ./gradlew testDebugUnitTest
+        run: ./gradlew :app:test${{ matrix.flavor }}DebugUnitTest
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug
+        run: ./gradlew :app:assemble${{ matrix.flavor }}Debug :app:assemble${{ matrix.flavor }}Release
+
+      - name: Verify distribution APK
+        run: python tools/verify_distribution_apk.py ${{ matrix.flavor }}

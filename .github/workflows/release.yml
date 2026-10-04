@@ -104,13 +104,13 @@ jobs:
         working-directory: build-a
         env:
           GRADLE_USER_HOME: ${{ runner.temp }}/gradle-a
-        run: ./gradlew --no-daemon --no-build-cache clean :app:assembleRelease
+        run: ./gradlew --no-daemon --no-build-cache clean :app:assembleStandardRelease :app:assembleFdroidRelease
 
       - name: Build unsigned release B
         working-directory: build-b
         env:
           GRADLE_USER_HOME: ${{ runner.temp }}/gradle-b
-        run: ./gradlew --no-daemon --no-build-cache clean :app:assembleRelease
+        run: ./gradlew --no-daemon --no-build-cache clean :app:assembleStandardRelease :app:assembleFdroidRelease
 
       - name: Compare APKs
         id: compare
@@ -118,8 +118,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          APK_A=$(find build-a/app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' | sort | head -n 1)
-          APK_B=$(find build-b/app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' | sort | head -n 1)
+          for FLAVOR in standard fdroid; do
+          APK_A=$(find "build-a/app/build/outputs/apk/$FLAVOR/release" -maxdepth 1 -type f -name '*.apk' | sort | head -n 1)
+          APK_B=$(find "build-b/app/build/outputs/apk/$FLAVOR/release" -maxdepth 1 -type f -name '*.apk' | sort | head -n 1)
 
           if [[ -z "$APK_A" || -z "$APK_B" ]]; then
             echo "Release APK missing" >&2
@@ -138,14 +139,15 @@ jobs:
             echo "result=different" >> "$GITHUB_OUTPUT"
             echo "ERROR: independently built release APKs differ." >&2
 
-            mkdir -p reproducibility-diff/a reproducibility-diff/b
-            unzip -qq "$APK_A" -d reproducibility-diff/a
-            unzip -qq "$APK_B" -d reproducibility-diff/b
-            diff -ru reproducibility-diff/a reproducibility-diff/b > reproducibility-diff/unzipped.diff || true
-            cp "$APK_A" reproducibility-diff/build-a.apk
-            cp "$APK_B" reproducibility-diff/build-b.apk
+            mkdir -p reproducibility-diff/$FLAVOR/a reproducibility-diff/$FLAVOR/b
+            unzip -qq "$APK_A" -d reproducibility-diff/$FLAVOR/a
+            unzip -qq "$APK_B" -d reproducibility-diff/$FLAVOR/b
+            diff -ru reproducibility-diff/$FLAVOR/a reproducibility-diff/$FLAVOR/b > reproducibility-diff/$FLAVOR/unzipped.diff || true
+            cp "$APK_A" reproducibility-diff/$FLAVOR/build-a.apk
+            cp "$APK_B" reproducibility-diff/$FLAVOR/build-b.apk
             exit 1
           fi
+          done
 
       - name: Upload mismatch diagnostics
         if: failure() && steps.compare.outputs.result == 'different'
@@ -195,26 +197,29 @@ jobs:
           EOF
 
       - name: Build signed release APK
-        run: ./gradlew :app:assembleRelease
+        run: ./gradlew :app:assembleStandardRelease :app:assembleFdroidRelease
 
-      - name: Name and checksum release APK
-        id: apk
+      - name: Verify distribution APKs
+        run: |
+          python3 tools/verify_distribution_apk.py Standard
+          python3 tools/verify_distribution_apk.py Fdroid
+
+      - name: Name and checksum release APKs
         shell: bash
         run: |
           set -euo pipefail
-          APK=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
-          if [[ -z "$APK" ]]; then
-            echo "Release APK was not generated" >&2
-            exit 1
-          fi
-          OUTPUT="app/build/outputs/apk/release/TIARCA-${{ needs.prepare-release.outputs.tag }}.apk"
-          CHECKSUM="${OUTPUT}.sha256"
-          cp "$APK" "$OUTPUT"
-          (cd "$(dirname "$OUTPUT")" && sha256sum "$(basename "$OUTPUT")") > "$CHECKSUM"
-          echo "apk=$OUTPUT" >> "$GITHUB_OUTPUT"
-          echo "checksum=$CHECKSUM" >> "$GITHUB_OUTPUT"
-          echo "Generated APK: $OUTPUT"
-          echo "Generated checksum: $CHECKSUM"
+          mkdir -p release-apks
+          for FLAVOR in standard fdroid; do
+            APK=$(find "app/build/outputs/apk/$FLAVOR/release" -maxdepth 1 -type f -name "*.apk" | head -n 1)
+            test -n "$APK"
+            if [[ "$FLAVOR" == standard ]]; then
+              NAME="TIARCA-${{ needs.prepare-release.outputs.tag }}.apk"
+            else
+              NAME="TIARCA-fdroid-${{ needs.prepare-release.outputs.tag }}.apk"
+            fi
+            cp "$APK" "release-apks/$NAME"
+            (cd release-apks && sha256sum "$NAME") > "release-apks/$NAME.sha256"
+          done
 
       - name: Prepare release notes from changelog
         shell: bash
@@ -245,8 +250,8 @@ jobs:
         with:
           name: TIARCA-release
           path: |
-            ${{ steps.apk.outputs.apk }}
-            ${{ steps.apk.outputs.checksum }}
+            release-apks/*.apk
+            release-apks/*.sha256
 
       - name: Create GitHub Release
         if: needs.prepare-release.outputs.publish_release == 'true'
@@ -255,6 +260,6 @@ jobs:
           tag_name: ${{ needs.prepare-release.outputs.tag }}
           name: TIARCA v${{ needs.prepare-release.outputs.version }}
           files: |
-            ${{ steps.apk.outputs.apk }}
-            ${{ steps.apk.outputs.checksum }}
+            release-apks/*.apk
+            release-apks/*.sha256
           body_path: release-notes.md

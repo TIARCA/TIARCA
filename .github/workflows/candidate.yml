@@ -37,26 +37,27 @@ jobs:
           EOF2
 
       - name: Build signed candidate APK
-        run: ./gradlew :app:assembleRelease
+        run: ./gradlew :app:assembleStandardRelease :app:assembleFdroidRelease
 
-      - name: Name candidate APK
-        id: apk
+      - name: Verify distribution APKs
+        run: |
+          python3 tools/verify_distribution_apk.py Standard
+          python3 tools/verify_distribution_apk.py Fdroid
+
+      - name: Name candidate APKs
         shell: bash
         run: |
           set -euo pipefail
-          APK=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
-          if [[ -z "$APK" ]]; then
-            echo "Candidate APK was not generated" >&2
-            exit 1
-          fi
-          SHORT_SHA="${GITHUB_SHA::7}"
-          OUTPUT="app/build/outputs/apk/release/TIARCA-candidate-${SHORT_SHA}.apk"
-          cp "$APK" "$OUTPUT"
-          echo "apk=$OUTPUT" >> "$GITHUB_OUTPUT"
+          mkdir -p candidate-apks
+          for FLAVOR in standard fdroid; do
+            APK=$(find "app/build/outputs/apk/$FLAVOR/release" -maxdepth 1 -name "*.apk" | head -n 1)
+            test -n "$APK"
+            cp "$APK" "candidate-apks/TIARCA-$FLAVOR-candidate-${GITHUB_SHA::7}.apk"
+          done
 
-      - name: Upload candidate APK
+      - name: Upload candidate APKs
         uses: actions/upload-artifact@v6
         with:
           name: TIARCA-candidate-${{ github.sha }}
-          path: ${{ steps.apk.outputs.apk }}
+          path: candidate-apks/*.apk
           retention-days: 14

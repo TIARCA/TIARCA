@@ -165,6 +165,17 @@ public class BackupManagerTest {
     }
 
     @Test
+    public void roundTripBackupAndRestorePreservesPersonalTmdbKey() throws Exception {
+        DefaultPreferences.get(context).edit()
+                .putString(QuickCommandSettings.PREF_TMDB_KEY, "personal-backup-test-key").commit();
+        File backupFile = new File(temporaryFolder.getRoot(), "tmdb_backup.zip");
+        BackupManager.createBackup(context, backupFile, null);
+        DefaultPreferences.get(context).edit().remove(QuickCommandSettings.PREF_TMDB_KEY).commit();
+        BackupManager.restoreBackup(context, backupFile, null);
+        assertEquals("personal-backup-test-key", QuickCommandSettings.getTmdbKey(context));
+    }
+
+    @Test
     public void roundTripBackupAndRestorePreservesImportedPresetRegistry() throws Exception {
         ThemeInfo importedPreset = new ThemeInfo();
         importedPreset.uuid = UUID.randomUUID();

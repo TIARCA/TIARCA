@@ -966,7 +966,7 @@
     <string name="pref_quick_command_word_normalized">Poprawiono słowo aktywacyjne. Używać ! po których następują litery, cyfry lub podkreślenia.</string>
     <string name="pref_quick_command_word_duplicate">To słowo aktywacyjne jest już użyte. Wartość domyślna została przywrócona.</string>
     <string name="pref_tmdb_key">TMDb API klucz (v3)</string>
-    <string name="pref_tmdb_key_hint">Klucz aplikacji w zestawie; dotknij, aby użyć innego klawisza</string>
+    <string name="pref_tmdb_key_hint">Wprowadź swój osobisty klucz API TMDb</string>
     <string name="quick_command_empty">Wpisz wyszukiwanie po poleceniu.</string>
     <string name="quick_command_no_target">Najpierw otwórz kanał lub prywatną rozmowę.</string>
     <string name="quick_command_progress">Polecenie przetwarzania…</string>

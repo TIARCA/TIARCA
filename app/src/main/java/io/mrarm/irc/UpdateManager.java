@@ -67,6 +67,8 @@ public final class UpdateManager {
     }
 
     public static void maybePromptAndCheck(Activity activity) {
+        if (!BuildConfig.GITHUB_UPDATER_ENABLED)
+            return;
         if (sStartupHandled || activity == null || activity.isFinishing() || activity.isDestroyed())
             return;
         sStartupHandled = true;
@@ -110,7 +112,9 @@ public final class UpdateManager {
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
         Button checkNow = new Button(activity);
-        checkNow.setText(text(activity, "Cerca aggiornamenti", "Check for updates"));
+        checkNow.setText(BuildConfig.GITHUB_UPDATER_ENABLED
+                ? text(activity, "Cerca aggiornamenti", "Check for updates")
+                : text(activity, "Apri in F-Droid", "Open in F-Droid"));
         LinearLayout.LayoutParams checkNowParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         checkNowParams.gravity = Gravity.CENTER_HORIZONTAL;
@@ -126,13 +130,15 @@ public final class UpdateManager {
         LinearLayout.LayoutParams automaticParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         automaticParams.topMargin = dp(activity, 2);
-        content.addView(automatic, automaticParams);
+        if (BuildConfig.GITHUB_UPDATER_ENABLED)
+            content.addView(automatic, automaticParams);
 
         TextView lastCheck = new TextView(activity);
         lastCheck.setPadding(0, dp(activity, 4), 0, 0);
         lastCheck.setText(lastCheckText(activity, preferences));
-        content.addView(lastCheck, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        if (BuildConfig.GITHUB_UPDATER_ENABLED)
+            content.addView(lastCheck, new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
         LinearLayout debugPanel = new LinearLayout(activity);
         debugPanel.setOrientation(LinearLayout.VERTICAL);
@@ -244,6 +250,11 @@ public final class UpdateManager {
     }
 
     public static void checkForUpdates(Activity activity, boolean manual) {
+        if (!BuildConfig.GITHUB_UPDATER_ENABLED) {
+            if (manual)
+                openFdroid(activity);
+            return;
+        }
         synchronized (UpdateManager.class) {
             if (sCheckInProgress) {
                 if (manual)
@@ -300,6 +311,22 @@ public final class UpdateManager {
                 }
             }
         }, "TIARCA update check").start();
+    }
+
+    private static void openFdroid(Activity activity) {
+        Uri listing = Uri.parse("https://f-droid.org/packages/" + BuildConfig.APPLICATION_ID + "/");
+        Intent intent = new Intent(Intent.ACTION_VIEW, listing).setPackage("org.fdroid.fdroid");
+        try {
+            activity.startActivity(intent);
+        } catch (android.content.ActivityNotFoundException missingClient) {
+            try {
+                activity.startActivity(new Intent(Intent.ACTION_VIEW, listing));
+            } catch (android.content.ActivityNotFoundException missingBrowser) {
+                showMessage(activity, text(activity, "F-Droid", "F-Droid"),
+                        text(activity, "Installa un client F-Droid o un browser per aprire la pagina dell'app.",
+                                "Install an F-Droid client or a browser to open the app page."));
+            }
+        }
     }
 
     private static void showOptIn(Activity activity) {
