@@ -78,7 +78,7 @@ public class ServerConnectionInfo {
     /** Number of alternative endpoints tried immediately in the current failover round. */
     private int mEndpointFailoverAttempts = 0;
     /** Monotonic identifier used only to correlate opt-in reconnect diagnostics. */
-    private int mDiagnosticConnectAttempt = 0;
+    private volatile int mDiagnosticConnectAttempt = 0;
     private String mScheduledReconnectReason = "reconnect-timer";
     int mChatLogStorageUpdateCounter = 0;
     private final ChatUIData mChatUIData = new ChatUIData();
