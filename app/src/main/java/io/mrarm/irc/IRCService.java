@@ -64,10 +64,10 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
         if (mLastInternetConnectivity != null && mLastInternetConnectivity == connected &&
                 mLastWifiConnectivity != null && mLastWifiConnectivity == wifi)
             return;
-        mLastInternetConnectivity = connected;
-        mLastWifiConnectivity = wifi;
         Boolean previousConnected = mLastInternetConnectivity;
         Boolean previousWifi = mLastWifiConnectivity;
+        mLastInternetConnectivity = connected;
+        mLastWifiConnectivity = wifi;
         DiagnosticLog.i(this, "NETWORK", () -> "Connectivity changed network=" + networkId +
                 ", connected=" + connected + ", wifi=" + wifi +
                 ", previousConnected=" + previousConnected +
