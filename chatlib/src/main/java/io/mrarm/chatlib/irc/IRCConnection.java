@@ -39,6 +39,7 @@ public class IRCConnection extends ServerConnectionApi {
     private ResponseCallback<Void> connectCallback;
     private ResponseErrorCallback connectErrorCallback;
     private final List<DisconnectListener> disconnectListeners = new ArrayList<>();
+    private volatile TransportObserver transportObserver;
 
     private SimpleRequestExecutor executor = new SimpleRequestExecutor();
 
@@ -49,12 +50,17 @@ public class IRCConnection extends ServerConnectionApi {
         getServerConnectionData().setMessageStorageApi(new SimpleMessageStorageApi());
     }
 
+    public void setTransportObserver(TransportObserver observer) {
+        transportObserver = observer;
+    }
+
     private void sendCommandRaw(String string, boolean flush) throws IOException {
         synchronized (socketOutputStream) {
             byte[] data = (string + "\r\n").getBytes(charset);
             if (data.length > 512)
                 throw new IOException("Too long message");
             socketOutputStream.write(data);
+            notifyCommandSent(extractCommandName(string));
             String printStr = string;
             for (String s : AUTH_COMMAND_PREFIXES) {
                 if (string.regionMatches(true, 0, s, 0, s.length())) {
@@ -121,6 +127,7 @@ public class IRCConnection extends ServerConnectionApi {
         try {
             while (true) {
                 String command = readCommand();
+                notifyCommandReceived(extractCommandName(command));
                 System.out.println("Got: " + command);
                 try {
                     inputHandler.handleLine(command);
@@ -137,6 +144,7 @@ public class IRCConnection extends ServerConnectionApi {
                     (currentSocket != null && currentSocket.isClosed()) + ", thread=" +
                     Thread.currentThread().getName());
             e.printStackTrace();
+            notifyTransportFailure(e, currentSocket);
             socketInputStream = null;
             synchronized (socketOutputStream) {
                 socketOutputStream = null;
@@ -378,6 +386,7 @@ public class IRCConnection extends ServerConnectionApi {
                     SSLSocket sslSocket = (SSLSocket) socket;
                     sslSocket.setUseClientMode(true);
                     sslSocket.startHandshake();
+                    notifyTlsHandshakeCompleted(sslSocket);
                     if (!hostnameVerifier.verify(request.getServerIP(), sslSocket.getSession()))
                         throw new IOException("Failed to verify hostname: " + request.getServerIP());
                 }
@@ -386,6 +395,7 @@ public class IRCConnection extends ServerConnectionApi {
             }
             socketInputStream = socket.getInputStream();
             socketOutputStream = socket.getOutputStream();
+            notifySocketOpened(socket, request.isUsingSSL());
             System.out.println("IRC transport: socket opened; ssl=" + request.isUsingSSL() +
                     ", keepAlive=" + socket.getKeepAlive() + ", soTimeout=" +
                     socket.getSoTimeout());
@@ -441,6 +451,106 @@ public class IRCConnection extends ServerConnectionApi {
                     }
                 });
         sendCommand(false, "NICK", false, nickList.get(index));
+    }
+
+    static String extractCommandName(String line) {
+        if (line == null)
+            return "unknown";
+        int length = line.length();
+        int index = 0;
+        while (index < length && line.charAt(index) == ' ')
+            index++;
+        if (index < length && line.charAt(index) == '@') {
+            int space = line.indexOf(' ', index);
+            if (space < 0)
+                return "unknown";
+            index = space + 1;
+            while (index < length && line.charAt(index) == ' ')
+                index++;
+        }
+        if (index < length && line.charAt(index) == ':') {
+            int space = line.indexOf(' ', index);
+            if (space < 0)
+                return "unknown";
+            index = space + 1;
+            while (index < length && line.charAt(index) == ' ')
+                index++;
+        }
+        if (index >= length)
+            return "unknown";
+        int end = line.indexOf(' ', index);
+        if (end < 0)
+            end = length;
+        String command = line.substring(index, end).trim();
+        return command.isEmpty() ? "unknown" : command.toUpperCase(Locale.ROOT);
+    }
+
+    private void notifySocketOpened(Socket current, boolean ssl) {
+        TransportObserver observer = transportObserver;
+        if (observer == null || current == null)
+            return;
+        try {
+            String localAddress = current.getLocalAddress() == null ? null :
+                    current.getLocalAddress().getHostAddress();
+            String remoteAddress = current.getInetAddress() == null ? null :
+                    current.getInetAddress().getHostAddress();
+            observer.onSocketOpened(ssl, localAddress, current.getLocalPort(),
+                    remoteAddress, current.getPort());
+        } catch (RuntimeException ignored) {
+        }
+    }
+
+    private void notifyTlsHandshakeCompleted(SSLSocket socket) {
+        TransportObserver observer = transportObserver;
+        if (observer == null || socket == null)
+            return;
+        try {
+            SSLSession session = socket.getSession();
+            observer.onTlsHandshakeCompleted(session == null ? null : session.getProtocol(),
+                    session == null ? null : session.getCipherSuite());
+        } catch (RuntimeException ignored) {
+        }
+    }
+
+    private void notifyCommandSent(String command) {
+        TransportObserver observer = transportObserver;
+        if (observer == null)
+            return;
+        try {
+            observer.onCommandSent(command);
+        } catch (RuntimeException ignored) {
+        }
+    }
+
+    private void notifyCommandReceived(String command) {
+        TransportObserver observer = transportObserver;
+        if (observer == null)
+            return;
+        try {
+            observer.onCommandReceived(command);
+        } catch (RuntimeException ignored) {
+        }
+    }
+
+    private void notifyTransportFailure(Exception error, Socket current) {
+        TransportObserver observer = transportObserver;
+        if (observer == null)
+            return;
+        try {
+            observer.onTransportFailure(error,
+                    current != null,
+                    current != null && current.isClosed());
+        } catch (RuntimeException ignored) {
+        }
+    }
+
+    public interface TransportObserver {
+        void onSocketOpened(boolean ssl, String localAddress, int localPort,
+                            String remoteAddress, int remotePort);
+        void onTlsHandshakeCompleted(String protocol, String cipherSuite);
+        void onCommandSent(String command);
+        void onCommandReceived(String command);
+        void onTransportFailure(Exception error, boolean socketPresent, boolean socketClosed);
     }
 
     public interface DisconnectListener {

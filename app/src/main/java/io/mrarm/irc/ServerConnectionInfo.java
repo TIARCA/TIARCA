@@ -1,5 +1,8 @@
 package io.mrarm.irc;
 
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -74,6 +77,9 @@ public class ServerConnectionInfo {
     private int mActiveAddressIndex = 0;
     /** Number of alternative endpoints tried immediately in the current failover round. */
     private int mEndpointFailoverAttempts = 0;
+    /** Monotonic identifier used only to correlate opt-in reconnect diagnostics. */
+    private volatile int mDiagnosticConnectAttempt = 0;
+    private String mScheduledReconnectReason = "reconnect-timer";
     int mChatLogStorageUpdateCounter = 0;
     private final ChatUIData mChatUIData = new ChatUIData();
     private final Set<String> mServiceNicks = new LinkedHashSet<>();
@@ -130,16 +136,31 @@ public class ServerConnectionInfo {
     }
 
     public void connect() {
+        connect("direct");
+    }
+
+    private void connect(String trigger) {
+        final int diagnosticAttempt;
         synchronized (this) {
-            if (mDisconnecting)
+            if (mDisconnecting) {
+                logConnectSuppressed(trigger, "disconnecting");
                 throw new RuntimeException("Trying to connect with mDisconnecting set");
-            if (mConnected || mConnecting)
+            }
+            if (mConnected || mConnecting) {
+                logConnectSuppressed(trigger, mConnected ? "connected" : "connecting");
                 return;
+            }
             mConnecting = true;
             mUserDisconnectRequest = false;
             mReconnectQueueTime = -1L;
+            diagnosticAttempt = ++mDiagnosticConnectAttempt;
         }
         Log.i("ServerConnectionInfo", "Connecting...");
+        final String diagnosticServerId =
+                DiagnosticLog.pseudonym("server", getUUID().toString());
+        DiagnosticLog.i(mManager.getContext(), "HANDOVER", () ->
+                diagnosticServerId + " attempt=" + diagnosticAttempt +
+                        " start trigger=" + trigger + ", " + diagnosticNetworkSummary());
 
         List<String> fallbackAddresses = mServerConfig.getConnectionAddresses();
         if (!fallbackAddresses.isEmpty()) {
@@ -171,8 +192,61 @@ public class ServerConnectionInfo {
             DCCManager dccManager = DCCManager.getInstance(getConnectionManager().getContext());
             messageHandler.setDCCServerManager(dccManager.getServer());
             messageHandler.setDCCClientManager(dccManager.createClient(this));
-            final String diagnosticServerId =
-                    DiagnosticLog.pseudonym("server", getUUID().toString());
+            connection.setTransportObserver(new IRCConnection.TransportObserver() {
+                @Override
+                public void onSocketOpened(boolean ssl, String localAddress, int localPort,
+                                           String remoteAddress, int remotePort) {
+                    int attempt = mDiagnosticConnectAttempt;
+                    DiagnosticLog.i(mManager.getContext(), "HANDOVER", () ->
+                            diagnosticServerId + " attempt=" + attempt +
+                                    " socket-open ssl=" + ssl +
+                                    ", local=" + DiagnosticLog.pseudonym("ip", localAddress) +
+                                    ":" + localPort +
+                                    ", remote=" + DiagnosticLog.pseudonym("ip", remoteAddress) +
+                                    ":" + remotePort + ", " + diagnosticNetworkSummary());
+                }
+
+                @Override
+                public void onTlsHandshakeCompleted(String protocol, String cipherSuite) {
+                    int attempt = mDiagnosticConnectAttempt;
+                    DiagnosticLog.d(mManager.getContext(), "HANDOVER", () ->
+                            diagnosticServerId + " attempt=" + attempt +
+                                    " tls-ok protocol=" + safeDiagnosticValue(protocol) +
+                                    ", cipher=" + safeDiagnosticValue(cipherSuite));
+                }
+
+                @Override
+                public void onCommandSent(String command) {
+                    int attempt = mDiagnosticConnectAttempt;
+                    DiagnosticLog.d(mManager.getContext(), "HANDOVER", () ->
+                            diagnosticServerId + " attempt=" + attempt +
+                                    " irc-send command=" + safeDiagnosticValue(command));
+                }
+
+                @Override
+                public void onCommandReceived(String command) {
+                    int attempt = mDiagnosticConnectAttempt;
+                    DiagnosticLog.d(mManager.getContext(), "HANDOVER", () ->
+                            diagnosticServerId + " attempt=" + attempt +
+                                    " irc-recv command=" + safeDiagnosticValue(command));
+                }
+
+                @Override
+                public void onTransportFailure(Exception error, boolean socketPresent,
+                                               boolean socketClosed) {
+                    int attempt = mDiagnosticConnectAttempt;
+                    DiagnosticLog.w(mManager.getContext(), "HANDOVER", () ->
+                            diagnosticServerId + " attempt=" + attempt +
+                                    " transport-failure class=" +
+                                    (error == null ? "unknown" :
+                                            error.getClass().getSimpleName()) +
+                                    ", message=" + (error == null ? "unknown" :
+                                            safeDiagnosticValue(error.getMessage())) +
+                                    ", socketPresent=" + socketPresent +
+                                    ", socketClosed=" + socketClosed + ", " +
+                                    diagnosticNetworkSummary(), error);
+                }
+            });
             messageHandler.setCtcpCommandObserver((ctcpCommand, notice) ->
                     DiagnosticLog.d(mManager.getContext(), "IRC", () ->
                             diagnosticServerId + " CTCP received command=" + ctcpCommand +
@@ -234,6 +308,9 @@ public class ServerConnectionInfo {
         List<String> rejoinChannels = getChannels();
 
         connection.connect(mConnectionRequest, (Void v) -> {
+            DiagnosticLog.i(mManager.getContext(), "HANDOVER", () ->
+                    diagnosticServerId + " attempt=" + diagnosticAttempt +
+                            " registered, " + diagnosticNetworkSummary());
             synchronized (this) {
                 mConnecting = false;
                 setConnected(true);
@@ -266,6 +343,13 @@ public class ServerConnectionInfo {
             }
 
         }, (Exception e) -> {
+            DiagnosticLog.w(mManager.getContext(), "HANDOVER", () ->
+                    diagnosticServerId + " attempt=" + diagnosticAttempt +
+                            " connect-error class=" +
+                            (e == null ? "unknown" : e.getClass().getSimpleName()) +
+                            ", message=" + (e == null ? "unknown" :
+                                    safeDiagnosticValue(e.getMessage())) + ", " +
+                            diagnosticNetworkSummary(), e);
             if (e instanceof UserOverrideTrustManager.UserRejectedCertificateException ||
                     (e.getCause() != null && e.getCause() instanceof
                             UserOverrideTrustManager.UserRejectedCertificateException)) {
@@ -374,7 +458,7 @@ public class ServerConnectionInfo {
                 mReconnectQueueTime = System.nanoTime();
                 // Endpoint failover is part of this connection attempt and must not be gated by
                 // the user's later automatic-reconnection preference.
-                mReconnectHandler.post(this::connect);
+                mReconnectHandler.post(() -> connect("endpoint-failover"));
                 return;
             }
         }
@@ -386,6 +470,12 @@ public class ServerConnectionInfo {
             return;
         Log.i("ServerConnectionInfo", "Queuing reconnect in " + reconnectDelay + " ms");
         mReconnectQueueTime = System.nanoTime();
+        mScheduledReconnectReason = "reconnect-timer";
+        final int scheduledDelay = reconnectDelay;
+        final String scheduledServerId = DiagnosticLog.pseudonym("server", getUUID().toString());
+        DiagnosticLog.i(mManager.getContext(), "HANDOVER", () ->
+                scheduledServerId + " schedule trigger=reconnect-timer delayMs=" +
+                        scheduledDelay + ", " + diagnosticNetworkSummary());
         mReconnectHandler.postDelayed(mReconnectRunnable, reconnectDelay);
     }
 
@@ -415,21 +505,35 @@ public class ServerConnectionInfo {
 
     public void notifyConnectivityChanged(boolean hasAnyConnectivity, boolean hasWifi) {
         mReconnectHandler.removeCallbacks(mReconnectRunnable);
+        final String diagnosticServerId = DiagnosticLog.pseudonym("server", getUUID().toString());
+        DiagnosticLog.i(mManager.getContext(), "HANDOVER", () ->
+                diagnosticServerId + " connectivity-callback any=" + hasAnyConnectivity +
+                        ", wifi=" + hasWifi + ", stateConnected=" + isConnected() +
+                        ", stateConnecting=" + isConnecting() +
+                        ", reconnectQueued=" + (mReconnectQueueTime != -1L) +
+                        ", " + diagnosticNetworkSummary());
 
         if (!hasAnyConnectivity || !AppSettings.isReconnectEnabled() ||
                 (AppSettings.isReconnectWiFiOnly() && !hasWifi))
             return;
         if (AppSettings.isReconnectOnConnectivityChangeEnabled()) {
-            connect(); // this will be ignored if we are already connected
+            connect("connectivity-change"); // diagnostics record if current state suppresses it
         } else if (mReconnectQueueTime != -1L) {
             long reconnectDelay = mManager.getReconnectDelay(mCurrentReconnectAttempt++);
             if (reconnectDelay == -1)
                 return;
             reconnectDelay = reconnectDelay - (System.nanoTime() - mReconnectQueueTime) / 1000000L;
-            if (reconnectDelay <= 0L)
-                connect();
-            else
+            if (reconnectDelay <= 0L) {
+                connect("connectivity-resume");
+            } else {
+                mScheduledReconnectReason = "connectivity-resume-timer";
+                final long scheduledDelay = reconnectDelay;
+                DiagnosticLog.i(mManager.getContext(), "HANDOVER", () ->
+                        diagnosticServerId +
+                                " schedule trigger=connectivity-resume-timer delayMs=" +
+                                scheduledDelay + ", " + diagnosticNetworkSummary());
                 mReconnectHandler.postDelayed(mReconnectRunnable, reconnectDelay);
+            }
         }
     }
 
@@ -959,8 +1063,47 @@ public class ServerConnectionInfo {
         if (!AppSettings.isReconnectEnabled() || (AppSettings.isReconnectWiFiOnly() &&
                 !ServerConnectionManager.isWifiConnected(mManager.getContext())))
             return;
-        this.connect();
+        String reason = mScheduledReconnectReason;
+        mScheduledReconnectReason = "reconnect-timer";
+        connect(reason);
     };
+
+    private void logConnectSuppressed(String trigger, String state) {
+        final String diagnosticServerId = DiagnosticLog.pseudonym("server", getUUID().toString());
+        DiagnosticLog.i(mManager.getContext(), "HANDOVER", () ->
+                diagnosticServerId + " connect-suppressed trigger=" + trigger +
+                        ", state=" + state + ", " + diagnosticNetworkSummary());
+    }
+
+    private String diagnosticNetworkSummary() {
+        ConnectivityManager manager = (ConnectivityManager) mManager.getContext()
+                .getSystemService(android.content.Context.CONNECTIVITY_SERVICE);
+        Network network = manager == null ? null : manager.getActiveNetwork();
+        NetworkCapabilities capabilities = network == null || manager == null ? null :
+                manager.getNetworkCapabilities(network);
+        String networkId = DiagnosticLog.pseudonym("network",
+                network == null ? null : network.toString());
+        return "network=" + networkId +
+                ", validated=" + hasCapability(capabilities,
+                        NetworkCapabilities.NET_CAPABILITY_VALIDATED) +
+                ", wifi=" + hasTransport(capabilities, NetworkCapabilities.TRANSPORT_WIFI) +
+                ", cellular=" + hasTransport(capabilities,
+                        NetworkCapabilities.TRANSPORT_CELLULAR) +
+                ", vpn=" + hasTransport(capabilities, NetworkCapabilities.TRANSPORT_VPN);
+    }
+
+    private static boolean hasCapability(NetworkCapabilities capabilities, int capability) {
+        return capabilities != null && capabilities.hasCapability(capability);
+    }
+
+    private static boolean hasTransport(NetworkCapabilities capabilities, int transport) {
+        return capabilities != null && capabilities.hasTransport(transport);
+    }
+
+    private static String safeDiagnosticValue(String value) {
+        return value == null || value.trim().isEmpty() ? "unknown" :
+                value.trim().replaceAll("[\\r\\n\\t]", " ");
+    }
 
     public interface InfoChangeListener {
         void onConnectionInfoChanged(ServerConnectionInfo connection);
