@@ -33,7 +33,7 @@ public final class IrcModeRegistry {
 
     public String getProfileLabel() {
         switch (profile) {
-            case SIMOSNAP: return "SimosNap (InspIRCd 3)";
+            case SIMOSNAP: return "SimosNap (InspIRCd 4)";
             case IRCNET: return "IRCnet";
             case UNDERNET: return "Undernet";
             case LIBERA: return "Libera.Chat (Solanum)";
@@ -107,7 +107,7 @@ public final class IrcModeRegistry {
                 case 'A': return context.getString(R.string.irc_mode_channel_insp_A);
                 case 'C': return context.getString(R.string.irc_mode_channel_insp_C);
                 case 'D': return context.getString(R.string.irc_mode_channel_insp_D);
-                case 'K': return context.getString(R.string.irc_mode_channel_insp_K);
+                case 'K': return context.getString(R.string.irc_mode_channel_no_knock);
                 case 'M': return context.getString(R.string.irc_mode_channel_insp_M);
                 case 'N': return context.getString(R.string.irc_mode_channel_insp_N);
                 case 'O': return context.getString(R.string.irc_mode_channel_insp_O);
