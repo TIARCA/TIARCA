@@ -245,8 +245,19 @@ public class ServerConnectionInfo {
                 }
 
                 @Override
+                public void onLocalSocketClose(boolean cleanly, boolean alreadyClosed) {
+                    int attempt = mDiagnosticConnectAttempt;
+                    DiagnosticLog.i(mManager.getContext(), "BACKGROUND", () ->
+                            diagnosticServerId + " attempt=" + attempt +
+                                    " local-socket-close cleanly=" + cleanly +
+                                    ", alreadyClosed=" + alreadyClosed + ", " +
+                                    diagnosticNetworkSummary());
+                }
+
+                @Override
                 public void onTransportFailure(Exception error, boolean socketPresent,
-                                               boolean socketClosed) {
+                                               boolean socketClosed, int commandsRead,
+                                               long lastCommandAgeMs) {
                     int attempt = mDiagnosticConnectAttempt;
                     DiagnosticLog.w(mManager.getContext(), "HANDOVER", () ->
                             diagnosticServerId + " attempt=" + attempt +
@@ -256,8 +267,12 @@ public class ServerConnectionInfo {
                                     ", message=" + (error == null ? "unknown" :
                                             safeDiagnosticValue(error.getMessage())) +
                                     ", socketPresent=" + socketPresent +
-                                    ", socketClosed=" + socketClosed + ", " +
-                                    diagnosticNetworkSummary(), error);
+                                    ", socketClosed=" + socketClosed +
+                                    ", commandsRead=" + commandsRead +
+                                    ", lastCommandAgeMs=" + lastCommandAgeMs +
+                                    ", eof=" + (error != null &&
+                                            "read() returned -1".equals(error.getMessage())) +
+                                    ", " + diagnosticNetworkSummary(), error);
                     setLastTransportError(error);
                 }
             });
