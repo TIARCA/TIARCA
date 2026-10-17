@@ -240,7 +240,7 @@ public class ServerConnectionInfo {
                     DiagnosticLog.w(mManager.getContext(), "HANDOVER", () ->
                             diagnosticServerId + " attempt=" + attempt +
                                     " server-error command=" + safeDiagnosticValue(command) +
-                                    ", detail=" + safeDiagnosticValue(detail));
+                                    ", detail=" + safeDiagnosticValue(detail), null);
                     setLastServerError(command, detail);
                 }
 
