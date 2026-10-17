@@ -80,6 +80,9 @@ public class ServerConnectionInfo {
     /** Monotonic identifier used only to correlate opt-in reconnect diagnostics. */
     private volatile int mDiagnosticConnectAttempt = 0;
     private String mScheduledReconnectReason = "reconnect-timer";
+    private String mLastConnectionError;
+    private String mLastServerErrorCommand;
+    private boolean mLastConnectionErrorFromServer;
     int mChatLogStorageUpdateCounter = 0;
     private final ChatUIData mChatUIData = new ChatUIData();
     private final Set<String> mServiceNicks = new LinkedHashSet<>();
@@ -232,6 +235,16 @@ public class ServerConnectionInfo {
                 }
 
                 @Override
+                public void onServerError(String command, String detail) {
+                    int attempt = mDiagnosticConnectAttempt;
+                    DiagnosticLog.w(mManager.getContext(), "HANDOVER", () ->
+                            diagnosticServerId + " attempt=" + attempt +
+                                    " server-error command=" + safeDiagnosticValue(command) +
+                                    ", detail=" + safeDiagnosticValue(detail));
+                    setLastServerError(command, detail);
+                }
+
+                @Override
                 public void onTransportFailure(Exception error, boolean socketPresent,
                                                boolean socketClosed) {
                     int attempt = mDiagnosticConnectAttempt;
@@ -245,6 +258,7 @@ public class ServerConnectionInfo {
                                     ", socketPresent=" + socketPresent +
                                     ", socketClosed=" + socketClosed + ", " +
                                     diagnosticNetworkSummary(), error);
+                    setLastTransportError(error);
                 }
             });
             messageHandler.setCtcpCommandObserver((ctcpCommand, notice) ->
@@ -313,6 +327,9 @@ public class ServerConnectionInfo {
                             " registered, " + diagnosticNetworkSummary());
             synchronized (this) {
                 mConnecting = false;
+                mLastConnectionError = null;
+                mLastServerErrorCommand = null;
+                mLastConnectionErrorFromServer = false;
                 setConnected(true);
                 mCurrentReconnectAttempt = 0;
                 mEndpointFailoverAttempts = 0;
@@ -350,6 +367,7 @@ public class ServerConnectionInfo {
                             ", message=" + (e == null ? "unknown" :
                                     safeDiagnosticValue(e.getMessage())) + ", " +
                             diagnosticNetworkSummary(), e);
+            setLastTransportError(e);
             if (e instanceof UserOverrideTrustManager.UserRejectedCertificateException ||
                     (e.getCause() != null && e.getCause() instanceof
                             UserOverrideTrustManager.UserRejectedCertificateException)) {
@@ -589,6 +607,10 @@ public class ServerConnectionInfo {
         synchronized (this) {
             return mConnected;
         }
+    }
+
+    public synchronized String getLastConnectionError() {
+        return mLastConnectionError;
     }
 
     public void setConnected(boolean connected) {
@@ -1073,6 +1095,65 @@ public class ServerConnectionInfo {
         DiagnosticLog.i(mManager.getContext(), "HANDOVER", () ->
                 diagnosticServerId + " connect-suppressed trigger=" + trigger +
                         ", state=" + state + ", " + diagnosticNetworkSummary());
+    }
+
+    private void setLastServerError(String command, String detail) {
+        String normalizedCommand = safeDisplayValue(command);
+        String normalizedDetail = safeDisplayValue(detail);
+        String value = normalizedDetail == null ? normalizedCommand :
+                normalizedCommand + ": " + normalizedDetail;
+        if (value == null)
+            return;
+
+        boolean changed = false;
+        synchronized (this) {
+            // Numeric 465 carries the actual rejection reason. Do not replace it with the
+            // generic ERROR/closing-link line that normally follows it.
+            if ("ERROR".equalsIgnoreCase(normalizedCommand) &&
+                    "465".equals(mLastServerErrorCommand))
+                return;
+            if (!value.equals(mLastConnectionError) || !mLastConnectionErrorFromServer) {
+                mLastConnectionError = value;
+                mLastServerErrorCommand = normalizedCommand;
+                mLastConnectionErrorFromServer = true;
+                changed = true;
+            }
+        }
+        if (changed)
+            notifyInfoChanged();
+    }
+
+    private void setLastTransportError(Exception error) {
+        if (error == null)
+            return;
+        String message = safeDisplayValue(error.getMessage());
+        String value = error.getClass().getSimpleName();
+        if (message != null)
+            value += ": " + message;
+
+        boolean changed = false;
+        synchronized (this) {
+            if (mLastConnectionErrorFromServer)
+                return;
+            if (!value.equals(mLastConnectionError)) {
+                mLastConnectionError = value;
+                mLastServerErrorCommand = null;
+                changed = true;
+            }
+        }
+        if (changed)
+            notifyInfoChanged();
+    }
+
+    private static String safeDisplayValue(String value) {
+        if (value == null)
+            return null;
+        String normalized = value.trim().replaceAll("[\\r\\n\\t]+", " ");
+        if (normalized.isEmpty())
+            return null;
+        final int maxLength = 240;
+        return normalized.length() <= maxLength ? normalized :
+                normalized.substring(0, maxLength - 1) + "…";
     }
 
     private String diagnosticNetworkSummary() {
