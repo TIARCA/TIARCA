@@ -127,7 +127,10 @@ public class IRCConnection extends ServerConnectionApi {
         try {
             while (true) {
                 String command = readCommand();
-                notifyCommandReceived(extractCommandName(command));
+                String commandName = extractCommandName(command);
+                notifyCommandReceived(commandName);
+                if ("465".equals(commandName) || "ERROR".equals(commandName))
+                    notifyServerError(commandName, extractTrailingParameter(command));
                 System.out.println("Got: " + command);
                 try {
                     inputHandler.handleLine(command);
@@ -453,6 +456,16 @@ public class IRCConnection extends ServerConnectionApi {
         sendCommand(false, "NICK", false, nickList.get(index));
     }
 
+    static String extractTrailingParameter(String line) {
+        if (line == null)
+            return null;
+        int index = line.indexOf(" :");
+        if (index < 0 || index + 2 >= line.length())
+            return null;
+        String value = line.substring(index + 2).trim();
+        return value.isEmpty() ? null : value;
+    }
+
     static String extractCommandName(String line) {
         if (line == null)
             return "unknown";
@@ -532,6 +545,16 @@ public class IRCConnection extends ServerConnectionApi {
         }
     }
 
+    private void notifyServerError(String command, String detail) {
+        TransportObserver observer = transportObserver;
+        if (observer == null)
+            return;
+        try {
+            observer.onServerError(command, detail);
+        } catch (RuntimeException ignored) {
+        }
+    }
+
     private void notifyTransportFailure(Exception error, Socket current) {
         TransportObserver observer = transportObserver;
         if (observer == null)
@@ -550,6 +573,7 @@ public class IRCConnection extends ServerConnectionApi {
         void onTlsHandshakeCompleted(String protocol, String cipherSuite);
         void onCommandSent(String command);
         void onCommandReceived(String command);
+        void onServerError(String command, String detail);
         void onTransportFailure(Exception error, boolean socketPresent, boolean socketClosed);
     }
 
