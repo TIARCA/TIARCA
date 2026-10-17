@@ -38,6 +38,7 @@ public final class DiagnosticLog {
     private static final String PREF_ENABLED = "enabled";
     private static final String DIR_NAME = "diagnostics";
     private static final String LOG_NAME = "tiarca-debug.log";
+    private static final String DIAGNOSTIC_PROFILE = "background-resume-v1";
     private static final String OLD_LOG_NAME = "tiarca-debug.1.log";
     // Diagnostics are opt-in and normally enabled only while reproducing a bug. Keep enough
     // history for verbose subsystem traces without losing the beginning of a reproduction.
@@ -74,7 +75,8 @@ public final class DiagnosticLog {
         sEnabled = preferences(sContext).getBoolean(PREF_ENABLED, false);
         sInitialized = true;
         if (sEnabled)
-            writeLine("I", "APP", "Diagnostic logger resumed after process start", null);
+            writeLine("I", "APP", "Diagnostic logger resumed after process start; profile=" +
+                    DIAGNOSTIC_PROFILE, null);
     }
 
     public static boolean isEnabled(Context context) {
@@ -251,6 +253,7 @@ public final class DiagnosticLog {
                 writer.println("TIARCA diagnostic log");
                 writer.println("Version: " + BuildConfig.VERSION_NAME + " (" +
                         BuildConfig.VERSION_CODE + ")");
+                writer.println("Diagnostic profile: " + DIAGNOSTIC_PROFILE);
                 writer.println("Android: " + Build.VERSION.RELEASE + " (SDK " +
                         Build.VERSION.SDK_INT + ")");
                 writer.println("Device: " + safeHeaderValue(Build.MANUFACTURER) + " " +

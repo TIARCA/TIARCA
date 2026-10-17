@@ -40,6 +40,8 @@ public class IRCConnection extends ServerConnectionApi {
     private ResponseErrorCallback connectErrorCallback;
     private final List<DisconnectListener> disconnectListeners = new ArrayList<>();
     private volatile TransportObserver transportObserver;
+    private volatile long diagnosticLastCommandNanoTime;
+    private volatile int diagnosticCommandsRead;
 
     private SimpleRequestExecutor executor = new SimpleRequestExecutor();
 
@@ -127,6 +129,8 @@ public class IRCConnection extends ServerConnectionApi {
         try {
             while (true) {
                 String command = readCommand();
+                diagnosticLastCommandNanoTime = System.nanoTime();
+                diagnosticCommandsRead++;
                 String commandName = extractCommandName(command);
                 notifyCommandReceived(commandName);
                 if ("465".equals(commandName) || "ERROR".equals(commandName))
@@ -147,7 +151,11 @@ public class IRCConnection extends ServerConnectionApi {
                     (currentSocket != null && currentSocket.isClosed()) + ", thread=" +
                     Thread.currentThread().getName());
             e.printStackTrace();
-            notifyTransportFailure(e, currentSocket);
+            long lastCommandNanoTime = diagnosticLastCommandNanoTime;
+            long lastCommandAgeMs = lastCommandNanoTime == 0L ? -1L :
+                    Math.max(0L, (System.nanoTime() - lastCommandNanoTime) / 1_000_000L);
+            notifyTransportFailure(e, currentSocket, diagnosticCommandsRead,
+                    lastCommandAgeMs);
             socketInputStream = null;
             synchronized (socketOutputStream) {
                 socketOutputStream = null;
@@ -196,6 +204,7 @@ public class IRCConnection extends ServerConnectionApi {
 
     public void disconnect(boolean cleanly) {
         if (socket != null) {
+            notifyLocalSocketClose(cleanly, socket.isClosed());
             if (cleanly) {
                 try {
                     if (socketInputStream != null)
@@ -396,6 +405,8 @@ public class IRCConnection extends ServerConnectionApi {
             } else {
                 socket = new Socket(request.getServerIP(), request.getServerPort());
             }
+            diagnosticCommandsRead = 0;
+            diagnosticLastCommandNanoTime = 0L;
             socketInputStream = socket.getInputStream();
             socketOutputStream = socket.getOutputStream();
             notifySocketOpened(socket, request.isUsingSSL());
@@ -555,14 +566,26 @@ public class IRCConnection extends ServerConnectionApi {
         }
     }
 
-    private void notifyTransportFailure(Exception error, Socket current) {
+    private void notifyLocalSocketClose(boolean cleanly, boolean alreadyClosed) {
+        TransportObserver observer = transportObserver;
+        if (observer == null)
+            return;
+        try {
+            observer.onLocalSocketClose(cleanly, alreadyClosed);
+        } catch (RuntimeException ignored) {
+        }
+    }
+
+    private void notifyTransportFailure(Exception error, Socket current,
+                                        int commandsRead, long lastCommandAgeMs) {
         TransportObserver observer = transportObserver;
         if (observer == null)
             return;
         try {
             observer.onTransportFailure(error,
                     current != null,
-                    current != null && current.isClosed());
+                    current != null && current.isClosed(),
+                    commandsRead, lastCommandAgeMs);
         } catch (RuntimeException ignored) {
         }
     }
@@ -574,7 +597,9 @@ public class IRCConnection extends ServerConnectionApi {
         void onCommandSent(String command);
         void onCommandReceived(String command);
         void onServerError(String command, String detail);
-        void onTransportFailure(Exception error, boolean socketPresent, boolean socketClosed);
+        void onLocalSocketClose(boolean cleanly, boolean alreadyClosed);
+        void onTransportFailure(Exception error, boolean socketPresent, boolean socketClosed,
+                                int commandsRead, long lastCommandAgeMs);
     }
 
     public interface DisconnectListener {

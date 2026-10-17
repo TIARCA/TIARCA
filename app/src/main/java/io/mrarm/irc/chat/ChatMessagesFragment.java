@@ -6,6 +6,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import io.mrarm.chatlib.ChannelInfoListener;
 import io.mrarm.chatlib.ResponseCallback;
@@ -55,6 +57,7 @@ import io.mrarm.irc.ServerConnectionManager;
 import io.mrarm.irc.config.ChatSettings;
 import io.mrarm.irc.config.MessageFormatSettings;
 import io.mrarm.irc.config.UiSettingChangeCallback;
+import io.mrarm.irc.util.DiagnosticLog;
 import io.mrarm.irc.util.ScrollPosLinearLayoutManager;
 import io.mrarm.irc.config.SettingsHelper;
 
@@ -115,6 +118,8 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
     private volatile boolean mMessagesChangedWhilePaused;
     private volatile boolean mStatusChangedWhilePaused;
     private boolean mMessagesReleased;
+    private volatile long mDiagnosticPausedAtElapsedMs = -1L;
+    private final AtomicInteger mDiagnosticMessagesDuringPause = new AtomicInteger();
     private final Runnable mReleaseOffscreenMessages = () -> {
         if (mIsResumed)
             return;
@@ -578,6 +583,12 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
                 return;
             Log.i(TAG, "Got message list for " + mChannelName + ": " +
                     messages.getMessages().size() + " messages");
+            DiagnosticLog.i(getContext(), "BACKGROUND", () ->
+                    "chat-reload view=" + Integer.toHexString(System.identityHashCode(this)) +
+                            ", storedMessages=" + messages.getMessages().size() +
+                            ", nearMessage=" + (nearMessage != null) +
+                            ", resumed=" + mIsResumed +
+                            ", generation=" + generation);
             updateMessageList(() -> {
                 if (generation != mMessageWindowGeneration)
                     return;
@@ -750,6 +761,19 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
     @Override
     public void onResume() {
         super.onResume();
+        final long pausedAt = mDiagnosticPausedAtElapsedMs;
+        final long pausedMs = pausedAt < 0L ? -1L :
+                Math.max(0L, SystemClock.elapsedRealtime() - pausedAt);
+        final int callbacksDuringPause = mDiagnosticMessagesDuringPause.getAndSet(0);
+        final boolean reloadPending = mMessagesReleased || mMessagesChangedWhilePaused;
+        DiagnosticLog.i(getContext(), "BACKGROUND", () ->
+                "chat-resume view=" + Integer.toHexString(System.identityHashCode(this)) +
+                        ", pausedMs=" + pausedMs +
+                        ", callbacksDuringPause=" + callbacksDuringPause +
+                        ", reloadPending=" + reloadPending +
+                        ", released=" + mMessagesReleased +
+                        ", statusView=" + (mStatusAdapter != null));
+        mDiagnosticPausedAtElapsedMs = -1L;
         mIsResumed = true;
         mMainHandler.removeCallbacks(mReleaseOffscreenMessages);
         if (mMessagesReleased && mConnection != null && mChannelName != null) {
@@ -788,6 +812,11 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
 
     @Override
     public void onPause() {
+        mDiagnosticPausedAtElapsedMs = SystemClock.elapsedRealtime();
+        mDiagnosticMessagesDuringPause.set(0);
+        DiagnosticLog.d(getContext(), "BACKGROUND", () ->
+                "chat-pause view=" + Integer.toHexString(System.identityHashCode(this)) +
+                        ", statusView=" + (mStatusAdapter != null));
         mIsResumed = false;
         mMainHandler.removeCallbacks(mReleaseOffscreenMessages);
         if (mAdapter != null)
@@ -871,6 +900,7 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
         // The storage service still records the message while this screen is in the background.
         // Avoid building an unbounded queue of RecyclerView work; reload a bounded window later.
         if (!mIsResumed || mRecyclerView == null) {
+            mDiagnosticMessagesDuringPause.incrementAndGet();
             mMessagesChangedWhilePaused = true;
             return;
         }
