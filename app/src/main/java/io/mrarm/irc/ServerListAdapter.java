@@ -375,14 +375,23 @@ public class ServerListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
             } else if (connectionInfo.isConnecting()) {
                 DrawableCompat.setTint(d, adapter.mColorConnecting);
                 mIcon.setImageResource(R.drawable.ic_refresh);
-                mDesc.setText(R.string.server_list_connecting);
+                setStatusWithError(mDesc.getResources().getString(R.string.server_list_connecting),
+                        connectionInfo.getLastConnectionError());
             } else {
                 DrawableCompat.setTint(d, adapter.mColorDisconnected);
                 mIcon.setImageResource(R.drawable.ic_close);
-                mDesc.setText(R.string.server_list_disconnected);
+                setStatusWithError(mDesc.getResources().getString(R.string.server_list_disconnected),
+                        connectionInfo.getLastConnectionError());
             }
             mIconBg.setBackground(d);
             mName.setText(connectionInfo.getName());
+        }
+
+        private void setStatusWithError(String status, String error) {
+            if (error == null || error.trim().isEmpty())
+                mDesc.setText(status);
+            else
+                mDesc.setText(status + " — " + error);
         }
 
     }
