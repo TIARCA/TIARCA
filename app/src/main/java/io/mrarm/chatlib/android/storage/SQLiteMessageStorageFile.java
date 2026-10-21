@@ -345,17 +345,26 @@ public class SQLiteMessageStorageFile {
     }
 
     private boolean tableExists(String name) {
+        // SQLite identifiers are case-insensitive, but sqlite_master.name is not.
+        // NICK spelling may differ from the original query table capitalization.
         try (Cursor cursor = database.rawQuery(
-                "SELECT 1 FROM sqlite_master WHERE type='table' AND name=? LIMIT 1",
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name=? COLLATE NOCASE LIMIT 1",
                 new String[] { name })) {
             return cursor.moveToFirst();
         }
     }
 
     private void closeCreateStatement(String escapedTableName) {
-        SQLiteStatement statement = createMessageStatements.remove(escapedTableName);
-        if (statement != null)
-            statement.close();
+        // Prepared INSERT statements must also be invalidated when the old table
+        // was created under different nickname capitalization.
+        for (java.util.Iterator<Map.Entry<String, SQLiteStatement>> iterator =
+                createMessageStatements.entrySet().iterator(); iterator.hasNext(); ) {
+            Map.Entry<String, SQLiteStatement> entry = iterator.next();
+            if (entry.getKey().equalsIgnoreCase(escapedTableName)) {
+                entry.getValue().close();
+                iterator.remove();
+            }
+        }
     }
 
 }
