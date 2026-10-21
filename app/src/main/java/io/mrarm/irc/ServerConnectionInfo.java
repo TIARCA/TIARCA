@@ -723,7 +723,13 @@ public class ServerConnectionInfo {
                     ignored -> finishPrivateConversationRename(oldNick, newNick),
                     error -> {
                         Log.w("ServerConnectionInfo", "Unable to rename query history", error);
-                        finishPrivateConversationRename(oldNick, newNick);
+                        // Do not switch to an empty query if its persistent history
+                        // did not move. Keep the old tab visible for a later retry.
+                        synchronized (ServerConnectionInfo.this) {
+                            String oldKey = oldNick.toLowerCase(Locale.ROOT);
+                            if (newNick.equalsIgnoreCase(mQueryNickAliases.get(oldKey)))
+                                mQueryNickAliases.remove(oldKey);
+                        }
                     });
         } else {
             finishPrivateConversationRename(oldNick, newNick);
