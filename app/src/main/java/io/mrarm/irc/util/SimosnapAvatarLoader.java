@@ -1,5 +1,6 @@
 package io.mrarm.irc.util;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Handler;
@@ -12,6 +13,7 @@ import android.widget.ImageView;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -67,6 +69,12 @@ public final class SimosnapAvatarLoader {
         }
 
         String requestKey = urls[0];
+        Context diagnosticContext = view.getContext().getApplicationContext();
+        String accountId = DiagnosticLog.pseudonym("account", account);
+        DiagnosticLog.d(diagnosticContext, "AVATAR", () ->
+                "request account=" + accountId +
+                        ", requested=" + (large ? "large" : "small") +
+                        ", candidates=" + (large ? "default->40" : "40"));
         view.setTag(R.id.tag_simosnap_avatar_url, requestKey);
         view.setImageDrawable(null);
         view.setVisibility(View.GONE);
@@ -75,12 +83,21 @@ public final class SimosnapAvatarLoader {
         // first attempt to fetch the full-size avatar.
         Bitmap cached = CACHE.get(requestKey);
         if (cached != null) {
+            Bitmap cachedBitmap = cached;
+            DiagnosticLog.d(diagnosticContext, "AVATAR", () ->
+                    "cache hit account=" + accountId +
+                            ", endpoint=" + endpointLabel(requestKey) +
+                            ", dimensions=" + dimensions(cachedBitmap));
             showIfCurrent(view, requestKey, cached, callback);
             return;
         }
         if (urls.length > 1 && isRecentlyMissing(requestKey)) {
             Bitmap fallbackCached = CACHE.get(urls[1]);
             if (fallbackCached != null) {
+                Bitmap cachedBitmap = fallbackCached;
+                DiagnosticLog.d(diagnosticContext, "AVATAR", () ->
+                        "negative-cache fallback account=" + accountId +
+                                ", endpoint=40, dimensions=" + dimensions(cachedBitmap));
                 showIfCurrent(view, requestKey, fallbackCached, callback);
                 return;
             }
@@ -92,12 +109,24 @@ public final class SimosnapAvatarLoader {
                 Bitmap cachedCandidate = CACHE.get(url);
                 if (cachedCandidate != null) {
                     bitmap = cachedCandidate;
+                    Bitmap candidateBitmap = cachedCandidate;
+                    String candidateEndpoint = endpointLabel(url);
+                    DiagnosticLog.d(diagnosticContext, "AVATAR", () ->
+                            "candidate cache hit account=" + accountId +
+                                    ", endpoint=" + candidateEndpoint +
+                                    ", dimensions=" + dimensions(candidateBitmap));
                     break;
                 }
-                if (isRecentlyMissing(url))
+                if (isRecentlyMissing(url)) {
+                    String skippedEndpoint = endpointLabel(url);
+                    DiagnosticLog.d(diagnosticContext, "AVATAR", () ->
+                            "candidate skipped by 404 cache account=" + accountId +
+                                    ", endpoint=" + skippedEndpoint);
                     continue;
+                }
 
                 DownloadResult result = download(url);
+                logDownloadResult(diagnosticContext, accountId, url, result);
                 if (result.bitmap != null) {
                     CACHE.put(url, result.bitmap);
                     bitmap = result.bitmap;
@@ -168,31 +197,85 @@ public final class SimosnapAvatarLoader {
 
     private static DownloadResult download(String value) {
         HttpURLConnection connection = null;
+        int status = -1;
+        String type = null;
+        long contentLength = -1L;
         try {
             connection = (HttpURLConnection) new URL(value).openConnection();
             connection.setConnectTimeout(8000);
             connection.setReadTimeout(8000);
             connection.setInstanceFollowRedirects(true);
             connection.setRequestProperty("Accept", "image/png,image/*");
-            int status = connection.getResponseCode();
+            status = connection.getResponseCode();
+            type = connection.getContentType();
+            contentLength = connection.getContentLengthLong();
             if (isPermanentMissingStatus(status))
-                return DownloadResult.notFound();
+                return DownloadResult.notFound(status, type, contentLength);
             if (status != HttpURLConnection.HTTP_OK)
-                return DownloadResult.failed();
+                return DownloadResult.failed(status, type, contentLength, null, "http");
 
-            String type = connection.getContentType();
             if (type == null || !type.toLowerCase(Locale.ROOT).startsWith("image/"))
-                return DownloadResult.failed();
-            try (InputStream stream = connection.getInputStream()) {
+                return DownloadResult.failed(status, type, contentLength, null, "content-type");
+
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            try (DigestInputStream stream =
+                         new DigestInputStream(connection.getInputStream(), digest)) {
                 Bitmap bitmap = BitmapFactory.decodeStream(stream);
-                return bitmap == null ? DownloadResult.failed() : DownloadResult.loaded(bitmap);
+                byte[] drain = new byte[4096];
+                while (stream.read(drain) != -1) {
+                    // Finish consuming the response so the diagnostic digest covers the payload.
+                }
+                String payloadHash = shortHex(digest.digest());
+                return bitmap == null
+                        ? DownloadResult.failed(status, type, contentLength, payloadHash, "decode")
+                        : DownloadResult.loaded(bitmap, status, type, contentLength, payloadHash);
             }
-        } catch (Exception ignored) {
-            return DownloadResult.failed();
+        } catch (Exception error) {
+            return DownloadResult.failed(status, type, contentLength, null,
+                    error.getClass().getSimpleName());
         } finally {
             if (connection != null)
                 connection.disconnect();
         }
+    }
+
+    private static void logDownloadResult(Context context, String accountId, String url,
+                                          DownloadResult result) {
+        String endpoint = endpointLabel(url);
+        String contentType = result.contentType == null ? "unknown" : result.contentType;
+        String dimensions = result.bitmap == null ? "none" : dimensions(result.bitmap);
+        String payloadHash = result.payloadHash == null ? "none" : result.payloadHash;
+        DiagnosticLog.d(context, "AVATAR", () ->
+                "download account=" + accountId +
+                        ", endpoint=" + endpoint +
+                        ", status=" + result.statusCode +
+                        ", contentType=" + contentType +
+                        ", contentLength=" + result.contentLength +
+                        ", dimensions=" + dimensions +
+                        ", payloadSha256=" + payloadHash +
+                        ", outcome=" + result.outcome);
+    }
+
+    static String endpointLabel(String url) {
+        if (url != null && url.startsWith(LARGE_BASE))
+            return "default";
+        if (url != null && url.startsWith(SMALL_BASE))
+            return "40";
+        return "unknown";
+    }
+
+    private static String dimensions(Bitmap bitmap) {
+        return bitmap == null ? "none" : bitmap.getWidth() + "x" + bitmap.getHeight();
+    }
+
+    private static String shortHex(byte[] value) {
+        if (value == null)
+            return "none";
+        StringBuilder out = new StringBuilder();
+        int count = Math.min(value.length, 8);
+        for (int i = 0; i < count; i++)
+            out.append(String.format(Locale.ROOT, "%02x", value[i] & 0xff));
+        return out.toString();
     }
 
     static boolean isPermanentMissingStatus(int status) {
@@ -215,22 +298,38 @@ public final class SimosnapAvatarLoader {
     private static final class DownloadResult {
         final Bitmap bitmap;
         final boolean notFound;
+        final int statusCode;
+        final String contentType;
+        final long contentLength;
+        final String payloadHash;
+        final String outcome;
 
-        private DownloadResult(Bitmap bitmap, boolean notFound) {
+        private DownloadResult(Bitmap bitmap, boolean notFound, int statusCode, String contentType,
+                               long contentLength, String payloadHash, String outcome) {
             this.bitmap = bitmap;
             this.notFound = notFound;
+            this.statusCode = statusCode;
+            this.contentType = contentType;
+            this.contentLength = contentLength;
+            this.payloadHash = payloadHash;
+            this.outcome = outcome;
         }
 
-        static DownloadResult loaded(Bitmap bitmap) {
-            return new DownloadResult(bitmap, false);
+        static DownloadResult loaded(Bitmap bitmap, int statusCode, String contentType,
+                                     long contentLength, String payloadHash) {
+            return new DownloadResult(bitmap, false, statusCode, contentType, contentLength,
+                    payloadHash, "loaded");
         }
 
-        static DownloadResult notFound() {
-            return new DownloadResult(null, true);
+        static DownloadResult notFound(int statusCode, String contentType, long contentLength) {
+            return new DownloadResult(null, true, statusCode, contentType, contentLength,
+                    null, "404");
         }
 
-        static DownloadResult failed() {
-            return new DownloadResult(null, false);
+        static DownloadResult failed(int statusCode, String contentType, long contentLength,
+                                     String payloadHash, String outcome) {
+            return new DownloadResult(null, false, statusCode, contentType, contentLength,
+                    payloadHash, outcome == null ? "failed" : outcome);
         }
     }
 }

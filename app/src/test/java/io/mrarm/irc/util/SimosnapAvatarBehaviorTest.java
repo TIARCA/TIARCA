@@ -104,6 +104,8 @@ public class SimosnapAvatarBehaviorTest {
         assertEquals(2, urls.length);
         assertTrue(urls[0].contains("/uploads/avatars/default/"));
         assertTrue(urls[1].contains("/uploads/avatars/40/"));
+        assertEquals("default", SimosnapAvatarLoader.endpointLabel(urls[0]));
+        assertEquals("40", SimosnapAvatarLoader.endpointLabel(urls[1]));
         assertEquals(urls[0].substring(urls[0].lastIndexOf('/') + 1),
                 urls[1].substring(urls[1].lastIndexOf('/') + 1));
     }
@@ -114,6 +116,7 @@ public class SimosnapAvatarBehaviorTest {
 
         assertEquals(1, urls.length);
         assertTrue(urls[0].contains("/uploads/avatars/40/"));
+        assertEquals("40", SimosnapAvatarLoader.endpointLabel(urls[0]));
     }
 
     @Test
