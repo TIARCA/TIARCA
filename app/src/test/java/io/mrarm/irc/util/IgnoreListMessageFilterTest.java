@@ -40,6 +40,71 @@ public class IgnoreListMessageFilterTest {
     }
 
     @Test
+    public void ignoresNicknameRegardlessOfLetterCase() {
+        ServerConfigData config = configForPippo();
+        ServerConfigData.IgnoreEntry entry = config.ignoreList.get(0);
+        entry.nick = "NickName";
+        entry.updateRegexes();
+        IgnoreListMessageFilter filter = new IgnoreListMessageFilter(config);
+        ServerConnectionData connection = new ServerConnectionData();
+
+        assertFalse(filter.filter(connection, "#channel",
+                message("niCkName", "ident", "host.example", MessageInfo.MessageType.NORMAL)));
+        assertFalse(filter.filter(connection, "#channel",
+                message("NICKNAME", "ident", "host.example", MessageInfo.MessageType.ME)));
+        assertFalse(filter.filter(connection, "#channel",
+                message("nickname", "ident", "host.example", MessageInfo.MessageType.NOTICE)));
+        assertTrue(filter.filter(connection, "#channel",
+                message("OtherName", "ident", "host.example", MessageInfo.MessageType.NORMAL)));
+    }
+
+    @Test
+    public void nicknameWildcardsAlsoMatchRegardlessOfLetterCase() {
+        ServerConfigData config = configForPippo();
+        ServerConfigData.IgnoreEntry entry = config.ignoreList.get(0);
+        entry.nick = "N?ck*";
+        entry.updateRegexes();
+        IgnoreListMessageFilter filter = new IgnoreListMessageFilter(config);
+        ServerConnectionData connection = new ServerConnectionData();
+
+        assertFalse(filter.filter(connection, "#channel",
+                message("nIcKname", "ident", "host.example", MessageInfo.MessageType.NORMAL)));
+        assertFalse(filter.filter(connection, "#channel",
+                message("NiCk", "ident", "host.example", MessageInfo.MessageType.NORMAL)));
+        assertTrue(filter.filter(connection, "#channel",
+                message("Nixkname", "ident", "host.example", MessageInfo.MessageType.NORMAL)));
+    }
+
+    @Test
+    public void nicknameMatchingRespectsServerCaseMapping() {
+        ServerConfigData config = configForPippo();
+        ServerConfigData.IgnoreEntry entry = config.ignoreList.get(0);
+        entry.nick = "[Nick]^";
+        entry.updateRegexes();
+        IgnoreListMessageFilter filter = new IgnoreListMessageFilter(config);
+        ServerConnectionData connection = new ServerConnectionData();
+
+        // The default RFC1459 mapping equates []\ with {}|, and ^ with ~.
+        assertFalse(filter.filter(connection, "#channel",
+                message("{nICK}~", "ident", "host.example", MessageInfo.MessageType.NORMAL)));
+
+        connection.getSupportList().setCaseMapping(io.mrarm.chatlib.irc.IRCCaseMapping.STRICT_RFC1459);
+        assertTrue(filter.filter(connection, "#channel",
+                message("{nICK}~", "ident", "host.example", MessageInfo.MessageType.NORMAL)));
+
+        entry.nick = "[Nick]";
+        entry.updateRegexes();
+        assertFalse(filter.filter(connection, "#channel",
+                message("{NICK}", "ident", "host.example", MessageInfo.MessageType.NORMAL)));
+
+        connection.getSupportList().setCaseMapping(io.mrarm.chatlib.irc.IRCCaseMapping.ASCII);
+        assertTrue(filter.filter(connection, "#channel",
+                message("{NICK}", "ident", "host.example", MessageInfo.MessageType.NORMAL)));
+        assertFalse(filter.filter(connection, "#channel",
+                message("[nick]", "ident", "host.example", MessageInfo.MessageType.NORMAL)));
+    }
+
+    @Test
     public void skipsExpiredEntriesAndKeepsLegacyEntriesPermanent() {
         ServerConfigData config = configForPippo();
         IgnoreListMessageFilter filter = new IgnoreListMessageFilter(config);
