@@ -48,7 +48,8 @@ final class NicknameSwipeFeedbackDrawable extends Drawable {
         TypedArray colors = widget.getContext().obtainStyledAttributes(
                 new int[] { R.attr.colorAccent });
         try {
-            accentColor = colors.getColor(0, widget.getCurrentTextColor());
+            accentColor = ColorUtils.setAlphaComponent(
+                    colors.getColor(0, widget.getCurrentTextColor()), 255);
         } finally {
             colors.recycle();
         }
