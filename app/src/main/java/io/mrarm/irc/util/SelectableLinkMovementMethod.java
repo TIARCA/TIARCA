@@ -84,8 +84,9 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
                     widget.getParent().requestDisallowInterceptTouchEvent(true);
                 return true;
             }
-            if (!isWithinTouchSlop(widget, event)) {
-                // Give vertical scrolling and ordinary dragging back to the RecyclerView.
+            if (!isWithinTouchSlop(widget, event) && Math.abs(dy) >= Math.abs(dx)) {
+                // Release predominantly vertical drags to the RecyclerView. A diagonal
+                // gesture can still become horizontal without losing its nickname span.
                 widget.removeCallbacks(longPressRunnable);
                 clearPressedSpan();
             }

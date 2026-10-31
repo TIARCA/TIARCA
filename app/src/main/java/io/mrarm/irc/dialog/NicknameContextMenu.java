@@ -83,25 +83,26 @@ public final class NicknameContextMenu {
     /** Executes an explicitly configured nickname gesture without bypassing IRC safeguards. */
     public static boolean performQuickAction(Context context, ServerConnectionInfo connection,
                                              String nick, String sourceChannel, String action) {
-        if (context == null || connection == null || nick == null || nick.trim().isEmpty())
-            return false;
-        if (!(connection.getApiInstance() instanceof ServerConnectionApi))
+        if (context == null || nick == null || nick.trim().isEmpty())
             return false;
         String targetNick = nick.trim();
-        ServerConnectionApi api = (ServerConnectionApi) connection.getApiInstance();
-        boolean self = api.getServerConnectionData().getSupportList().getCaseMapping()
-                .equals(api.getServerConnectionData().getUserNick(), targetNick);
-        boolean service = connection.isKnownServiceNick(targetNick);
-        if ("whois".equals(action)) {
-            showWhois(context, connection, targetNick, sourceChannel);
-            return true;
-        }
+        // Local copy must also work when reading cached history while offline.
         if ("copy".equals(action)) {
             ClipboardManager clipboard = (ClipboardManager) context.getSystemService(
                     Context.CLIPBOARD_SERVICE);
             if (clipboard == null)
                 return false;
             clipboard.setPrimaryClip(ClipData.newPlainText("Nickname", targetNick));
+            return true;
+        }
+        if (connection == null || !(connection.getApiInstance() instanceof ServerConnectionApi))
+            return false;
+        ServerConnectionApi api = (ServerConnectionApi) connection.getApiInstance();
+        boolean self = api.getServerConnectionData().getSupportList().getCaseMapping()
+                .equals(api.getServerConnectionData().getUserNick(), targetNick);
+        boolean service = connection.isKnownServiceNick(targetNick);
+        if ("whois".equals(action)) {
+            showWhois(context, connection, targetNick, sourceChannel);
             return true;
         }
         if (self)
