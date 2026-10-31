@@ -24,6 +24,9 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
     private boolean longPressTriggered;
     private boolean longPressInvoked;
     private boolean horizontalSwipeActive;
+    private NicknameSwipeFeedbackDrawable swipeFeedback;
+    private TextView feedbackWidget;
+    private int feedbackDirection;
     private final Runnable longPressRunnable = new Runnable() {
         @Override public void run() {
             if (pressedLongSpan != null && pressedWidget != null && !horizontalSwipeActive) {
@@ -71,8 +74,10 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
         } else if (masked == MotionEvent.ACTION_MOVE && pressedSpan != null) {
             if (longPressInvoked)
                 return true;
-            if (horizontalSwipeActive)
+            if (horizontalSwipeActive) {
+                updateSwipeFeedback(widget, event);
                 return true;
+            }
             float dx = event.getX() - downX;
             float dy = event.getY() - downY;
             int slop = ViewConfiguration.get(widget.getContext()).getScaledTouchSlop();
@@ -82,6 +87,7 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
                 widget.removeCallbacks(longPressRunnable);
                 if (widget.getParent() != null)
                     widget.getParent().requestDisallowInterceptTouchEvent(true);
+                updateSwipeFeedback(widget, event);
                 return true;
             }
             if (!isWithinTouchSlop(widget, event) && Math.abs(dy) >= Math.abs(dx)) {
@@ -100,7 +106,7 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
                 if (direction != 0 && pressedLongSpan instanceof SwipeableLongClickableSpan) {
                     handled = ((SwipeableLongClickableSpan) pressedLongSpan)
                             .onSwipe(widget, direction > 0);
-                    if (handled)
+                    if (handled && feedbackDirection != direction)
                         widget.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
                 }
                 clearPressedSpan();
@@ -143,6 +149,44 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
         return dx > 0 ? 1 : -1;
     }
 
+    static float getSwipeProgress(float dx, float minDistance) {
+        return minDistance <= 0f ? 1f : Math.min(1f, Math.abs(dx) / minDistance);
+    }
+
+    private void updateSwipeFeedback(TextView widget, MotionEvent event) {
+        if (!(pressedSpan instanceof SwipeableLongClickableSpan) || pressedBuffer == null)
+            return;
+        float dx = event.getX() - downX;
+        float dy = event.getY() - downY;
+        float distance = 40f * widget.getResources().getDisplayMetrics().density;
+        int direction = getCompletedSwipeDirection(dx, dy, distance);
+        boolean right = dx >= 0;
+        String action = ((SwipeableLongClickableSpan) pressedSpan).getSwipeAction(right);
+
+        if (swipeFeedback == null || feedbackWidget != widget) {
+            removeSwipeFeedback();
+            swipeFeedback = new NicknameSwipeFeedbackDrawable(widget);
+            feedbackWidget = widget;
+            widget.getOverlay().add(swipeFeedback);
+        }
+        swipeFeedback.update(pressedBuffer, pressedSpan, action, right, dx,
+                getSwipeProgress(dx, distance));
+        if (direction != 0 && feedbackDirection != direction && !"none".equals(action)) {
+            widget.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+            feedbackDirection = direction;
+        }
+    }
+
+    private void removeSwipeFeedback() {
+        if (feedbackWidget != null && swipeFeedback != null) {
+            feedbackWidget.getOverlay().remove(swipeFeedback);
+            feedbackWidget.invalidate();
+        }
+        feedbackWidget = null;
+        swipeFeedback = null;
+        feedbackDirection = 0;
+    }
+
     private boolean isWithinTouchSlop(TextView widget, MotionEvent event) {
         int slop = ViewConfiguration.get(widget.getContext()).getScaledTouchSlop();
         float dx = event.getX() - downX;
@@ -151,6 +195,7 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
     }
 
     private void clearPressedSpan() {
+        removeSwipeFeedback();
         pressedSpan = null;
         pressedLongSpan = null;
         pressedBuffer = null;

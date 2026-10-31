@@ -28,6 +28,19 @@ public class SelectableLinkMovementMethodTest {
     }
 
     @Test
+    public void swipeIndicatorProgressClampsAtTriggerDistance() {
+        assertTrue(SelectableLinkMovementMethod.getSwipeProgress(0, 40) == 0f);
+        assertTrue(SelectableLinkMovementMethod.getSwipeProgress(20, 40) == 0.5f);
+        assertTrue(SelectableLinkMovementMethod.getSwipeProgress(-40, 40) == 1f);
+        assertTrue(SelectableLinkMovementMethod.getSwipeProgress(100, 40) == 1f);
+    }
+
+    @Test
+    public void swipeIndicatorProgressIsSafeAtZeroDistance() {
+        assertTrue(SelectableLinkMovementMethod.getSwipeProgress(0, 0) == 1f);
+    }
+
+    @Test
     public void longPressAndDraggingDoNotInvokeTheTapAction() {
         assertFalse(SelectableLinkMovementMethod.shouldInvokeSpanClick(true, true));
         assertFalse(SelectableLinkMovementMethod.shouldInvokeSpanClick(false, false));
