@@ -5,11 +5,12 @@ import android.text.Selection;
 import android.text.Spannable;
 import android.text.method.ArrowKeyMovementMethod;
 import android.text.style.ClickableSpan;
+import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.ViewConfiguration;
 import android.widget.TextView;
 
-/** Keeps native text selection while allowing short taps on clickable spans. */
+/** Keeps native text selection and nickname taps/long presses while supporting nickname swipes. */
 public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
 
     private static final SelectableLinkMovementMethod INSTANCE =
@@ -22,11 +23,10 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
     private Spannable pressedBuffer;
     private boolean longPressTriggered;
     private boolean longPressInvoked;
+    private boolean horizontalSwipeActive;
     private final Runnable longPressRunnable = new Runnable() {
         @Override public void run() {
-            if (pressedLongSpan != null && pressedWidget != null) {
-                // The TextView's native long-press starts text selection. It is not wanted
-                // when the gesture was targeted at a nickname span.
+            if (pressedLongSpan != null && pressedWidget != null && !horizontalSwipeActive) {
                 pressedWidget.cancelLongPress();
                 if (pressedBuffer != null)
                     Selection.removeSelection(pressedBuffer);
@@ -46,29 +46,67 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
 
     @Override
     public boolean onTouchEvent(TextView widget, Spannable buffer, MotionEvent event) {
-        if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+        int masked = event.getActionMasked();
+        if (masked == MotionEvent.ACTION_DOWN) {
+            if (pressedWidget != null)
+                pressedWidget.removeCallbacks(longPressRunnable);
+            clearPressedSpan();
             downX = event.getX();
             downY = event.getY();
             pressedSpan = getClickableSpan(widget, buffer, event);
             pressedLongSpan = pressedSpan instanceof LongClickableSpan
                     ? (LongClickableSpan) pressedSpan : null;
-            longPressTriggered = false;
-            longPressInvoked = false;
             pressedWidget = pressedLongSpan == null ? null : widget;
             if (pressedLongSpan != null) {
-                // Consume only nickname-span long presses. Normal message text keeps the
-                // TextView's native selection/copy behavior.
+                // Only nickname spans use custom gestures. Other text keeps native selection.
                 pressedBuffer = buffer;
                 widget.cancelLongPress();
                 widget.postDelayed(longPressRunnable, ViewConfiguration.getLongPressTimeout());
                 return true;
             }
-        } else if (event.getActionMasked() == MotionEvent.ACTION_MOVE && pressedSpan != null &&
-                !isWithinTouchSlop(widget, event)) {
+        } else if (masked == MotionEvent.ACTION_POINTER_DOWN && pressedSpan != null) {
             widget.removeCallbacks(longPressRunnable);
             clearPressedSpan();
-        } else if (event.getActionMasked() == MotionEvent.ACTION_UP && pressedLongSpan != null) {
+            return false;
+        } else if (masked == MotionEvent.ACTION_MOVE && pressedSpan != null) {
+            if (longPressInvoked)
+                return true;
+            if (horizontalSwipeActive)
+                return true;
+            float dx = event.getX() - downX;
+            float dy = event.getY() - downY;
+            int slop = ViewConfiguration.get(widget.getContext()).getScaledTouchSlop();
+            if (pressedSpan instanceof SwipeableLongClickableSpan
+                    && isHorizontalSwipeIntent(dx, dy, slop)) {
+                horizontalSwipeActive = true;
+                widget.removeCallbacks(longPressRunnable);
+                if (widget.getParent() != null)
+                    widget.getParent().requestDisallowInterceptTouchEvent(true);
+                return true;
+            }
+            if (!isWithinTouchSlop(widget, event) && Math.abs(dy) >= Math.abs(dx)) {
+                // Release predominantly vertical drags to the RecyclerView. A diagonal
+                // gesture can still become horizontal without losing its nickname span.
+                widget.removeCallbacks(longPressRunnable);
+                clearPressedSpan();
+            }
+        } else if (masked == MotionEvent.ACTION_UP && pressedLongSpan != null) {
             widget.removeCallbacks(longPressRunnable);
+            if (horizontalSwipeActive) {
+                float minDistance = 40f * widget.getResources().getDisplayMetrics().density;
+                int direction = getCompletedSwipeDirection(event.getX() - downX,
+                        event.getY() - downY, minDistance);
+                boolean handled = false;
+                if (direction != 0 && pressedLongSpan instanceof SwipeableLongClickableSpan) {
+                    handled = ((SwipeableLongClickableSpan) pressedLongSpan)
+                            .onSwipe(widget, direction > 0);
+                    if (handled)
+                        widget.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+                }
+                clearPressedSpan();
+                // Even an incomplete swipe must not accidentally trigger the nickname tap.
+                return true;
+            }
             boolean handled = longPressTriggered;
             if (shouldInvokeSpanClick(longPressInvoked, isWithinTouchSlop(widget, event))) {
                 pressedLongSpan.onClick(widget);
@@ -76,7 +114,7 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
             }
             clearPressedSpan();
             return handled;
-        } else if (event.getActionMasked() == MotionEvent.ACTION_UP && pressedSpan != null) {
+        } else if (masked == MotionEvent.ACTION_UP && pressedSpan != null) {
             ClickableSpan span = pressedSpan;
             boolean handled = isWithinTouchSlop(widget, event);
             clearPressedSpan();
@@ -84,7 +122,7 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
                 span.onClick(widget);
                 return true;
             }
-        } else if (event.getActionMasked() == MotionEvent.ACTION_CANCEL && pressedSpan != null) {
+        } else if (masked == MotionEvent.ACTION_CANCEL && pressedSpan != null) {
             widget.removeCallbacks(longPressRunnable);
             clearPressedSpan();
         }
@@ -93,6 +131,16 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
 
     static boolean shouldInvokeSpanClick(boolean longPressInvoked, boolean withinTouchSlop) {
         return !longPressInvoked && withinTouchSlop;
+    }
+
+    static boolean isHorizontalSwipeIntent(float dx, float dy, float touchSlop) {
+        return Math.abs(dx) > touchSlop && Math.abs(dx) > Math.abs(dy) * 1.5f;
+    }
+
+    static int getCompletedSwipeDirection(float dx, float dy, float minDistance) {
+        if (Math.abs(dx) < minDistance || Math.abs(dx) <= Math.abs(dy) * 1.5f)
+            return 0;
+        return dx > 0 ? 1 : -1;
     }
 
     private boolean isWithinTouchSlop(TextView widget, MotionEvent event) {
@@ -109,6 +157,7 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
         pressedWidget = null;
         longPressTriggered = false;
         longPressInvoked = false;
+        horizontalSwipeActive = false;
     }
 
     private static ClickableSpan getClickableSpan(TextView widget, Spannable buffer,
@@ -123,5 +172,4 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
         ClickableSpan[] spans = buffer.getSpans(offset, offset, ClickableSpan.class);
         return spans.length == 0 ? null : spans[0];
     }
-
 }

@@ -30,6 +30,18 @@ Una volta entrato in un canale puoi leggere e inviare messaggi, usare autocomple
 
 ![chat canale](../images/02_chat_canale.jpg)
 
+### Swipe sui nickname
+Nei messaggi dei canali, uno swipe orizzontale **sul nickname** verso destra
+inserisce una menzione nel campo di scrittura; verso sinistra apre WHOIS.
+Nei messaggi privati, lo swipe verso destra copia il nickname e quello verso sinistra
+apre WHOIS. Queste quattro azioni sono configurabili separatamente in
+**Impostazioni → Interfaccia → Interazioni nella chat → Swipe sui nickname**.
+Tra le alternative ci sono l'apertura del PVT, Ignora e Monitora (queste ultime
+aprono le rispettive finestre e non agiscono silenziosamente). Il tocco breve
+e la pressione prolungata mantengono il comportamento già configurato.
+Lo swipe parte soltanto dal nickname, non dal resto del messaggio, e deve essere
+prevalentemente orizzontale per non interferire con lo scorrimento della chat.
+
 ## 5. Conversazioni private (PVT)
 
 I PVT sono conversazioni dirette con un nickname. La toolbar espone le azioni rapide **Invia**, **ACCEPT +/-** quando il proprio `+g` è attivo, **Ignora** e **Chiudi conversazione**, oltre al menu `…`; le icone restano ad alto contrasto anche con aspetto chiaro. Quando sei in caller-ID mode `+g` e apri volontariamente un PVT, TIARCA gestisce automaticamente `ACCEPT +nickname`, permettendo all'interlocutore di rispondere senza un passaggio manuale aggiuntivo.

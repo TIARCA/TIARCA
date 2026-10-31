@@ -172,6 +172,23 @@ public class InterfaceSettingsFragment extends SettingsListFragment
                 getResources().getStringArray(R.array.pref_entries_nick_tap_action),
                 getResources().getStringArray(R.array.pref_entry_values_nick_tap_action))
                 .linkSetting(prefs, ChatSettings.PREF_NICK_TAP_ACTION));
+        a.add(new SettingsHeader(getString(R.string.pref_header_nick_swipes)));
+        a.add(new ListSetting(getString(R.string.pref_title_nick_swipe_right_channel),
+                getResources().getStringArray(R.array.pref_entries_nick_swipe_channel_action),
+                getResources().getStringArray(R.array.pref_entry_values_nick_swipe_channel_action))
+                .linkSetting(prefs, ChatSettings.PREF_NICK_SWIPE_RIGHT_CHANNEL_ACTION));
+        a.add(new ListSetting(getString(R.string.pref_title_nick_swipe_left_channel),
+                getResources().getStringArray(R.array.pref_entries_nick_swipe_channel_action),
+                getResources().getStringArray(R.array.pref_entry_values_nick_swipe_channel_action))
+                .linkSetting(prefs, ChatSettings.PREF_NICK_SWIPE_LEFT_CHANNEL_ACTION));
+        a.add(new ListSetting(getString(R.string.pref_title_nick_swipe_right_private),
+                getResources().getStringArray(R.array.pref_entries_nick_swipe_private_action),
+                getResources().getStringArray(R.array.pref_entry_values_nick_swipe_private_action))
+                .linkSetting(prefs, ChatSettings.PREF_NICK_SWIPE_RIGHT_PRIVATE_ACTION));
+        a.add(new ListSetting(getString(R.string.pref_title_nick_swipe_left_private),
+                getResources().getStringArray(R.array.pref_entries_nick_swipe_private_action),
+                getResources().getStringArray(R.array.pref_entry_values_nick_swipe_private_action))
+                .linkSetting(prefs, ChatSettings.PREF_NICK_SWIPE_LEFT_PRIVATE_ACTION));
         a.add(new CheckBoxSetting(getString(R.string.pref_title_separate_status_messages),
                 getString(R.string.pref_summary_separate_status_messages))
                 .linkSetting(prefs, ChatSettings.PREF_SEPARATE_STATUS_MESSAGES));

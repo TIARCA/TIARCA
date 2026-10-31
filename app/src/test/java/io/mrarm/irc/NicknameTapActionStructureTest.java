@@ -56,6 +56,28 @@ public class NicknameTapActionStructureTest {
         assertTrue(adapter.contains("NicknameContextMenu.show(widget.getContext()"));
     }
 
+    @Test
+    public void swipePreferencesAndActionRoutingAreWired() throws IOException {
+        String settings = read("app/settings.yml", "settings.yml");
+        assertTrue(settings.contains("nickSwipeRightChannelAction = \"mention\""));
+        assertTrue(settings.contains("nickSwipeLeftChannelAction = \"whois\""));
+        assertTrue(settings.contains("nickSwipeRightPrivateAction = \"copy\""));
+        assertTrue(settings.contains("nickSwipeLeftPrivateAction = \"whois\""));
+
+        String adapter = read(
+                "app/src/main/java/io/mrarm/irc/chat/ChatMessagesAdapter.java",
+                "src/main/java/io/mrarm/irc/chat/ChatMessagesAdapter.java");
+        assertTrue(adapter.contains("new SwipeableLongClickableSpan()"));
+        assertTrue(adapter.contains("performQuickAction(widget.getContext()"));
+        String ui = read(
+                "app/src/main/java/io/mrarm/irc/setting/fragment/InterfaceSettingsFragment.java",
+                "src/main/java/io/mrarm/irc/setting/fragment/InterfaceSettingsFragment.java");
+        assertTrue(ui.contains("PREF_NICK_SWIPE_RIGHT_CHANNEL_ACTION"));
+        assertTrue(ui.contains("PREF_NICK_SWIPE_LEFT_CHANNEL_ACTION"));
+        assertTrue(ui.contains("PREF_NICK_SWIPE_RIGHT_PRIVATE_ACTION"));
+        assertTrue(ui.contains("PREF_NICK_SWIPE_LEFT_PRIVATE_ACTION"));
+    }
+
     private static String read(String rootPath, String modulePath) throws IOException {
         Path path = Paths.get(rootPath);
         if (!Files.exists(path))

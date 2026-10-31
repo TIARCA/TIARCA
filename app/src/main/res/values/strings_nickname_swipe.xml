@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pref_header_nick_swipes">Nickname swipe gestures</string>
+    <string name="pref_title_nick_swipe_right_channel">Channel: swipe right</string>
+    <string name="pref_title_nick_swipe_left_channel">Channel: swipe left</string>
+    <string name="pref_title_nick_swipe_right_private">Private chat: swipe right</string>
+    <string name="pref_title_nick_swipe_left_private">Private chat: swipe left</string>
+    <string-array name="pref_entries_nick_swipe_channel_action">
+        <item>No action</item>
+        <item>Mention nickname</item>
+        <item>WHOIS</item>
+        <item>Open private conversation</item>
+        <item>Copy nickname</item>
+        <item>Ignore user (open dialog)</item>
+        <item>Monitor user (open dialog)</item>
+    </string-array>
+    <string-array name="pref_entry_values_nick_swipe_channel_action" translatable="false">
+        <item>none</item>
+        <item>mention</item>
+        <item>whois</item>
+        <item>private</item>
+        <item>copy</item>
+        <item>ignore</item>
+        <item>monitor</item>
+    </string-array>
+    <string-array name="pref_entries_nick_swipe_private_action">
+        <item>No action</item>
+        <item>WHOIS</item>
+        <item>Copy nickname</item>
+        <item>Ignore user (open dialog)</item>
+        <item>Monitor user (open dialog)</item>
+    </string-array>
+    <string-array name="pref_entry_values_nick_swipe_private_action" translatable="false">
+        <item>none</item>
+        <item>whois</item>
+        <item>copy</item>
+        <item>ignore</item>
+        <item>monitor</item>
+    </string-array>
+</resources>

@@ -34,7 +34,7 @@ import io.mrarm.irc.util.AlignToPointSpan;
 import io.mrarm.irc.util.MessageBuilder;
 import io.mrarm.irc.dialog.UserBottomSheetDialog;
 import io.mrarm.irc.dialog.NicknameContextMenu;
-import io.mrarm.irc.util.LongClickableSpan;
+import io.mrarm.irc.util.SwipeableLongClickableSpan;
 import io.mrarm.irc.util.SelectableLinkMovementMethod;
 import io.mrarm.irc.util.StyledAttributesHelper;
 import io.mrarm.irc.util.IRCColorUtils;
@@ -396,7 +396,7 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         private ClickableSpan createNickClickSpan(String nick) {
             if (nick == null || nick.isEmpty())
                 return null;
-            return new LongClickableSpan() {
+            return new SwipeableLongClickableSpan() {
                 @Override
                 public void onClick(@NonNull View widget) {
                     handleNicknameTap(widget, nick);
@@ -407,6 +407,19 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                     NicknameContextMenu.show(widget.getContext(), mFragment.getConnectionInfo(), nick,
                             mFragment.getChannelName());
                     return true;
+                }
+
+                @Override
+                public boolean onSwipe(@NonNull View widget, boolean right) {
+                    boolean channel = NicknameContextMenu.isChannel(mFragment.getConnectionInfo(),
+                            mFragment.getChannelName());
+                    String action = channel
+                            ? (right ? ChatSettings.getNickSwipeRightChannelAction()
+                                     : ChatSettings.getNickSwipeLeftChannelAction())
+                            : (right ? ChatSettings.getNickSwipeRightPrivateAction()
+                                     : ChatSettings.getNickSwipeLeftPrivateAction());
+                    return NicknameContextMenu.performQuickAction(widget.getContext(),
+                            mFragment.getConnectionInfo(), nick, mFragment.getChannelName(), action);
                 }
 
                 @Override
