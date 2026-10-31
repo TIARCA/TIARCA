@@ -25,7 +25,8 @@ public class IgnoreListMessageFilter implements MessageFilter {
                     continue;
                 if (entry.nickRegex == null && entry.userRegex == null && entry.hostRegex == null)
                     entry.updateRegexes();
-                if (entry.nickRegex != null && !entry.nickRegex.matcher(message.getSender().getNick()).matches())
+                if (entry.nick != null && !serverConnectionData.getSupportList().getCaseMapping()
+                        .matchesWildcard(entry.nick, message.getSender().getNick()))
                     continue;
                 if (entry.userRegex != null && (message.getSender().getUser() == null || !entry.userRegex.matcher(message.getSender().getUser()).matches()))
                     continue;

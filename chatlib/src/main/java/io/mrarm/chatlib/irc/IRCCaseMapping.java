@@ -50,6 +50,38 @@ public enum IRCCaseMapping {
         return character;
     }
 
+    /**
+     * Matches an IRC nickname mask with '*' and '?' wildcards, respecting the
+     * server's CASEMAPPING (including RFC1459 special-character equivalents).
+     */
+    public boolean matchesWildcard(String mask, String nick) {
+        if (mask == null || nick == null)
+            return mask == nick;
+        int maskIndex = 0;
+        int nickIndex = 0;
+        int lastStarIndex = -1;
+        int retryNickIndex = 0;
+        while (nickIndex < nick.length()) {
+            if (maskIndex < mask.length() && (mask.charAt(maskIndex) == '?' ||
+                    (mask.charAt(maskIndex) != '*' &&
+                            fold(mask.charAt(maskIndex)) == fold(nick.charAt(nickIndex))))) {
+                maskIndex++;
+                nickIndex++;
+            } else if (maskIndex < mask.length() && mask.charAt(maskIndex) == '*') {
+                lastStarIndex = maskIndex++;
+                retryNickIndex = nickIndex;
+            } else if (lastStarIndex >= 0) {
+                maskIndex = lastStarIndex + 1;
+                nickIndex = ++retryNickIndex;
+            } else {
+                return false;
+            }
+        }
+        while (maskIndex < mask.length() && mask.charAt(maskIndex) == '*')
+            maskIndex++;
+        return maskIndex == mask.length();
+    }
+
     public static IRCCaseMapping fromISupportValue(String value) {
         if (value == null)
             return RFC1459;
