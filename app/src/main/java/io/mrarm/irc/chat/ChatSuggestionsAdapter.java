@@ -35,6 +35,8 @@ public class ChatSuggestionsAdapter extends SelectableRecyclerViewAdapter<ChatSu
     private boolean mServicesEnabled = false;
     private MyFilter mFilter;
     private OnItemClickListener mClickListener;
+    // Keep the completed nickname actionable until the user edits or dismisses the popup.
+    private NickWithPrefix mPinnedNickname;
 
     public ChatSuggestionsAdapter(Context context, ServerConnectionInfo connection, List<NickWithPrefix> members) {
         super(context);
@@ -83,7 +85,32 @@ public class ChatSuggestionsAdapter extends SelectableRecyclerViewAdapter<ChatSu
         }
     }
 
+    public void pinNickname(NickWithPrefix nickname) {
+        mPinnedNickname = nickname;
+        notifyDataSetChanged();
+    }
+
+    public void clearPinnedNickname() {
+        if (mPinnedNickname != null) {
+            mPinnedNickname = null;
+            notifyDataSetChanged();
+        }
+    }
+
+    public boolean hasPinnedNickname() {
+        return mPinnedNickname != null;
+    }
+
+    public boolean isPinnedNickname(Object item) {
+        return mPinnedNickname != null && mPinnedNickname == item;
+    }
+
     public Object getItem(int position) {
+        if (mPinnedNickname != null) {
+            if (position != 0)
+                throw new IndexOutOfBoundsException();
+            return mPinnedNickname;
+        }
         return mFilteredItems.get(position);
     }
 
@@ -97,12 +124,12 @@ public class ChatSuggestionsAdapter extends SelectableRecyclerViewAdapter<ChatSu
     @Override
     public void onBindViewHolder(ItemHolder holder, int position) {
         super.onBindViewHolder(holder, position);
-        holder.bind(mFilteredItems.get(position));
+        holder.bind(getItem(position));
     }
 
     @Override
     public int getItemCount() {
-        return mFilteredItems == null ? 0 : mFilteredItems.size();
+        return mPinnedNickname != null ? 1 : (mFilteredItems == null ? 0 : mFilteredItems.size());
     }
 
     @Override
