@@ -410,16 +410,21 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                 }
 
                 @Override
-                public boolean onSwipe(@NonNull View widget, boolean right) {
+                public String getSwipeAction(boolean right) {
                     boolean channel = NicknameContextMenu.isChannel(mFragment.getConnectionInfo(),
                             mFragment.getChannelName());
-                    String action = channel
+                    return channel
                             ? (right ? ChatSettings.getNickSwipeRightChannelAction()
                                      : ChatSettings.getNickSwipeLeftChannelAction())
                             : (right ? ChatSettings.getNickSwipeRightPrivateAction()
                                      : ChatSettings.getNickSwipeLeftPrivateAction());
+                }
+
+                @Override
+                public boolean onSwipe(@NonNull View widget, boolean right) {
                     return NicknameContextMenu.performQuickAction(widget.getContext(),
-                            mFragment.getConnectionInfo(), nick, mFragment.getChannelName(), action);
+                            mFragment.getConnectionInfo(), nick, mFragment.getChannelName(),
+                            getSwipeAction(right));
                 }
 
                 @Override
