@@ -41,6 +41,8 @@ aprono le rispettive finestre e non agiscono silenziosamente). Il tocco breve
 e la pressione prolungata mantengono il comportamento già configurato.
 Lo swipe parte soltanto dal nickname, non dal resto del messaggio, e deve essere
 prevalentemente orizzontale per non interferire con lo scorrimento della chat.
+Durante il gesto viene evidenziato il nickname e compare l'azione configurata;
+raggiunta la soglia di attivazione, TIARCA dà un breve feedback aptico.
 
 ## 5. Conversazioni private (PVT)
 
