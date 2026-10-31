@@ -82,6 +82,8 @@ public class ChatAutoCompleteEditText extends FormattableEditText implements
 
     private void init() {
         addTextChangedListener(new SimpleTextWatcher((Editable s) -> {
+            if (mAdapter != null)
+                mAdapter.clearPinnedNickname();
             updateCompletingCommands();
             if (enoughToFilter())
                 performFiltering(false);
@@ -189,6 +191,8 @@ public class ChatAutoCompleteEditText extends FormattableEditText implements
     }
 
     public void dismissDropDown() {
+        if (mAdapter != null)
+            mAdapter.clearPinnedNickname();
         mSuggestionsContainer.setVisibility(View.GONE);
         if (mSuggestionsList.getAdapter() instanceof SelectableRecyclerViewAdapter)
             ((SelectableRecyclerViewAdapter) mSuggestionsList.getAdapter()).setSelection(-1);
@@ -206,6 +210,9 @@ public class ChatAutoCompleteEditText extends FormattableEditText implements
         final String text = getCurrentToken();
         Filter filter = isCommandNameToken() ? mCommandAdapter.getFilter() : mAdapter.getFilter();
         filter.filter(text, (int i) -> {
+            // Ignore older filter callbacks while showing a completed nickname.
+            if (mAdapter.hasPinnedNickname())
+                return;
             if (i == 0) {
                 dismissDropDown();
                 return;
@@ -213,10 +220,16 @@ public class ChatAutoCompleteEditText extends FormattableEditText implements
             if (!getCurrentToken().equals(text) && !enoughToFilter())
                 return;
             if (completeIfSingle && i == 1) {
-                if (filter == mCommandAdapter.getFilter())
-                    onItemClick(mCommandAdapter.getItem(0));
-                else
-                    onItemClick(mAdapter.getItem(0));
+                Object item = filter == mCommandAdapter.getFilter() ?
+                        mCommandAdapter.getItem(0) : mAdapter.getItem(0);
+                onItemClick(item);
+                if (item instanceof NickWithPrefix) {
+                    // Text replacement closes the popup; reopen it with the same nickname
+                    // so a tap or long-press remains possible after TAB completion.
+                    mAdapter.pinNickname((NickWithPrefix) item);
+                    setCurrentCommandAdapter(false);
+                    showDropDown();
+                }
                 return;
             }
             if (i > 0) {
@@ -290,6 +303,11 @@ public class ChatAutoCompleteEditText extends FormattableEditText implements
 
     @Override
     public void onItemClick(Object item) {
+        if (mAdapter != null && mAdapter.isPinnedNickname(item)) {
+            // The nickname is already in the message: do not insert it twice.
+            dismissDropDown();
+            return;
+        }
         CharSequence val;
         if (item instanceof NickWithPrefix) {
             val = terminateNickToken(((NickWithPrefix) item).getNick());
