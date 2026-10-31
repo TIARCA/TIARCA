@@ -1,6 +1,8 @@
 package io.mrarm.irc.dialog;
 
 import android.content.Context;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 
 import androidx.fragment.app.Fragment;
 
@@ -78,6 +80,61 @@ public final class NicknameContextMenu {
             ((MainActivity) context).setFragmentDialog(menu);
     }
 
+    /** Executes an explicitly configured nickname gesture without bypassing IRC safeguards. */
+    public static boolean performQuickAction(Context context, ServerConnectionInfo connection,
+                                             String nick, String sourceChannel, String action) {
+        if (context == null || connection == null || nick == null || nick.trim().isEmpty())
+            return false;
+        if (!(connection.getApiInstance() instanceof ServerConnectionApi))
+            return false;
+        String targetNick = nick.trim();
+        ServerConnectionApi api = (ServerConnectionApi) connection.getApiInstance();
+        boolean self = api.getServerConnectionData().getSupportList().getCaseMapping()
+                .equals(api.getServerConnectionData().getUserNick(), targetNick);
+        boolean service = connection.isKnownServiceNick(targetNick);
+        if ("whois".equals(action)) {
+            showWhois(context, connection, targetNick, sourceChannel);
+            return true;
+        }
+        if ("copy".equals(action)) {
+            ClipboardManager clipboard = (ClipboardManager) context.getSystemService(
+                    Context.CLIPBOARD_SERVICE);
+            if (clipboard == null)
+                return false;
+            clipboard.setPrimaryClip(ClipData.newPlainText("Nickname", targetNick));
+            return true;
+        }
+        if (self)
+            return false;
+        if ("private".equals(action)) {
+            openPrivateConversation(context, connection, targetNick);
+            return true;
+        }
+        if ("mention".equals(action) && canMention(context, connection, sourceChannel)) {
+            mention(context, connection, sourceChannel, targetNick);
+            return true;
+        }
+        if (service)
+            return false;
+        if ("ignore".equals(action)) {
+            // This opens the existing confirmation/configuration dialog, not a silent ignore.
+            IgnoreUserDialog.show(context, connection, targetNick, null, null);
+            return true;
+        }
+        if ("monitor".equals(action) && connection.getMonitoredUsersManager()
+                .isSupported(api.getServerConnectionData())) {
+            MonitoredUsersManager monitored = connection.getMonitoredUsersManager();
+            boolean alreadyMonitored = monitored.isMonitored(api.getServerConnectionData(), targetNick);
+            MonitoredUserDialog.show(context, connection,
+                    alreadyMonitored
+                            ? monitored.getMonitoredUser(api.getServerConnectionData(), targetNick)
+                            : null,
+                    targetNick, () -> { });
+            return true;
+        }
+        return false;
+    }
+
     private static void showWhois(Context context, ServerConnectionInfo connection, String nick,
                                   String sourceChannel) {
         UserBottomSheetDialog dialog = new UserBottomSheetDialog(context);
@@ -114,7 +171,7 @@ public final class NicknameContextMenu {
             ((ChatFragment) fragment).getSendMessageHelper().insertMention(nick);
     }
 
-    private static boolean isChannel(ServerConnectionInfo connection, String name) {
+    public static boolean isChannel(ServerConnectionInfo connection, String name) {
         if (name == null || name.isEmpty() || !(connection.getApiInstance() instanceof ServerConnectionApi))
             return false;
         return ((ServerConnectionApi) connection.getApiInstance()).getServerConnectionData()

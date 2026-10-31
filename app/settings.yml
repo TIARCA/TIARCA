@@ -56,6 +56,14 @@ ChatSettings:
       pref: chat_text_autocorrect
     - spec: String nickTapAction = "details"
       enum: ["details", "insert_nick", "private"]
+    - spec: String nickSwipeRightChannelAction = "mention"
+      enum: ["none", "mention", "whois", "private", "copy", "ignore", "monitor"]
+    - spec: String nickSwipeLeftChannelAction = "whois"
+      enum: ["none", "mention", "whois", "private", "copy", "ignore", "monitor"]
+    - spec: String nickSwipeRightPrivateAction = "copy"
+      enum: ["none", "whois", "copy", "ignore", "monitor"]
+    - spec: String nickSwipeLeftPrivateAction = "whois"
+      enum: ["none", "whois", "copy", "ignore", "monitor"]
     - spec: boolean separateStatusMessages = false
 
     - spec: boolean hideJoinPartMessages = true

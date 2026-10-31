@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pref_header_nick_swipes">Swipe sui nickname</string>
+    <string name="pref_title_nick_swipe_right_channel">Canali: swipe a destra</string>
+    <string name="pref_title_nick_swipe_left_channel">Canali: swipe a sinistra</string>
+    <string name="pref_title_nick_swipe_right_private">Privati: swipe a destra</string>
+    <string name="pref_title_nick_swipe_left_private">Privati: swipe a sinistra</string>
+    <string-array name="pref_entries_nick_swipe_channel_action">
+        <item>Nessuna azione</item>
+        <item>Menziona il nickname</item>
+        <item>WHOIS</item>
+        <item>Apri conversazione privata</item>
+        <item>Copia nickname</item>
+        <item>Ignora utente (apri finestra)</item>
+        <item>Monitora utente (apri finestra)</item>
+    </string-array>
+    <string-array name="pref_entries_nick_swipe_private_action">
+        <item>Nessuna azione</item>
+        <item>WHOIS</item>
+        <item>Copia nickname</item>
+        <item>Ignora utente (apri finestra)</item>
+        <item>Monitora utente (apri finestra)</item>
+    </string-array>
+</resources>
