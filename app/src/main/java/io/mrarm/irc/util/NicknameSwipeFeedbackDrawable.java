@@ -205,7 +205,9 @@ final class NicknameSwipeFeedbackDrawable extends Drawable {
         // Colours follow the current theme's accent.
     }
 
+    // Drawable still requires this override, although Android deprecated the API.
     @Override
+    @SuppressWarnings("deprecation")
     public int getOpacity() {
         return PixelFormat.TRANSLUCENT;
     }
