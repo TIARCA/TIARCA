@@ -68,7 +68,7 @@ manualmente. Se il limite è pieno, non modifica né sostituisce gli utenti moni
 Non vengono creati PVT automatici né avvisi di uscita dovuti alla disconnessione
 del nostro client. Un `QUIT` con motivo prevale sull'evento MONITOR generico.
 
-La preferenza **Impostazioni → Interfaccia → Mostra entrate e uscite nei PVT**
+La preferenza **Impostazioni → Interfaccia → Mostra uscite degli interlocutori nei PVT**
 è attiva per impostazione predefinita ed è indipendente da **Nascondi JOIN/PART**
 nei canali. Il cambio preferenza si applica alla cronologia visualizzata nel PVT
 e viene conservato insieme alle altre preferenze nel backup.
