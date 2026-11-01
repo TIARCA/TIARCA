@@ -49,7 +49,7 @@
       "category": "tiarca",
       "title": "Private chats (PVT)",
       "summary": "Open user details or a private chat from a nickname.",
-      "body": "Open user details or a private chat from a nickname. PVT toolbar shortcuts include sharing, ignore, and closing the conversation.",
+      "body": "Open user details or a private chat from a nickname. PVT toolbar shortcuts include sharing, ignore, and closing the conversation. When the server sends QUIT, the departure reason also appears in the existing private chat. MONITOR may report an offline event without a reason if spare slots are available. The Interface setting is independent from channel JOIN/PART visibility.",
       "syntax": "",
       "example": "",
       "note": "PVTs are not end-to-end encrypted by default.",
