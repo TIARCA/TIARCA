@@ -101,7 +101,7 @@ public class SelectableLinkMovementHitTest {
         // Robolectric does not reliably soft-wrap unbroken URLs, so force a
         // visual continuation line while retaining one URLSpan over both lines.
         TextView view = urlMessage(
-                "https://media.simosnap.com/files/6191f11adac6e0a5a9b0760838861f86/\\n3928226602e7589b973f%20(1).gif",
+                "https://media.simosnap.com/files/6191f11adac6e0a5a9b0760838861f86/\n3928226602e7589b973f%20(1).gif",
                 url, 180);
         Layout layout = view.getLayout();
         org.junit.Assert.assertTrue("URL should wrap", layout.getLineCount() >= 2);
