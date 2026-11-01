@@ -73,6 +73,14 @@ public class SelectableLinkMovementHitTest {
 
     @Test public void spaceBeforeOrAfterNicknameDoesNotActivateSwipe() {
         TextView view = message("da Alice: ciao", 3, 8);
+        android.text.Layout layout = view.getLayout();
+        for (int i = 0; i <= 14; i++) {
+            float x = textX(view, i);
+            System.out.println("HITDBG " + i + " x=" + x + " nearest=" +
+                    layout.getOffsetForHorizontal(0, x - view.getTotalPaddingLeft())
+                    + " primary3=" + layout.getPrimaryHorizontal(3)
+                    + " primary8=" + layout.getPrimaryHorizontal(8));
+        }
         assertNull(hit(view, textX(view, 1), lineY(view)));
         assertNull(hit(view, textX(view, 10), lineY(view)));
         assertSame(nickname, hit(view, (textX(view, 3) + textX(view, 8)) / 2f,
