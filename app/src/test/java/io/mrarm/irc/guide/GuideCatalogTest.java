@@ -51,6 +51,18 @@ public class GuideCatalogTest {
         assertFalse(GuideCatalog.filter(entries, "basic", "/whois").isEmpty());
     }
 
+    @Test public void topicAliasTargetsCurrentChannelOnly() throws Exception {
+        for (String asset : new String[] {"guide_it.json", "guide_en.json"}) {
+            GuideCatalog.Entry topic = null;
+            for (GuideCatalog.Entry entry : read(asset)) {
+                if ("topic".equals(entry.id)) { topic = entry; break; }
+            }
+            assertNotNull(topic);
+            assertEquals("/topic nuovo argomento", topic.syntax);
+            assertFalse(topic.example.contains("#canale"));
+        }
+    }
+
     @Test(expected = JSONException.class)
     public void duplicateIdsAreRejected() throws Exception {
         GuideCatalog.parse("{\"entries\":["
