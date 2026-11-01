@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Typeface;
+import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.style.StyleSpan;
 import android.text.style.UnderlineSpan;
@@ -173,7 +174,63 @@ public class AppearancePresetManagerTest {
             assertSenderBold(builder.getActionMessageFormat());
             assertSenderBold(builder.getActionMentionMessageFormat());
             assertSenderBold(builder.getNoticeMessageFormat());
+            assertMessageBodyBold(builder.getMentionMessageFormat(), true);
+            assertMessageBodyBold(builder.getActionMentionMessageFormat(), true);
+            assertMessageBodyBold(builder.getMessageFormat(), false);
+            assertMessageBodyBold(builder.getActionMessageFormat(), false);
         }
+    }
+
+    @Test
+    public void existingBuiltInPresetGainsBoldMentionsWithoutResettingOtherFormats() {
+        manager.applyPreset(AppearancePreset.IRC_LIGHT);
+        MessageBuilder builder = MessageBuilder.getInstance(context);
+        CharSequence normal = builder.getMessageFormat();
+        CharSequence action = builder.getActionMessageFormat();
+        CharSequence oldMention = withoutBoldMessageBody(builder.getMentionMessageFormat());
+        CharSequence oldActionMention = withoutBoldMessageBody(builder.getActionMentionMessageFormat());
+
+        manager.closeForTests();
+        builder.setMentionMessageFormat(oldMention);
+        builder.setActionMentionMessageFormat(oldActionMention);
+        preferences.edit()
+                .putString(MessageFormatSettings.PREF_MESSAGE_FORMAT_MENTION,
+                        SettingsHelper.getGson().toJson(MessageBuilder.spannableToJson(oldMention)))
+                .putString(MessageFormatSettings.PREF_MESSAGE_FORMAT_ACTION_MENTION,
+                        SettingsHelper.getGson().toJson(MessageBuilder.spannableToJson(oldActionMention)))
+                .commit();
+
+        manager = new AppearancePresetManager(context, false);
+        assertEquals(AppearancePreset.IRC_LIGHT, manager.getCurrentPreset());
+        assertMessageBodyBold(builder.getMentionMessageFormat(), true);
+        assertMessageBodyBold(builder.getActionMentionMessageFormat(), true);
+        assertEquals(normal.toString(), builder.getMessageFormat().toString());
+        assertEquals(action.toString(), builder.getActionMessageFormat().toString());
+    }
+
+    @Test
+    public void existingCustomPresetRetainsUnboldedMentionBody() {
+        manager.applyPreset(AppearancePreset.IRC_LIGHT);
+        MessageBuilder builder = MessageBuilder.getInstance(context);
+        CharSequence oldMention = withoutBoldMessageBody(builder.getMentionMessageFormat());
+        CharSequence oldActionMention = withoutBoldMessageBody(builder.getActionMentionMessageFormat());
+
+        manager.closeForTests();
+        builder.setMentionMessageFormat(oldMention);
+        builder.setActionMentionMessageFormat(oldActionMention);
+        preferences.edit()
+                .putString(AppearancePresetManager.PREF_APPEARANCE_PRESET,
+                        AppearancePreset.CUSTOM.getId())
+                .putString(MessageFormatSettings.PREF_MESSAGE_FORMAT_MENTION,
+                        SettingsHelper.getGson().toJson(MessageBuilder.spannableToJson(oldMention)))
+                .putString(MessageFormatSettings.PREF_MESSAGE_FORMAT_ACTION_MENTION,
+                        SettingsHelper.getGson().toJson(MessageBuilder.spannableToJson(oldActionMention)))
+                .commit();
+
+        manager = new AppearancePresetManager(context, false);
+        assertEquals(AppearancePreset.CUSTOM, manager.getCurrentPreset());
+        assertMessageBodyBold(builder.getMentionMessageFormat(), false);
+        assertMessageBodyBold(builder.getActionMentionMessageFormat(), false);
     }
 
     @Test
@@ -239,6 +296,43 @@ public class AppearancePresetManagerTest {
 
         manager.applyPreset(AppearancePreset.IRC_DARK);
         assertFalse(preferences.contains(MessageFormatSettings.LEGACY_MESSAGE_TIME_FIXED_WIDTH));
+    }
+
+    private static void assertMessageBodyBold(CharSequence format, boolean expected) {
+        Spanned text = (Spanned) format;
+        for (MessageBuilder.MetaChipSpan chip : text.getSpans(0, text.length(),
+                MessageBuilder.MetaChipSpan.class)) {
+            if (chip.getType() != MessageBuilder.MetaChipSpan.TYPE_MESSAGE)
+                continue;
+            int start = text.getSpanStart(chip);
+            int end = text.getSpanEnd(chip);
+            boolean bold = false;
+            for (StyleSpan span : text.getSpans(start, end, StyleSpan.class)) {
+                if ((span.getStyle() & Typeface.BOLD) != 0
+                        && text.getSpanStart(span) <= start && text.getSpanEnd(span) >= end)
+                    bold = true;
+            }
+            assertEquals(expected, bold);
+            return;
+        }
+        throw new AssertionError("Message body chip missing");
+    }
+
+    private static CharSequence withoutBoldMessageBody(CharSequence source) {
+        SpannableString result = new SpannableString(source);
+        for (MessageBuilder.MetaChipSpan chip : result.getSpans(0, result.length(),
+                MessageBuilder.MetaChipSpan.class)) {
+            if (chip.getType() != MessageBuilder.MetaChipSpan.TYPE_MESSAGE)
+                continue;
+            int start = result.getSpanStart(chip);
+            int end = result.getSpanEnd(chip);
+            for (StyleSpan span : result.getSpans(start, end, StyleSpan.class)) {
+                if ((span.getStyle() & Typeface.BOLD) != 0
+                        && result.getSpanStart(span) <= start && result.getSpanEnd(span) >= end)
+                    result.removeSpan(span);
+            }
+        }
+        return result;
     }
 
     private static void assertHasPrefixChip(CharSequence format) {

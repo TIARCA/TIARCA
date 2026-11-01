@@ -130,11 +130,12 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             return;
         long itemId = getItemId(position);
         setMessageFlashHighlighted(recyclerView, itemId, true);
-        recyclerView.postDelayed(() -> setMessageFlashHighlighted(recyclerView, itemId, false), 300L);
-        recyclerView.postDelayed(() -> setMessageFlashHighlighted(recyclerView, itemId, true), 550L);
-        recyclerView.postDelayed(() -> setMessageFlashHighlighted(recyclerView, itemId, false), 850L);
-        recyclerView.postDelayed(() -> setMessageFlashHighlighted(recyclerView, itemId, true), 1100L);
-        recyclerView.postDelayed(() -> setMessageFlashHighlighted(recyclerView, itemId, false), 1550L);
+        // Three pulses, with a longer final hold so a navigated mention is easy to find.
+        recyclerView.postDelayed(() -> setMessageFlashHighlighted(recyclerView, itemId, false), 500L);
+        recyclerView.postDelayed(() -> setMessageFlashHighlighted(recyclerView, itemId, true), 800L);
+        recyclerView.postDelayed(() -> setMessageFlashHighlighted(recyclerView, itemId, false), 1300L);
+        recyclerView.postDelayed(() -> setMessageFlashHighlighted(recyclerView, itemId, true), 1600L);
+        recyclerView.postDelayed(() -> setMessageFlashHighlighted(recyclerView, itemId, false), 3000L);
     }
 
     private void setMessageFlashHighlighted(RecyclerView recyclerView, long itemId,

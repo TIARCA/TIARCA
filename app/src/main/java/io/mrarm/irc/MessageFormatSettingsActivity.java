@@ -468,6 +468,7 @@ public class MessageFormatSettingsActivity extends ThemedActivity {
             spannable.setSpan(new MessageBuilder.MetaChipSpan(context, MessageBuilder.MetaChipSpan.TYPE_MESSAGE), 5, 6, MessageBuilder.FORMAT_SPAN_FLAGS);
             if (mention) {
                 spannable.setSpan(new StyleSpan(Typeface.BOLD), 2, 3, MessageBuilder.FORMAT_SPAN_FLAGS);
+                spannable.setSpan(new StyleSpan(Typeface.BOLD), 5, 6, MessageBuilder.FORMAT_SPAN_FLAGS);
                 spannable.setSpan(new MessageBuilder.MetaForegroundColorSpan(context, MessageBuilder.MetaForegroundColorSpan.COLOR_SENDER), 5, 6, MessageBuilder.FORMAT_SPAN_FLAGS);
             }
             return spannable;
@@ -484,6 +485,7 @@ public class MessageFormatSettingsActivity extends ThemedActivity {
             spannable.setSpan(new MessageBuilder.MetaChipSpan(context, MessageBuilder.MetaChipSpan.TYPE_WRAP_ANCHOR), 1, 2, MessageBuilder.FORMAT_SPAN_FLAGS);
             if (mention) {
                 spannable.setSpan(new StyleSpan(Typeface.BOLD), prefix ? 3 : 2, prefix ? 4 : 3, MessageBuilder.FORMAT_SPAN_FLAGS);
+                spannable.setSpan(new StyleSpan(Typeface.BOLD), prefix ? 6 : 5, prefix ? 7 : 6, MessageBuilder.FORMAT_SPAN_FLAGS);
                 spannable.setSpan(new MessageBuilder.MetaForegroundColorSpan(context, MessageBuilder.MetaForegroundColorSpan.COLOR_SENDER), prefix ? 6 : 5, prefix ? 7 : 6, MessageBuilder.FORMAT_SPAN_FLAGS);
             }
             return spannable;
@@ -503,6 +505,7 @@ public class MessageFormatSettingsActivity extends ThemedActivity {
             if (mention) {
                 spannable.setSpan(new MessageBuilder.MetaForegroundColorSpan(context, MessageBuilder.MetaForegroundColorSpan.COLOR_SENDER), prefix ? 7 : 6, prefix ? 8 : 7, MessageBuilder.FORMAT_SPAN_FLAGS);
                 spannable.setSpan(new StyleSpan(Typeface.BOLD), 3, prefix ? 5 : 4, MessageBuilder.FORMAT_SPAN_FLAGS);
+                spannable.setSpan(new StyleSpan(Typeface.BOLD), prefix ? 7 : 6, prefix ? 8 : 7, MessageBuilder.FORMAT_SPAN_FLAGS);
             }
             return spannable;
         }
@@ -534,6 +537,8 @@ public class MessageFormatSettingsActivity extends ThemedActivity {
             if (mention) {
                 spannable.setSpan(new StyleSpan(Typeface.BOLD), prefix ? 5 : 4,
                         prefix ? 6 : 5, MessageBuilder.FORMAT_SPAN_FLAGS);
+                spannable.setSpan(new StyleSpan(Typeface.BOLD), prefix ? 7 : 6,
+                        prefix ? 8 : 7, MessageBuilder.FORMAT_SPAN_FLAGS);
                 spannable.setSpan(new MessageBuilder.MetaForegroundColorSpan(context, MessageBuilder.MetaForegroundColorSpan.COLOR_SENDER), 2, prefix ? 8 : 7, MessageBuilder.FORMAT_SPAN_FLAGS);
             } else {
                 spannable.setSpan(new MessageBuilder.MetaForegroundColorSpan(context, MessageBuilder.MetaForegroundColorSpan.COLOR_STATUS), 2, 3, MessageBuilder.FORMAT_SPAN_FLAGS);

@@ -1,7 +1,9 @@
 package io.mrarm.irc;
 
 import android.content.Context;
+import android.graphics.Typeface;
 import android.text.Spanned;
+import android.text.style.StyleSpan;
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -14,6 +16,8 @@ import io.mrarm.irc.util.MessageBuilder;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 33)
@@ -41,6 +45,38 @@ public class MessageFormatPresetSpacingTest {
                 MessageFormatSettingsActivity.buildNoticePresetMessageFormat(context, 1));
         assertIndentImmediatelyAfterTime(
                 MessageFormatSettingsActivity.buildEventPresetMessageFormat(context, 0));
+    }
+
+    @Test
+    public void mentionLayoutsBoldMessageBodyOnlyForMentions() {
+        for (int layout = 0; layout <= 2; layout++) {
+            for (boolean prefix : new boolean[] { false, true }) {
+                assertFalse(isMessageBodyBold(MessageFormatSettingsActivity
+                        .buildPresetMessageFormat(context, layout, false, prefix)));
+                assertTrue(isMessageBodyBold(MessageFormatSettingsActivity
+                        .buildPresetMessageFormat(context, layout, true, prefix)));
+            }
+        }
+        for (boolean prefix : new boolean[] { false, true }) {
+            assertFalse(isMessageBodyBold(MessageFormatSettingsActivity
+                    .buildActionPresetMessageFormat(context, 0, false, prefix)));
+            assertTrue(isMessageBodyBold(MessageFormatSettingsActivity
+                    .buildActionPresetMessageFormat(context, 0, true, prefix)));
+        }
+    }
+
+    private boolean isMessageBodyBold(CharSequence format) {
+        Spanned text = (Spanned) format;
+        MessageBuilder.MetaChipSpan message = findChip(text, MessageBuilder.MetaChipSpan.TYPE_MESSAGE);
+        assertNotNull(message);
+        int start = text.getSpanStart(message);
+        int end = text.getSpanEnd(message);
+        for (StyleSpan span : text.getSpans(start, end, StyleSpan.class)) {
+            if ((span.getStyle() & Typeface.BOLD) != 0
+                    && text.getSpanStart(span) <= start && text.getSpanEnd(span) >= end)
+                return true;
+        }
+        return false;
     }
 
     private void assertIndentImmediatelyAfterTime(CharSequence format) {
