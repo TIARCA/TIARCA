@@ -73,7 +73,7 @@ gradlew :app:assembleStandardDebug
 gradlew :app:assembleFdroidDebug
 ```
 
-Both distributions share the same app data and package name. [Download the F-Droid APK](https://github.com/TIARCA/TIARCA/releases/download/v0.9.10/TIARCA-fdroid-v0.9.10.apk) or read the [distribution build guide](docs/distribution-builds.md).
+Both distributions share the same app data and package name. [Download the F-Droid APK](https://github.com/TIARCA/TIARCA/releases/download/v0.9.10/TIARCA-v0.9.10_fdroid.apk) or read the [distribution build guide](docs/distribution-builds.md).
 
 Public releases are signed with a private signing key that is never stored in the repository. See `keystore.properties.example`.
 
