@@ -205,16 +205,37 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
         horizontalSwipeActive = false;
     }
 
-    private static ClickableSpan getClickableSpan(TextView widget, Spannable buffer,
-                                                   MotionEvent event) {
+    /**
+     * Hit-test the rendered span, not merely the closest text offset.
+     *
+     * Layout.getOffsetForHorizontal() clamps touches in empty space to the nearest
+     * character, so using it directly makes the last nickname on a line swipeable
+     * from the blank area to its right (and similarly to its left).
+     */
+    static ClickableSpan getClickableSpan(TextView widget, Spannable buffer,
+                                          MotionEvent event) {
         Layout layout = widget.getLayout();
         if (layout == null)
             return null;
-        int x = (int) event.getX() - widget.getTotalPaddingLeft() + widget.getScrollX();
-        int y = (int) event.getY() - widget.getTotalPaddingTop() + widget.getScrollY();
-        int line = layout.getLineForVertical(y);
-        int offset = layout.getOffsetForHorizontal(line, x);
-        ClickableSpan[] spans = buffer.getSpans(offset, offset, ClickableSpan.class);
-        return spans.length == 0 ? null : spans[0];
+        float x = event.getX() - widget.getTotalPaddingLeft() + widget.getScrollX();
+        float y = event.getY() - widget.getTotalPaddingTop() + widget.getScrollY();
+        // getLineForVertical() clamps values outside the laid-out text vertically.
+        if (y < 0 || y >= layout.getHeight())
+            return null;
+        int line = layout.getLineForVertical((int) y);
+        int lineStart = layout.getLineStart(line);
+        int lineEnd = layout.getLineEnd(line);
+        ClickableSpan[] spans = buffer.getSpans(lineStart, lineEnd, ClickableSpan.class);
+        for (ClickableSpan span : spans) {
+            int start = Math.max(lineStart, buffer.getSpanStart(span));
+            int end = Math.min(lineEnd, buffer.getSpanEnd(span));
+            if (end <= start)
+                continue;
+            float firstX = layout.getPrimaryHorizontal(start);
+            float lastX = layout.getPrimaryHorizontal(end);
+            if (x >= Math.min(firstX, lastX) && x < Math.max(firstX, lastX))
+                return span;
+        }
+        return null;
     }
 }
