@@ -98,8 +98,10 @@ public class SelectableLinkMovementHitTest {
 
     @Test public void wrappedUrlIsClickableOnContinuationLine() {
         android.text.style.URLSpan url = new android.text.style.URLSpan("https://example.org/long.gif");
+        // Robolectric does not reliably soft-wrap unbroken URLs, so force a
+        // visual continuation line while retaining one URLSpan over both lines.
         TextView view = urlMessage(
-                "https://media.simosnap.com/files/6191f11adac6e0a5a9b0760838861f86/3928226602e7589b973f%20(1).gif",
+                "https://media.simosnap.com/files/6191f11adac6e0a5a9b0760838861f86/\\n3928226602e7589b973f%20(1).gif",
                 url, 180);
         Layout layout = view.getLayout();
         org.junit.Assert.assertTrue("URL should wrap", layout.getLineCount() >= 2);
@@ -110,16 +112,6 @@ public class SelectableLinkMovementHitTest {
                 + layout.getPrimaryHorizontal(lineStart + 1)) / 2f;
         float y = view.getTotalPaddingTop()
                 + (layout.getLineTop(line) + layout.getLineBottom(line)) / 2f;
-        int offset = layout.getOffsetForHorizontal(line, x - view.getTotalPaddingLeft());
-        System.out.println("URLHIT line=" + line + " start=" + layout.getLineStart(line)
-                + " end=" + layout.getLineEnd(line) + " count=" + layout.getLineCount()
-                + " startX=" + layout.getPrimaryHorizontal(layout.getLineStart(line))
-                + " nextX=" + layout.getPrimaryHorizontal(layout.getLineStart(line) + 1)
-                + " left=" + layout.getLineLeft(line) + " right=" + layout.getLineRight(line)
-                + " x=" + x + " y=" + y + " offset=" + offset
-                + " spanStart=" + ((android.text.Spanned) view.getText()).getSpanStart(url)
-                + " spanEnd=" + ((android.text.Spanned) view.getText()).getSpanEnd(url)
-                + " actual=" + hit(view, x, y));
         assertSame(url, hit(view, x, y));
     }
 
