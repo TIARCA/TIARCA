@@ -62,8 +62,8 @@ public final class GuideAdapter extends RecyclerView.Adapter<GuideAdapter.Holder
         holder.title.setText(item.title);
         holder.summary.setText(item.summary);
         boolean open = expanded.contains(item.id);
-        holder.detail.setVisibility(open ? View.VISIBLE : View.GONE);
-        holder.header.setContentDescription(item.title + ". " + item.summary);
+        applyExpandedVisibility(holder.summary, holder.detail, open);
+        holder.header.setContentDescription(open ? item.title : item.title + ". " + item.summary);
         holder.header.setOnClickListener(view -> {
             if (!expanded.add(item.id))
                 expanded.remove(item.id);
@@ -87,6 +87,12 @@ public final class GuideAdapter extends RecyclerView.Adapter<GuideAdapter.Holder
         holder.insert.setVisibility(command && allowInsert ? View.VISIBLE : View.GONE);
         holder.copy.setOnClickListener(view -> listener.onCopy(item.syntax));
         holder.insert.setOnClickListener(view -> listener.onInsert(item.syntax));
+    }
+
+    /** Only the short summary or the full details are visible, never both. */
+    static void applyExpandedVisibility(View summary, View detail, boolean expanded) {
+        summary.setVisibility(expanded ? View.GONE : View.VISIBLE);
+        detail.setVisibility(expanded ? View.VISIBLE : View.GONE);
     }
 
     private static void setOptional(TextView view, String value) {
