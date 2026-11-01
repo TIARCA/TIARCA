@@ -513,8 +513,10 @@ public class ServerConnectionInfo {
     private void storePrivatePresence(String target, io.mrarm.chatlib.dto.MessageInfo message) {
         ChatApi api = getApiInstance();
         if (api == null || target == null) return;
-        api.getMessageStorageApi().addMessage(target, message, null, e ->
-                Log.w("ServerConnectionInfo", "Could not store PVT presence event", e));
+        if (!(api instanceof ServerConnectionApi)) return;
+        ((ServerConnectionApi) api).getServerConnectionData().getMessageStorageApi()
+                .addMessage(target, message, null, e ->
+                        Log.w("ServerConnectionInfo", "Could not store PVT presence event", e));
     }
 
     private void cancelPendingPrivateOffline(String nick) {
