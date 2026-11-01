@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="guide_title">Guida TIARCA</string>
+    <string name="guide_search_hint">Cerca funzioni e comandi IRC</string>
+    <string name="guide_category_label">Categoria della guida</string>
+    <string name="guide_offline_notice">Disponibile offline. Comandi e modalità specifici dipendono dal server e dai privilegi.</string>
+    <string name="guide_no_results">Nessun argomento trovato</string>
+    <string name="guide_load_error">Impossibile caricare la guida offline.</string>
+    <string name="guide_copy">Copia sintassi</string>
+    <string name="guide_insert">Inserisci in chat</string>
+    <string name="guide_copied">Sintassi copiata</string>
+    <string name="guide_no_active_chat">Apri una conversazione prima di inserire un comando.</string>
+    <string name="guide_replace_draft_title">Sostituire la bozza attuale?</string>
+    <string name="guide_replace_draft_message">Il campo messaggio contiene già del testo. Vuoi sostituirlo con il comando della guida? Non verrà inviato nulla.</string>
+    <string name="guide_replace_draft_confirm">Sostituisci</string>
+    <string name="guide_syntax_label">Sintassi: %1$s</string>
+    <string name="guide_example_label">Esempio: %1$s</string>
+    <string name="guide_source_label">Riferimento: %1$s</string>
+    <string-array name="guide_categories">
+        <item>Tutti gli argomenti</item><item>Funzioni TIARCA</item><item>IRC di base</item>
+        <item>IRC avanzato</item><item>Servizi ed estensioni di rete</item>
+    </string-array>
+</resources>

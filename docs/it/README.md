@@ -6,6 +6,17 @@ TIARCA è un client IRC per Android pensato sia per l'uso quotidiano sia per chi
 
 Questa guida descrive la versione stabile 0.9.9 e le funzioni già presenti nei build di sviluppo successivi. Quando una funzione dipende dal server IRC, dalla sua implementazione o dai privilegi dell'utente, viene indicato esplicitamente.
 
+## Guida integrata offline
+Dal drawer sinistro, sotto **Impostazioni**, apri **Guida TIARCA**.
+Il manuale è incluso nell'APK e non richiede una connessione Internet.
+La ricerca trova funzioni dell'app e comandi IRC di base e avanzati, anche tramite
+sintassi ed esempi. Puoi filtrare per categoria e aprire ogni argomento per leggere
+dettagli, requisiti e riferimenti. Per i comandi disponibili è possibile copiare
+la sintassi o inserirla nel campo della conversazione corrente: **non viene mai
+eseguita automaticamente**. Se esiste già una bozza, TIARCA chiede conferma
+prima di sostituirla. Alcuni comandi e mode richiedono privilegi o estensioni
+del server e non sono universali.
+
 ## 1. Installazione e primo avvio
 
 Scarica l'APK firmato dalla sezione Releases del repository e installalo su Android. Su una nuova installazione TIARCA apre una configurazione guidata in quattro passaggi: **Benvenuto**, **Identità**, **Aspetto** e **Rete**. Puoi impostare nickname/ident/real name, scegliere uno dei sei preset grafici o importarne uno, configurare la prima rete e l'eventuale SASL e selezionare i canali. Se lasci vuoto il nickname, prima di continuare TIARCA chiede conferma e può generare un nome nel formato `TIARCAxxxx`. La configurazione iniziale può essere rilanciata da **Impostazioni → Interfaccia → Configurazione iniziale** senza cancellare indiscriminatamente le reti già presenti.
