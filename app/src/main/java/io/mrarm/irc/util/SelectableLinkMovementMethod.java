@@ -224,16 +224,34 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
             return null;
         int line = layout.getLineForVertical((int) y);
         int lineStart = layout.getLineStart(line);
-        int lineEnd = layout.getLineEnd(line);
+        int lineEnd = layout.getLineVisibleEnd(line);
+        if (lineEnd <= lineStart)
+            return null;
+        // The nearest character can belong to a span even when the touch is in
+        // trailing whitespace. Always combine the offset with actual line bounds.
+        if (x < layout.getLineLeft(line) || x >= layout.getLineRight(line))
+            return null;
         int closestOffset = layout.getOffsetForHorizontal(line, x);
         ClickableSpan[] spans = buffer.getSpans(lineStart, lineEnd, ClickableSpan.class);
         for (ClickableSpan span : spans) {
             int start = Math.max(lineStart, buffer.getSpanStart(span));
             int end = Math.min(lineEnd, buffer.getSpanEnd(span));
-            if (end <= start || closestOffset < start || closestOffset > end)
+            if (end <= start)
                 continue;
-            float firstX = layout.getPrimaryHorizontal(start);
-            float lastX = layout.getPrimaryHorizontal(end);
+            // Preserve strict offset checking for nicknames and all other
+            // clickable text. URLs spanning visual lines need their rendered
+            // bounds instead: some layout engines return an offset on a
+            // different line even for a valid tap on a wrapped URL.
+            if (!(span instanceof android.text.style.URLSpan)
+                    && (closestOffset < start || closestOffset > end))
+                continue;
+            // getPrimaryHorizontal(lineEnd) may point to the *start of the next
+            // visual line*. This occurs with wrapped links and makes entire URL
+            // segments impossible to tap. Use the rendered edge for that line.
+            float firstX = start == lineStart ? layout.getLineLeft(line)
+                    : layout.getPrimaryHorizontal(start);
+            float lastX = end == lineEnd ? layout.getLineRight(line)
+                    : layout.getPrimaryHorizontal(end);
             if (x >= Math.min(firstX, lastX) && x < Math.max(firstX, lastX))
                 return span;
         }

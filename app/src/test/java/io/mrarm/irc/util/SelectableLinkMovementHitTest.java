@@ -5,6 +5,7 @@ import android.text.Layout;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.style.ClickableSpan;
+import android.text.style.URLSpan;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.TextView;
@@ -17,6 +18,7 @@ import org.robolectric.annotation.Config;
 
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 /** Gestures must begin over the visible nickname, not the nearest character. */
 @RunWith(RobolectricTestRunner.class)
@@ -82,6 +84,34 @@ public class SelectableLinkMovementHitTest {
         float x = (textX(view, 0) + textX(view, 5)) / 2f;
         assertNull(hit(view, x, -2f));
         assertNull(hit(view, x, view.getHeight() + 20f));
+    }
+
+    @Test public void longWrappedUrlCanBeTappedOnSecondVisualLine() {
+        TextView view = new TextView(RuntimeEnvironment.getApplication());
+        view.setPadding(8, 4, 8, 4);
+        String url = "https://media.simosnap.com/files/6191f11adac6e0a5a9b0760838861f863928226602e7589b973f%20(1).gif";
+        URLSpan link = new URLSpan(url);
+        // Robolectric does not always reproduce Android's automatic URL wrapping.
+        // Explicit line breaks give the same span boundary condition deterministically.
+        String displayed = url.substring(0, 32) + "\n" + url.substring(32, 65)
+                + "\n" + url.substring(65);
+        SpannableString contents = new SpannableString(displayed);
+        contents.setSpan(link, 0, displayed.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        view.setText(contents, TextView.BufferType.SPANNABLE);
+        view.measure(View.MeasureSpec.makeMeasureSpec(210, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(800, View.MeasureSpec.AT_MOST));
+        view.layout(0, 0, 210, view.getMeasuredHeight());
+        Layout layout = view.getLayout();
+        assertTrue("URL must wrap to multiple lines", layout.getLineCount() > 2);
+        for (int line = 0; line < layout.getLineCount(); line++) {
+            float middleX = view.getTotalPaddingLeft()
+                    + (layout.getLineLeft(line) + layout.getLineRight(line)) / 2f;
+            float middleY = view.getTotalPaddingTop()
+                    + (layout.getLineTop(line) + layout.getLineBottom(line)) / 2f;
+            assertSame("line " + line, link, hit(view, middleX, middleY));
+        }
+        assertNull(hit(view, view.getWidth() - 2f,
+                view.getTotalPaddingTop() + (layout.getLineTop(0) + layout.getLineBottom(0)) / 2f));
     }
 
     @Test public void paddingAroundTextIsNotNickname() {
