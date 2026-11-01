@@ -159,7 +159,7 @@
       "category": "tiarca",
       "title": "Themes and graphic presets",
       "summary": "A theme sets light/dark colors; a preset additionally configures fonts, message format, timestamps and avatars.",
-      "body": "A theme sets light/dark colors; a preset additionally configures fonts, message format, timestamps and avatars. Export portable .ircpreset files.",
+      "body": "A theme sets light/dark colors; a preset additionally configures fonts, message format, timestamps and avatars. Export portable .ircpreset files. Under Interface → Message format, Basic has the optional “Show nickname prefixes” setting: it displays @, +, % or other channel prefixes before known sender nicknames in messages and actions. Advanced formats may already include an explicit Nickname prefix chip.",
       "syntax": "",
       "example": "",
       "note": "Manual visual changes switch to Custom.",

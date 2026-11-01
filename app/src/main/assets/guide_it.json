@@ -159,7 +159,7 @@
       "category": "tiarca",
       "title": "Temi e preset grafici",
       "summary": "Il tema definisce colori chiaro/scuro; il preset configura anche font, formato messaggi, orari e avatar.",
-      "body": "Il tema definisce colori chiaro/scuro; il preset configura anche font, formato messaggi, orari e avatar. Esporta file .ircpreset portabili.",
+      "body": "Il tema definisce colori chiaro/scuro; il preset configura anche font, formato messaggi, orari e avatar. Esporta file .ircpreset portabili. In Interfaccia → Formato del messaggio, nella sezione Basic, «Visualizza prefissi nickname» è una scelta facoltativa: mostra @, +, % e altri prefissi prima del nickname nei messaggi e nelle azioni quando il server ne fornisce i dati. I formati avanzati possono già contenere il chip Prefisso nickname.",
       "syntax": "",
       "example": "",
       "note": "Le modifiche manuali passano a Personalizzato.",
