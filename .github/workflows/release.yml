@@ -326,7 +326,7 @@ jobs:
             if [[ "$FLAVOR" == standard ]]; then
               NAME="TIARCA-${{ needs.prepare-release.outputs.tag }}.apk"
             else
-              NAME="TIARCA-fdroid-${{ needs.prepare-release.outputs.tag }}.apk"
+              NAME="TIARCA-${{ needs.prepare-release.outputs.tag }}_fdroid.apk"
             fi
             cp "$APK" "release-apks/$NAME"
             (cd release-apks && sha256sum "$NAME") > "release-apks/$NAME.sha256"
@@ -383,8 +383,8 @@ jobs:
         with:
           tag_name: ${{ needs.prepare-release.outputs.tag }}
           files: |
-            release-apks/TIARCA-fdroid-${{ needs.prepare-release.outputs.tag }}.apk
-            release-apks/TIARCA-fdroid-${{ needs.prepare-release.outputs.tag }}.apk.sha256
+            release-apks/TIARCA-${{ needs.prepare-release.outputs.tag }}_fdroid.apk
+            release-apks/TIARCA-${{ needs.prepare-release.outputs.tag }}_fdroid.apk.sha256
 
       - name: Verify published assets
         if: needs.prepare-release.outputs.publish_release == 'true'
@@ -399,7 +399,7 @@ jobs:
             });
             const expected = [
               `TIARCA-${tag}.apk`, `TIARCA-${tag}.apk.sha256`,
-              `TIARCA-fdroid-${tag}.apk`, `TIARCA-fdroid-${tag}.apk.sha256`
+              `TIARCA-${tag}_fdroid.apk`, `TIARCA-${tag}_fdroid.apk.sha256`
             ];
             for (const name of expected) {
               if (!release.assets.some(asset => asset.name === name && asset.size > 0))
