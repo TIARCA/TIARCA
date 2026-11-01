@@ -8,6 +8,11 @@ on:
         required: false
         default: ''
         type: string
+      verified_run_id:
+        description: 'Optional existing Release run with a successful reproducibility check of the same source commit'
+        required: false
+        default: ''
+        type: string
 
   push:
     tags:
@@ -15,6 +20,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 concurrency:
   group: tiarca-release-${{ inputs.release_tag || github.ref }}
@@ -27,6 +33,7 @@ jobs:
       tag: ${{ steps.version.outputs.tag }}
       version: ${{ steps.version.outputs.version }}
       publish_release: ${{ steps.version.outputs.publish_release }}
+      verified_proof: ${{ steps.proof.outputs.result }}
 
     steps:
       - name: Checkout repository
@@ -70,12 +77,40 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "publish_release=$PUBLISH_RELEASE" >> "$GITHUB_OUTPUT"
 
+      - name: Validate existing reproducibility proof
+        id: proof
+        uses: actions/github-script@v8
+        env:
+          PROOF_RUN_ID: ${{ inputs.verified_run_id }}
+        with:
+          script: |
+            const id = process.env.PROOF_RUN_ID;
+            if (!id) return false;
+            if (!/^\d+$/.test(id)) throw new Error('Invalid proof run ID');
+            const source = require('child_process').execFileSync(
+              'git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+            const { data: run } = await github.rest.actions.getWorkflowRun({
+              ...context.repo, run_id: Number(id)
+            });
+            if (run.head_sha !== source ||
+                run.path.split('@')[0] !== '.github/workflows/release.yml')
+              throw new Error('Proof is not a Release run for this exact source commit');
+            const { data } = await github.rest.actions.listJobsForWorkflowRun({
+              ...context.repo, run_id: Number(id), per_page: 100
+            });
+            const proof = data.jobs.find(job => job.name === 'verify-reproducible');
+            if (!proof || proof.conclusion !== 'success' ||
+                !proof.steps.some(step => step.name === 'Compare APKs' && step.conclusion === 'success'))
+              throw new Error('Source reproducibility has not been verified');
+            core.info(`Reusing successful reproducibility proof ${run.html_url} for ${source}`);
+            return true;
+
       - name: Verify release home is synchronized
         run: python3 tools/sync_release_home.py --check
 
   verify-reproducible:
     needs: prepare-release
-    if: needs.prepare-release.outputs.publish_release == 'true'
+    if: needs.prepare-release.outputs.publish_release == 'true' && needs.prepare-release.outputs.verified_proof != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -176,7 +211,7 @@ jobs:
     needs:
       - prepare-release
       - verify-reproducible
-    if: ${{ always() && needs.prepare-release.result == 'success' && (needs.prepare-release.outputs.publish_release != 'true' || needs.verify-reproducible.result == 'success') }}
+    if: ${{ always() && needs.prepare-release.result == 'success' && (needs.prepare-release.outputs.publish_release != 'true' || needs.verify-reproducible.result == 'success' || needs.prepare-release.outputs.verified_proof == 'true') }}
     runs-on: ubuntu-latest
 
     steps:
@@ -221,10 +256,58 @@ jobs:
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -n 1)
           for FLAVOR in standard fdroid; do
             APK=$(find "app/build/outputs/apk/$FLAVOR/release" -maxdepth 1 -type f -name "*.apk" | head -n 1)
-            CERT=$("$APKSIGNER" verify --print-certs "$APK" | sed -n 's/^Signer .*certificate SHA-256 digest: //p')
-            echo "$FLAVOR certificate SHA-256: $CERT"
-            test "$CERT" = "e2141ddf7765bfe99b0eb34cae636cefde0228aeeb1a100ddd8c9d6c8e7718a7"
-            echo "$FLAVOR: release signing certificate verified"
+            "$APKSIGNER" verify --verbose "$APK"
+            python3 - "$APK" <<'VERIFY_CERT'
+          import hashlib
+          import pathlib
+          import struct
+          import sys
+          
+          data = pathlib.Path(sys.argv[1]).read_bytes()
+          expected = "e2141ddf7765bfe99b0eb34cae636cefde0228aeeb1a100ddd8c9d6c8e7718a7"
+          
+          def field(blob, offset):
+              if offset + 4 > len(blob):
+                  raise ValueError("Missing length-prefixed field")
+              length = struct.unpack_from("<I", blob, offset)[0]
+              end = offset + 4 + length
+              if end > len(blob):
+                  raise ValueError("Truncated signing field")
+              return blob[offset + 4:end], end
+          
+          eocd = data.rfind(b"PK\x05\x06")
+          if eocd < 0:
+              raise ValueError("Missing ZIP end record")
+          cd = struct.unpack_from("<I", data, eocd + 16)[0]
+          if data[cd - 16:cd] != b"APK Sig Block 42":
+              raise ValueError("Missing APK signing block")
+          size = struct.unpack_from("<Q", data, cd - 24)[0]
+          start = cd - size - 8
+          if start < 0 or struct.unpack_from("<Q", data, start)[0] != size:
+              raise ValueError("Invalid signing block size")
+          position, end = start + 8, cd - 24
+          fingerprints = []
+          while position < end:
+              length = struct.unpack_from("<Q", data, position)[0]
+              if length < 4 or position + 8 + length > end:
+                  raise ValueError("Invalid signing pair")
+              identifier = struct.unpack_from("<I", data, position + 8)[0]
+              if identifier == 0x7109871a:
+                  signers, _ = field(data[position + 12:position + 8 + length], 0)
+                  offset = 0
+                  while offset < len(signers):
+                      signer, offset = field(signers, offset)
+                      signed, _ = field(signer, 0)
+                      _, after_digests = field(signed, 0)
+                      certificates, _ = field(signed, after_digests)
+                      primary_certificate, _ = field(certificates, 0)
+                      fingerprints.append(hashlib.sha256(primary_certificate).hexdigest())
+              position += 8 + length
+          print("APK signer certificate SHA-256:", ", ".join(fingerprints))
+          if fingerprints != [expected]:
+              raise SystemExit("APK signer does not match the established release certificate")
+          VERIFY_CERT
+            echo "$FLAVOR: signature and release certificate verified"
           done
 
       - name: Verify distribution APKs

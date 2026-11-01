@@ -56,6 +56,6 @@ jobs:
               throw new Error('Existing release tag moved unexpectedly');
             await github.rest.actions.createWorkflowDispatch({
               ...context.repo, workflow_id: 'release.yml', ref: 'main',
-              inputs: { release_tag: tag }
+              inputs: { release_tag: tag, verified_run_id: '41347496329' }
             });
             core.info(`Dispatched corrected workflow for unchanged ${tag}`);
