@@ -18,6 +18,7 @@ import io.mrarm.irc.config.ChatSettings;
 import io.mrarm.irc.config.EventDisplaySettings;
 import io.mrarm.irc.config.MessageFormatSettings;
 import io.mrarm.irc.config.RightClockSettings;
+import io.mrarm.irc.config.SettingsHelper;
 import io.mrarm.irc.util.DefaultPreferences;
 import io.mrarm.irc.util.MessageBuilder;
 
@@ -64,6 +65,7 @@ public final class AppearancePresetManager {
         preferences = DefaultPreferences.get(this.context);
         migrateLegacyFixedWidthPreference();
         initializeStoredPreset(freshInstall);
+        upgradeBuiltInMentionFormats();
         preferences.registerOnSharedPreferenceChangeListener(preferenceListener);
     }
 
@@ -128,6 +130,57 @@ public final class AppearancePresetManager {
         if ("default_dark".equals(theme))
             return AppearancePreset.IRC_DARK;
         return AppearancePreset.CUSTOM;
+    }
+
+    // Existing built-in presets store a snapshot of their formats. Upgrade only the
+    // mention body in those snapshots; never rewrite a Custom user's formatting.
+    private void upgradeBuiltInMentionFormats() {
+        if (!getCurrentPreset().isApplicable())
+            return;
+        MessageBuilder builder = MessageBuilder.getInstance(context);
+        CharSequence originalMention = builder.getMentionMessageFormat();
+        CharSequence originalActionMention = builder.getActionMentionMessageFormat();
+        CharSequence mention = ensureMentionBodyBold(originalMention);
+        CharSequence actionMention = ensureMentionBodyBold(originalActionMention);
+        if (mention == originalMention && actionMention == originalActionMention)
+            return;
+
+        SharedPreferences.Editor editor = preferences.edit();
+        if (mention != originalMention) {
+            builder.setMentionMessageFormat(mention);
+            editor.putString(MessageFormatSettings.PREF_MESSAGE_FORMAT_MENTION,
+                    SettingsHelper.getGson().toJson(MessageBuilder.spannableToJson(mention)));
+        }
+        if (actionMention != originalActionMention) {
+            builder.setActionMentionMessageFormat(actionMention);
+            editor.putString(MessageFormatSettings.PREF_MESSAGE_FORMAT_ACTION_MENTION,
+                    SettingsHelper.getGson().toJson(MessageBuilder.spannableToJson(actionMention)));
+        }
+        editor.apply();
+    }
+
+    private static CharSequence ensureMentionBodyBold(CharSequence format) {
+        if (!(format instanceof Spanned))
+            return format;
+        Spanned spanned = (Spanned) format;
+        for (MessageBuilder.MetaChipSpan chip : spanned.getSpans(0, spanned.length(),
+                MessageBuilder.MetaChipSpan.class)) {
+            if (chip.getType() != MessageBuilder.MetaChipSpan.TYPE_MESSAGE)
+                continue;
+            int start = spanned.getSpanStart(chip);
+            int end = spanned.getSpanEnd(chip);
+            for (StyleSpan span : spanned.getSpans(start, end, StyleSpan.class)) {
+                if ((span.getStyle() & Typeface.BOLD) != 0
+                        && spanned.getSpanStart(span) <= start
+                        && spanned.getSpanEnd(span) >= end)
+                    return format;
+            }
+            SpannableString updated = new SpannableString(format);
+            updated.setSpan(new StyleSpan(Typeface.BOLD), start, end,
+                    MessageBuilder.FORMAT_SPAN_FLAGS);
+            return updated;
+        }
+        return format;
     }
 
     public AppearancePreset getCurrentPreset() {
