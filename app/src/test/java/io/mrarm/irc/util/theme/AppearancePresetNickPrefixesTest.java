@@ -24,7 +24,20 @@ public class AppearancePresetNickPrefixesTest {
     private SharedPreferences preferences;
     private AppearancePresetManager manager;
 
+    // The production builder is a process singleton. Robolectric may recreate its
+    // application context between test methods, so never reuse an older instance.
+    private void resetGlobalBuilder() {
+        try {
+            java.lang.reflect.Field field = MessageBuilder.class.getDeclaredField("sInstance");
+            field.setAccessible(true);
+            field.set(null, null);
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError(e);
+        }
+    }
+
     @Before public void setUp() {
+        resetGlobalBuilder();
         context = ApplicationProvider.getApplicationContext();
         SettingsHelper.getInstance(context);
         preferences = DefaultPreferences.get(context);
@@ -34,6 +47,7 @@ public class AppearancePresetNickPrefixesTest {
 
     @After public void tearDown() {
         manager.closeForTests();
+        resetGlobalBuilder();
     }
 
     @Test public void builtInPresetsResetOptionalPrefixFlag() {
