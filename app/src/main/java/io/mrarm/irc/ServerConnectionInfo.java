@@ -471,23 +471,20 @@ public class ServerConnectionInfo {
                 addresses.get(Math.min(mActiveAddressIndex, addresses.size() - 1));
     }
 
-    /** True when a private-query tab with this nickname already exists. */
-    /** Match an existing PVT against the network's own nickname case mapping. */
+    /** Resolve an open PVT from the IRC session, even if drawer updates are delayed. */
     public String findOpenPrivateConversation(String nick,
             io.mrarm.chatlib.irc.ServerConnectionData data) {
         if (nick == null || data == null || nick.isEmpty())
             return null;
+        // Channel-list callbacks update mChannels asynchronously; an incoming QUIT can
+        // race with them. The live IRC state is authoritative for a connected session.
+        String live = PrivatePresenceTarget.find(nick, data.getJoinedChannelList(),
+                data.getSupportList());
+        if (live != null)
+            return live;
         synchronized (this) {
-            if (mChannels == null) return null;
-            for (String item : mChannels) {
-                if (item == null || item.isEmpty() ||
-                        data.getSupportList().getSupportedChannelTypes().contains(item.charAt(0)))
-                    continue;
-                if (data.getSupportList().getCaseMapping().equals(item, nick))
-                    return item;
-            }
+            return PrivatePresenceTarget.find(nick, mChannels, data.getSupportList());
         }
-        return null;
     }
 
     /** Writes the actual remote QUIT into an already-open PVT, preserving its reason. */
@@ -498,10 +495,14 @@ public class ServerConnectionInfo {
         String nick = sender.getNick();
         mMonitoredUsers.notePrivateQuit(data, nick);
         cancelPendingPrivateOffline(nick);
-        if (!ChatSettings.shouldShowPrivatePresenceEvents() ||
-                data.getSupportList().getCaseMapping().equals(nick, data.getUserNick()))
+        boolean enabled = ChatSettings.shouldShowPrivatePresenceEvents();
+        if (!enabled || data.getSupportList().getCaseMapping().equals(nick, data.getUserNick()))
             return;
         String target = findOpenPrivateConversation(nick, data);
+        final String logNick = DiagnosticLog.pseudonym("nick", nick);
+        DiagnosticLog.d("PVT_PRESENCE", () -> "QUIT received nick=" + logNick
+                + " pvtFound=" + (target != null) + " liveQueries="
+                + countPrivateQueries(data.getJoinedChannelList(), data.getSupportList()));
         if (target == null) return;
         io.mrarm.chatlib.dto.MessageSenderInfo info =
                 new io.mrarm.chatlib.dto.MessageSenderInfo(nick, sender.getUser(), sender.getHost(),
@@ -510,13 +511,35 @@ public class ServerConnectionInfo {
                 info, reason, io.mrarm.chatlib.dto.MessageInfo.MessageType.QUIT).build());
     }
 
+    private static int countPrivateQueries(List<String> names,
+            io.mrarm.chatlib.irc.ServerSupportList support) {
+        if (names == null || support == null) return 0;
+        int count = 0;
+        for (String name : names)
+            if (name != null && !name.isEmpty()
+                    && !support.getSupportedChannelTypes().contains(name.charAt(0)))
+                count++;
+        return count;
+    }
+
     private void storePrivatePresence(String target, io.mrarm.chatlib.dto.MessageInfo message) {
         ChatApi api = getApiInstance();
-        if (api == null || target == null) return;
-        if (!(api instanceof ServerConnectionApi)) return;
+        final String targetId = DiagnosticLog.pseudonym("pvt", target);
+        if (!(api instanceof ServerConnectionApi) || target == null) {
+            DiagnosticLog.w("PVT_PRESENCE",
+                    () -> "Cannot save event: no active IRC storage pvt=" + targetId, null);
+            return;
+        }
         ((ServerConnectionApi) api).getServerConnectionData().getMessageStorageApi()
-                .addMessage(target, message, null, e ->
-                        Log.w("ServerConnectionInfo", "Could not store PVT presence event", e));
+                .addMessage(target, message,
+                        ignored -> DiagnosticLog.d("PVT_PRESENCE",
+                                () -> "Event saved pvt=" + targetId + " type="
+                                        + message.getType()),
+                        e -> {
+                            DiagnosticLog.w("PVT_PRESENCE",
+                                    () -> "Event storage failed pvt=" + targetId, e);
+                            Log.w("ServerConnectionInfo", "Could not store PVT presence event", e);
+                        });
     }
 
     private void cancelPendingPrivateOffline(String nick) {
