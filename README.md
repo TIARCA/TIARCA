@@ -4,15 +4,15 @@
 
 TIARCA keeps the speed and directness of classic IRC while adding a modern Android interface, current Android compatibility, richer moderation and user tools, configurable appearance, MONITOR support, structured IRC information, search, mentions, quick commands and an integrated update flow.
 
-> **Current stable version: 0.9.9** · Android 9+ · Open source · GPLv3
+> **Current stable version: 0.9.10** · Android 9+ · Open source · GPLv3
 
-[Download TIARCA 0.9.9](https://github.com/TIARCA/TIARCA/releases/download/v0.9.9/TIARCA-v0.9.9.apk) · [Release notes](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.9) · [Changelog](CHANGELOG.md) · [Documentation](docs/README.md)
+[Download TIARCA 0.9.10](https://github.com/TIARCA/TIARCA/releases/download/v0.9.10/TIARCA-v0.9.10.apk) · [Release notes](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.10) · [Changelog](CHANGELOG.md) · [Documentation](docs/README.md)
 
 ---
 
-## What's new in 0.9.9
+## What's new in 0.9.10
 
-See the full [0.9.9 release notes](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.9) and [changelog](CHANGELOG.md).
+See the full [0.9.10 release notes](https://github.com/TIARCA/TIARCA/releases/tag/v0.9.10) and [changelog](CHANGELOG.md).
 
 ## What TIARCA offers
 
@@ -32,10 +32,11 @@ See the full [0.9.9 release notes](https://github.com/TIARCA/TIARCA/releases/tag
 - Nick, channel and command autocomplete; mIRC formatting and colors.
 - Ignore management and fast actions directly from private conversations.
 - Sharing of images, files, audio and video through temporary links.
-- Configurable quick commands such as `!yt`, `!wiki`, `!calc`, `!movie`, `!ora` and `!dizionario`.
+- Quick commands with usage guides such as `!yt`, `!wiki`, `!calc`, `!movie`, `!ora` and `!dizionario`.
 - Extensive appearance customization: light/dark theme, app colors, chat font, simplified/advanced message formatting, optional channel-event monochrome rendering and optional chat avatars.
 - Manual server/network ordering and configurable connection behavior.
-- Integrated update checker for official GitHub releases.
+- Standard builds include an opt-in GitHub updater; F-Droid builds delegate updates to the F-Droid client.
+- Configurable nickname swipes with visual feedback and an offline searchable IRC guide.
 - Android encrypted backup/device transfer support, separate from TIARCA manual backup.
 - Direct native IRC commands including `/whowas`, `/accept`, `/invite`, `/ison`, `/userhost`, `/motd`, `/version`, `/time`, `/admin`, `/info`, `/lusers`, `/links`, `/stats`, `/knock`, `/list`, `/names` and `/who`.
 
@@ -60,15 +61,19 @@ Documentation is available in every language currently supported by TIARCA:
 
 Download the signed APK from the latest GitHub Release. Android may ask you to allow installation from the browser or file manager used to open the APK. Official TIARCA APKs are distributed through this repository's **Releases** section.
 
-TIARCA is not distributed through Google Play. Version 0.9.9 is the current stable release. TIARCA is under review for inclusion in the official F-Droid repository; recent release-engineering work targets F-Droid policy compliance and reproducible verification. Availability on F-Droid still depends on completion of the F-Droid review and build process.
+TIARCA is not distributed through Google Play. Version 0.9.10 is the current stable release. TIARCA is under review for inclusion in the official F-Droid repository; recent release-engineering work targets F-Droid policy compliance and reproducible verification. Availability on F-Droid still depends on completion of the F-Droid review and build process.
 
 ## Building from source
 
 Open the project in Android Studio. The project uses Android SDK 36; use JDK 21 for Gradle. A development build can be produced with:
 
 ```text
-gradlew :app:assembleDebug
+gradlew :app:assembleStandardDebug
+# F-Droid distribution:
+gradlew :app:assembleFdroidDebug
 ```
+
+Both distributions share the same app data and package name. [Download the F-Droid APK](https://github.com/TIARCA/TIARCA/releases/download/v0.9.10/TIARCA-fdroid-v0.9.10.apk) or read the [distribution build guide](docs/distribution-builds.md).
 
 Public releases are signed with a private signing key that is never stored in the repository. See `keystore.properties.example`.
 

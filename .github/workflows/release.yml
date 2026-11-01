@@ -161,7 +161,7 @@ jobs:
     needs:
       - prepare-release
       - verify-reproducible
-    if: ${{ always() && needs.prepare-release.result == 'success' && (github.event_name == 'workflow_dispatch' || needs.verify-reproducible.result == 'success') }}
+    if: ${{ always() && needs.prepare-release.result == 'success' && (needs.prepare-release.outputs.publish_release != 'true' || needs.verify-reproducible.result == 'success') }}
     runs-on: ubuntu-latest
 
     steps:
@@ -198,6 +198,18 @@ jobs:
 
       - name: Build signed release APK
         run: ./gradlew :app:assembleStandardRelease :app:assembleFdroidRelease
+
+      - name: Verify signing certificates
+        shell: bash
+        run: |
+          set -euo pipefail
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -n 1)
+          for FLAVOR in standard fdroid; do
+            APK=$(find "app/build/outputs/apk/$FLAVOR/release" -maxdepth 1 -type f -name "*.apk" | head -n 1)
+            CERT=$("$APKSIGNER" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+            test "$CERT" = "e2141ddf7765bfe99b0eb34cae636cefde0228aeeb1a100ddd8c9d6c8e7718a7"
+            echo "$FLAVOR: release signing certificate verified"
+          done
 
       - name: Verify distribution APKs
         run: |
@@ -259,7 +271,42 @@ jobs:
         with:
           tag_name: ${{ needs.prepare-release.outputs.tag }}
           name: TIARCA v${{ needs.prepare-release.outputs.version }}
+          # Upload the standard APK first for older installed self-updaters that
+          # pick the first APK asset. New versions also check the exact filename.
           files: |
-            release-apks/*.apk
-            release-apks/*.sha256
+            release-apks/TIARCA-${{ needs.prepare-release.outputs.tag }}.apk
+            release-apks/TIARCA-${{ needs.prepare-release.outputs.tag }}.apk.sha256
           body_path: release-notes.md
+
+      - name: Add F-Droid release assets
+        if: needs.prepare-release.outputs.publish_release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare-release.outputs.tag }}
+          files: |
+            release-apks/TIARCA-fdroid-${{ needs.prepare-release.outputs.tag }}.apk
+            release-apks/TIARCA-fdroid-${{ needs.prepare-release.outputs.tag }}.apk.sha256
+
+      - name: Verify published assets
+        if: needs.prepare-release.outputs.publish_release == 'true'
+        uses: actions/github-script@v8
+        env:
+          RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
+        with:
+          script: |
+            const tag = process.env.RELEASE_TAG;
+            const { data: release } = await github.rest.repos.getReleaseByTag({
+              ...context.repo, tag
+            });
+            const expected = [
+              `TIARCA-${tag}.apk`, `TIARCA-${tag}.apk.sha256`,
+              `TIARCA-fdroid-${tag}.apk`, `TIARCA-fdroid-${tag}.apk.sha256`
+            ];
+            for (const name of expected) {
+              if (!release.assets.some(asset => asset.name === name && asset.size > 0))
+                throw new Error(`Missing release asset: ${name}`);
+            }
+            const firstApk = release.assets.find(asset => asset.name.endsWith('.apk'));
+            if (!firstApk || firstApk.name !== expected[0])
+              throw new Error('Standard APK must be first for legacy self-updaters');
+            core.info(`Published and verified ${release.html_url}`);
