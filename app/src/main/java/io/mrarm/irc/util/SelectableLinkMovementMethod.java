@@ -234,6 +234,13 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
                 continue;
             float firstX = layout.getPrimaryHorizontal(start);
             float lastX = layout.getPrimaryHorizontal(end);
+            // At a soft line break, getPrimaryHorizontal(lineEnd) is often
+            // the START of the following line, not the end of this one.
+            // Long clickable media URLs can cross several such breaks.
+            if (end == lineEnd && line < layout.getLineCount() - 1)
+                lastX = layout.getLineRight(line);
+            if (start == lineStart && line > 0 && buffer.getSpanStart(span) < lineStart)
+                firstX = layout.getLineLeft(line);
             if (x >= Math.min(firstX, lastX) && x < Math.max(firstX, lastX))
                 return span;
         }

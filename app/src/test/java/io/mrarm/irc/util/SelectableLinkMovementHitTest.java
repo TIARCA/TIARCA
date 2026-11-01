@@ -84,6 +84,39 @@ public class SelectableLinkMovementHitTest {
         assertNull(hit(view, x, view.getHeight() + 20f));
     }
 
+    @Test public void wrappedUrlIsClickableOnContinuationLine() {
+        TextView view = message(
+                "https://media.simosnap.com/files/6191f11adac6e0a5a9b0760838861f86/3928226602e7589b973f%20(1).gif",
+                0, 0);
+        android.text.Spannable buffer = (android.text.Spannable) view.getText();
+        buffer.removeSpan(nickname);
+        android.text.style.URLSpan url = new android.text.style.URLSpan("https://example.org/long.gif");
+        buffer.setSpan(url, 0, buffer.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        view.measure(View.MeasureSpec.makeMeasureSpec(180, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(600, View.MeasureSpec.AT_MOST));
+        view.layout(0, 0, 180, view.getMeasuredHeight());
+        Layout layout = view.getLayout();
+        org.junit.Assert.assertTrue("URL should wrap", layout.getLineCount() >= 2);
+        int line = 1;
+        float x = view.getTotalPaddingLeft()
+                + (layout.getLineLeft(line) + layout.getLineRight(line)) / 2f;
+        float y = view.getTotalPaddingTop()
+                + (layout.getLineTop(line) + layout.getLineBottom(line)) / 2f;
+        assertSame(url, hit(view, x, y));
+    }
+
+    @Test public void emptyAreaBesideWrappedUrlDoesNotActivateIt() {
+        TextView view = message("https://example.org/a-long-resource/path/to/image.gif", 0, 0);
+        android.text.Spannable buffer = (android.text.Spannable) view.getText();
+        buffer.removeSpan(nickname);
+        android.text.style.URLSpan url = new android.text.style.URLSpan("https://example.org");
+        buffer.setSpan(url, 0, buffer.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        view.measure(View.MeasureSpec.makeMeasureSpec(190, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(600, View.MeasureSpec.AT_MOST));
+        view.layout(0, 0, 190, view.getMeasuredHeight());
+        assertNull(hit(view, view.getWidth() - 2, view.getTotalPaddingTop() + 2));
+    }
+
     @Test public void paddingAroundTextIsNotNickname() {
         TextView view = message("Alice", 0, 5);
         assertNull(hit(view, 2f, lineY(view)));
