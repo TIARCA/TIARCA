@@ -68,6 +68,8 @@ ChatSettings:
 
     - spec: boolean hideJoinPartMessages = true
       getter: shouldHideJoinPartMessages
+    - spec: boolean privatePresenceEventsEnabled = true
+      getter: shouldShowPrivatePresenceEvents
     - spec: String appbarCompactMode = "auto"
       enum: ["auto", "always", "never"]
     - spec: boolean sendBoxAlwaysMultiline = true

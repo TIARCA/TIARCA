@@ -5,6 +5,8 @@ import android.util.Log;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +36,11 @@ public final class MonitoredUsersManager implements CommandHandler {
 
     public interface ConfigPersister { void persist() throws IOException; }
 
+    /** PVT presence is a best-effort use of spare MONITOR slots, never persistent aliases. */
+    public interface PrivatePresenceListener {
+        void onPrivateOffline(String nickname);
+    }
+
     public static final class AliasConflictException extends IllegalArgumentException {
         private final ServerConfigData.MonitoredUser existingGroup;
 
@@ -60,6 +67,10 @@ public final class MonitoredUsersManager implements CommandHandler {
     private final List<Listener> listeners = new ArrayList<>();
     private final Set<ServerConfigData.MonitoredAlias> synchronizedAliases = new LinkedHashSet<>();
     private final Set<ServerConfigData.MonitoredAlias> aliasesOverLimit = new LinkedHashSet<>();
+    private final Set<String> privateDesired = new LinkedHashSet<>();
+    private final Set<String> privateRegistered = new LinkedHashSet<>();
+    private final Map<String, Boolean> privateStates = new LinkedHashMap<>();
+    private PrivatePresenceListener privatePresenceListener;
     private SyncState syncState = SyncState.UNINITIALIZED;
     private boolean serverLimitReached;
     private String lastError;
@@ -322,6 +333,8 @@ public final class MonitoredUsersManager implements CommandHandler {
         serverLimitReached = false;
         synchronizedAliases.clear();
         aliasesOverLimit.clear();
+        privateRegistered.clear();
+        privateStates.clear();
         clearRuntimePresence();
         if (!isSupported(data)) {
             lastError = "This server does not support MONITOR.";
@@ -361,6 +374,8 @@ public final class MonitoredUsersManager implements CommandHandler {
         send(data, "C");
         synchronizedAliases.clear();
         aliasesOverLimit.clear();
+        privateRegistered.clear();
+        privateStates.clear();
         clearRuntimePresence();
         setSyncState(SyncState.UNINITIALIZED);
     }
@@ -368,6 +383,8 @@ public final class MonitoredUsersManager implements CommandHandler {
     public void onDisconnected() {
         synchronizedAliases.clear();
         aliasesOverLimit.clear();
+        privateRegistered.clear();
+        privateStates.clear();
         clearRuntimePresence();
         setSyncState(SyncState.UNINITIALIZED);
     }
@@ -382,7 +399,10 @@ public final class MonitoredUsersManager implements CommandHandler {
             return;
         }
         if (numeric == RPL_ENDOFMONLIST) {
-            if (syncState == SyncState.SYNCING) setSyncState(SyncState.READY);
+            if (syncState == SyncState.SYNCING) {
+                setSyncState(SyncState.READY);
+                fillAvailableSlots(data);
+            }
             return;
         }
         if (numeric == RPL_MONLIST) return;
@@ -395,6 +415,7 @@ public final class MonitoredUsersManager implements CommandHandler {
         for (String item : raw.split(",")) {
             int bang = item.indexOf('!');
             String nick = bang < 0 ? item : item.substring(0, bang);
+            processPrivatePresence(data, nick, online);
             AliasMatch match = findAlias(nick, mapping);
             if (match == null) continue;
             boolean groupWasOnline = isOnline(match.user);
@@ -502,12 +523,112 @@ public final class MonitoredUsersManager implements CommandHandler {
     }
     public void removeListener(Listener listener) { listeners.remove(listener); }
 
+    public void setPrivatePresenceListener(PrivatePresenceListener listener) {
+        privatePresenceListener = listener;
+    }
+
+    /** Updates only transient PVT monitoring; manual user monitoring always takes priority. */
+    public void setPrivateConversationNicks(ServerConnectionData data, List<String> nicks) {
+        IRCCaseMapping mapping = getCaseMapping(data);
+        LinkedHashSet<String> newDesired = new LinkedHashSet<>();
+        if (nicks != null) {
+            for (String nick : nicks) {
+                if (nick == null || nick.trim().isEmpty()) continue;
+                String trimmed = nick.trim();
+                if (!contains(new ArrayList<>(newDesired), trimmed, mapping))
+                    newDesired.add(trimmed);
+            }
+        }
+        for (String old : new ArrayList<>(privateRegistered)) {
+            if (!contains(new ArrayList<>(newDesired), old, mapping)) {
+                privateRegistered.remove(old);
+                if (data != null && isSupported(data) && syncState == SyncState.READY)
+                    send(data, "-", old);
+            }
+        }
+        for (String old : new ArrayList<>(privateStates.keySet())) {
+            if (!contains(new ArrayList<>(newDesired), old, mapping))
+                privateStates.remove(old);
+        }
+        privateDesired.clear();
+        privateDesired.addAll(newDesired);
+        if (data != null && isSupported(data) && syncState == SyncState.READY)
+            fillAvailableSlots(data);
+    }
+
+    /** A real QUIT supersedes any later MONITOR OFFLINE for that PVT. */
+    public void notePrivateQuit(ServerConnectionData data, String nick) {
+        String desired = findMatching(privateDesired, nick, getCaseMapping(data));
+        if (desired != null) privateStates.put(desired, false);
+    }
+
+    private static String findMatching(Set<String> source, String nick, IRCCaseMapping mapping) {
+        if (nick == null) return null;
+        for (String s : source) if (mapping.equals(s, nick)) return s;
+        return null;
+    }
+
+    private boolean isConfiguredManually(String nick, IRCCaseMapping mapping) {
+        for (ServerConfigData.MonitoredUser user : getMonitoredUsers())
+            for (ServerConfigData.MonitoredAlias alias : getAliases(user))
+                if (alias.nick != null && mapping.equals(alias.nick, nick))
+                    return true;
+        return false;
+    }
+
+    private void processPrivatePresence(ServerConnectionData data, String nick, boolean online) {
+        IRCCaseMapping mapping = getCaseMapping(data);
+        String desired = findMatching(privateDesired, nick, mapping);
+        if (desired == null || (findMatching(privateRegistered, nick, mapping) == null
+                && !isConfiguredManually(nick, mapping)))
+            return;
+        Boolean previous = privateStates.put(desired, online);
+        if (syncState == SyncState.READY && Boolean.TRUE.equals(previous) && !online
+                && privatePresenceListener != null)
+            privatePresenceListener.onPrivateOffline(desired);
+    }
+
+    private void freePrivateSlot(ServerConnectionData data) {
+        Iterator<String> iterator = privateRegistered.iterator();
+        if (!iterator.hasNext()) return;
+        String nick = iterator.next();
+        iterator.remove();
+        send(data, "-", nick);
+    }
+
+    private void fillPrivateSlots(ServerConnectionData data) {
+        if (data == null || !isSupported(data) || syncState != SyncState.READY)
+            return;
+        IRCCaseMapping mapping = getCaseMapping(data);
+        for (String nick : privateDesired) {
+            if (synchronizedAliases.size() + privateRegistered.size() >= getLimit(data))
+                break;
+            if (isConfiguredManually(nick, mapping) ||
+                    findMatching(privateRegistered, nick, mapping) != null)
+                continue;
+            privateRegistered.add(nick);
+            send(data, "+", nick);
+        }
+    }
+
     private void synchronizeAddedAliases(ServerConnectionData data,
                                          ServerConfigData.MonitoredUser user,
                                          List<ServerConfigData.MonitoredAlias> aliases) {
+        IRCCaseMapping mapping = getCaseMapping(data);
         for (ServerConfigData.MonitoredAlias alias : aliases) {
             if (synchronizedAliases.contains(alias) || aliasesOverLimit.contains(alias)) continue;
-            if (synchronizedAliases.size() >= getLimit(data)) aliasesOverLimit.add(alias);
+            // If this nick was already passively monitored, transfer ownership without
+            // sending MONITOR - followed by a duplicate +.
+            String passive = findMatching(privateRegistered, alias.nick, mapping);
+            if (passive != null) {
+                privateRegistered.remove(passive);
+                synchronizedAliases.add(alias);
+                continue;
+            }
+            if (synchronizedAliases.size() + privateRegistered.size() >= getLimit(data))
+                freePrivateSlot(data);
+            if (synchronizedAliases.size() + privateRegistered.size() >= getLimit(data))
+                aliasesOverLimit.add(alias);
             else {
                 synchronizedAliases.add(alias);
                 send(data, "+", alias.nick);
@@ -517,19 +638,25 @@ public final class MonitoredUsersManager implements CommandHandler {
     }
 
     private void fillAvailableSlots(ServerConnectionData data) {
-        if (syncState != SyncState.READY) return;
-        int available = getLimit(data) - synchronizedAliases.size();
-        if (available <= 0) return;
+        if (syncState != SyncState.READY || data == null || !isSupported(data)) return;
+        int available = getLimit(data) - synchronizedAliases.size() - privateRegistered.size();
         for (ServerConfigData.MonitoredUser user : getMonitoredUsers()) {
             for (ServerConfigData.MonitoredAlias alias : getAliases(user)) {
+                if (!aliasesOverLimit.contains(alias)) continue;
+                if (available <= 0) {
+                    freePrivateSlot(data);
+                    available = getLimit(data) - synchronizedAliases.size() -
+                            privateRegistered.size();
+                }
                 if (available <= 0) return;
-                if (!aliasesOverLimit.remove(alias)) continue;
+                aliasesOverLimit.remove(alias);
                 synchronizedAliases.add(alias);
                 send(data, "+", alias.nick);
                 notifyUserChanged(user);
                 available--;
             }
         }
+        fillPrivateSlots(data);
     }
 
     private void setSyncState(SyncState state) {

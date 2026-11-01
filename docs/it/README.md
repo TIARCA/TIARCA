@@ -57,6 +57,22 @@ raggiunta la soglia di attivazione, TIARCA dà un breve feedback aptico.
 
 ## 5. Conversazioni private (PVT)
 
+### Eventi di presenza nel privato
+
+Nelle conversazioni PVT già aperte, TIARCA registra il `QUIT` dell'interlocutore e
+mostra anche l'eventuale motivo restituito dal server (per esempio
+`nickname è uscito (Ping timeout)`). Quando la rete supporta `MONITOR`, TIARCA
+può registrare un avviso generico di uscita anche senza un canale condiviso,
+**solo se sono rimasti slot liberi** dopo il monitoraggio degli utenti configurati
+manualmente. Se il limite è pieno, non modifica né sostituisce gli utenti monitorati.
+Non vengono creati PVT automatici né avvisi di uscita dovuti alla disconnessione
+del nostro client. Un `QUIT` con motivo prevale sull'evento MONITOR generico.
+
+La preferenza **Impostazioni → Interfaccia → Mostra uscite degli interlocutori nei PVT**
+è attiva per impostazione predefinita ed è indipendente da **Nascondi JOIN/PART**
+nei canali. Il cambio preferenza si applica alla cronologia visualizzata nel PVT
+e viene conservato insieme alle altre preferenze nel backup.
+
 I PVT sono conversazioni dirette con un nickname. La toolbar espone le azioni rapide **Invia**, **ACCEPT +/-** quando il proprio `+g` è attivo, **Ignora** e **Chiudi conversazione**, oltre al menu `…`; le icone restano ad alto contrasto anche con aspetto chiaro. Quando sei in caller-ID mode `+g` e apri volontariamente un PVT, TIARCA gestisce automaticamente `ACCEPT +nickname`, permettendo all'interlocutore di rispondere senza un passaggio manuale aggiuntivo.
 
 ![PVT](../images/03_chat_privata_pvt.jpg)

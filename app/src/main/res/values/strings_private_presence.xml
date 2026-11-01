@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pref_title_pvt_presence_events">Show remote user departures in private chats</string>
+    <string name="pref_summary_pvt_presence_events">Show QUIT and MONITOR offline events in existing private chats, independently from channel JOIN/PART visibility.</string>
+    <string name="message_pvt_offline">%1$s is no longer online</string>
+    <string name="message_quit_no_message">%1$s has disconnected</string>
+</resources>

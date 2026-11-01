@@ -45,6 +45,7 @@ import io.mrarm.irc.irc.PrivateConversationReconnectReconciler;
 import io.mrarm.irc.irc.WhoXAccountHandler;
 import io.mrarm.irc.irc.WhowasCommandHandler;
 import io.mrarm.irc.irc.MonitoredUsersManager;
+import io.mrarm.irc.irc.PrivateQuitCommandHandler;
 import io.mrarm.irc.irc.ServiceMessageCommandHandler;
 import io.mrarm.irc.irc.SelfKickCommandHandler;
 import io.mrarm.chatlib.irc.handlers.KickCommandHandler;
@@ -83,6 +84,9 @@ public class ServerConnectionInfo {
     private final Set<String> mPrivateIdentityLookups = new LinkedHashSet<>();
     private final MonitoredUsersManager mMonitoredUsers;
     private final MonitoredUsersNotificationManager mMonitoredUsersNotifications;
+    private final android.os.Handler mPrivatePresenceHandler =
+            new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Map<String, Runnable> mPendingPrivateOffline = new LinkedHashMap<>();
 
     public ServerConnectionInfo(ServerConnectionManager manager, ServerConfigData config,
                                 IRCConnectionRequest connectionRequest, SASLOptions saslOptions,
@@ -96,6 +100,7 @@ public class ServerConnectionInfo {
                 ServerConfigManager.getInstance(mManager.getContext()).saveServerConfiguration(mServerConfig));
         mMonitoredUsersNotifications = new MonitoredUsersNotificationManager(mManager.getContext(), this);
         mMonitoredUsers.addListener(mMonitoredUsersNotifications);
+        mMonitoredUsers.setPrivatePresenceListener(this::onPassivePrivateOffline);
         mChannels = joinChannels;
         if (mChannels != null)
             Collections.sort(mChannels, String::compareToIgnoreCase);
@@ -202,6 +207,14 @@ public class ServerConnectionInfo {
                 mMonitoredUsers.onNickChanged(monitoredConnectionData, oldNick, newNick);
             }, null, null);
             monitoredConnectionData.getCommandHandlerList().registerHandler(mMonitoredUsers);
+            io.mrarm.chatlib.irc.handlers.QuitCommandHandler defaultQuit =
+                    monitoredConnectionData.getCommandHandlerList().getHandler(
+                            io.mrarm.chatlib.irc.handlers.QuitCommandHandler.class);
+            if (defaultQuit != null) {
+                monitoredConnectionData.getCommandHandlerList().unregisterHandler(defaultQuit);
+                monitoredConnectionData.getCommandHandlerList().registerHandler(
+                        new PrivateQuitCommandHandler(defaultQuit, this));
+            }
             // Install the channel-mode snapshot wrapper before the network thread starts.
             // CommandHandlerList accepts only one handler per command, so registering it
             // later from the dialog would collide with ModeCommandHandler on numeric 324.
@@ -338,6 +351,11 @@ public class ServerConnectionInfo {
     }
 
     private void notifyDisconnected() {
+        mPrivatePresenceHandler.post(() -> {
+            for (Runnable task : mPendingPrivateOffline.values())
+                mPrivatePresenceHandler.removeCallbacks(task);
+            mPendingPrivateOffline.clear();
+        });
         mMonitoredUsers.onDisconnected();
         synchronized (this) {
             mPrivateIdentityLookups.clear();
@@ -451,6 +469,94 @@ public class ServerConnectionInfo {
         List<String> addresses = mServerConfig.getConnectionAddresses();
         return addresses.isEmpty() ? mServerConfig.address :
                 addresses.get(Math.min(mActiveAddressIndex, addresses.size() - 1));
+    }
+
+    /** True when a private-query tab with this nickname already exists. */
+    /** Match an existing PVT against the network's own nickname case mapping. */
+    public String findOpenPrivateConversation(String nick,
+            io.mrarm.chatlib.irc.ServerConnectionData data) {
+        if (nick == null || data == null || nick.isEmpty())
+            return null;
+        synchronized (this) {
+            if (mChannels == null) return null;
+            for (String item : mChannels) {
+                if (item == null || item.isEmpty() ||
+                        data.getSupportList().getSupportedChannelTypes().contains(item.charAt(0)))
+                    continue;
+                if (data.getSupportList().getCaseMapping().equals(item, nick))
+                    return item;
+            }
+        }
+        return null;
+    }
+
+    /** Writes the actual remote QUIT into an already-open PVT, preserving its reason. */
+    public void onPrivateQuit(io.mrarm.chatlib.irc.ServerConnectionData data,
+                              io.mrarm.chatlib.irc.MessagePrefix sender, String reason) {
+        if (sender == null || sender.getNick() == null || data == null)
+            return;
+        String nick = sender.getNick();
+        mMonitoredUsers.notePrivateQuit(data, nick);
+        cancelPendingPrivateOffline(nick);
+        if (!ChatSettings.shouldShowPrivatePresenceEvents() ||
+                data.getSupportList().getCaseMapping().equals(nick, data.getUserNick()))
+            return;
+        String target = findOpenPrivateConversation(nick, data);
+        if (target == null) return;
+        io.mrarm.chatlib.dto.MessageSenderInfo info =
+                new io.mrarm.chatlib.dto.MessageSenderInfo(nick, sender.getUser(), sender.getHost(),
+                        null, null);
+        storePrivatePresence(target, new io.mrarm.chatlib.dto.MessageInfo.Builder(
+                info, reason, io.mrarm.chatlib.dto.MessageInfo.MessageType.QUIT).build());
+    }
+
+    private void storePrivatePresence(String target, io.mrarm.chatlib.dto.MessageInfo message) {
+        ChatApi api = getApiInstance();
+        if (api == null || target == null) return;
+        if (!(api instanceof ServerConnectionApi)) return;
+        ((ServerConnectionApi) api).getServerConnectionData().getMessageStorageApi()
+                .addMessage(target, message, null, e ->
+                        Log.w("ServerConnectionInfo", "Could not store PVT presence event", e));
+    }
+
+    private void cancelPendingPrivateOffline(String nick) {
+        if (nick == null) return;
+        mPrivatePresenceHandler.post(() -> {
+            for (String key : new ArrayList<>(mPendingPrivateOffline.keySet())) {
+                if (key.equalsIgnoreCase(nick)) {
+                    Runnable pending = mPendingPrivateOffline.remove(key);
+                    mPrivatePresenceHandler.removeCallbacks(pending);
+                }
+            }
+        });
+    }
+
+    private void onPassivePrivateOffline(String nick) {
+        if (nick == null || !ChatSettings.shouldShowPrivatePresenceEvents() || !isConnected())
+            return;
+        mPrivatePresenceHandler.post(() -> {
+            if (!isConnected() || !ChatSettings.shouldShowPrivatePresenceEvents()) return;
+            String key = nick.toLowerCase(Locale.ROOT);
+            if (mPendingPrivateOffline.containsKey(key)) return;
+            Runnable task = () -> {
+                mPendingPrivateOffline.remove(key);
+                if (!isConnected() || !ChatSettings.shouldShowPrivatePresenceEvents()) return;
+                ChatApi api = getApiInstance();
+                if (!(api instanceof ServerConnectionApi)) return;
+                ServerConnectionData data =
+                        ((ServerConnectionApi) api).getServerConnectionData();
+                String target = findOpenPrivateConversation(nick, data);
+                if (target != null)
+                    storePrivatePresence(target, new io.mrarm.chatlib.dto.MessageInfo.Builder(
+                            new io.mrarm.chatlib.dto.MessageSenderInfo(nick, null, null,
+                                    null, null),
+                            null,
+                            io.mrarm.chatlib.dto.MessageInfo.MessageType.PRIVATE_PRESENCE_OFFLINE)
+                            .build());
+            };
+            mPendingPrivateOffline.put(key, task);
+            mPrivatePresenceHandler.postDelayed(task, 1500L);
+        });
     }
 
     /** True when a private-query tab with this nickname already exists. */
@@ -893,6 +999,18 @@ public class ServerConnectionInfo {
             mChannels = normalized;
         }
         capturePrivateConversationIdentities(normalized);
+        if (getApiInstance() instanceof ServerConnectionApi) {
+            ServerConnectionData data =
+                    ((ServerConnectionApi) getApiInstance()).getServerConnectionData();
+            List<String> privateNicks = new ArrayList<>();
+            for (String name : normalized) {
+                if (name != null && !name.isEmpty() &&
+                        !data.getSupportList().getSupportedChannelTypes().contains(name.charAt(0))
+                        && !data.getSupportList().getCaseMapping().equals(name, data.getUserNick()))
+                    privateNicks.add(name);
+            }
+            mMonitoredUsers.setPrivateConversationNicks(data, privateNicks);
+        }
         synchronized (mChannelsListeners) {
             mManager.notifyChannelListChanged(this, normalized);
             mManager.saveAutoconnectListAsync();

@@ -49,7 +49,7 @@
       "category": "tiarca",
       "title": "Conversazioni private (PVT)",
       "summary": "Apri le informazioni utente o un PVT dal nickname.",
-      "body": "Apri le informazioni utente o un PVT dal nickname. La barra del privato contiene scorciatoie per inviare file, ignorare e chiudere.",
+      "body": "Apri le informazioni utente o un PVT dal nickname. La barra del privato contiene scorciatoie per inviare file, ignorare e chiudere. Se il server invia QUIT, la motivazione dell'uscita appare anche nel PVT già aperto; MONITOR può segnalare la disconnessione senza motivo quando ci sono slot liberi. L'opzione nelle impostazioni Interfaccia è indipendente dai JOIN/PART dei canali.",
       "syntax": "",
       "example": "",
       "note": "I PVT non sono cifrati end-to-end per impostazione predefinita.",

@@ -760,6 +760,126 @@ public class MonitoredUsersManagerTest {
         assertTrue(reserialized.contains("\"lastSeen\":1700000005000"));
     }
 
+
+    @Test public void privateTargetsOnlyUseSlotsLeftAfterManualMonitoring() throws Exception {
+        RecordingApi api = new RecordingApi();
+        ServerConnectionData data = api.getServerConnectionData();
+        applySupport(data, "MONITOR=2");
+        MonitoredUsersManager manager = new MonitoredUsersManager(new ServerConfigData());
+        manager.addMonitoredUser(data, "Manual", false, false);
+        manager.setPrivateConversationNicks(data, Arrays.asList("PvtOne", "PvtTwo"));
+        manager.synchronize(data);
+        manager.handle(data, null, "733", Arrays.asList("me", "end"),
+                Collections.emptyMap());
+
+        assertEquals(Arrays.asList("MONITOR + Manual", "MONITOR S", "MONITOR L",
+                "MONITOR + PvtOne"), api.commands);
+        assertEquals(1, manager.getMonitoredUsers().size());
+    }
+
+    @Test public void fullManualMonitorListSkipsPrivateTargetsWithoutReplacingThem()
+            throws Exception {
+        RecordingApi api = new RecordingApi();
+        ServerConnectionData data = api.getServerConnectionData();
+        applySupport(data, "MONITOR=1");
+        MonitoredUsersManager manager = new MonitoredUsersManager(new ServerConfigData());
+        manager.addMonitoredUser(data, "Manual", false, false);
+        manager.setPrivateConversationNicks(data, Collections.singletonList("Pvt"));
+        manager.synchronize(data);
+        manager.handle(data, null, "733", Arrays.asList("me", "end"),
+                Collections.emptyMap());
+        assertEquals(Arrays.asList("MONITOR + Manual", "MONITOR S", "MONITOR L"),
+                api.commands);
+    }
+
+    @Test public void aNewManualMonitorEvictsPassiveMonitorAndRestoresItWhenRemoved()
+            throws Exception {
+        RecordingApi api = new RecordingApi();
+        ServerConnectionData data = api.getServerConnectionData();
+        applySupport(data, "MONITOR=1");
+        MonitoredUsersManager manager = new MonitoredUsersManager(new ServerConfigData());
+        manager.setPrivateConversationNicks(data, Collections.singletonList("Pvt"));
+        manager.synchronize(data);
+        manager.handle(data, null, "733", Arrays.asList("me", "end"),
+                Collections.emptyMap());
+        api.commands.clear();
+
+        manager.addMonitoredUser(data, "Manual", false, false);
+        assertEquals(Arrays.asList("MONITOR - Pvt", "MONITOR + Manual"), api.commands);
+        api.commands.clear();
+        assertTrue(manager.removeMonitoredUser(data, "Manual"));
+        assertEquals(Arrays.asList("MONITOR - Manual", "MONITOR + Pvt"), api.commands);
+    }
+
+    @Test public void manuallyAddingAlreadyPassiveNickDoesNotDoubleRegisterIt()
+            throws Exception {
+        RecordingApi api = new RecordingApi();
+        ServerConnectionData data = api.getServerConnectionData();
+        applySupport(data, "MONITOR=1");
+        MonitoredUsersManager manager = new MonitoredUsersManager(new ServerConfigData());
+        manager.setPrivateConversationNicks(data, Collections.singletonList("Pvt"));
+        manager.synchronize(data);
+        manager.handle(data, null, "733", Arrays.asList("me", "end"),
+                Collections.emptyMap());
+        api.commands.clear();
+
+        manager.addMonitoredUser(data, "Pvt", true, true);
+        assertTrue(api.commands.isEmpty());
+        assertEquals(1, manager.getMonitoredUsers().size());
+    }
+
+    @Test public void privateOfflineNeedsPreviousOnlineStateAndRealQuitWins()
+            throws Exception {
+        RecordingApi api = new RecordingApi();
+        ServerConnectionData data = api.getServerConnectionData();
+        applySupport(data, "MONITOR=1");
+        MonitoredUsersManager manager = new MonitoredUsersManager(new ServerConfigData());
+        List<String> offlines = new ArrayList<>();
+        manager.setPrivatePresenceListener(offlines::add);
+        manager.setPrivateConversationNicks(data, Collections.singletonList("Pvt"));
+        manager.synchronize(data);
+        manager.handle(data, null, "733", Arrays.asList("me", "end"),
+                Collections.emptyMap());
+
+        manager.handle(data, null, "731", Arrays.asList("me", "Pvt"),
+                Collections.emptyMap()); // Initially offline: no event
+        assertTrue(offlines.isEmpty());
+        manager.handle(data, null, "730", Arrays.asList("me", "Pvt!id@host"),
+                Collections.emptyMap());
+        manager.handle(data, null, "731", Arrays.asList("me", "Pvt"),
+                Collections.emptyMap());
+        assertEquals(Collections.singletonList("Pvt"), offlines);
+
+        manager.handle(data, null, "730", Arrays.asList("me", "Pvt!id@host"),
+                Collections.emptyMap());
+        manager.notePrivateQuit(data, "Pvt");
+        manager.handle(data, null, "731", Arrays.asList("me", "Pvt"),
+                Collections.emptyMap());
+        assertEquals(1, offlines.size());
+        manager.onDisconnected();
+        manager.synchronize(data);
+        manager.handle(data, null, "733", Arrays.asList("me", "end"),
+                Collections.emptyMap());
+        manager.handle(data, null, "731", Arrays.asList("me", "Pvt"),
+                Collections.emptyMap());
+        assertEquals(1, offlines.size());
+    }
+
+    @Test public void passiveMonitoringNeverPersistsNewUsers() throws Exception {
+        RecordingApi api = new RecordingApi();
+        ServerConnectionData data = api.getServerConnectionData();
+        applySupport(data, "MONITOR=2");
+        AtomicInteger saves = new AtomicInteger();
+        MonitoredUsersManager manager = new MonitoredUsersManager(
+                new ServerConfigData(), saves::incrementAndGet);
+        manager.setPrivateConversationNicks(data, Arrays.asList("PvtOne", "PvtTwo"));
+        manager.synchronize(data);
+        manager.handle(data, null, "733", Arrays.asList("me", "end"),
+                Collections.emptyMap());
+        assertEquals(0, saves.get());
+        assertTrue(manager.getMonitoredUsers().isEmpty());
+    }
+
     private static ServerConnectionData supportedData(String... tokens) throws Exception {
         ServerConnectionData data = new ServerConnectionData();
         applySupport(data, tokens);
