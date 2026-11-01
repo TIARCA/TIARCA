@@ -91,8 +91,12 @@ public class SelectableLinkMovementHitTest {
         view.setPadding(8, 4, 8, 4);
         String url = "https://media.simosnap.com/files/6191f11adac6e0a5a9b0760838861f863928226602e7589b973f%20(1).gif";
         URLSpan link = new URLSpan(url);
-        SpannableString contents = new SpannableString(url);
-        contents.setSpan(link, 0, url.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        // Robolectric does not always reproduce Android's automatic URL wrapping.
+        // Explicit line breaks give the same span boundary condition deterministically.
+        String displayed = url.substring(0, 32) + "\n" + url.substring(32, 65)
+                + "\n" + url.substring(65);
+        SpannableString contents = new SpannableString(displayed);
+        contents.setSpan(link, 0, displayed.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         view.setText(contents, TextView.BufferType.SPANNABLE);
         view.measure(View.MeasureSpec.makeMeasureSpec(210, View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(800, View.MeasureSpec.AT_MOST));
