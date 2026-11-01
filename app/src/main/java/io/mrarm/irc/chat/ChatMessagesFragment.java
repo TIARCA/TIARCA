@@ -130,6 +130,7 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
         sFilterJoinParts.excludeMessageTypes.add(MessageInfo.MessageType.JOIN);
         sFilterJoinParts.excludeMessageTypes.add(MessageInfo.MessageType.PART);
         sFilterJoinParts.excludeMessageTypes.add(MessageInfo.MessageType.QUIT);
+        sFilterJoinParts.excludeMessageTypes.add(MessageInfo.MessageType.PRIVATE_PRESENCE_OFFLINE);
     }
 
     public ChatMessagesFragment() {
@@ -559,8 +560,22 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
         }
     }
 
+    private boolean isPrivateConversation() {
+        if (mChannelName == null || mChannelName.isEmpty() || mConnection == null)
+            return false;
+        if (!(mConnection.getApiInstance() instanceof io.mrarm.chatlib.irc.ServerConnectionApi))
+            return false;
+        io.mrarm.chatlib.irc.ServerConnectionData data =
+                ((io.mrarm.chatlib.irc.ServerConnectionApi) mConnection.getApiInstance())
+                        .getServerConnectionData();
+        return !data.getSupportList().getSupportedChannelTypes().contains(mChannelName.charAt(0));
+    }
+
     private void reloadMessages(MessageId nearMessage) {
-        if (mConnection.shouldHideJoinPartMessages())
+        // Private conversations have their own event preference. Channel JOIN/PART
+        // suppression must never hide a private QUIT or MONITOR-offline event.
+        if (isPrivateConversation() ? !ChatSettings.shouldShowPrivatePresenceEvents()
+                : mConnection.shouldHideJoinPartMessages())
             mMessageFilterOptions = sFilterJoinParts;
         else
             mMessageFilterOptions = null;
@@ -803,6 +818,12 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
             mConnection.getNotificationManager().removeUnreadMessageCountCallback(this);
         if (mUnreadCtr != null)
             mUnreadCtr.setVisibility(View.GONE);
+    }
+
+    @UiSettingChangeCallback(keys = {ChatSettings.PREF_PRIVATE_PRESENCE_EVENTS_ENABLED})
+    private void onPrivatePresenceSettingChanged() {
+        if (mConnection != null && mChannelName != null && isPrivateConversation())
+            reloadMessages(null);
     }
 
     @UiSettingChangeCallback(keys = {

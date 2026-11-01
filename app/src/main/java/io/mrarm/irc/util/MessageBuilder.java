@@ -422,9 +422,19 @@ public class MessageBuilder {
                 return processFormat(mEventMessageFormat, message.getDate(), null, event);
             }
             case QUIT: {
-                CharSequence event = SpannableStringHelper.getText(mContext, R.string.message_quit,
+                CharSequence event = SpannableStringHelper.getText(mContext,
+                        message.getMessage() == null || message.getMessage().isEmpty()
+                                ? R.string.message_quit_no_message : R.string.message_quit,
                         buildColoredNickWithHostname(message.getSender(), clickSpanFactory),
                         message.getMessage());
+                if (isNeutralEventEnabled(EventDisplaySettings.PREF_MONOCHROME_QUIT))
+                    event = makeEventNeutral(event, true);
+                return processFormat(mEventMessageFormat, message.getDate(), null, event);
+            }
+            case PRIVATE_PRESENCE_OFFLINE: {
+                CharSequence event = SpannableStringHelper.getText(mContext,
+                        R.string.message_pvt_offline,
+                        buildColoredNickWithHostname(message.getSender(), clickSpanFactory));
                 if (isNeutralEventEnabled(EventDisplaySettings.PREF_MONOCHROME_QUIT))
                     event = makeEventNeutral(event, true);
                 return processFormat(mEventMessageFormat, message.getDate(), null, event);

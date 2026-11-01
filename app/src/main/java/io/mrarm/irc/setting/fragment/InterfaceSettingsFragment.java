@@ -192,6 +192,9 @@ public class InterfaceSettingsFragment extends SettingsListFragment
         a.add(new CheckBoxSetting(getString(R.string.pref_title_separate_status_messages),
                 getString(R.string.pref_summary_separate_status_messages))
                 .linkSetting(prefs, ChatSettings.PREF_SEPARATE_STATUS_MESSAGES));
+        a.add(new CheckBoxSetting(getString(R.string.pref_title_pvt_presence_events),
+                getString(R.string.pref_summary_pvt_presence_events))
+                .linkSetting(prefs, ChatSettings.PREF_PRIVATE_PRESENCE_EVENTS_ENABLED));
 
         MessageSenderInfo testSender = new MessageSenderInfo(
                 getString(R.string.message_example_sender), "", "", null, null);

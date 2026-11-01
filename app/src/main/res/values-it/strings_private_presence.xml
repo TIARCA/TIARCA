@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pref_title_pvt_presence_events">Mostra entrate e uscite nei PVT</string>
+    <string name="pref_summary_pvt_presence_events">Mostra QUIT e cambiamenti di presenza MONITOR nei privati aperti, indipendentemente dagli eventi JOIN/PART nei canali.</string>
+    <string name="message_pvt_offline">%1$s non è più online</string>
+    <string name="message_quit_no_message">%1$s si è disconnesso</string>
+</resources>
