@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="guide_title">TIARCA Guide</string>
+    <string name="guide_search_hint">Search features and IRC commands</string>
+    <string name="guide_category_label">Guide category</string>
+    <string name="guide_offline_notice">Available offline. Server-specific commands and modes depend on network support and permissions.</string>
+    <string name="guide_no_results">No matching topics</string>
+    <string name="guide_load_error">The offline guide could not be loaded.</string>
+    <string name="guide_copy">Copy syntax</string>
+    <string name="guide_insert">Insert in chat</string>
+    <string name="guide_copied">Syntax copied</string>
+    <string name="guide_no_active_chat">Open a conversation before inserting a command.</string>
+    <string name="guide_replace_draft_title">Replace current draft?</string>
+    <string name="guide_replace_draft_message">The message field already contains text. Replace it with the command from the guide? No command will be sent.</string>
+    <string name="guide_replace_draft_confirm">Replace</string>
+    <string name="guide_syntax_label">Syntax: %1$s</string>
+    <string name="guide_example_label">Example: %1$s</string>
+    <string name="guide_source_label">Reference: %1$s</string>
+    <string-array name="guide_categories">
+        <item>All topics</item><item>TIARCA features</item><item>Basic IRC</item>
+        <item>Advanced IRC</item><item>Network services and extensions</item>
+    </string-array>
+</resources>

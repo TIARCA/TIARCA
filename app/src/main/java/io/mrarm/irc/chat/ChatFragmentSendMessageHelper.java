@@ -226,6 +226,21 @@ public class ChatFragmentSendMessageHelper implements SendMessageHelper.Callback
         mSendText.setText(text);
     }
 
+    /** Returns whether inserting a manual example would overwrite an unfinished message. */
+    public boolean hasDraftText() {
+        return mSendText != null && mSendText.length() > 0;
+    }
+
+    /** Safely inserts a guide command into the composer; never sends it. */
+    public void insertGuideCommand(String command) {
+        if (mSendText == null || command == null || !command.startsWith("/")
+                || command.contains("\n") || command.contains("\r"))
+            return;
+        mSendText.setText(command);
+        mSendText.setSelection(command.length());
+        mSendText.requestFocus();
+    }
+
     /** Inserts a nickname exactly as if that nickname had been chosen by TAB completion. */
     public void insertNicknameAsTabCompletion(String nick) {
         mSendText.insertCompletedNickname(nick);

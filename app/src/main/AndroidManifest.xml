@@ -162,6 +162,10 @@
             android:label="@string/title_activity_settings"
             android:theme="@style/AppTheme" />
         <activity
+            android:name=".GuideActivity"
+            android:exported="false"
+            android:label="@string/guide_title" />
+        <activity
             android:name=".MessageFormatSettingsActivity"
             android:label="@string/title_activity_message_format_settings"
             android:windowSoftInputMode="adjustResize|stateHidden" />

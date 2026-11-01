@@ -14,6 +14,7 @@ import java.util.List;
 import androidx.fragment.app.Fragment;
 
 import io.mrarm.irc.MainActivity;
+import io.mrarm.irc.GuideActivity;
 import io.mrarm.irc.MonitoredServersActivity;
 import io.mrarm.irc.MonitoredUsersActivity;
 import io.mrarm.irc.NotificationManager;
@@ -69,6 +70,16 @@ public class DrawerHelper implements ServerConnectionManager.ConnectionsListener
             activity.startActivity(new Intent(activity, SettingsActivity.class));
         });
         mAdapter.addMenuItem(mSettingsItem);
+        DrawerMenuItem guideItem = new DrawerMenuItem(r.getString(R.string.guide_title),
+                R.drawable.ic_info);
+        guideItem.setOnClickListener(view -> {
+            mDrawerLayout.closeDrawers();
+            if (activity instanceof MainActivity)
+                ((MainActivity) activity).openGuide();
+            else
+                activity.startActivity(new Intent(activity, GuideActivity.class));
+        });
+        mAdapter.addMenuItem(guideItem);
 
         mDrawerLayout.addDrawerListener(new DrawerLayout.DrawerListener() {
             boolean wasClosed = false;

@@ -110,6 +110,7 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
     private ActivityResultLauncher<Intent> mCaptureSimosnapPhotoLauncher;
     private ActivityResultLauncher<Intent> mRecordSimosnapVideoLauncher;
     private ActivityResultLauncher<Intent> mDccDownloadsDirectoryLauncher;
+    private ActivityResultLauncher<Intent> mGuideLauncher;
     private DCCManager.ActivityDialogHandler mDCCDialogHandler =
             new DCCManager.ActivityDialogHandler(this);
 
@@ -229,6 +230,42 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
                 mDCCDialogHandler.handleDownloadsDirectoryResult(
                         result.getResultCode(), result.getData()));
         mDCCDialogHandler.setDownloadsDirectoryLauncher(mDccDownloadsDirectoryLauncher);
+        mGuideLauncher = registerForActivityResult(contract, result -> {
+            if (result.getResultCode() != RESULT_OK || result.getData() == null)
+                return;
+            String command = result.getData().getStringExtra(GuideActivity.EXTRA_INSERT_COMMAND);
+            if (command == null || !command.startsWith("/") || command.contains("\n")
+                    || command.contains("\r"))
+                return;
+            Fragment current = getCurrentFragment();
+            if (!(current instanceof ChatFragment)
+                    || ((ChatFragment) current).getSendMessageHelper() == null) {
+                Toast.makeText(this, R.string.guide_no_active_chat, Toast.LENGTH_LONG).show();
+                return;
+            }
+            io.mrarm.irc.chat.ChatFragmentSendMessageHelper helper =
+                    ((ChatFragment) current).getSendMessageHelper();
+            if (helper.hasDraftText()) {
+                new AlertDialog.Builder(this)
+                        .setTitle(R.string.guide_replace_draft_title)
+                        .setMessage(R.string.guide_replace_draft_message)
+                        .setPositiveButton(R.string.guide_replace_draft_confirm,
+                                (dialog, which) -> helper.insertGuideCommand(command))
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .show();
+            } else {
+                helper.insertGuideCommand(command);
+            }
+        });
+    }
+
+    /** Opens the local manual; a returned command is only inserted into the draft. */
+    public void openGuide() {
+        boolean canInsert = getCurrentFragment() instanceof ChatFragment
+                && ((ChatFragment) getCurrentFragment()).getSendMessageHelper() != null;
+        Intent intent = new Intent(this, GuideActivity.class);
+        intent.putExtra(GuideActivity.EXTRA_ALLOW_INSERT, canInsert);
+        mGuideLauncher.launch(intent);
     }
 
     private void handleIntent(Intent intent) {
