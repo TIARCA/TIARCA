@@ -184,6 +184,7 @@ public class ThemeInfo {
         public String notice;
         public String event;
         public Boolean eventHostname;
+        public Boolean showNickPrefixes;
         public String timeFormat;
         public Boolean timeFixedWidth;
         public Boolean timeRight;
@@ -199,6 +200,7 @@ public class ThemeInfo {
             notice = other.notice;
             event = other.event;
             eventHostname = other.eventHostname;
+            showNickPrefixes = other.showNickPrefixes;
             timeFormat = other.timeFormat;
             timeFixedWidth = other.timeFixedWidth;
             timeRight = other.timeRight;

@@ -34,6 +34,7 @@ import java.util.Date;
 
 import io.mrarm.chatlib.dto.MessageInfo;
 import io.mrarm.chatlib.dto.MessageSenderInfo;
+import io.mrarm.chatlib.dto.NickPrefixList;
 import io.mrarm.irc.util.StyledAttributesHelper;
 import io.mrarm.irc.view.FormattableEditText;
 import io.mrarm.irc.util.MessageBuilder;
@@ -221,7 +222,8 @@ public class MessageFormatSettingsActivity extends ThemedActivity {
 
     private void refreshExamples() {
         if (mTestSender == null) {
-            mTestSender = new MessageSenderInfo(getString(R.string.message_example_sender), "user", "test/host", null, null);
+            mTestSender = new MessageSenderInfo(getString(R.string.message_example_sender),
+                    "user", "test/host", new NickPrefixList("@"), null);
             Date date = getSampleMessageTime();
             mSampleMessage = new MessageInfo(mTestSender, date, getString(R.string.message_example_message), MessageInfo.MessageType.NORMAL);
             mSampleActionMessage = new MessageInfo(mTestSender, date, getString(R.string.message_example_message), MessageInfo.MessageType.ME);
@@ -247,6 +249,7 @@ public class MessageFormatSettingsActivity extends ThemedActivity {
         CheckBox bold = findViewById(R.id.sender_bold);
         CheckBox italic = findViewById(R.id.sender_italic);
         CheckBox underline = findViewById(R.id.sender_underline);
+        CheckBox nickPrefixes = findViewById(R.id.message_nick_prefixes);
         CheckBox avatars = findViewById(R.id.message_avatars);
         CheckBox customAvatars = findViewById(R.id.message_custom_avatars);
         CheckBox advanced = findViewById(R.id.advanced_toggle);
@@ -258,6 +261,7 @@ public class MessageFormatSettingsActivity extends ThemedActivity {
                 Typeface.ITALIC));
         underline.setChecked(hasSenderSpan(mMessageBuilder.getMessageFormat(),
                 UnderlineSpan.class, 0));
+        nickPrefixes.setChecked(mMessageBuilder.getShowNickPrefixes());
         avatars.setChecked(mMessageBuilder.getMessageAvatars());
         customAvatars.setChecked(mMessageBuilder.getMessageCustomAvatars());
         customAvatars.setEnabled(avatars.isChecked());
@@ -268,6 +272,10 @@ public class MessageFormatSettingsActivity extends ThemedActivity {
                 setSenderStyle(StyleSpan.class, Typeface.ITALIC, checked));
         underline.setOnCheckedChangeListener((button, checked) ->
                 setSenderStyle(UnderlineSpan.class, 0, checked));
+        nickPrefixes.setOnCheckedChangeListener((button, checked) -> {
+            mMessageBuilder.setShowNickPrefixes(checked);
+            refreshExamples();
+        });
         avatars.setOnCheckedChangeListener((button, checked) -> {
             mMessageBuilder.setMessageAvatars(checked);
             customAvatars.setEnabled(checked);
@@ -419,6 +427,7 @@ public class MessageFormatSettingsActivity extends ThemedActivity {
         global.setNoticeMessageFormat(mMessageBuilder.getNoticeMessageFormat());
         global.setEventMessageFormat(mMessageBuilder.getEventMessageFormat());
         global.setEventMessageShowHostname(mMessageBuilder.getEventMessageShowHostname());
+        global.setShowNickPrefixes(mMessageBuilder.getShowNickPrefixes());
         global.setMessageAvatars(mMessageBuilder.getMessageAvatars());
         global.setMessageCustomAvatars(mMessageBuilder.getMessageCustomAvatars());
         global.saveFormats();

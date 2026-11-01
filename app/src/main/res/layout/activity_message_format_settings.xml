@@ -75,6 +75,14 @@
             </LinearLayout>
 
             <CheckBox
+                android:id="@+id/message_nick_prefixes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/activity_horizontal_margin_s4"
+                android:layout_marginRight="@dimen/activity_horizontal_margin_s4"
+                android:text="@string/message_format_show_nick_prefixes" />
+
+            <CheckBox
                 android:id="@+id/message_avatars"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

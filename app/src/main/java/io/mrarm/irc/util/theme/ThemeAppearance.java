@@ -125,6 +125,7 @@ final class ThemeAppearance {
         layout.notice = serialize(builder.getNoticeMessageFormat());
         layout.event = serialize(builder.getEventMessageFormat());
         layout.eventHostname = builder.getEventMessageShowHostname();
+        layout.showNickPrefixes = builder.getShowNickPrefixes();
         layout.timeFormat = builder.getMessageTimeFormat().toPattern();
         // Legacy compatibility only: old TIARCA versions still read this field. The current
         // renderer always aligns a left-side clock automatically, so new presets advertise the
@@ -220,6 +221,8 @@ final class ThemeAppearance {
             trySetFormat(context, layout.event, builder::setEventMessageFormat);
             if (layout.eventHostname != null)
                 builder.setEventMessageShowHostname(layout.eventHostname);
+            // Older exported presets have no field: preserve opt-in semantics.
+            builder.setShowNickPrefixes(Boolean.TRUE.equals(layout.showNickPrefixes));
             if (layout.timeFormat != null) {
                 try {
                     builder.setMessageTimeFormat(layout.timeFormat);
@@ -352,6 +355,7 @@ final class ThemeAppearance {
                 || MessageFormatSettings.PREF_MESSAGE_FORMAT_NOTICE.equals(key)
                 || MessageFormatSettings.PREF_MESSAGE_FORMAT_EVENT.equals(key)
                 || MessageFormatSettings.PREF_MESSAGE_FORMAT_EVENT_HOSTNAME.equals(key)
+                || MessageFormatSettings.PREF_SHOW_NICK_PREFIXES.equals(key)
                 || MessageFormatSettings.PREF_MESSAGE_TIME_FORMAT.equals(key)
                 || MessageFormatSettings.PREF_MESSAGE_AVATARS.equals(key)
                 || MessageFormatSettings.PREF_MESSAGE_CUSTOM_AVATARS.equals(key)

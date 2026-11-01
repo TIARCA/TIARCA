@@ -115,6 +115,7 @@ public final class AppearancePresetManager {
                 MessageFormatSettings.PREF_MESSAGE_FORMAT_NOTICE,
                 MessageFormatSettings.PREF_MESSAGE_FORMAT_EVENT,
                 MessageFormatSettings.PREF_MESSAGE_FORMAT_EVENT_HOSTNAME,
+                MessageFormatSettings.PREF_SHOW_NICK_PREFIXES,
                 MessageFormatSettings.PREF_MESSAGE_TIME_FORMAT,
                 MessageFormatSettings.PREF_MESSAGE_AVATARS,
                 MessageFormatSettings.PREF_MESSAGE_CUSTOM_AVATARS,
@@ -293,6 +294,9 @@ public final class AppearancePresetManager {
                 .buildEventPresetMessageFormat(context, graphic || colorBlind ? 1 : 0));
         // Terminal is intentionally verbose: include the user's host by default in channel events.
         builder.setEventMessageShowHostname(terminal);
+        // Leave the Basic opt-in disabled in every built-in visual preset.
+        // Terminal and Color Blind still render prefixes through their explicit chips.
+        builder.setShowNickPrefixes(false);
         builder.setMessageTimeFormat(colorBlind ? "HH:mm" : terminal ? "[HH:mm:ss]"
                 : graphic ? "HH:mm" : "[HH:mm.ss]");
         builder.setMessageAvatars(graphic || colorBlind);
