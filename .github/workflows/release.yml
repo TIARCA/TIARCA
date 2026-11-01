@@ -2,6 +2,12 @@ name: Build TIARCA Release
 
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Existing version tag to publish using the current workflow (empty: build only)'
+        required: false
+        default: ''
+        type: string
 
   push:
     tags:
@@ -11,7 +17,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: tiarca-release-${{ github.ref }}
+  group: tiarca-release-${{ inputs.release_tag || github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -26,10 +32,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
+          ref: ${{ inputs.release_tag || github.sha }}
           fetch-depth: 0
 
       - name: Detect version
         id: version
+        env:
+          REQUESTED_RELEASE_TAG: ${{ inputs.release_tag }}
         shell: bash
         run: |
           set -euo pipefail
@@ -43,7 +52,13 @@ jobs:
           TAG="v$VERSION"
           PUBLISH_RELEASE=false
 
-          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+          if [[ -n "$REQUESTED_RELEASE_TAG" ]]; then
+            if [[ "$REQUESTED_RELEASE_TAG" != "$TAG" ]]; then
+              echo "Requested tag does not match versionName $VERSION" >&2
+              exit 1
+            fi
+            PUBLISH_RELEASE=true
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
             if [[ "$GITHUB_REF_NAME" != "$TAG" ]]; then
               echo "Tag $GITHUB_REF_NAME does not match versionName $VERSION" >&2
               exit 1
@@ -73,14 +88,14 @@ jobs:
       - name: Checkout build A
         uses: actions/checkout@v5
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ inputs.release_tag || github.sha }}
           path: build-a
           fetch-depth: 1
 
       - name: Checkout build B
         uses: actions/checkout@v5
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ inputs.release_tag || github.sha }}
           path: build-b
           fetch-depth: 1
 
@@ -168,7 +183,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ inputs.release_tag || github.sha }}
           fetch-depth: 0
 
       - name: Set up Java 21
@@ -206,7 +221,8 @@ jobs:
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -n 1)
           for FLAVOR in standard fdroid; do
             APK=$(find "app/build/outputs/apk/$FLAVOR/release" -maxdepth 1 -type f -name "*.apk" | head -n 1)
-            CERT=$("$APKSIGNER" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+            CERT=$("$APKSIGNER" verify --print-certs "$APK" | sed -n 's/^Signer .*certificate SHA-256 digest: //p')
+            echo "$FLAVOR certificate SHA-256: $CERT"
             test "$CERT" = "e2141ddf7765bfe99b0eb34cae636cefde0228aeeb1a100ddd8c9d6c8e7718a7"
             echo "$FLAVOR: release signing certificate verified"
           done
