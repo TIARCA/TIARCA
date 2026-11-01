@@ -5,6 +5,7 @@ import android.text.Selection;
 import android.text.Spannable;
 import android.text.method.ArrowKeyMovementMethod;
 import android.text.style.ClickableSpan;
+import android.text.style.URLSpan;
 import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.ViewConfiguration;
@@ -250,6 +251,15 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
                 firstX = layout.getLineLeft(line);
             if (x >= Math.min(firstX, lastX) && x < Math.max(firstX, lastX))
                 return span;
+        }
+        // Hyperlinks may wrap across multiple visual lines. Android can map the
+        // end horizontal offset to the next line's origin, making the strict
+        // nickname rectangle reject a valid link tap. Fall back to Android's
+        // character-to-span mapping ONLY for real URL spans, never nickname swipes.
+        for (URLSpan link : buffer.getSpans(closestOffset, closestOffset, URLSpan.class)) {
+            if (buffer.getSpanStart(link) <= closestOffset
+                    && closestOffset < buffer.getSpanEnd(link))
+                return link;
         }
         return null;
     }
