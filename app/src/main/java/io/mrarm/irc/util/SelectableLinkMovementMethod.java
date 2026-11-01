@@ -225,11 +225,12 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
         int line = layout.getLineForVertical((int) y);
         int lineStart = layout.getLineStart(line);
         int lineEnd = layout.getLineEnd(line);
+        int closestOffset = layout.getOffsetForHorizontal(line, x);
         ClickableSpan[] spans = buffer.getSpans(lineStart, lineEnd, ClickableSpan.class);
         for (ClickableSpan span : spans) {
             int start = Math.max(lineStart, buffer.getSpanStart(span));
             int end = Math.min(lineEnd, buffer.getSpanEnd(span));
-            if (end <= start)
+            if (end <= start || closestOffset < start || closestOffset > end)
                 continue;
             float firstX = layout.getPrimaryHorizontal(start);
             float lastX = layout.getPrimaryHorizontal(end);
