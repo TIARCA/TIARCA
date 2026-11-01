@@ -74,6 +74,7 @@ public class MessageBuilder {
     private CharSequence mNoticeMessageFormat;
     private CharSequence mEventMessageFormat;
     private boolean mEventMessageShowHostname = false;
+    private boolean mShowNickPrefixes;
     private boolean mMessageAvatars;
     private boolean mMessageCustomAvatars;
 
@@ -186,6 +187,7 @@ public class MessageBuilder {
         if (mEventMessageFormat == null)
             mEventMessageFormat = buildDefaultEventMessageFormat(context);
         mEventMessageShowHostname = mgr.getBoolean(MessageFormatSettings.PREF_MESSAGE_FORMAT_EVENT_HOSTNAME, mEventMessageShowHostname);
+        mShowNickPrefixes = mgr.getBoolean(MessageFormatSettings.PREF_SHOW_NICK_PREFIXES, false);
         mMessageAvatars = mgr.getBoolean(MessageFormatSettings.PREF_MESSAGE_AVATARS, false);
         mMessageCustomAvatars = mgr.getBoolean(MessageFormatSettings.PREF_MESSAGE_CUSTOM_AVATARS, false);
     }
@@ -200,6 +202,7 @@ public class MessageBuilder {
         mgr.putString(MessageFormatSettings.PREF_MESSAGE_FORMAT_NOTICE, SettingsHelper.getGson().toJson(spannableToJson(mNoticeMessageFormat)));
         mgr.putString(MessageFormatSettings.PREF_MESSAGE_FORMAT_EVENT, SettingsHelper.getGson().toJson(spannableToJson(mEventMessageFormat)));
         mgr.putBoolean(MessageFormatSettings.PREF_MESSAGE_FORMAT_EVENT_HOSTNAME, mEventMessageShowHostname);
+        mgr.putBoolean(MessageFormatSettings.PREF_SHOW_NICK_PREFIXES, mShowNickPrefixes);
         mgr.putBoolean(MessageFormatSettings.PREF_MESSAGE_AVATARS, mMessageAvatars);
         mgr.putBoolean(MessageFormatSettings.PREF_MESSAGE_CUSTOM_AVATARS, mMessageCustomAvatars);
         mgr.apply();
@@ -293,6 +296,10 @@ public class MessageBuilder {
         mEventMessageShowHostname = enabled;
     }
 
+    public boolean getShowNickPrefixes() { return mShowNickPrefixes; }
+
+    public void setShowNickPrefixes(boolean enabled) { mShowNickPrefixes = enabled; }
+
     public boolean getMessageAvatars() { return mMessageAvatars; }
 
     public void setMessageAvatars(boolean enabled) { mMessageAvatars = enabled; }
@@ -343,6 +350,25 @@ public class MessageBuilder {
         return clickableNick;
     }
 
+    /** Use the first (highest-ranked) IRC PREFIX symbol, never infer privileges. */
+    static String getNickPrefix(NickWithPrefix sender) {
+        return sender != null && sender.getNickPrefixes() != null
+                && sender.getNickPrefixes().length() > 0
+                ? String.valueOf(sender.getNickPrefixes().get(0)) : "";
+    }
+
+    private CharSequence buildClickableColoredNickWithPrefix(MessageSenderInfo sender,
+                                                              NickClickSpanFactory factory) {
+        if (sender == null) return "";
+        CharSequence nick = buildClickableColoredNick(sender.getNick(), factory);
+        if (!mShowNickPrefixes) return nick;
+        String prefix = getNickPrefix(sender);
+        if (prefix.isEmpty()) return nick;
+        SpannableStringBuilder combined = new SpannableStringBuilder(prefix);
+        combined.append(nick);
+        return combined;
+    }
+
     private CharSequence buildColoredNickWithHostname(MessageSenderInfo sender) {
         return buildColoredNickWithHostname(sender, null);
     }
@@ -350,18 +376,20 @@ public class MessageBuilder {
     private CharSequence buildColoredNickWithHostname(MessageSenderInfo sender,
                                                        NickClickSpanFactory clickSpanFactory) {
         if (!mEventMessageShowHostname || sender == null)
-            return buildClickableColoredNick(sender == null ? null : sender.getNick(), clickSpanFactory);
+            return buildClickableColoredNickWithPrefix(sender, clickSpanFactory);
 
         String nick = sender.getNick();
+        String prefix = mShowNickPrefixes ? getNickPrefix(sender) : "";
         int color = IRCColorUtils.getNickColor(mContext, nick);
-        SpannableString spannable = new SpannableString(nick +
-                (sender.getUser() != null ? "!" + sender.getUser() : 0) +
-                (sender.getHost() != null ? "@" + sender.getHost() : 0));
-        spannable.setSpan(new ForegroundColorSpan(color), 0, nick.length(),
+        SpannableString spannable = new SpannableString(prefix + nick +
+                (sender.getUser() != null ? "!" + sender.getUser() : "") +
+                (sender.getHost() != null ? "@" + sender.getHost() : ""));
+        spannable.setSpan(new ForegroundColorSpan(color), 0, prefix.length() + nick.length(),
                 Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         ClickableSpan clickSpan = getNickClickSpan(nick, clickSpanFactory);
         if (clickSpan != null)
-            spannable.setSpan(clickSpan, 0, nick.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            spannable.setSpan(clickSpan, prefix.length(), prefix.length() + nick.length(),
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         return spannable;
     }
 
@@ -414,7 +442,7 @@ public class MessageBuilder {
                 String kickedNick = ((KickMessageInfo) message).getKickedNick();
                 CharSequence event = SpannableStringHelper.getText(mContext,
                         R.string.message_kick,
-                        buildClickableColoredNick(senderNick, clickSpanFactory),
+                        buildClickableColoredNickWithPrefix(message.getSender(), clickSpanFactory),
                         buildClickableColoredNick(kickedNick, clickSpanFactory),
                         message.getMessage());
                 if (isNeutralEventEnabled(EventDisplaySettings.PREF_MONOCHROME_KICK))
@@ -443,13 +471,13 @@ public class MessageBuilder {
                 String newNick = ((NickChangeMessageInfo) message).getNewNick();
                 SpannableStringBuilder ssb = (SpannableStringBuilder)
                         SpannableStringHelper.getText(mContext, R.string.message_nick_change,
-                                buildClickableColoredNick(senderNick, clickSpanFactory),
+                                buildClickableColoredNickWithPrefix(message.getSender(), clickSpanFactory),
                                 buildClickableColoredNick(newNick, clickSpanFactory));
                 return processFormat(mEventMessageFormat, message.getDate(), null,
                         ssb);
             }
             case MODE: {
-                CharSequence event = buildModeMessage(senderNick,
+                CharSequence event = buildModeMessage(message.getSender(),
                         ((ChannelModeMessageInfo) message).getEntries(), clickSpanFactory);
                 if (isNeutralEventEnabled(EventDisplaySettings.PREF_MONOCHROME_MODE))
                     event = makeEventNeutral(event, true);
@@ -467,7 +495,8 @@ public class MessageBuilder {
                             SpannableStringHelper.getText(mContext, R.string.message_topic, topicText));
                 return processFormat(mEventMessageFormat, message.getDate(), null,
                         SpannableStringHelper.getText(mContext, R.string.message_topic_by,
-                                topicText, buildClickableColoredNick(senderNick, clickSpanFactory)));
+                                topicText, buildClickableColoredNickWithPrefix(message.getSender(),
+                                        clickSpanFactory)));
             }
             case TOPIC_WHOTIME: {
                 TopicWhoTimeMessageInfo topicMessage = (TopicWhoTimeMessageInfo) message;
@@ -569,7 +598,7 @@ public class MessageBuilder {
                 senderClickSpan);
     }
 
-    private CharSequence buildModeMessage(String senderNick,
+    private CharSequence buildModeMessage(MessageSenderInfo sender,
                                           List<ChannelModeMessageInfo.Entry> list,
                                           NickClickSpanFactory clickSpanFactory) {
         Map<String, Set<Character>> addNickModes = new HashMap<>();
@@ -671,7 +700,7 @@ public class MessageBuilder {
                 appendDelim(msg, SpannableStringHelper.getText(mContext, R.string.message_mode_removed, setBuilder));
         }
         return SpannableStringHelper.getText(mContext, R.string.message_mode,
-                buildClickableColoredNick(senderNick, clickSpanFactory), msg);
+                buildClickableColoredNickWithPrefix(sender, clickSpanFactory), msg);
     }
 
     private boolean isNeutralEventEnabled(String preference) {
@@ -793,21 +822,28 @@ public class MessageBuilder {
             message = buildColoredMessage(message, monochrome, true);
         }
         SpannableStringBuilder builder = new SpannableStringBuilder(format);
+        boolean hasExplicitPrefixChip = false;
+        for (MetaChipSpan chip : builder.getSpans(0, builder.length(), MetaChipSpan.class)) {
+            if (chip.mType == MetaChipSpan.TYPE_SENDER_PREFIX) {
+                hasExplicitPrefixChip = true;
+                break;
+            }
+        }
         for (MetaChipSpan span : builder.getSpans(0, builder.length(), MetaChipSpan.class)) {
             CharSequence replacement = null;
             if (span.mType == MetaChipSpan.TYPE_SENDER) {
                 String nick = sender != null && sender.getNick() != null ? sender.getNick() : "";
-                if (senderClickSpan != null && !nick.isEmpty()) {
-                    SpannableString clickableNick = new SpannableString(nick);
-                    clickableNick.setSpan(senderClickSpan, 0, nick.length(),
+                SpannableStringBuilder formattedNick = new SpannableStringBuilder();
+                if (mShowNickPrefixes && !hasExplicitPrefixChip)
+                    formattedNick.append(getNickPrefix(sender));
+                int nickStart = formattedNick.length();
+                formattedNick.append(nick);
+                if (senderClickSpan != null && !nick.isEmpty())
+                    formattedNick.setSpan(senderClickSpan, nickStart, formattedNick.length(),
                             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    replacement = clickableNick;
-                } else {
-                    replacement = nick;
-                }
+                replacement = formattedNick;
             } else if (span.mType == MetaChipSpan.TYPE_SENDER_PREFIX) {
-                replacement = (sender != null && sender.getNickPrefixes() != null ?
-                        String.valueOf(sender.getNickPrefixes().get(0)) : "");
+                replacement = getNickPrefix(sender);
             } else if (span.mType == MetaChipSpan.TYPE_MESSAGE) {
                 replacement = message;
             } else if (span.mType == MetaChipSpan.TYPE_TIME) {
