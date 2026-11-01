@@ -87,7 +87,7 @@ public class SelectableLinkMovementHitTest {
     @Test public void wrappedUrlIsClickableOnContinuationLine() {
         TextView view = message(
                 "https://media.simosnap.com/files/6191f11adac6e0a5a9b0760838861f86/3928226602e7589b973f%20(1).gif",
-                0, 0);
+                0, 5);
         android.text.Spannable buffer = (android.text.Spannable) view.getText();
         buffer.removeSpan(nickname);
         android.text.style.URLSpan url = new android.text.style.URLSpan("https://example.org/long.gif");
@@ -106,7 +106,7 @@ public class SelectableLinkMovementHitTest {
     }
 
     @Test public void emptyAreaBesideWrappedUrlDoesNotActivateIt() {
-        TextView view = message("https://example.org/a-long-resource/path/to/image.gif", 0, 0);
+        TextView view = message("https://example.org/a-long-resource/path/to/image.gif", 0, 5);
         android.text.Spannable buffer = (android.text.Spannable) view.getText();
         buffer.removeSpan(nickname);
         android.text.style.URLSpan url = new android.text.style.URLSpan("https://example.org");
