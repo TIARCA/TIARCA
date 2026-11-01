@@ -505,7 +505,8 @@ public class MessageBuilder {
                         DateUtils.FORMAT_SHOW_DATE | DateUtils.FORMAT_SHOW_TIME);
                 return processFormat(mEventMessageFormat, message.getDate(), null,
                         SpannableStringHelper.getText(mContext, R.string.message_topic_whotime,
-                                buildClickableColoredNick(topicMessage.getSetBy().getNick(), clickSpanFactory),
+                                buildClickableColoredNickWithPrefix(topicMessage.getSetBy(),
+                                        clickSpanFactory),
                                 topicSetOnStr));
             }
             case DISCONNECT_WARNING:
