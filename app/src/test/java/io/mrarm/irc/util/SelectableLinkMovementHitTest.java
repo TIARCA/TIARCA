@@ -108,16 +108,7 @@ public class SelectableLinkMovementHitTest {
                     + (layout.getLineLeft(line) + layout.getLineRight(line)) / 2f;
             float middleY = view.getTotalPaddingTop()
                     + (layout.getLineTop(line) + layout.getLineBottom(line)) / 2f;
-            ClickableSpan found = hit(view, middleX, middleY);
-            int offset = layout.getOffsetForHorizontal(line, middleX - view.getTotalPaddingLeft());
-            System.err.println("URLHIT line=" + line + " top=" + layout.getLineTop(line)
-                    + " y=" + middleY + " selectedLine=" + layout.getLineForVertical(
-                        (int) (middleY - view.getTotalPaddingTop()))
-                    + " x=" + middleX + " left=" + layout.getLineLeft(line)
-                    + " right=" + layout.getLineRight(line)
-                    + " visibleEnd=" + layout.getLineVisibleEnd(line)
-                    + " offset=" + offset + " found=" + (found==null?"NULL":found.getClass().getName()));
-            assertSame("line " + line, link, found);
+            assertSame("line " + line, link, hit(view, middleX, middleY));
         }
         assertNull(hit(view, view.getWidth() - 2f,
                 view.getTotalPaddingTop() + (layout.getLineTop(0) + layout.getLineBottom(0)) / 2f));

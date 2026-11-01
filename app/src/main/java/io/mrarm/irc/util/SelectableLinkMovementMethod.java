@@ -236,7 +236,13 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
         for (ClickableSpan span : spans) {
             int start = Math.max(lineStart, buffer.getSpanStart(span));
             int end = Math.min(lineEnd, buffer.getSpanEnd(span));
-            if (end <= start || closestOffset < start || closestOffset > end)
+            if (end <= start)
+                continue;
+            // Nickname gestures need the stricter character-offset check.
+            // A URL may span several visual lines; getOffsetForHorizontal() is
+            // not reliable at wrapped-line boundaries on every layout engine.
+            if (span instanceof SwipeableLongClickableSpan
+                    && (closestOffset < start || closestOffset > end))
                 continue;
             // getPrimaryHorizontal(lineEnd) may point to the *start of the next
             // visual line*. This occurs with wrapped links and makes entire URL
