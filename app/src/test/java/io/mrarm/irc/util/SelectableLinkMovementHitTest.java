@@ -110,6 +110,16 @@ public class SelectableLinkMovementHitTest {
                 + layout.getPrimaryHorizontal(lineStart + 1)) / 2f;
         float y = view.getTotalPaddingTop()
                 + (layout.getLineTop(line) + layout.getLineBottom(line)) / 2f;
+        int offset = layout.getOffsetForHorizontal(line, x - view.getTotalPaddingLeft());
+        System.out.println("URLHIT line=" + line + " start=" + layout.getLineStart(line)
+                + " end=" + layout.getLineEnd(line) + " count=" + layout.getLineCount()
+                + " startX=" + layout.getPrimaryHorizontal(layout.getLineStart(line))
+                + " nextX=" + layout.getPrimaryHorizontal(layout.getLineStart(line) + 1)
+                + " left=" + layout.getLineLeft(line) + " right=" + layout.getLineRight(line)
+                + " x=" + x + " y=" + y + " offset=" + offset
+                + " spanStart=" + ((android.text.Spanned) view.getText()).getSpanStart(url)
+                + " spanEnd=" + ((android.text.Spanned) view.getText()).getSpanEnd(url)
+                + " actual=" + hit(view, x, y));
         assertSame(url, hit(view, x, y));
     }
 
