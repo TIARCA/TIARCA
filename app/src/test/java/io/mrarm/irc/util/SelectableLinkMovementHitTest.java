@@ -84,17 +84,23 @@ public class SelectableLinkMovementHitTest {
         assertNull(hit(view, x, view.getHeight() + 20f));
     }
 
-    @Test public void wrappedUrlIsClickableOnContinuationLine() {
-        TextView view = message(
-                "https://media.simosnap.com/files/6191f11adac6e0a5a9b0760838861f86/3928226602e7589b973f%20(1).gif",
-                0, 5);
-        android.text.Spannable buffer = (android.text.Spannable) view.getText();
-        buffer.removeSpan(nickname);
-        android.text.style.URLSpan url = new android.text.style.URLSpan("https://example.org/long.gif");
-        buffer.setSpan(url, 0, buffer.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        view.measure(View.MeasureSpec.makeMeasureSpec(180, View.MeasureSpec.EXACTLY),
+    private TextView urlMessage(String address, android.text.style.URLSpan url, int width) {
+        TextView view = new TextView(RuntimeEnvironment.getApplication());
+        view.setPadding(16, 8, 16, 8);
+        SpannableString content = new SpannableString(address);
+        content.setSpan(url, 0, address.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        view.setText(content, TextView.BufferType.SPANNABLE);
+        view.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(600, View.MeasureSpec.AT_MOST));
-        view.layout(0, 0, 180, view.getMeasuredHeight());
+        view.layout(0, 0, width, view.getMeasuredHeight());
+        return view;
+    }
+
+    @Test public void wrappedUrlIsClickableOnContinuationLine() {
+        android.text.style.URLSpan url = new android.text.style.URLSpan("https://example.org/long.gif");
+        TextView view = urlMessage(
+                "https://media.simosnap.com/files/6191f11adac6e0a5a9b0760838861f86/3928226602e7589b973f%20(1).gif",
+                url, 180);
         Layout layout = view.getLayout();
         org.junit.Assert.assertTrue("URL should wrap", layout.getLineCount() >= 2);
         int line = 1;
@@ -106,14 +112,9 @@ public class SelectableLinkMovementHitTest {
     }
 
     @Test public void emptyAreaBesideWrappedUrlDoesNotActivateIt() {
-        TextView view = message("https://example.org/a-long-resource/path/to/image.gif", 0, 5);
-        android.text.Spannable buffer = (android.text.Spannable) view.getText();
-        buffer.removeSpan(nickname);
         android.text.style.URLSpan url = new android.text.style.URLSpan("https://example.org");
-        buffer.setSpan(url, 0, buffer.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        view.measure(View.MeasureSpec.makeMeasureSpec(190, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(600, View.MeasureSpec.AT_MOST));
-        view.layout(0, 0, 190, view.getMeasuredHeight());
+        TextView view = urlMessage(
+                "https://example.org/a-long-resource/path/to/image.gif", url, 190);
         assertNull(hit(view, view.getWidth() - 2, view.getTotalPaddingTop() + 2));
     }
 
