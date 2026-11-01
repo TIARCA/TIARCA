@@ -30,7 +30,9 @@ public class PrivatePresenceStructureTest {
         String wrapper = read("app/src/main/java/io/mrarm/irc/irc/PrivateQuitCommandHandler.java",
                 "src/main/java/io/mrarm/irc/irc/PrivateQuitCommandHandler.java");
         assertTrue(wrapper.contains("delegate.handle(connection, sender, command, params, tags)"));
-        assertTrue(wrapper.contains("owner.onPrivateQuit(connection, sender"));
+        assertTrue(wrapper.contains("listener.onPrivateQuit(connection, sender"));
+        assertTrue(wrapper.indexOf("listener.onPrivateQuit(connection, sender") <
+                wrapper.indexOf("delegate.handle(connection, sender, command, params, tags)"));
         String server = read("app/src/main/java/io/mrarm/irc/ServerConnectionInfo.java",
                 "src/main/java/io/mrarm/irc/ServerConnectionInfo.java");
         assertTrue(server.contains("findOpenPrivateConversation(nick, data)"));
