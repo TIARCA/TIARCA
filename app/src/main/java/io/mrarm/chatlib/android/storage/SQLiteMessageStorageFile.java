@@ -222,7 +222,7 @@ public class SQLiteMessageStorageFile {
                 while (newer ? cursor.moveToNext() : cursor.moveToPrevious()) {
                     byte[] uuidBlob = cursor.getBlob(2);
                     ret.add(MessageStorageHelper.deserializeMessage(
-                            uuidBlob != null ? MessageStorageHelper.deserializeSenderInfo(cursor.getString(1), MessageStorageHelper.bytesToUUID(uuidBlob)) : null,
+                            cursor.getString(1) != null ? MessageStorageHelper.deserializeSenderInfo(cursor.getString(1), uuidBlob != null ? MessageStorageHelper.bytesToUUID(uuidBlob) : null) : null,
                             new Date(cursor.getLong(3)),
                             cursor.getString(4),
                             cursor.getInt(5),
@@ -267,7 +267,10 @@ public class SQLiteMessageStorageFile {
             }
             if (message.getSender() != null) {
                 statement.bindString(1, MessageStorageHelper.serializeSenderInfo(message.getSender()));
-                statement.bindBlob(2, MessageStorageHelper.uuidToBytes(message.getSender().getUserUUID()));
+                if (message.getSender().getUserUUID() != null)
+                    statement.bindBlob(2, MessageStorageHelper.uuidToBytes(message.getSender().getUserUUID()));
+                else
+                    statement.bindNull(2);
             } else {
                 statement.bindNull(1);
                 statement.bindNull(2);
