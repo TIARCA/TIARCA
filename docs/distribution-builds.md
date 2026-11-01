@@ -21,11 +21,11 @@ embedded fallback was never user data and is not automatically copied into prefe
 
 The manual Candidate workflow produces both signed APKs without publishing a release.
 Future tagged releases verify reproducibility independently for both flavors and publish
-`TIARCA-vVERSION.apk` and `TIARCA-fdroid-vVERSION.apk` with SHA-256 files. Existing releases
+`TIARCA-vVERSION.apk` and `TIARCA-vVERSION_fdroid.apk` with SHA-256 files. Existing releases
 are unchanged.
 
 For a future F-Droid metadata update, select `fdroid` in the recipe's `gradle` list and use
-`https://github.com/TIARCA/TIARCA/releases/download/v%v/TIARCA-fdroid-v%v.apk`
+`https://github.com/TIARCA/TIARCA/releases/download/v%v/TIARCA-v%v_fdroid.apk`
 as `Binaries`. The selected commit/tag must actually provide this new asset. Do not apply
 this recipe to the already published v0.9.9, which predates these flavors.
 
