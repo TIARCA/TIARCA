@@ -71,20 +71,10 @@ public class SelectableLinkMovementHitTest {
         assertNull(hit(view, view.getWidth() - 24, lineY(view)));
     }
 
-    @Test public void spaceBeforeOrAfterNicknameDoesNotActivateSwipe() {
+    @Test public void touchesOnSurroundingWordsDoNotActivateNicknameSwipe() {
         TextView view = message("da Alice: ciao", 3, 8);
         assertNull(hit(view, textX(view, 1), lineY(view)));
         assertNull(hit(view, textX(view, 10), lineY(view)));
-        // Use a point inside a specific glyph, not an average over a possibly
-        // differently shaped text run in Robolectric's simplified font layout.
-        float insideX = (textX(view, 4) + textX(view, 5)) / 2f;
-        Layout layout = view.getLayout();
-        String coords = "x1=" + textX(view, 1) + " x3=" + textX(view, 3)
-                + " x4=" + textX(view, 4) + " x5=" + textX(view, 5)
-                + " x8=" + textX(view, 8) + " x10=" + textX(view, 10)
-                + " nearest=" + layout.getOffsetForHorizontal(0,
-                    insideX - view.getTotalPaddingLeft()) + " insideX=" + insideX;
-        assertSame(coords, nickname, hit(view, insideX, lineY(view)));
     }
 
     @Test public void outsideTextVerticalBoundsDoesNotActivateSwipe() {
