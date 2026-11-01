@@ -12,12 +12,21 @@ import io.mrarm.irc.ServerConnectionInfo;
 
 /** Preserves channel QUIT processing while writing the same event into an existing PVT. */
 public final class PrivateQuitCommandHandler implements CommandHandler {
+    /** Delivery is independent of channel member cleanup. */
+    interface PrivateQuitObserver {
+        void onQuit(ServerConnectionData connection, MessagePrefix sender, String reason);
+    }
+
     private final QuitCommandHandler delegate;
-    private final ServerConnectionInfo owner;
+    private final PrivateQuitObserver observer;
 
     public PrivateQuitCommandHandler(QuitCommandHandler delegate, ServerConnectionInfo owner) {
+        this(delegate, owner::onPrivateQuit);
+    }
+
+    PrivateQuitCommandHandler(QuitCommandHandler delegate, PrivateQuitObserver observer) {
         this.delegate = delegate;
-        this.owner = owner;
+        this.observer = observer;
     }
 
     @Override public Object[] getHandledCommands() {
@@ -27,9 +36,11 @@ public final class PrivateQuitCommandHandler implements CommandHandler {
     @Override public void handle(ServerConnectionData connection, MessagePrefix sender,
                                  String command, List<String> params, Map<String, String> tags)
             throws InvalidMessageException {
-        // First retain chatlib's existing channel member removal and channel event.
-        delegate.handle(connection, sender, command, params, tags);
+        // Record the real QUIT in existing PVTs before cleaning up joined-channel
+        // members. The default handler can fail while looking up a now-missing
+        // member; that should not suppress an otherwise valid private QUIT.
         if (sender != null && sender.getNick() != null)
-            owner.onPrivateQuit(connection, sender, CommandHandler.getParamOrNull(params, 0));
+            observer.onQuit(connection, sender, CommandHandler.getParamOrNull(params, 0));
+        delegate.handle(connection, sender, command, params, tags);
     }
 }
