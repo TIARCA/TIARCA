@@ -238,10 +238,11 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
             int end = Math.min(lineEnd, buffer.getSpanEnd(span));
             if (end <= start)
                 continue;
-            // Nickname gestures need the stricter character-offset check.
-            // A URL may span several visual lines; getOffsetForHorizontal() is
-            // not reliable at wrapped-line boundaries on every layout engine.
-            if (span instanceof SwipeableLongClickableSpan
+            // Preserve strict offset checking for nicknames and all other
+            // clickable text. URLs spanning visual lines need their rendered
+            // bounds instead: some layout engines return an offset on a
+            // different line even for a valid tap on a wrapped URL.
+            if (!(span instanceof android.text.style.URLSpan)
                     && (closestOffset < start || closestOffset > end))
                 continue;
             // getPrimaryHorizontal(lineEnd) may point to the *start of the next
