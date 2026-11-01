@@ -83,8 +83,14 @@ public class SelectableLinkMovementHitTest {
         }
         assertNull(hit(view, textX(view, 1), lineY(view)));
         assertNull(hit(view, textX(view, 10), lineY(view)));
-        assertSame(nickname, hit(view, (textX(view, 3) + textX(view, 8)) / 2f,
-                lineY(view)));
+        float insideX = (textX(view, 3) + textX(view, 8)) / 2f;
+        assertSame("insideX=" + insideX
+                        + " offset=" + layout.getOffsetForHorizontal(0,
+                            insideX - view.getTotalPaddingLeft())
+                        + " left=" + layout.getPrimaryHorizontal(3)
+                        + " right=" + layout.getPrimaryHorizontal(8)
+                        + " first=" + layout.getPrimaryHorizontal(1),
+                nickname, hit(view, insideX, lineY(view)));
     }
 
     @Test public void outsideTextVerticalBoundsDoesNotActivateSwipe() {
