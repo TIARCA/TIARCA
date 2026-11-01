@@ -1,5 +1,20 @@
 # TIARCA — Changelog
 
+## v0.9.10
+
+- Introdotte le distribuzioni **Standard** e **F-Droid**, compilate dallo stesso codice: la versione F-Droid apre la pagina nel relativo client, non offre aggiornamenti GitHub e non richiede il permesso per installare APK.
+- Rimossa la chiave TMDB incorporata: `!movie` usa una chiave personale inserita nelle impostazioni, con collegamento alla guida ufficiale. Le chiavi personali già salvate restano nelle preferenze e nei backup.
+- Limitate agli effettivi server Simosnap le richieste degli avatar, compreso il percorso WHOIS e il recupero dalla cache.
+- Sostituiti gli editor dei comandi rapidi con descrizioni d'uso ed esempi; mantenuti gli interruttori e gli alias già salvati.
+- Aggiunti gesti configurabili sui nickname, con anteprima visiva e feedback aptico; corretta l'interazione con link, selezione e pressione prolungata, anche per gli URL su più righe.
+- Aggiunta una guida TIARCA e IRC consultabile offline dal drawer, con ricerca e argomenti espandibili.
+- Migliorata la visibilità delle menzioni con evidenziazione più lunga e testo in grassetto nei preset; aggiunta l'opzione **Visualizza prefissi nickname** nel formato messaggi Basic.
+- Corretta la conservazione della cronologia dei PVT durante i cambi nickname e migliorati i messaggi di uscita QUIT e le notifiche offline MONITOR nelle conversazioni private.
+- Migliorati autocompletamento, selezione/copia del testo, salto all'ultimo messaggio, aggiornamento della toolbar dei PVT e dialog Ignora; l'ignore dei nickname rispetta ora il casemapping IRC.
+- Aggiunti `/quote`, gestione delle verifiche Simosnap e conto alla rovescia SECURELIST; introdotta un'opzione per indirizzare i messaggi STATUSMSG al canale originario.
+- Migliorati DCC/UPnP, indirizzi Simosnap, backup dei preset importati, anteprima iniziale e diagnostica; corrette le descrizioni dei mode canale Simosnap.
+- Aggiornate CI e pubblicazione: controlli su entrambe le distribuzioni, firma verificata, confronto di riproducibilità separato e APK con checksum SHA-256. L'updater Standard seleziona esplicitamente il proprio APK.
+
 ## v0.9.9
 
 - Introdotti sei **preset grafici completi** (Grafico chiaro/scuro, IRC chiaro/scuro, Terminale e Daltonismo) che applicano in modo coerente tema, palette, font, dimensioni, avatar, timestamp e formato dei messaggi; le modifiche manuali alle opzioni gestite fanno passare il preset a **Personalizzato**. I nuovi installati partono da Grafico chiaro.

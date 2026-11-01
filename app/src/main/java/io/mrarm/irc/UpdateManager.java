@@ -387,8 +387,7 @@ public final class UpdateManager {
                 for (JsonElement element : assets) {
                     JsonObject asset = element.getAsJsonObject();
                     String name = asset.get("name").getAsString();
-                    if (name.toLowerCase(Locale.ROOT).endsWith(".apk") &&
-                            name.toLowerCase(Locale.ROOT).contains("tiarca")) {
+                    if (isStandardApkAsset(name, version)) {
                         apkName = name;
                         apkUrl = asset.get("browser_download_url").getAsString();
                         break;
@@ -401,6 +400,11 @@ public final class UpdateManager {
         } finally {
             connection.disconnect();
         }
+    }
+
+    static boolean isStandardApkAsset(String name, String version) {
+        // A release also includes a separate F-Droid APK. Never switch distributions.
+        return ("TIARCA-v" + version + ".apk").equals(name);
     }
 
     private static void showUpdateAvailable(Activity activity, ReleaseInfo release) {

@@ -1,0 +1,68 @@
+name: Publish TIARCA 0.9.10 once
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-0.9.10.yml']
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: publish-tiarca-0.9.10
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Wait for CI, tag the verified commit and dispatch Release
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const tag = 'v0.9.10';
+            const sha = context.sha;
+            const { data: file } = await github.rest.repos.getContent({
+              ...context.repo, path: 'app/build.gradle', ref: sha
+            });
+            const gradle = Buffer.from(file.content, 'base64').toString('utf8');
+            if (!/versionName\s+"0\.9\.10"/.test(gradle) ||
+                !/versionCode\s+91000/.test(gradle))
+              throw new Error('Release version does not match the requested tag');
+            const deadline = Date.now() + 20 * 60 * 1000;
+            let passed = false;
+            while (Date.now() < deadline) {
+              const { data } = await github.rest.actions.listWorkflowRuns({
+                ...context.repo, workflow_id: 'ci.yml', head_sha: sha,
+                event: 'push', per_page: 10
+              });
+              const run = data.workflow_runs[0];
+              if (run && run.status === 'completed') {
+                if (run.conclusion !== 'success')
+                  throw new Error(`CI failed: ${run.html_url}`);
+                core.info(`CI verified: ${run.html_url}`);
+                passed = true;
+                break;
+              }
+              await new Promise(resolve => setTimeout(resolve, 15000));
+            }
+            if (!passed) throw new Error('Timed out waiting for CI');
+            try {
+              await github.rest.git.createRef({
+                ...context.repo, ref: `refs/tags/${tag}`, sha
+              });
+            } catch (error) {
+              if (error.status !== 422) throw error;
+              const { data: existing } = await github.rest.git.getRef({
+                ...context.repo, ref: `tags/${tag}`
+              });
+              if (existing.object.sha !== sha) throw new Error('Tag already points elsewhere');
+            }
+            // Tags created by GITHUB_TOKEN do not trigger push workflows.
+            // Explicit dispatch on the tag keeps the normal Release workflow in charge.
+            await github.rest.actions.createWorkflowDispatch({
+              ...context.repo, workflow_id: 'release.yml', ref: tag
+            });
+            core.info(`Dispatched release of ${tag} at ${sha}`);
