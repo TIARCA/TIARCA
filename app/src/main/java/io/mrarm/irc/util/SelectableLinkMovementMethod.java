@@ -232,11 +232,18 @@ public final class SelectableLinkMovementMethod extends ArrowKeyMovementMethod {
             int end = Math.min(lineEnd, buffer.getSpanEnd(span));
             if (end <= start || closestOffset < start || closestOffset > end)
                 continue;
+            // A wrapped hyperlink fills each intermediate visual line. PrimaryHorizontal
+            // for its lineEnd may point back to the next line's start; use the actual
+            // rendered line boundaries rather than that misleading end offset.
+            boolean entireLine = buffer.getSpanStart(span) <= lineStart
+                    && buffer.getSpanEnd(span) >= lineEnd;
+            if (entireLine && !(span instanceof SwipeableLongClickableSpan)) {
+                if (x >= layout.getLineLeft(line) && x <= layout.getLineRight(line))
+                    return span;
+                continue;
+            }
             float firstX = layout.getPrimaryHorizontal(start);
             float lastX = layout.getPrimaryHorizontal(end);
-            // At a soft line break, getPrimaryHorizontal(lineEnd) is often
-            // the START of the following line, not the end of this one.
-            // Long clickable media URLs can cross several such breaks.
             if (end == lineEnd && line < layout.getLineCount() - 1)
                 lastX = layout.getLineRight(line);
             if (start == lineStart && line > 0 && buffer.getSpanStart(span) < lineStart)

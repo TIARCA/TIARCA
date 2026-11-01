@@ -104,8 +104,10 @@ public class SelectableLinkMovementHitTest {
         Layout layout = view.getLayout();
         org.junit.Assert.assertTrue("URL should wrap", layout.getLineCount() >= 2);
         int line = 1;
+        int lineStart = layout.getLineStart(line);
         float x = view.getTotalPaddingLeft()
-                + (layout.getLineLeft(line) + layout.getLineRight(line)) / 2f;
+                + (layout.getPrimaryHorizontal(lineStart)
+                + layout.getPrimaryHorizontal(lineStart + 1)) / 2f;
         float y = view.getTotalPaddingTop()
                 + (layout.getLineTop(line) + layout.getLineBottom(line)) / 2f;
         assertSame(url, hit(view, x, y));
