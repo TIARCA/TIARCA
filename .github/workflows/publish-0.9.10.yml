@@ -49,20 +49,13 @@ jobs:
               await new Promise(resolve => setTimeout(resolve, 15000));
             }
             if (!passed) throw new Error('Timed out waiting for CI');
-            try {
-              await github.rest.git.createRef({
-                ...context.repo, ref: `refs/tags/${tag}`, sha
-              });
-            } catch (error) {
-              if (error.status !== 422) throw error;
-              const { data: existing } = await github.rest.git.getRef({
-                ...context.repo, ref: `tags/${tag}`
-              });
-              if (existing.object.sha !== sha) throw new Error('Tag already points elsewhere');
-            }
-            // Tags created by GITHUB_TOKEN do not trigger push workflows.
-            // Explicit dispatch on the tag keeps the normal Release workflow in charge.
-            await github.rest.actions.createWorkflowDispatch({
-              ...context.repo, workflow_id: 'release.yml', ref: tag
+            const { data: existing } = await github.rest.git.getRef({
+              ...context.repo, ref: `tags/${tag}`
             });
-            core.info(`Dispatched release of ${tag} at ${sha}`);
+            if (existing.object.sha !== 'b42c2fadb7e9bbe3a56ae4d8c947f13235f387bb')
+              throw new Error('Existing release tag moved unexpectedly');
+            await github.rest.actions.createWorkflowDispatch({
+              ...context.repo, workflow_id: 'release.yml', ref: 'main',
+              inputs: { release_tag: tag }
+            });
+            core.info(`Dispatched corrected workflow for unchanged ${tag}`);
