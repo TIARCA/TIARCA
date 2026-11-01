@@ -73,24 +73,12 @@ public class SelectableLinkMovementHitTest {
 
     @Test public void spaceBeforeOrAfterNicknameDoesNotActivateSwipe() {
         TextView view = message("da Alice: ciao", 3, 8);
-        android.text.Layout layout = view.getLayout();
-        for (int i = 0; i <= 14; i++) {
-            float x = textX(view, i);
-            System.out.println("HITDBG " + i + " x=" + x + " nearest=" +
-                    layout.getOffsetForHorizontal(0, x - view.getTotalPaddingLeft())
-                    + " primary3=" + layout.getPrimaryHorizontal(3)
-                    + " primary8=" + layout.getPrimaryHorizontal(8));
-        }
         assertNull(hit(view, textX(view, 1), lineY(view)));
         assertNull(hit(view, textX(view, 10), lineY(view)));
-        float insideX = (textX(view, 3) + textX(view, 8)) / 2f;
-        assertSame("insideX=" + insideX
-                        + " offset=" + layout.getOffsetForHorizontal(0,
-                            insideX - view.getTotalPaddingLeft())
-                        + " left=" + layout.getPrimaryHorizontal(3)
-                        + " right=" + layout.getPrimaryHorizontal(8)
-                        + " first=" + layout.getPrimaryHorizontal(1),
-                nickname, hit(view, insideX, lineY(view)));
+        // Use a point inside a specific glyph, not an average over a possibly
+        // differently shaped text run in Robolectric's simplified font layout.
+        assertSame(nickname, hit(view, (textX(view, 4) + textX(view, 5)) / 2f,
+                lineY(view)));
     }
 
     @Test public void outsideTextVerticalBoundsDoesNotActivateSwipe() {
