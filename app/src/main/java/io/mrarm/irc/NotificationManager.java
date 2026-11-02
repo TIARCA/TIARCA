@@ -70,15 +70,35 @@ public class NotificationManager {
     private final List<UnreadMessageCountCallback> mGlobalUnreadCallbacks = new ArrayList<>();
     private final Handler mUiHandler = new Handler(Looper.getMainLooper());
     private volatile InAppAlertListener mInAppAlertListener;
+    // Access to the queue is confined to the main/UI thread.
+    private final InAppAlertQueue mInAppAlerts = new InAppAlertQueue();
 
-    /** Only the currently resumed chat screen registers a listener. */
+    /** Only a resumed MainActivity receives UI callbacks; the queue survives recreation. */
     public void setInAppAlertListener(InAppAlertListener listener) {
         mInAppAlertListener = listener;
+        if (listener != null) {
+            if (!InAppAlertSettings.isEnabled())
+                mInAppAlerts.clear();
+            listener.onInAppAlertsChanged(false);
+        }
+    }
+
+    public InAppAlertQueue.Alert getCurrentInAppAlert() {
+        return mInAppAlerts.current();
+    }
+
+    public int getWaitingInAppAlertCount() {
+        return mInAppAlerts.waitingCount();
+    }
+
+    /** Dismisses only the displayed alert and reveals the next waiting alert. */
+    public void dismissCurrentInAppAlert() {
+        if (mInAppAlerts.dismissCurrent() && mInAppAlertListener != null)
+            mInAppAlertListener.onInAppAlertsChanged(false);
     }
 
     public interface InAppAlertListener {
-        void onInAppAlert(ServerConnectionInfo connection, String target, String sender,
-                          String message, boolean privateMessage);
+        void onInAppAlertsChanged(boolean newlyReceived);
     }
 
     private String mLastSummaryChannel = null;
@@ -113,8 +133,11 @@ public class NotificationManager {
                 String target = direct ? sender : normalizedChannel;
                 String message = info.getMessage();
                 mUiHandler.post(() -> {
-                    if (mInAppAlertListener == listener)
-                        listener.onInAppAlert(connection, target, sender, message, direct);
+                    if (mInAppAlertListener == listener && InAppAlertSettings.isEnabled()
+                            && mInAppAlerts.add(new InAppAlertQueue.Alert(
+                                    connection.getUUID(), target, sender, message, direct))) {
+                        listener.onInAppAlertsChanged(true);
+                    }
                 });
             }
         }
