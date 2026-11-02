@@ -563,6 +563,15 @@
 
     <!-- Notification settings -->
 
+    <string name="notification_in_app_enabled">Bannières internes pour les messages privés et les mentions</string>
+    <string name="notification_in_app_sound">Son des bannières internes (désactivé par défaut)</string>
+    <string name="notification_in_app_private">Message privé de %1$s</string>
+    <string name="notification_in_app_mention">%1$s vous a mentionné dans %2$s</string>
+    <string name="notification_in_app_close">Fermer la notification</string>
+    <plurals name="notification_in_app_more">
+        <item quantity="one">et une autre notification à consulter</item>
+        <item quantity="other">et %1$d autres notifications à consulter</item>
+    </plurals>
     <string name="pref_header_notifications">Notifications</string>
 
     <string name="notification_custom_rules">Règles personnalisées</string>
