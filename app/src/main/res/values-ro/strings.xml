@@ -579,6 +579,15 @@
 
     <!-- Notification settings -->
 
+    <string name="notification_in_app_enabled">Alerte în aplicație pentru mesaje private și mențiuni</string>
+    <string name="notification_in_app_sound">Sunet pentru alertele din aplicație (dezactivat implicit)</string>
+    <string name="notification_in_app_private">Mesaj privat de la %1$s</string>
+    <string name="notification_in_app_mention">%1$s te-a menționat în %2$s</string>
+    <string name="notification_in_app_close">Închide notificarea</string>
+    <plurals name="notification_in_app_more">
+        <item quantity="one">și încă o notificare de verificat</item>
+        <item quantity="other">și alte %1$d notificări de verificat</item>
+    </plurals>
     <string name="pref_header_notifications">Notificări</string>
 
     <string name="notification_custom_rules">Reguli personalizate</string>
