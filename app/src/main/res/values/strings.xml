@@ -597,6 +597,15 @@
 
     <!-- Notification settings -->
 
+    <string name="notification_in_app_enabled">In-app banners for private messages and mentions</string>
+    <string name="notification_in_app_sound">Sound for in-app banners (off by default)</string>
+    <string name="notification_in_app_private">Private message from %1$s</string>
+    <string name="notification_in_app_mention">%1$s mentioned you in %2$s</string>
+    <string name="notification_in_app_close">Dismiss notification</string>
+    <plurals name="notification_in_app_more">
+        <item quantity="one">and one more notification to review</item>
+        <item quantity="other">and %1$d more notifications to review</item>
+    </plurals>
     <string name="pref_header_notifications">Notifications</string>
 
     <string name="notification_custom_rules">Custom rules</string>

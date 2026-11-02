@@ -563,6 +563,15 @@
 
     <!-- Notification settings -->
 
+    <string name="notification_in_app_enabled">Sovelluksen sisäiset ilmoitukset yksityisviesteistä ja maininnoista</string>
+    <string name="notification_in_app_sound">Sovelluksen sisäisten ilmoitusten ääni (oletuksena pois)</string>
+    <string name="notification_in_app_private">Yksityisviesti käyttäjältä %1$s</string>
+    <string name="notification_in_app_mention">%1$s mainitsi sinut kanavalla %2$s</string>
+    <string name="notification_in_app_close">Sulje ilmoitus</string>
+    <plurals name="notification_in_app_more">
+        <item quantity="one">ja yksi muu ilmoitus tarkistettavana</item>
+        <item quantity="other">ja %1$d muuta ilmoitusta tarkistettavana</item>
+    </plurals>
     <string name="pref_header_notifications">Ilmoitukset</string>
 
     <string name="notification_custom_rules">Mukautetut säännöt</string>

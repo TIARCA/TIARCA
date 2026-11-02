@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.appcompat.widget.SwitchCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -13,7 +14,9 @@ import android.view.ViewGroup;
 import io.mrarm.irc.EditNotificationSettingsActivity;
 import io.mrarm.irc.NotificationRulesAdapter;
 import io.mrarm.irc.R;
+import io.mrarm.irc.config.InAppAlertSettings;
 import io.mrarm.irc.config.NotificationRuleManager;
+import io.mrarm.irc.config.SettingsHelper;
 
 public class NotificationSettingsFragment extends Fragment implements NamedSettingsFragment {
 
@@ -27,7 +30,21 @@ public class NotificationSettingsFragment extends Fragment implements NamedSetti
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.simple_list_with_fab, container, false);
+        View view = inflater.inflate(R.layout.fragment_notification_settings, container, false);
+        SwitchCompat enabled = view.findViewById(R.id.in_app_alerts_enabled);
+        SwitchCompat sound = view.findViewById(R.id.in_app_alerts_sound);
+        enabled.setChecked(InAppAlertSettings.isEnabled());
+        sound.setChecked(InAppAlertSettings.isSoundEnabled());
+        sound.setEnabled(enabled.isChecked());
+        enabled.setOnCheckedChangeListener((button, checked) -> {
+            SettingsHelper.getPreferences().edit()
+                    .putBoolean(InAppAlertSettings.PREF_ENABLED, checked).apply();
+            sound.setEnabled(checked);
+        });
+        sound.setOnCheckedChangeListener((button, checked) ->
+                SettingsHelper.getPreferences().edit()
+                        .putBoolean(InAppAlertSettings.PREF_SOUND, checked).apply());
+
         RecyclerView recyclerView = view.findViewById(R.id.items);
         recyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
         mAdapter = new NotificationRulesAdapter(getActivity());

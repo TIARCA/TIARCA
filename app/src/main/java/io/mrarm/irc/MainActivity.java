@@ -8,8 +8,11 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.net.Uri;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
 import android.os.Build;
 import android.os.ParcelFileDescriptor;
+import android.os.SystemClock;
 import android.provider.OpenableColumns;
 import android.provider.MediaStore;
 import android.content.pm.PackageManager;
@@ -43,6 +46,7 @@ import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Toast;
 import android.widget.EditText;
+import android.widget.TextView;
 
 import java.io.File;
 import java.io.IOException;
@@ -60,6 +64,7 @@ import io.mrarm.chatlib.irc.dcc.DCCUtils;
 import io.mrarm.irc.chat.ChannelInfoAdapter;
 import io.mrarm.irc.chat.ChatFragment;
 import io.mrarm.irc.config.AppSettings;
+import io.mrarm.irc.config.InAppAlertSettings;
 import io.mrarm.irc.config.SharingSettings;
 import io.mrarm.irc.dialog.UserSearchDialog;
 import io.mrarm.irc.dialog.WhowasQueryDialog;
@@ -100,6 +105,12 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
     private Dialog mCurrentDialog;
     private ChannelInfoAdapter mChannelInfoAdapter;
     private boolean mAppExiting;
+    private View mInAppAlertCard;
+    private TextView mInAppAlertMessage;
+    private TextView mInAppAlertMore;
+    private long mLastInAppSoundAt = -1;
+    private final NotificationManager.InAppAlertListener mInAppAlertListener =
+            this::refreshInAppAlert;
     private ServerConnectionInfo mSimosnapUploadConnection;
     private String mSimosnapUploadTarget;
     private ServerConnectionInfo mDccUploadConnection;
@@ -150,6 +161,7 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
         mFakeToolbar = findViewById(R.id.fake_toolbar);
 
         mDrawerLayout = findViewById(R.id.drawer_layout);
+        setupInAppAlertCard();
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
@@ -376,6 +388,7 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
     protected void onResume() {
         super.onResume();
         WarningHelper.setActivity(this);
+        NotificationManager.getInstance().setInAppAlertListener(mInAppAlertListener);
         mDCCDialogHandler.onResume();
         if (getCurrentFragment() instanceof ChatFragment && !ServerConnectionManager
                 .getInstance(this).hasConnection(((ChatFragment) getCurrentFragment())
@@ -386,9 +399,80 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
 
     @Override
     protected void onPause() {
+        NotificationManager.getInstance().setInAppAlertListener(null);
         super.onPause();
         WarningHelper.setActivity(null);
         mDCCDialogHandler.onPause();
+    }
+
+    private void setupInAppAlertCard() {
+        mInAppAlertCard = findViewById(R.id.in_app_alert_card);
+        mInAppAlertMessage = findViewById(R.id.in_app_alert_message);
+        mInAppAlertMore = findViewById(R.id.in_app_alert_more);
+
+        // Both X and the "more" line consume one alert; the oldest waiting one follows.
+        findViewById(R.id.in_app_alert_close).setOnClickListener(view ->
+                NotificationManager.getInstance().dismissCurrentInAppAlert());
+        mInAppAlertMore.setOnClickListener(view ->
+                NotificationManager.getInstance().dismissCurrentInAppAlert());
+        findViewById(R.id.in_app_alert_open).setOnClickListener(view -> {
+            NotificationManager notifications = NotificationManager.getInstance();
+            InAppAlertQueue.Alert current = notifications.getCurrentInAppAlert();
+            if (current == null)
+                return;
+            notifications.dismissCurrentInAppAlert();
+            ServerConnectionInfo connection = ServerConnectionManager.getInstance(this)
+                    .getConnection(current.serverUUID);
+            if (connection != null)
+                openServer(connection, current.target);
+        });
+    }
+
+    private void refreshInAppAlert(boolean newlyReceived) {
+        if (mInAppAlertCard == null)
+            return;
+        NotificationManager notifications = NotificationManager.getInstance();
+        InAppAlertQueue.Alert current = notifications.getCurrentInAppAlert();
+        if (!InAppAlertSettings.isEnabled() || current == null) {
+            mInAppAlertCard.setVisibility(View.GONE);
+            return;
+        }
+        String title = current.privateMessage
+                ? getString(R.string.notification_in_app_private, current.sender)
+                : getString(R.string.notification_in_app_mention, current.sender, current.target);
+        String preview = current.message.replace('\n', ' ').replace('\r', ' ').trim();
+        if (preview.codePointCount(0, preview.length()) > 120)
+            preview = preview.substring(0, preview.offsetByCodePoints(0, 120)) + "…";
+        mInAppAlertMessage.setText(title + "\n" + preview);
+
+        int waiting = notifications.getWaitingInAppAlertCount();
+        if (waiting == 0) {
+            mInAppAlertMore.setVisibility(View.GONE);
+        } else {
+            mInAppAlertMore.setText(getResources().getQuantityString(
+                    R.plurals.notification_in_app_more, waiting, waiting));
+            mInAppAlertMore.setVisibility(View.VISIBLE);
+        }
+        mInAppAlertCard.setVisibility(View.VISIBLE);
+        if (newlyReceived)
+            playInAppAlertSound();
+    }
+
+    private void playInAppAlertSound() {
+        if (!InAppAlertSettings.isSoundEnabled())
+            return;
+        long now = SystemClock.elapsedRealtime();
+        if (mLastInAppSoundAt >= 0 && now - mLastInAppSoundAt < 2000)
+            return;
+        mLastInAppSoundAt = now;
+        try {
+            Ringtone ringtone = RingtoneManager.getRingtone(this,
+                    RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION));
+            if (ringtone != null)
+                ringtone.play();
+        } catch (RuntimeException ignored) {
+            // Audio restrictions must not disrupt chat or the pending-alert queue.
+        }
     }
 
     @Override

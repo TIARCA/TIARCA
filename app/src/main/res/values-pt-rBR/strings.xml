@@ -563,6 +563,15 @@
 
     <!-- Notification settings -->
 
+    <string name="notification_in_app_enabled">Alertas no app para mensagens privadas e menções</string>
+    <string name="notification_in_app_sound">Som dos alertas no app (desativado por padrão)</string>
+    <string name="notification_in_app_private">Mensagem privada de %1$s</string>
+    <string name="notification_in_app_mention">%1$s mencionou você em %2$s</string>
+    <string name="notification_in_app_close">Fechar alerta</string>
+    <plurals name="notification_in_app_more">
+        <item quantity="one">e mais uma notificação para conferir</item>
+        <item quantity="other">e mais %1$d notificações para conferir</item>
+    </plurals>
     <string name="pref_header_notifications">Mensagens do canal</string>
 
     <string name="notification_custom_rules">Regras personalizadas</string>

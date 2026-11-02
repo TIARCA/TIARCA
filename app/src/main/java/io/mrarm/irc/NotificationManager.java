@@ -8,6 +8,8 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
@@ -24,6 +26,7 @@ import io.mrarm.chatlib.dto.MessageId;
 import io.mrarm.chatlib.dto.MessageInfo;
 import io.mrarm.chatlib.irc.ServerConnectionApi;
 import io.mrarm.chatlib.irc.ServerConnectionData;
+import io.mrarm.irc.config.InAppAlertSettings;
 import io.mrarm.irc.config.NotificationRule;
 import io.mrarm.irc.config.NotificationRuleManager;
 import io.mrarm.irc.config.NotificationCountStorage;
@@ -65,6 +68,38 @@ public class NotificationManager {
     }
 
     private final List<UnreadMessageCountCallback> mGlobalUnreadCallbacks = new ArrayList<>();
+    private final Handler mUiHandler = new Handler(Looper.getMainLooper());
+    private volatile InAppAlertListener mInAppAlertListener;
+    // Access to the queue is confined to the main/UI thread.
+    private final InAppAlertQueue mInAppAlerts = new InAppAlertQueue();
+
+    /** Only a resumed MainActivity receives UI callbacks; the queue survives recreation. */
+    public void setInAppAlertListener(InAppAlertListener listener) {
+        mInAppAlertListener = listener;
+        if (listener != null) {
+            if (!InAppAlertSettings.isEnabled())
+                mInAppAlerts.clear();
+            listener.onInAppAlertsChanged(false);
+        }
+    }
+
+    public InAppAlertQueue.Alert getCurrentInAppAlert() {
+        return mInAppAlerts.current();
+    }
+
+    public int getWaitingInAppAlertCount() {
+        return mInAppAlerts.waitingCount();
+    }
+
+    /** Dismisses only the displayed alert and reveals the next waiting alert. */
+    public void dismissCurrentInAppAlert() {
+        if (mInAppAlerts.dismissCurrent() && mInAppAlertListener != null)
+            mInAppAlertListener.onInAppAlertsChanged(false);
+    }
+
+    public interface InAppAlertListener {
+        void onInAppAlertsChanged(boolean newlyReceived);
+    }
 
     private String mLastSummaryChannel = null;
 
@@ -84,6 +119,28 @@ public class NotificationManager {
 
         if (!messageFromOtherUser)
             return;
+
+        // Foreground banners are independent of Android's notification permission and channels.
+        // Discard history replay to avoid a burst of banners after reconnecting.
+        InAppAlertListener listener = mInAppAlertListener;
+        if (listener != null && InAppAlertSettings.isEnabled()) {
+            String normalizedChannel = normalizeRuleChannel(connection, channel);
+            boolean playback = NotificationRuleManager.sZNCPlaybackRule.appliesTo(
+                    connection.getNotificationManager(), normalizedChannel, info);
+            boolean direct = normalizedChannel == null;
+            if (InAppAlertSettings.shouldAlert(true, direct, mention, playback, info.getType())) {
+                String sender = info.getSender().getNick();
+                String target = direct ? sender : normalizedChannel;
+                String message = info.getMessage();
+                mUiHandler.post(() -> {
+                    if (mInAppAlertListener == listener && InAppAlertSettings.isEnabled()
+                            && mInAppAlerts.add(new InAppAlertQueue.Alert(
+                                    connection.getUUID(), target, sender, message, direct))) {
+                        listener.onInAppAlertsChanged(true);
+                    }
+                });
+            }
+        }
 
         if (rule == null || rule.settings.noNotification)
             return;

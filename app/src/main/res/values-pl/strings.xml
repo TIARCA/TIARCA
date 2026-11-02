@@ -595,6 +595,15 @@
 
     <!-- Notification settings -->
 
+    <string name="notification_in_app_enabled">Powiadomienia w aplikacji o wiadomościach prywatnych i wzmiankach</string>
+    <string name="notification_in_app_sound">Dźwięk powiadomień w aplikacji (domyślnie wyłączony)</string>
+    <string name="notification_in_app_private">Prywatna wiadomość od %1$s</string>
+    <string name="notification_in_app_mention">%1$s wspomniał o Tobie na %2$s</string>
+    <string name="notification_in_app_close">Zamknij powiadomienie</string>
+    <plurals name="notification_in_app_more">
+        <item quantity="one">i jeszcze jedno powiadomienie do sprawdzenia</item>
+        <item quantity="other">i jeszcze %1$d powiadomień do sprawdzenia</item>
+    </plurals>
     <string name="pref_header_notifications">Tryb</string>
 
     <string name="notification_custom_rules">Reguły niestandardowe</string>
