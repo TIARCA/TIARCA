@@ -8,6 +8,8 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
@@ -24,6 +26,7 @@ import io.mrarm.chatlib.dto.MessageId;
 import io.mrarm.chatlib.dto.MessageInfo;
 import io.mrarm.chatlib.irc.ServerConnectionApi;
 import io.mrarm.chatlib.irc.ServerConnectionData;
+import io.mrarm.irc.config.InAppAlertSettings;
 import io.mrarm.irc.config.NotificationRule;
 import io.mrarm.irc.config.NotificationRuleManager;
 import io.mrarm.irc.config.NotificationCountStorage;
@@ -65,6 +68,18 @@ public class NotificationManager {
     }
 
     private final List<UnreadMessageCountCallback> mGlobalUnreadCallbacks = new ArrayList<>();
+    private final Handler mUiHandler = new Handler(Looper.getMainLooper());
+    private volatile InAppAlertListener mInAppAlertListener;
+
+    /** Only the currently resumed chat screen registers a listener. */
+    public void setInAppAlertListener(InAppAlertListener listener) {
+        mInAppAlertListener = listener;
+    }
+
+    public interface InAppAlertListener {
+        void onInAppAlert(ServerConnectionInfo connection, String target, String sender,
+                          String message, boolean privateMessage);
+    }
 
     private String mLastSummaryChannel = null;
 
@@ -84,6 +99,25 @@ public class NotificationManager {
 
         if (!messageFromOtherUser)
             return;
+
+        // Foreground banners are independent of Android's notification permission and channels.
+        // Discard history replay to avoid a burst of banners after reconnecting.
+        InAppAlertListener listener = mInAppAlertListener;
+        if (listener != null && InAppAlertSettings.isEnabled()) {
+            String normalizedChannel = normalizeRuleChannel(connection, channel);
+            boolean playback = NotificationRuleManager.sZNCPlaybackRule.appliesTo(
+                    connection.getNotificationManager(), normalizedChannel, info);
+            boolean direct = normalizedChannel == null;
+            if (InAppAlertSettings.shouldAlert(true, direct, mention, playback, info.getType())) {
+                String sender = info.getSender().getNick();
+                String target = direct ? sender : normalizedChannel;
+                String message = info.getMessage();
+                mUiHandler.post(() -> {
+                    if (mInAppAlertListener == listener)
+                        listener.onInAppAlert(connection, target, sender, message, direct);
+                });
+            }
+        }
 
         if (rule == null || rule.settings.noNotification)
             return;
