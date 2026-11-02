@@ -602,6 +602,11 @@
     <string name="notification_in_app_sound">Suono per i banner in-app (disattivato per impostazione predefinita)</string>
     <string name="notification_in_app_private">PVT da %1$s</string>
     <string name="notification_in_app_mention">%1$s ti ha menzionato in %2$s</string>
+    <string name="notification_in_app_close">Chiudi notifica</string>
+    <plurals name="notification_in_app_more">
+        <item quantity="one">e un\'altra notifica da esaminare</item>
+        <item quantity="other">e altre %1$d notifiche da esaminare</item>
+    </plurals>
     <string name="pref_header_notifications">Notifiche</string>
 
     <string name="notification_custom_rules">Regole personalizzate</string>
