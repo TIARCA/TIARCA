@@ -598,6 +598,10 @@
 
     <!-- Notification settings -->
 
+    <string name="notification_in_app_enabled">Banner in-app per PVT e menzioni</string>
+    <string name="notification_in_app_sound">Suono per i banner in-app (disattivato per impostazione predefinita)</string>
+    <string name="notification_in_app_private">PVT da %1$s</string>
+    <string name="notification_in_app_mention">%1$s ti ha menzionato in %2$s</string>
     <string name="pref_header_notifications">Notifiche</string>
 
     <string name="notification_custom_rules">Regole personalizzate</string>
