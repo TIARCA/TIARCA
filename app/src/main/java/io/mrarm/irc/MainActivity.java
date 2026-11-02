@@ -8,8 +8,11 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.net.Uri;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
 import android.os.Build;
 import android.os.ParcelFileDescriptor;
+import android.os.SystemClock;
 import android.provider.OpenableColumns;
 import android.provider.MediaStore;
 import android.content.pm.PackageManager;
@@ -21,6 +24,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.snackbar.Snackbar;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.core.view.GravityCompat;
@@ -60,6 +64,7 @@ import io.mrarm.chatlib.irc.dcc.DCCUtils;
 import io.mrarm.irc.chat.ChannelInfoAdapter;
 import io.mrarm.irc.chat.ChatFragment;
 import io.mrarm.irc.config.AppSettings;
+import io.mrarm.irc.config.InAppAlertSettings;
 import io.mrarm.irc.config.SharingSettings;
 import io.mrarm.irc.dialog.UserSearchDialog;
 import io.mrarm.irc.dialog.WhowasQueryDialog;
@@ -100,6 +105,10 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
     private Dialog mCurrentDialog;
     private ChannelInfoAdapter mChannelInfoAdapter;
     private boolean mAppExiting;
+    private Snackbar mInAppAlertSnackbar;
+    private long mLastInAppSoundAt = -1;
+    private final NotificationManager.InAppAlertListener mInAppAlertListener =
+            this::showInAppAlert;
     private ServerConnectionInfo mSimosnapUploadConnection;
     private String mSimosnapUploadTarget;
     private ServerConnectionInfo mDccUploadConnection;
@@ -376,6 +385,7 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
     protected void onResume() {
         super.onResume();
         WarningHelper.setActivity(this);
+        NotificationManager.getInstance().setInAppAlertListener(mInAppAlertListener);
         mDCCDialogHandler.onResume();
         if (getCurrentFragment() instanceof ChatFragment && !ServerConnectionManager
                 .getInstance(this).hasConnection(((ChatFragment) getCurrentFragment())
@@ -386,9 +396,50 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
 
     @Override
     protected void onPause() {
+        NotificationManager.getInstance().setInAppAlertListener(null);
+        if (mInAppAlertSnackbar != null) {
+            mInAppAlertSnackbar.dismiss();
+            mInAppAlertSnackbar = null;
+        }
         super.onPause();
         WarningHelper.setActivity(null);
         mDCCDialogHandler.onPause();
+    }
+
+    private void showInAppAlert(ServerConnectionInfo connection, String target, String sender,
+                                String message, boolean privateMessage) {
+        if (mDrawerLayout == null || !InAppAlertSettings.isEnabled())
+            return;
+        String title = privateMessage
+                ? getString(R.string.notification_in_app_private, sender)
+                : getString(R.string.notification_in_app_mention, sender, target);
+        String preview = message.replace('\n', ' ').replace('\r', ' ').trim();
+        if (preview.codePointCount(0, preview.length()) > 120)
+            preview = preview.substring(0, preview.offsetByCodePoints(0, 120)) + "…";
+        if (mInAppAlertSnackbar != null)
+            mInAppAlertSnackbar.dismiss();
+        mInAppAlertSnackbar = Snackbar.make(mDrawerLayout, title + ": " + preview, 5000)
+                .setAction(R.string.action_open, view -> {
+                    if (ServerConnectionManager.getInstance(this)
+                            .hasConnection(connection.getUUID()))
+                        openServer(connection, target);
+                });
+        mInAppAlertSnackbar.show();
+
+        if (InAppAlertSettings.isSoundEnabled()) {
+            long now = SystemClock.elapsedRealtime();
+            if (mLastInAppSoundAt < 0 || now - mLastInAppSoundAt >= 2000) {
+                mLastInAppSoundAt = now;
+                try {
+                    Ringtone ringtone = RingtoneManager.getRingtone(this,
+                            RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION));
+                    if (ringtone != null)
+                        ringtone.play();
+                } catch (RuntimeException ignored) {
+                    // Missing/muted ringtone or platform audio restrictions must not disrupt chat.
+                }
+            }
+        }
     }
 
     @Override
