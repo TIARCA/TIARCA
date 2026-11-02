@@ -563,6 +563,15 @@
 
     <!-- Notification settings -->
 
+    <string name="notification_in_app_enabled">Avisos en la aplicación para mensajes privados y menciones</string>
+    <string name="notification_in_app_sound">Sonido para los avisos en la aplicación (desactivado de forma predeterminada)</string>
+    <string name="notification_in_app_private">Mensaje privado de %1$s</string>
+    <string name="notification_in_app_mention">%1$s te mencionó en %2$s</string>
+    <string name="notification_in_app_close">Cerrar aviso</string>
+    <plurals name="notification_in_app_more">
+        <item quantity="one">y otra notificación pendiente de revisar</item>
+        <item quantity="other">y %1$d notificaciones más pendientes de revisar</item>
+    </plurals>
     <string name="pref_header_notifications">Notificaciones</string>
 
     <string name="notification_custom_rules">Reglas personalizadas</string>
