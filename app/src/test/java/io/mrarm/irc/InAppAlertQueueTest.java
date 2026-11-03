@@ -15,7 +15,7 @@ public class InAppAlertQueueTest {
     private static InAppAlertQueue.Alert alert(String sender) {
         return new InAppAlertQueue.Alert(UUID.fromString(
                 "00000000-0000-0000-0000-000000000001"), "#test", sender,
-                "Hello", false);
+                "Hello", false, "2026-11-03:" + sender, true);
     }
 
     @Test
@@ -29,10 +29,13 @@ public class InAppAlertQueueTest {
         assertTrue(queue.add(second));
         assertTrue(queue.add(third));
         assertSame(first, queue.current());
+        assertEquals("2026-11-03:alice", queue.current().messageId);
+        assertTrue(queue.current().mention);
         assertEquals(2, queue.waitingCount());
 
         assertTrue(queue.dismissCurrent());
         assertSame(second, queue.current());
+        assertEquals("2026-11-03:bob", queue.current().messageId);
         assertEquals(1, queue.waitingCount());
 
         assertTrue(queue.dismissCurrent());
