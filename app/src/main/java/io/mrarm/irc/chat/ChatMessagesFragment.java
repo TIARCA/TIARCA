@@ -189,8 +189,11 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
 
             String msgIdStr = ((ChatFragment) getParentFragment()).getAndClearMessageJump(mChannelName);
             MessageId msgId = null;
-            if (msgIdStr != null)
-                msgId = mConnection.getApiInstance().getMessageStorageApi().getMessageIdParser().parse(msgIdStr);
+            if (msgIdStr != null) {
+                msgId = mConnection.getApiInstance().getMessageStorageApi()
+                        .getMessageIdParser().parse(msgIdStr);
+                mPendingHighlightMessage = msgId;
+            }
             reloadMessages(msgId);
         } else if (getArguments().getBoolean(ARG_DISPLAY_STATUS)) {
             mStatusAdapter = new ServerStatusMessagesAdapter(mConnection, new StatusMessageList(new ArrayList<>()));
@@ -365,6 +368,13 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
                     .setCurrentChannel(mChannelName);
 
         updateUnreadCounter();
+
+        // A near-message load can finish before this RecyclerView is created.
+        // Finish any pending highlight once the view can actually scroll and flash.
+        mRecyclerView.post(() -> {
+            if (mPendingHighlightMessage != null && mAdapter != null && mRecyclerView != null)
+                jumpToMessage(mPendingHighlightMessage, true);
+        });
 
         return rootView;
     }
@@ -785,6 +795,14 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
                         if (mRecyclerView != null)
                             mRecyclerView.scrollToPosition(mStatusAdapter.getItemCount() - 1);
                     }), null);
+        }
+        if (mChannelName != null && getParentFragment() instanceof ChatFragment) {
+            // Existing offscreen tabs do not call onCreate again. Consume the pending
+            // jump when the pager makes this tab visible and reuse its 3-second flash.
+            String messageJump = ((ChatFragment) getParentFragment())
+                    .getAndClearMessageJump(mChannelName);
+            if (messageJump != null)
+                jumpToMessage(messageJump);
         }
         if (getParentFragment() != null) {
             updateParentCurrentChannel();
