@@ -47,14 +47,19 @@ public final class InAppAlertQueue {
         public final String sender;
         public final String message;
         public final boolean privateMessage;
+        /** Storage identifier used to navigate to the exact message and flash it. */
+        public final String messageId;
+        public final boolean mention;
 
         public Alert(UUID serverUUID, String target, String sender, String message,
-                     boolean privateMessage) {
+                     boolean privateMessage, String messageId, boolean mention) {
             this.serverUUID = serverUUID;
             this.target = target;
             this.sender = sender;
             this.message = message;
             this.privateMessage = privateMessage;
+            this.messageId = messageId;
+            this.mention = mention;
         }
     }
 }
