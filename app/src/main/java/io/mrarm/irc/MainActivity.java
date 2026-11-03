@@ -420,11 +420,20 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
             InAppAlertQueue.Alert current = notifications.getCurrentInAppAlert();
             if (current == null)
                 return;
-            notifications.dismissCurrentInAppAlert();
             ServerConnectionInfo connection = ServerConnectionManager.getInstance(this)
                     .getConnection(current.serverUUID);
-            if (connection != null)
-                openServer(connection, current.target);
+            if (connection == null)
+                return;
+            // A private query might not have a visible tab yet (e.g. after reconnect).
+            if (current.privateMessage)
+                connection.addStoredConversation(current.target);
+            // Keep the legacy @ counter in sync with the new per-message alert queue.
+            if (current.mention && !current.privateMessage && current.messageId != null)
+                connection.getNotificationManager().getChannelManager(current.target, true)
+                        .markMentionReviewed(current.messageId);
+            // The existing message-jump path centers the stored message and flashes it for 3 s.
+            openServer(connection, current.target, current.messageId, false);
+            notifications.dismissCurrentInAppAlert();
         });
     }
 
