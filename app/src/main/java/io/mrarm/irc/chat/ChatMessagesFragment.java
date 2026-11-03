@@ -369,6 +369,13 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
 
         updateUnreadCounter();
 
+        // A near-message load can finish before this RecyclerView is created.
+        // Finish any pending highlight once the view can actually scroll and flash.
+        mRecyclerView.post(() -> {
+            if (mPendingHighlightMessage != null && mAdapter != null && mRecyclerView != null)
+                jumpToMessage(mPendingHighlightMessage, true);
+        });
+
         return rootView;
     }
 
