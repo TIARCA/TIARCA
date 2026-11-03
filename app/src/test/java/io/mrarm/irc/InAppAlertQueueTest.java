@@ -49,6 +49,19 @@ public class InAppAlertQueueTest {
     }
 
     @Test
+    public void privateAlertKeepsExactMessageIdentityWithoutMentionFlag() {
+        InAppAlertQueue queue = new InAppAlertQueue();
+        InAppAlertQueue.Alert direct = new InAppAlertQueue.Alert(UUID.fromString(
+                "00000000-0000-0000-0000-000000000002"), "Alice", "Alice",
+                "Private message", true, "2026-11-03:private-42", false);
+        assertTrue(queue.add(direct));
+        assertSame(direct, queue.current());
+        assertEquals("2026-11-03:private-42", queue.current().messageId);
+        assertTrue(queue.current().privateMessage);
+        assertFalse(queue.current().mention);
+    }
+
+    @Test
     public void isBoundedWithoutReplacingCurrentOrOlderWaitingAlerts() {
         InAppAlertQueue queue = new InAppAlertQueue();
         InAppAlertQueue.Alert first = alert("first");
