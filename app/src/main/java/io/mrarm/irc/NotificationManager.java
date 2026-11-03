@@ -135,7 +135,8 @@ public class NotificationManager {
                 mUiHandler.post(() -> {
                     if (mInAppAlertListener == listener && InAppAlertSettings.isEnabled()
                             && mInAppAlerts.add(new InAppAlertQueue.Alert(
-                                    connection.getUUID(), target, sender, message, direct))) {
+                                    connection.getUUID(), target, sender, message, direct,
+                                    messageId == null ? null : messageId.toString(), mention))) {
                         listener.onInAppAlertsChanged(true);
                     }
                 });
