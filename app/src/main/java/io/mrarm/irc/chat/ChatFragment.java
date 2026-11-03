@@ -362,10 +362,21 @@ public class ChatFragment extends Fragment implements
     }
 
     public void setCurrentChannel(String channel, String messageId) {
+        boolean alreadySelected = channel != null && channel.equals(getCurrentChannel());
         if (messageId != null)
             mMessageJump = new OneTimeMessageJump(channel, messageId);
         int i = mSectionsPagerAdapter.findChannel(channel);
         mViewPager.setCurrentItem(i);
+        // ViewPager does not re-create or resume a tab when it is already selected.
+        // Jump directly in that case; otherwise the target tab consumes mMessageJump
+        // when created or resumed.
+        if (messageId != null && i > 0 && alreadySelected) {
+            ChatMessagesFragment messages = getCurrentMessagesFragment();
+            if (messages != null && messages.getView() != null) {
+                mMessageJump = null;
+                messages.jumpToMessage(messageId);
+            }
+        }
         if (i == 0) {
             // If channel was not found, cancel the notification as we most probably came here from
             // a notification.
