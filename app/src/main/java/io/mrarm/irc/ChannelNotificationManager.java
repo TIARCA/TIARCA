@@ -26,7 +26,6 @@ import io.mrarm.chatlib.dto.MessageId;
 import io.mrarm.chatlib.dto.MessageInfo;
 import io.mrarm.irc.chat.SendMessageHelper;
 import io.mrarm.irc.config.NotificationCountStorage;
-import io.mrarm.irc.config.MentionStorage;
 import io.mrarm.irc.config.NotificationRule;
 import io.mrarm.irc.config.NotificationRuleManager;
 import io.mrarm.irc.util.ColoredTextBuilder;
@@ -44,7 +43,6 @@ public class ChannelNotificationManager implements NotificationCountStorage.OnCh
 
     private final ServerConnectionInfo mConnection;
     private final NotificationCountStorage mStorage;
-    private final MentionStorage mMentionStorage;
     private final String mChannel;
     private final int mNotificationId = mNextChatNotificationId++;
     private boolean mShowingNotification = false;
@@ -54,16 +52,13 @@ public class ChannelNotificationManager implements NotificationCountStorage.OnCh
     private boolean mAtBottom = false;
     private int mUnreadMessageCount;
     private MessageId mFirstUnreadMessage;
-    private int mMentionCount;
 
     public ChannelNotificationManager(ServerConnectionInfo connection, String channel) {
         mConnection = connection;
         mChannel = channel;
         mStorage = NotificationCountStorage.getInstance(connection.getConnectionManager().getContext());
-        mMentionStorage = MentionStorage.getInstance(connection.getConnectionManager().getContext());
         if (mChannel != null) {
             mStorage.requestGetChannelCounter(connection.getUUID(), channel, new WeakReference<>(this));
-            mMentionCount = mMentionStorage.getUnreviewedCount(connection.getUUID(), channel);
         }
     }
 
@@ -100,15 +95,8 @@ public class ChannelNotificationManager implements NotificationCountStorage.OnCh
     }
 
     public void addUnreadMessage(MessageId msgId) {
-        addUnreadMessage(msgId, false);
-    }
-
-    public void addUnreadMessage(MessageId msgId, boolean mention) {
         synchronized (this) {
             boolean immediatelyRead = mOpened && mAtBottom && mUnreadMessageCount == 0;
-            if (mention && mChannel != null && mMentionStorage.addMention(mConnection.getUUID(),
-                    mChannel, msgId.toString(), immediatelyRead) && !immediatelyRead)
-                mMentionCount++;
             if (immediatelyRead)
                 return;
             mUnreadMessageCount++;
@@ -133,39 +121,6 @@ public class ChannelNotificationManager implements NotificationCountStorage.OnCh
 
     public boolean hasUnreadMessages() {
         return getUnreadMessageCount() > 0;
-    }
-
-    public int getMentionCount() {
-        synchronized (this) {
-            return mMentionCount;
-        }
-    }
-
-    public List<String> getMentionMessageIds() {
-        if (mChannel == null)
-            return new ArrayList<>();
-        return mMentionStorage.getMessageIds(mConnection.getUUID(), mChannel);
-    }
-
-    public void markMentionReviewed(String messageId) {
-        synchronized (this) {
-            if (mChannel != null && mMentionStorage.markReviewed(mConnection.getUUID(), mChannel,
-                    messageId)) {
-                mMentionCount = Math.max(0, mMentionCount - 1);
-                NotificationManager.getInstance().callUnreadMessageCountCallbacks(mConnection,
-                        mChannel, mUnreadMessageCount, mUnreadMessageCount);
-            }
-        }
-    }
-
-    public void markAllMentionsReviewed() {
-        synchronized (this) {
-            if (mChannel != null && mMentionStorage.markAllReviewed(mConnection.getUUID(), mChannel)) {
-                mMentionCount = 0;
-                NotificationManager.getInstance().callUnreadMessageCountCallbacks(mConnection,
-                        mChannel, mUnreadMessageCount, mUnreadMessageCount);
-            }
-        }
     }
 
     public MessageId getFirstUnreadMessage() {
