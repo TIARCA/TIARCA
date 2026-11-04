@@ -28,77 +28,113 @@
 
         <!-- Persistent alert overlays chat below the visible header. Its top margin is
              updated from the actual header bottom, including compact/hidden layouts. -->
-        <androidx.cardview.widget.CardView
-            android:id="@+id/in_app_alert_card"
+        <FrameLayout
+            android:id="@+id/in_app_alert_holder"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_alignParentTop="true"
             android:layout_marginStart="8dp"
             android:layout_marginEnd="8dp"
-            android:layout_marginTop="0dp"
-            android:visibility="gone"
-            app:cardBackgroundColor="?attr/colorBackgroundFloating"
-            app:cardCornerRadius="8dp"
-            app:cardElevation="14dp">
+            android:visibility="gone">
 
-            <LinearLayout
+            <TextView
+                android:id="@+id/in_app_alert_swipe_close_start"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_gravity="start|center_vertical"
+                android:gravity="center_vertical"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:text="@string/action_close"
+                android:textColor="?attr/colorAccent"
+                android:textSize="13sp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/in_app_alert_swipe_close_end"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_gravity="end|center_vertical"
+                android:gravity="center_vertical"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:text="@string/action_close"
+                android:textColor="?attr/colorAccent"
+                android:textSize="13sp"
+                android:visibility="gone" />
+
+            <io.mrarm.irc.view.SwipeDismissCardView
+                android:id="@+id/in_app_alert_card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="8dp">
+                app:cardBackgroundColor="?attr/colorBackgroundFloating"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="10dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                    android:orientation="vertical"
+                    android:padding="4dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/in_app_alert_message"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:background="?attr/selectableItemBackground"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:ellipsize="end"
+                            android:maxLines="2"
+                            android:padding="4dp"
+                            android:textColor="?android:attr/textColorPrimary"
+                            android:textSize="13sp" />
+
+                        <Button
+                            android:id="@+id/in_app_alert_open"
+                            style="?attr/borderlessButtonStyle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="44dp"
+                            android:minHeight="44dp"
+                            android:minWidth="44dp"
+                            android:text="@string/action_open"
+                            android:textSize="13sp" />
+
+                        <ImageButton
+                            android:id="@+id/in_app_alert_close"
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="@string/notification_in_app_close"
+                            android:padding="10dp"
+                            android:src="@android:drawable/ic_menu_close_clear_cancel"
+                            android:tint="?attr/iconColorOpaque" />
+                    </LinearLayout>
 
                     <TextView
-                        android:id="@+id/in_app_alert_message"
-                        android:layout_width="0dp"
+                        android:id="@+id/in_app_alert_more"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:ellipsize="end"
-                        android:maxLines="3"
-                        android:padding="4dp"
-                        android:textColor="?android:attr/textColorPrimary"
-                        android:textSize="14sp" />
-
-                    <Button
-                        android:id="@+id/in_app_alert_open"
-                        style="?attr/borderlessButtonStyle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="48dp"
-                        android:minWidth="48dp"
-                        android:text="@string/action_open" />
-
-                    <ImageButton
-                        android:id="@+id/in_app_alert_close"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:contentDescription="@string/notification_in_app_close"
-                        android:padding="12dp"
-                        android:src="@android:drawable/ic_menu_close_clear_cancel"
-                        android:tint="?attr/iconColorOpaque" />
+                        android:minHeight="36dp"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:textColor="?attr/colorAccent"
+                        android:textSize="13sp"
+                        android:visibility="gone" />
                 </LinearLayout>
-
-                <TextView
-                    android:id="@+id/in_app_alert_more"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:minHeight="48dp"
-                    android:background="?attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:gravity="center_vertical"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:textColor="?attr/colorAccent"
-                    android:textSize="14sp"
-                    android:visibility="gone" />
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
+            </io.mrarm.irc.view.SwipeDismissCardView>
+        </FrameLayout>
 
     </RelativeLayout>
 
