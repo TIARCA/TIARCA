@@ -58,6 +58,8 @@ On supporting networks, `+g` restricts who may privately message you. TIARCA han
 ## 12. Search, history and mentions
 Search locates messages in stored history and navigates to the result in chronological context. In a channel, **Mentions** opens search with your current nickname prefilled. Private messages and mentions from other conversations appear in a compact in-app alert: tap **Open** or its text to jump to and highlight the message, use **X** or swipe left/right to dismiss. Tabs and drawer still show unread messages.
 
+In **Settings → Notifications**, in-app alerts for **private messages** and **channel mentions** can be enabled independently. Both default to enabled, including after restoring older backups. Either or both can be disabled without changing Android background-notification rules.
+
 ![message search](../images/09_ricerca_messaggi.jpg)
 
 ## 13. Ignore
