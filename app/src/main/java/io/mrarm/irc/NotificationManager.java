@@ -99,6 +99,9 @@ public class NotificationManager {
 
     public interface InAppAlertListener {
         void onInAppAlertsChanged(boolean newlyReceived);
+
+        /** Called on the UI thread before adding a foreground alert to the queue. */
+        boolean isConversationVisible(ServerConnectionInfo connection, String target);
     }
 
     private String mLastSummaryChannel = null;
@@ -134,6 +137,7 @@ public class NotificationManager {
                 String message = info.getMessage();
                 mUiHandler.post(() -> {
                     if (mInAppAlertListener == listener && InAppAlertSettings.isEnabled()
+                            && !listener.isConversationVisible(connection, target)
                             && mInAppAlerts.add(new InAppAlertQueue.Alert(
                                     connection.getUUID(), target, sender, message, direct,
                                     messageId == null ? null : messageId.toString(), mention))) {
