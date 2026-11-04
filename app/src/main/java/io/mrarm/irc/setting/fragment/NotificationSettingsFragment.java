@@ -32,15 +32,31 @@ public class NotificationSettingsFragment extends Fragment implements NamedSetti
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_notification_settings, container, false);
         SwitchCompat enabled = view.findViewById(R.id.in_app_alerts_enabled);
+        SwitchCompat privateMessages = view.findViewById(R.id.in_app_alerts_private);
+        SwitchCompat mentions = view.findViewById(R.id.in_app_alerts_mentions);
         SwitchCompat sound = view.findViewById(R.id.in_app_alerts_sound);
+
         enabled.setChecked(InAppAlertSettings.isEnabled());
+        privateMessages.setChecked(InAppAlertSettings.isPrivateMessagesEnabled());
+        mentions.setChecked(InAppAlertSettings.isMentionsEnabled());
         sound.setChecked(InAppAlertSettings.isSoundEnabled());
+
+        privateMessages.setEnabled(enabled.isChecked());
+        mentions.setEnabled(enabled.isChecked());
         sound.setEnabled(enabled.isChecked());
         enabled.setOnCheckedChangeListener((button, checked) -> {
             SettingsHelper.getPreferences().edit()
                     .putBoolean(InAppAlertSettings.PREF_ENABLED, checked).apply();
+            privateMessages.setEnabled(checked);
+            mentions.setEnabled(checked);
             sound.setEnabled(checked);
         });
+        privateMessages.setOnCheckedChangeListener((button, checked) ->
+                SettingsHelper.getPreferences().edit()
+                        .putBoolean(InAppAlertSettings.PREF_PRIVATE_MESSAGES, checked).apply());
+        mentions.setOnCheckedChangeListener((button, checked) ->
+                SettingsHelper.getPreferences().edit()
+                        .putBoolean(InAppAlertSettings.PREF_MENTIONS, checked).apply());
         sound.setOnCheckedChangeListener((button, checked) ->
                 SettingsHelper.getPreferences().edit()
                         .putBoolean(InAppAlertSettings.PREF_SOUND, checked).apply());
