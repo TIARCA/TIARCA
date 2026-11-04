@@ -2,6 +2,7 @@ package io.mrarm.irc;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.UUID;
 
 /**
@@ -39,6 +40,16 @@ public final class InAppAlertQueue {
 
     public void clear() {
         mItems.clear();
+    }
+
+    /** Apply a preference change to alerts already waiting in memory. */
+    public void removeDisabledTypes(boolean privateMessagesEnabled, boolean mentionsEnabled) {
+        Iterator<Alert> iterator = mItems.iterator();
+        while (iterator.hasNext()) {
+            Alert alert = iterator.next();
+            if (alert.privateMessage ? !privateMessagesEnabled : !mentionsEnabled)
+                iterator.remove();
+        }
     }
 
     public static final class Alert {
