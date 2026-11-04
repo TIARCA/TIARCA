@@ -44,15 +44,15 @@ public class SwipeDismissCardView extends CardView {
     public boolean onInterceptTouchEvent(MotionEvent event) {
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
-                mDownX = event.getX();
-                mDownY = event.getY();
+                mDownX = event.getRawX();
+                mDownY = event.getRawY();
                 mSwiping = false;
                 if (getParent() != null)
                     getParent().requestDisallowInterceptTouchEvent(true);
                 break;
             case MotionEvent.ACTION_MOVE:
-                float dx = event.getX() - mDownX;
-                float dy = event.getY() - mDownY;
+                float dx = event.getRawX() - mDownX;
+                float dy = event.getRawY() - mDownY;
                 if (mSwiping || (Math.abs(dx) > mTouchSlop &&
                         Math.abs(dx) > Math.abs(dy))) {
                     mSwiping = true;
@@ -72,14 +72,14 @@ public class SwipeDismissCardView extends CardView {
     public boolean onTouchEvent(MotionEvent event) {
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
-                mDownX = event.getX();
-                mDownY = event.getY();
+                mDownX = event.getRawX();
+                mDownY = event.getRawY();
                 mSwiping = false;
                 return true;
             case MotionEvent.ACTION_MOVE:
-                float dx = event.getX() - mDownX;
+                float dx = event.getRawX() - mDownX;
                 if (!mSwiping && Math.abs(dx) > mTouchSlop &&
-                        Math.abs(dx) > Math.abs(event.getY() - mDownY))
+                        Math.abs(dx) > Math.abs(event.getRawY() - mDownY))
                     mSwiping = true;
                 if (mSwiping) {
                     setTranslationX(dx);
@@ -93,7 +93,7 @@ public class SwipeDismissCardView extends CardView {
                 if (getParent() != null)
                     getParent().requestDisallowInterceptTouchEvent(false);
                 if (mSwiping) {
-                    boolean dismiss = isPastDismissThreshold(event.getX() - mDownX, getWidth());
+                    boolean dismiss = isPastDismissThreshold(event.getRawX() - mDownX, getWidth());
                     resetSwipe();
                     if (dismiss && mListener != null)
                         mListener.onSwipeDismissed();
