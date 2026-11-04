@@ -2,6 +2,9 @@
 
     <!-- 10% shorter than the standard 56dp app bar, while preserving usable controls. -->
     <dimen name="compact_action_bar_size">50dp</dimen>
+    <!-- Chat-only headers: 75% of the current 50dp toolbar and 48dp tabs. -->
+    <dimen name="chat_toolbar_height">37.5dp</dimen>
+    <dimen name="chat_tabs_height">36dp</dimen>
     <!-- Default screen margins, per the Android Design guidelines. -->
     <dimen name="activity_horizontal_margin">16dp</dimen>
     <dimen name="activity_vertical_margin">16dp</dimen>

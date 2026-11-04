@@ -26,8 +26,8 @@
             android:layout_height="match_parent"
             android:elevation="10dp"/>
 
-        <!-- Persistent alert remains above chat content, without covering the composer.
-             Only explicit actions advance or dismiss the queue. -->
+        <!-- Persistent alert overlays chat below the visible header. Its top margin is
+             updated from the actual header bottom, including compact/hidden layouts. -->
         <androidx.cardview.widget.CardView
             android:id="@+id/in_app_alert_card"
             android:layout_width="match_parent"
@@ -35,7 +35,7 @@
             android:layout_alignParentTop="true"
             android:layout_marginStart="8dp"
             android:layout_marginEnd="8dp"
-            android:layout_marginTop="?attr/actionBarSize"
+            android:layout_marginTop="0dp"
             android:visibility="gone"
             app:cardBackgroundColor="?attr/colorBackgroundFloating"
             app:cardCornerRadius="8dp"

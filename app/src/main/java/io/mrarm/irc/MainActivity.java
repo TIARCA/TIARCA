@@ -42,6 +42,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
+import android.widget.RelativeLayout;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Toast;
@@ -109,6 +111,8 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
     private View mInAppAlertCard;
     private TextView mInAppAlertMessage;
     private TextView mInAppAlertMore;
+    private final ViewTreeObserver.OnGlobalLayoutListener mInAppAlertLayoutListener =
+            this::updateInAppAlertPosition;
     private long mLastInAppSoundAt = -1;
     private final NotificationManager.InAppAlertListener mInAppAlertListener =
             new NotificationManager.InAppAlertListener() {
@@ -358,8 +362,11 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
             group.removeViewAt(i);
             Toolbar replacement = new Toolbar(group.getContext());
             replacement.setPopupTheme(mToolbar.getPopupTheme());
+            int toolbarHeight = getCurrentFragment() instanceof ChatFragment
+                    ? getResources().getDimensionPixelSize(R.dimen.chat_toolbar_height)
+                    : params.height;
             AppBarLayout.LayoutParams toolbarParams = new AppBarLayout.LayoutParams(
-                    AppBarLayout.LayoutParams.MATCH_PARENT, params.height);
+                    AppBarLayout.LayoutParams.MATCH_PARENT, toolbarHeight);
             replacement.setLayoutParams(toolbarParams);
             for (int j = 0; j < mToolbar.getChildCount(); j++) {
                 View v = mToolbar.getChildAt(j);
@@ -405,6 +412,7 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
     protected void onDestroy() {
         ((IRCApplication) getApplication()).removeExitCallback(this);
         mDrawerHelper.unregisterListeners();
+        mDrawerLayout.getViewTreeObserver().removeOnGlobalLayoutListener(mInAppAlertLayoutListener);
         dismissFragmentDialog();
         super.onDestroy();
     }
@@ -434,6 +442,7 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
         mInAppAlertCard = findViewById(R.id.in_app_alert_card);
         mInAppAlertMessage = findViewById(R.id.in_app_alert_message);
         mInAppAlertMore = findViewById(R.id.in_app_alert_more);
+        mDrawerLayout.getViewTreeObserver().addOnGlobalLayoutListener(mInAppAlertLayoutListener);
 
         // Both X and the "more" line consume one alert; the oldest waiting one follows.
         findViewById(R.id.in_app_alert_close).setOnClickListener(view ->
@@ -462,6 +471,43 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
         });
     }
 
+    private void updateInAppAlertPosition() {
+        if (mInAppAlertCard == null || mInAppAlertCard.getVisibility() != View.VISIBLE)
+            return;
+
+        View header = null;
+        Fragment current = getCurrentFragment();
+        if (current instanceof ChatFragment) {
+            View chatView = current.getView();
+            if (chatView != null) {
+                View appBar = chatView.findViewById(R.id.appbar);
+                if (appBar != null && appBar.isShown())
+                    header = appBar;
+            }
+        } else if (mToolbar != null && mToolbar.isShown()) {
+            header = mToolbar;
+        } else if (mFakeToolbar != null && mFakeToolbar.isShown()) {
+            header = mFakeToolbar;
+        }
+
+        int topMargin = 0;
+        if (header != null) {
+            int[] headerLocation = new int[2];
+            int[] containerLocation = new int[2];
+            header.getLocationInWindow(headerLocation);
+            ((View) mInAppAlertCard.getParent()).getLocationInWindow(containerLocation);
+            topMargin = Math.max(0,
+                    headerLocation[1] + header.getHeight() - containerLocation[1]);
+        }
+
+        RelativeLayout.LayoutParams params =
+                (RelativeLayout.LayoutParams) mInAppAlertCard.getLayoutParams();
+        if (params.topMargin != topMargin) {
+            params.topMargin = topMargin;
+            mInAppAlertCard.setLayoutParams(params);
+        }
+    }
+
     private void refreshInAppAlert(boolean newlyReceived) {
         if (mInAppAlertCard == null)
             return;
@@ -488,6 +534,7 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
             mInAppAlertMore.setVisibility(View.VISIBLE);
         }
         mInAppAlertCard.setVisibility(View.VISIBLE);
+        updateInAppAlertPosition();
         if (newlyReceived)
             playInAppAlertSound();
     }
