@@ -58,6 +58,7 @@ import java.util.UUID;
 import io.mrarm.chatlib.ChatApi;
 import io.mrarm.chatlib.dto.NickWithPrefix;
 import io.mrarm.chatlib.irc.IRCConnection;
+import io.mrarm.chatlib.irc.IRCCaseMapping;
 import io.mrarm.chatlib.irc.ServerConnectionApi;
 import io.mrarm.chatlib.irc.dcc.DCCServer;
 import io.mrarm.chatlib.irc.dcc.DCCUtils;
@@ -110,7 +111,31 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
     private TextView mInAppAlertMore;
     private long mLastInAppSoundAt = -1;
     private final NotificationManager.InAppAlertListener mInAppAlertListener =
-            this::refreshInAppAlert;
+            new NotificationManager.InAppAlertListener() {
+                @Override
+                public void onInAppAlertsChanged(boolean newlyReceived) {
+                    refreshInAppAlert(newlyReceived);
+                }
+
+                @Override
+                public boolean isConversationVisible(ServerConnectionInfo connection, String target) {
+                    Fragment fragment = getCurrentFragment();
+                    if (!(fragment instanceof ChatFragment) || !fragment.isVisible())
+                        return false;
+                    ChatFragment chat = (ChatFragment) fragment;
+                    ServerConnectionInfo displayedConnection = chat.getConnectionInfo();
+                    if (displayedConnection == null)
+                        return false;
+                    IRCCaseMapping caseMapping = IRCCaseMapping.RFC1459;
+                    if (connection.getApiInstance() instanceof ServerConnectionApi) {
+                        caseMapping = ((ServerConnectionApi) connection.getApiInstance())
+                                .getServerConnectionData().getSupportList().getCaseMapping();
+                    }
+                    return InAppAlertVisibility.isConversationVisible(
+                            displayedConnection.getUUID(), chat.getCurrentChannel(),
+                            connection.getUUID(), target, caseMapping);
+                }
+            };
     private ServerConnectionInfo mSimosnapUploadConnection;
     private String mSimosnapUploadTarget;
     private ServerConnectionInfo mDccUploadConnection;
