@@ -38,6 +38,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.appcompat.widget.Toolbar;
 
 import android.view.LayoutInflater;
+import io.mrarm.irc.view.SwipeDismissCardView;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -108,9 +109,12 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
     private Dialog mCurrentDialog;
     private ChannelInfoAdapter mChannelInfoAdapter;
     private boolean mAppExiting;
-    private View mInAppAlertCard;
+    private View mInAppAlertHolder;
+    private SwipeDismissCardView mInAppAlertCard;
     private TextView mInAppAlertMessage;
     private TextView mInAppAlertMore;
+    private View mInAppSwipeCloseStart;
+    private View mInAppSwipeCloseEnd;
     private final ViewTreeObserver.OnGlobalLayoutListener mInAppAlertLayoutListener =
             this::updateInAppAlertPosition;
     private long mLastInAppSoundAt = -1;
@@ -439,40 +443,52 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
     }
 
     private void setupInAppAlertCard() {
+        mInAppAlertHolder = findViewById(R.id.in_app_alert_holder);
         mInAppAlertCard = findViewById(R.id.in_app_alert_card);
         mInAppAlertMessage = findViewById(R.id.in_app_alert_message);
         mInAppAlertMore = findViewById(R.id.in_app_alert_more);
+        mInAppSwipeCloseStart = findViewById(R.id.in_app_alert_swipe_close_start);
+        mInAppSwipeCloseEnd = findViewById(R.id.in_app_alert_swipe_close_end);
         mDrawerLayout.getViewTreeObserver().addOnGlobalLayoutListener(mInAppAlertLayoutListener);
 
-        // Both X and the "more" line consume one alert; the oldest waiting one follows.
+        mInAppAlertCard.setOnSwipeListener(new SwipeDismissCardView.OnSwipeListener() {
+            @Override
+            public void onSwipeProgress(float distance) {
+                mInAppSwipeCloseStart.setVisibility(distance > 0 ? View.VISIBLE : View.GONE);
+                mInAppSwipeCloseEnd.setVisibility(distance < 0 ? View.VISIBLE : View.GONE);
+            }
+
+            @Override
+            public void onSwipeDismissed() {
+                NotificationManager.getInstance().dismissCurrentInAppAlert();
+            }
+        });
         findViewById(R.id.in_app_alert_close).setOnClickListener(view ->
                 NotificationManager.getInstance().dismissCurrentInAppAlert());
         mInAppAlertMore.setOnClickListener(view ->
                 NotificationManager.getInstance().dismissCurrentInAppAlert());
-        findViewById(R.id.in_app_alert_open).setOnClickListener(view -> {
-            NotificationManager notifications = NotificationManager.getInstance();
-            InAppAlertQueue.Alert current = notifications.getCurrentInAppAlert();
-            if (current == null)
-                return;
-            ServerConnectionInfo connection = ServerConnectionManager.getInstance(this)
-                    .getConnection(current.serverUUID);
-            if (connection == null)
-                return;
-            // A private query might not have a visible tab yet (e.g. after reconnect).
-            if (current.privateMessage)
-                connection.addStoredConversation(current.target);
-            // Keep the legacy @ counter in sync with the new per-message alert queue.
-            if (current.mention && !current.privateMessage && current.messageId != null)
-                connection.getNotificationManager().getChannelManager(current.target, true)
-                        .markMentionReviewed(current.messageId);
-            // The existing message-jump path centers the stored message and flashes it for 3 s.
-            openServer(connection, current.target, current.messageId, false);
-            notifications.dismissCurrentInAppAlert();
-        });
+        findViewById(R.id.in_app_alert_open).setOnClickListener(view -> openCurrentInAppAlert());
+        mInAppAlertMessage.setOnClickListener(view -> openCurrentInAppAlert());
+    }
+
+    private void openCurrentInAppAlert() {
+        NotificationManager notifications = NotificationManager.getInstance();
+        InAppAlertQueue.Alert current = notifications.getCurrentInAppAlert();
+        if (current == null)
+            return;
+        ServerConnectionInfo connection = ServerConnectionManager.getInstance(this)
+                .getConnection(current.serverUUID);
+        if (connection == null)
+            return;
+        if (current.privateMessage)
+            connection.addStoredConversation(current.target);
+        // Center the stored message and flash it for 3 seconds.
+        openServer(connection, current.target, current.messageId, false);
+        notifications.dismissCurrentInAppAlert();
     }
 
     private void updateInAppAlertPosition() {
-        if (mInAppAlertCard == null || mInAppAlertCard.getVisibility() != View.VISIBLE)
+        if (mInAppAlertHolder == null || mInAppAlertHolder.getVisibility() != View.VISIBLE)
             return;
 
         View header = null;
@@ -495,26 +511,27 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
             int[] headerLocation = new int[2];
             int[] containerLocation = new int[2];
             header.getLocationInWindow(headerLocation);
-            ((View) mInAppAlertCard.getParent()).getLocationInWindow(containerLocation);
+            ((View) mInAppAlertHolder.getParent()).getLocationInWindow(containerLocation);
             topMargin = Math.max(0,
                     headerLocation[1] + header.getHeight() - containerLocation[1]);
         }
 
         RelativeLayout.LayoutParams params =
-                (RelativeLayout.LayoutParams) mInAppAlertCard.getLayoutParams();
+                (RelativeLayout.LayoutParams) mInAppAlertHolder.getLayoutParams();
         if (params.topMargin != topMargin) {
             params.topMargin = topMargin;
-            mInAppAlertCard.setLayoutParams(params);
+            mInAppAlertHolder.setLayoutParams(params);
         }
     }
 
     private void refreshInAppAlert(boolean newlyReceived) {
-        if (mInAppAlertCard == null)
+        if (mInAppAlertHolder == null)
             return;
         NotificationManager notifications = NotificationManager.getInstance();
         InAppAlertQueue.Alert current = notifications.getCurrentInAppAlert();
         if (!InAppAlertSettings.isEnabled() || current == null) {
-            mInAppAlertCard.setVisibility(View.GONE);
+            mInAppAlertCard.resetSwipe();
+            mInAppAlertHolder.setVisibility(View.GONE);
             return;
         }
         String title = current.privateMessage
@@ -533,7 +550,7 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
                     R.plurals.notification_in_app_more, waiting, waiting));
             mInAppAlertMore.setVisibility(View.VISIBLE);
         }
-        mInAppAlertCard.setVisibility(View.VISIBLE);
+        mInAppAlertHolder.setVisibility(View.VISIBLE);
         updateInAppAlertPosition();
         if (newlyReceived)
             playInAppAlertSound();
@@ -766,14 +783,12 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
             ChannelNotificationManager notificationManager = current == null ? null :
                     fragment.getConnectionInfo().getNotificationManager()
                             .getChannelManager(current, true);
-            menu.findItem(R.id.action_mentions).setVisible(current != null);
-            menu.findItem(R.id.action_mark_read).setVisible(notificationManager != null &&
-                    notificationManager.getUnreadMessageCount() > 0);
-            menu.findItem(R.id.action_mark_mentions_read).setVisible(notificationManager != null &&
-                    notificationManager.getMentionCount() > 0);
             boolean channelContext = connected && current != null && !current.isEmpty() &&
                     api.getServerConnectionData().getSupportList().getSupportedChannelTypes()
                             .contains(current.charAt(0));
+            menu.findItem(R.id.action_mentions).setVisible(channelContext);
+            menu.findItem(R.id.action_mark_read).setVisible(notificationManager != null &&
+                    notificationManager.getUnreadMessageCount() > 0);
             boolean operatorChannel = channelContext &&
                     ChannelOperatorUtils.hasOperatorPrivileges(fragment.getConnectionInfo(),
                             current, false);
@@ -858,20 +873,14 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
                 new ChatMessageSearchDialog(this, fragment).show();
         } else if (id == R.id.action_mentions) {
             ChatFragment fragment = (ChatFragment) getCurrentFragment();
-            String channel = fragment.getCurrentChannel();
-            ServerConnectionApi api = (ServerConnectionApi) fragment.getConnectionInfo().getApiInstance();
-            if (channel != null && !channel.isEmpty() &&
-                    api.getServerConnectionData().getSupportList()
-                            .getSupportedChannelTypes().contains(channel.charAt(0))) {
+            if (fragment.getCurrentChannel() != null) {
+                ServerConnectionApi api = (ServerConnectionApi)
+                        fragment.getConnectionInfo().getApiInstance();
                 new ChatMessageSearchDialog(this, fragment)
                         .show(api.getServerConnectionData().getUserNick());
-            } else {
-                fragment.startMentionNavigation();
             }
         } else if (id == R.id.action_mark_read) {
             ((ChatFragment) getCurrentFragment()).markCurrentConversationRead();
-        } else if (id == R.id.action_mark_mentions_read) {
-            ((ChatFragment) getCurrentFragment()).markCurrentMentionsRead();
         } else if (id == R.id.action_channel_modes) {
             ChatFragment fragment = (ChatFragment) getCurrentFragment();
             new ChannelModesDialog(this, fragment.getConnectionInfo(),
