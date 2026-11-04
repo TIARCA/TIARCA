@@ -13,7 +13,7 @@ Download the signed APK from GitHub Releases, install it, then create a server/n
 Configure network/server name, address, port, nickname and connection parameters. TLS/SSL and SASL authentication are supported. Default channels can be edited and networks can be manually reordered. Never expose passwords or SASL credentials in screenshots or bug reports.
 
 ## 3. Main interface
-The drawer contains servers, channels and private conversations. Conversation tabs provide fast navigation. Unread activity and mentions are tracked separately. **Monitored users** is available near the top of the drawer and **Settings** stays at the bottom of the overflow menu.
+The drawer contains servers, channels and private conversations. Conversation tabs provide fast navigation. Unread messages are indicated in the tabs and drawer. Private-message and mention alerts appear in one in-app card. **Monitored users** is available near the top of the drawer and **Settings** stays at the bottom of the overflow menu.
 
 ![drawer](../images/01_drawer_menu.jpg)
 
@@ -56,7 +56,7 @@ On compatible networks TIARCA supports IRC `MONITOR`. The dedicated Monitored Us
 On supporting networks, `+g` restricts who may privately message you. TIARCA handles numeric 718 and provides ACCEPT actions. In 0.9.2, user-initiated private chats automatically add the target to ACCEPT only while your current user mode includes `+g`.
 
 ## 12. Search, history and mentions
-Search locates messages in stored history and navigates to the result in chronological context. Mentions use a separate counter from ordinary unread messages.
+Search locates messages in stored history and navigates to the result in chronological context. In a channel, **Mentions** opens search with your current nickname prefilled. Private messages and mentions from other conversations appear in a compact in-app alert: tap **Open** or its text to jump to and highlight the message, use **X** or swipe left/right to dismiss. Tabs and drawer still show unread messages.
 
 ![message search](../images/09_ricerca_messaggi.jpg)
 

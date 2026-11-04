@@ -15,7 +15,6 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -84,7 +83,6 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
     private MessageSenderInfo mChannelTopicSetBy;
     private Date mChannelTopicSetOn;
     private RecyclerView mRecyclerView;
-    private int mMessagesBottomPadding;
     private ScrollPosLinearLayoutManager mLayoutManager;
     private ChatMessagesAdapter mAdapter;
     private ServerStatusMessagesAdapter mStatusAdapter;
@@ -97,16 +95,7 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
     private boolean mIsLoadingMore;
     private volatile int mMessageWindowGeneration;
     private MessageFilterOptions mMessageFilterOptions;
-    private View mUnreadCtr;
-    private TextView mUnreadText;
-    private View mUnreadDiscard;
-    private View mMentionNavigation;
-    private TextView mMentionPosition;
-    private TextView mMentionPrevious;
-    private TextView mMentionNext;
     private View mJumpToLatest;
-    private List<MessageId> mMentionIds = new ArrayList<>();
-    private int mMentionIndex = -1;
     private MessageId mPendingHighlightMessage;
     private long mUnreadCheckedFirst = -1;
     private long mUnreadCheckedLast = -1;
@@ -245,21 +234,8 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
         View rootView = inflater.inflate(R.layout.chat_messages_fragment, container, false);
         synchronized (this) {
             mRecyclerView = rootView.findViewById(R.id.messages);
-            mUnreadCtr = rootView.findViewById(R.id.unread_counter_ctr);
-            mUnreadText = rootView.findViewById(R.id.unread_counter);
-            mUnreadDiscard = rootView.findViewById(R.id.unread_counter_discard);
-            mMentionNavigation = rootView.findViewById(R.id.mention_navigation);
-            mMentionPosition = rootView.findViewById(R.id.mention_position);
-            mMentionPrevious = rootView.findViewById(R.id.mention_previous);
-            mMentionNext = rootView.findViewById(R.id.mention_next);
             mJumpToLatest = rootView.findViewById(R.id.jump_to_latest);
-            mMessagesBottomPadding = mRecyclerView.getPaddingBottom();
         }
-        mMentionNavigation.addOnLayoutChangeListener((v, left, top, right, bottom,
-                                                       oldLeft, oldTop, oldRight, oldBottom) -> {
-            updateMentionNavigationPadding();
-            updateMentionNavigationLabels();
-        });
         mLayoutManager = new ScrollPosLinearLayoutManager(getContext());
         mLayoutManager.setStackFromEnd(true);
         mRecyclerView.setLayoutManager(mLayoutManager);
@@ -315,36 +291,7 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
             }
         });
 
-        mUnreadCtr.setOnClickListener((v) -> {
-            ChannelNotificationManager mgr = mConnection.getNotificationManager().getChannelManager(mChannelName, true);
-            if (mgr.getMentionCount() > 0) {
-                startMentionNavigation(false);
-                return;
-            }
-            if (mgr.getUnreadMessageCount() > 99) {
-                new AlertDialog.Builder(getContext())
-                        .setTitle(R.string.unread_backlog_title)
-                        .setItems(new CharSequence[] {
-                                getString(R.string.unread_go_first),
-                                getString(R.string.unread_go_latest)
-                        }, (dialog, which) -> {
-                            if (which == 0)
-                                goToFirstUnread();
-                            else
-                                goToLatestAndMarkRead();
-                        })
-                        .setNegativeButton(android.R.string.cancel, null)
-                        .show();
-                return;
-            }
-            goToFirstUnread();
-        });
-        mUnreadDiscard.setOnClickListener((v) -> markAsRead());
-        mMentionPrevious.setOnClickListener(v -> showMention(mMentionIndex - 1));
-        mMentionNext.setOnClickListener(v -> showMention(mMentionIndex + 1));
-        mMentionPosition.setOnClickListener(v -> closeMentionNavigation());
         mJumpToLatest.setOnClickListener(v -> goToLatest());
-        updateMentionNavigationLabels();
 
         if (mAdapter != null) {
             mRecyclerView.setAdapter(mAdapter);
@@ -379,15 +326,6 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
         return rootView;
     }
 
-    private void goToFirstUnread() {
-        ChannelNotificationManager mgr = mConnection.getNotificationManager()
-                .getChannelManager(mChannelName, true);
-        MessageId msgId = mgr.getFirstUnreadMessage();
-        if (msgId == null)
-            return;
-        jumpToMessage(msgId, false);
-    }
-
     public void markAsRead() {
         if (mConnection == null || mChannelName == null)
             return;
@@ -399,57 +337,11 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
         updateUnreadCounter();
     }
 
-    public void goToLatestAndMarkRead() {
-        markAsRead();
-        goToLatest();
-    }
-
     private void goToLatest() {
         if (mLoadNewerIdentifier != null)
             reloadMessages(null);
         else if (mRecyclerView != null && mAdapter != null && mAdapter.getItemCount() > 0)
             mRecyclerView.scrollToPosition(mAdapter.getItemCount() - 1);
-    }
-
-    public void startMentionNavigation() {
-        startMentionNavigation(false);
-    }
-
-    private void startMentionNavigation(boolean oldestFirst) {
-        if (mConnection == null || mChannelName == null || mAdapter == null)
-            return;
-        ChannelNotificationManager manager = mConnection.getNotificationManager()
-                .getChannelManager(mChannelName, true);
-        List<String> storedIds = manager.getMentionMessageIds();
-        mMentionIds = new ArrayList<>();
-        for (String id : storedIds) {
-            try {
-                mMentionIds.add(mConnection.getMessageIdParser().parse(id));
-            } catch (RuntimeException ignored) { }
-        }
-        if (mMentionIds.isEmpty()) {
-            Toast.makeText(getContext(), R.string.mention_none, Toast.LENGTH_SHORT).show();
-            return;
-        }
-        mMentionNavigation.setVisibility(View.VISIBLE);
-        mMentionNavigation.post(() -> {
-            updateMentionNavigationPadding();
-            updateMentionNavigationLabels();
-            showMention(oldestFirst ? 0 : mMentionIds.size() - 1);
-        });
-    }
-
-    private void showMention(int index) {
-        if (index < 0 || index >= mMentionIds.size())
-            return;
-        mMentionIndex = index;
-        mMentionPrevious.setEnabled(index > 0);
-        mMentionNext.setEnabled(index < mMentionIds.size() - 1);
-        MessageId id = mMentionIds.get(index);
-        mConnection.getNotificationManager().getChannelManager(mChannelName, true)
-                .markMentionReviewed(id.toString());
-        updateUnreadCounter();
-        jumpToMessage(id, true);
     }
 
     public void jumpToMessage(String messageId) {
@@ -497,65 +389,6 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
                 mAdapter.flashMessage(mRecyclerView, current);
             updateReadPosition();
         });
-    }
-
-    private void closeMentionNavigation() {
-        if (mMentionNavigation == null || mRecyclerView == null || mLayoutManager == null)
-            return;
-        int first = mLayoutManager.findFirstVisibleItemPosition();
-        View firstView = first == RecyclerView.NO_POSITION ? null :
-                mLayoutManager.findViewByPosition(first);
-        int offset = firstView == null ? 0 : firstView.getTop() - mRecyclerView.getPaddingTop();
-        mMentionNavigation.setVisibility(View.GONE);
-        updateMentionNavigationPadding();
-        mMentionIds.clear();
-        mMentionIndex = -1;
-        if (first != RecyclerView.NO_POSITION)
-            mLayoutManager.scrollToPositionWithOffset(first, offset);
-        mRecyclerView.post(this::updateReadPosition);
-    }
-
-    public void markAllMentionsReviewed() {
-        if (mConnection == null || mChannelName == null)
-            return;
-        mConnection.getNotificationManager().getChannelManager(mChannelName, true)
-                .markAllMentionsReviewed();
-        updateUnreadCounter();
-    }
-
-    private void updateMentionNavigationPadding() {
-        if (mRecyclerView == null || mMentionNavigation == null)
-            return;
-        int navigationHeight = mMentionNavigation.getVisibility() == View.VISIBLE ?
-                mMentionNavigation.getHeight() : 0;
-        mRecyclerView.setPadding(mRecyclerView.getPaddingLeft(), mRecyclerView.getPaddingTop(),
-                mRecyclerView.getPaddingRight(), mMessagesBottomPadding + navigationHeight);
-        if (mJumpToLatest != null)
-            mJumpToLatest.setTranslationY(-navigationHeight);
-    }
-
-    private void updateMentionNavigationLabels() {
-        if (mMentionNavigation == null || mMentionPrevious == null || mMentionPosition == null ||
-                mMentionNext == null)
-            return;
-        int width = mMentionNavigation.getWidth();
-        if (width <= 0) {
-            mMentionPrevious.setText(R.string.mention_previous_nav);
-            mMentionPosition.setText(R.string.mention_close_nav);
-            mMentionNext.setText(R.string.mention_next_nav);
-            return;
-        }
-        float cellWidth = width / 3f;
-        float padding = 16f * getResources().getDisplayMetrics().density;
-        boolean compact = mMentionPrevious.getPaint().measureText(
-                getString(R.string.mention_previous_nav)) + padding > cellWidth ||
-                mMentionNext.getPaint().measureText(
-                        getString(R.string.mention_next_nav)) + padding > cellWidth;
-        mMentionPrevious.setText(compact ? R.string.mention_previous_nav_short :
-                R.string.mention_previous_nav);
-        mMentionPosition.setText(R.string.mention_close_nav);
-        mMentionNext.setText(compact ? R.string.mention_next_nav_short :
-                R.string.mention_next_nav);
     }
 
     @Override
@@ -645,45 +478,40 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
         }
     }
 
+    // Maintain the unread boundary and automatic read state without an in-chat banner.
     private void updateUnreadCounter() {
-        if (mConnection == null || mRecyclerView == null)
+        if (mConnection == null || mRecyclerView == null || mAdapter == null)
             return;
-        ChannelNotificationManager mgr = mConnection.getNotificationManager().getChannelManager(mChannelName, true);
+        ChannelNotificationManager mgr = mConnection.getNotificationManager()
+                .getChannelManager(mChannelName, true);
         int unread = mgr.getUnreadMessageCount();
-        int mentions = mgr.getMentionCount();
-        MessageId unreadMsg = mgr.getFirstUnreadMessage();
-        if (unreadMsg == null && unread > 0) {
-            unread = 0;
+        MessageId firstUnread = mgr.getFirstUnreadMessage();
+        if (unread > 0 && firstUnread == null) {
             mgr.clearUnreadMessages();
+            unread = 0;
         }
         if (unread > 0) {
-            int index = mAdapter.findMessageWithId(unreadMsg);
-            View v = mRecyclerView.getLayoutManager().findViewByPosition(index);
-            if (v != null && mRecyclerView.getLayoutManager().isViewPartiallyVisible(v, true, true)) {
-                unread = 0;
+            int index = mAdapter.findMessageWithId(firstUnread);
+            View view = index < 0 ? null :
+                    mRecyclerView.getLayoutManager().findViewByPosition(index);
+            if (view != null &&
+                    mRecyclerView.getLayoutManager().isViewPartiallyVisible(view, true, true)) {
                 mgr.clearUnreadMessages();
+                unread = 0;
             }
-            mAdapter.setNewMessagesStart(unreadMsg);
         }
-        mUnreadCtr.setVisibility(View.GONE);
-        if (unread > 0 || mentions > 0) {
-            if (mUnreadCheckFor == null || !mUnreadCheckFor.equals(unreadMsg)) {
-                mUnreadCheckFor = unreadMsg;
+        if (unread > 0) {
+            mAdapter.setNewMessagesStart(firstUnread);
+            if (!firstUnread.equals(mUnreadCheckFor)) {
+                mUnreadCheckFor = firstUnread;
                 mUnreadCheckedFirst = -1;
                 mUnreadCheckedLast = -1;
             }
-            mUnreadCtr.setVisibility(View.VISIBLE);
-            String unreadText = unread > 99 ? getString(R.string.unread_99_plus) :
-                    getResources().getQuantityString(R.plurals.unread_message_counter, unread, unread);
-            String mentionText = mentions + "@";
-            if (mentions > 0 && unread > 0) {
-                mUnreadText.setText(getString(R.string.unread_counter_with_mentions,
-                        unreadText, mentionText));
-            } else if (mentions > 0) {
-                mUnreadText.setText(mentionText);
-            } else {
-                mUnreadText.setText(unreadText);
-            }
+        } else {
+            mAdapter.setNewMessagesStart(null);
+            mUnreadCheckFor = null;
+            mUnreadCheckedFirst = -1;
+            mUnreadCheckedLast = -1;
         }
     }
 
@@ -713,13 +541,12 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
         if (visible && atBottom && manager.getUnreadMessageCount() > 0) {
             manager.clearUnreadMessages();
             mAdapter.setNewMessagesStart(null);
-            // Reading ordinary messages must not hide mentions that still need review.
             updateUnreadCounter();
         }
     }
 
     private void checkForUnreadMessages() {
-        if (mUnreadCtr.getVisibility() == View.GONE)
+        if (mUnreadCheckFor == null || mConnection == null || mAdapter == null)
             return;
         LinearLayoutManager llm = (LinearLayoutManager) mRecyclerView.getLayoutManager();
         int firstPos = llm.findFirstCompletelyVisibleItemPosition();
@@ -751,7 +578,6 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
             ChannelNotificationManager mgr = mConnection.getNotificationManager()
                     .getChannelManager(mChannelName, true);
             mgr.clearUnreadMessages();
-            // The unread boundary was reached, but reviewed-state is independent.
             updateUnreadCounter();
             mUnreadCheckedFirst = -1;
             mUnreadCheckedLast = -1;
@@ -834,8 +660,6 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
                     .setAtBottom(false);
         if (mConnection != null)
             mConnection.getNotificationManager().removeUnreadMessageCountCallback(this);
-        if (mUnreadCtr != null)
-            mUnreadCtr.setVisibility(View.GONE);
     }
 
     @UiSettingChangeCallback(keys = {ChatSettings.PREF_PRIVATE_PRESENCE_EVENTS_ENABLED})

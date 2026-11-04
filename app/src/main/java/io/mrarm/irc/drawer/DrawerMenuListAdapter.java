@@ -434,22 +434,12 @@ public class DrawerMenuListAdapter extends RecyclerView.Adapter<RecyclerView.Vie
 
             ChannelNotificationManager notificationManager = info.getNotificationManager().getChannelManager(mChannel, false);
             int unreadMessageCount = notificationManager == null ? 0 : notificationManager.getUnreadMessageCount();
-            int mentionCount = notificationManager == null ? 0 : notificationManager.getMentionCount();
-            if (unreadMessageCount > 0 || mentionCount > 0) {
+            if (unreadMessageCount > 0) {
                 mUnreadCounter.setVisibility(View.VISIBLE);
-                String unread = unreadMessageCount > 99 ? "99+" : String.valueOf(unreadMessageCount);
-                String compact = unreadMessageCount == 0 ? "@" + mentionCount :
-                        (mentionCount > 0 ? unread + " · @" + mentionCount : unread);
-                mUnreadCounter.setText(compact);
-                String description = unreadMessageCount > 0 ? mContext.getResources().getQuantityString(
-                        R.plurals.unread_message_counter, unreadMessageCount, unreadMessageCount) : "";
-                if (mentionCount > 0) {
-                    if (!description.isEmpty())
-                        description += ", ";
-                    description += mContext.getResources().getQuantityString(
-                            R.plurals.mention_counter, mentionCount, mentionCount);
-                }
-                mUnreadCounter.setContentDescription(description);
+                mUnreadCounter.setText(unreadMessageCount > 99 ? "99+" :
+                        String.valueOf(unreadMessageCount));
+                mUnreadCounter.setContentDescription(mContext.getResources().getQuantityString(
+                        R.plurals.unread_message_counter, unreadMessageCount, unreadMessageCount));
             } else {
                 mUnreadCounter.setVisibility(View.GONE);
             }

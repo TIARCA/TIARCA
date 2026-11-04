@@ -13,7 +13,6 @@
     <item android:id="@+id/action_search_messages" android:title="@string/search_messages_title" app:showAsAction="never" />
     <item android:id="@+id/action_mentions" android:title="@string/action_mentions" android:visible="false" app:showAsAction="never" />
     <item android:id="@+id/action_mark_read" android:title="@string/action_mark_read" android:visible="false" app:showAsAction="never" />
-    <item android:id="@+id/action_mark_mentions_read" android:title="@string/action_mark_mentions_read" android:visible="false" app:showAsAction="never" />
     <item android:id="@+id/action_channel_modes" android:title="@string/channel_modes_menu" android:visible="false" app:showAsAction="never" />
     <item android:id="@+id/action_channel_bans" android:title="@string/ban_list_menu" android:visible="false" app:showAsAction="never" />
     <item android:id="@+id/action_send_media" android:title="@string/file_send_menu" android:icon="@drawable/ic_file_upload" android:visible="false" app:iconTint="@android:color/white" app:showAsAction="always" />

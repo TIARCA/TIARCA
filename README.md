@@ -28,7 +28,7 @@ See the full [0.9.10 release notes](https://github.com/TIARCA/TIARCA/releases/ta
 - Ban lists and channel exceptions in a unified interface.
 - IRC `MONITOR` support with a dedicated monitored-users screen.
 - Caller-ID (`+g`) support, numeric 718 handling and automatic `ACCEPT` for private conversations initiated by the user while `+g` is active.
-- Message search with chronological/context navigation and a separate mentions counter.
+- Message search with chronological/context navigation, plus compact in-app alerts for private messages and mentions.
 - Nick, channel and command autocomplete; mIRC formatting and colors.
 - Ignore management and fast actions directly from private conversations.
 - Sharing of images, files, audio and video through temporary links.

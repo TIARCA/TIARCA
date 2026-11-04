@@ -30,7 +30,6 @@ import io.mrarm.irc.config.InAppAlertSettings;
 import io.mrarm.irc.config.NotificationRule;
 import io.mrarm.irc.config.NotificationRuleManager;
 import io.mrarm.irc.config.NotificationCountStorage;
-import io.mrarm.irc.config.MentionStorage;
 import io.mrarm.irc.util.WarningHelper;
 
 public class NotificationManager {
@@ -118,7 +117,7 @@ public class NotificationManager {
         NotificationRule rule = messageFromOtherUser ? findNotificationRule(connection, channel, info) : null;
         boolean mention = messageFromOtherUser && isMention(connection, channel, info);
         if (unreadType)
-            channelManager.addUnreadMessage(messageId, mention);
+            channelManager.addUnreadMessage(messageId);
 
         if (!messageFromOtherUser)
             return;
@@ -170,8 +169,8 @@ public class NotificationManager {
     /**
      * Mention recognition is independent from whether Android notifications are enabled.
      * Active high-priority and custom rules keep their precedence, while the built-in nick
-     * rule remains available for in-app formatting and mention navigation even when its
-     * notification switch is off.
+     * rule remains available for in-app formatting and alerts even when its
+     * Android notification switch is off.
      */
     private boolean isMention(ServerConnectionInfo connection, String channel,
                               MessageInfo message) {
@@ -405,7 +404,7 @@ public class NotificationManager {
             }
         }
 
-        /** Removes unread/mention state left under a nickname replaced by IRC NICK. */
+        /** Removes unread state left under a nickname replaced by IRC NICK. */
         public void discardRenamedChannel(String oldChannel) {
             ChannelNotificationManager old;
             synchronized (mChannels) {
@@ -422,13 +421,10 @@ public class NotificationManager {
             }
             if (old != null) {
                 old.clearUnreadMessages();
-                old.markAllMentionsReviewed();
                 old.cancelNotification(mConnection.getConnectionManager().getContext());
             } else {
                 NotificationCountStorage.getInstance(mConnection.getConnectionManager().getContext())
                         .requestResetChannelCounter(mConnection.getUUID(), oldChannel);
-                MentionStorage.getInstance(mConnection.getConnectionManager().getContext())
-                        .markAllReviewed(mConnection.getUUID(), oldChannel);
             }
         }
 
