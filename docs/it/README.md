@@ -31,7 +31,7 @@ Le password e le credenziali sono dati sensibili: non condividerle negli screens
 
 ## 3. Interfaccia principale
 
-Il drawer laterale raccoglie server, canali e conversazioni private. La barra superiore consente di passare rapidamente tra le conversazioni aperte. I contatori distinguono i normali messaggi non letti dalle menzioni. **Utenti monitorati** è disponibile nella parte superiore del drawer; **Impostazioni** rimane in fondo al menu `…`.
+Il drawer laterale raccoglie server, canali e conversazioni private. La barra superiore consente di passare rapidamente tra le conversazioni aperte. Le schede e il drawer indicano i messaggi non letti; PVT e menzioni hanno un'unica finestra di avviso interna. **Utenti monitorati** è disponibile nella parte superiore del drawer; **Impostazioni** rimane in fondo al menu `…`.
 
 ![drawer/menu](../images/01_drawer_menu.jpg)
 
@@ -115,7 +115,7 @@ La sintassi manuale prevista è normalmente `/accept +nickname` per aggiungere e
 
 ## 12. Ricerca, cronologia e menzioni
 
-La ricerca individua messaggi nella cronologia e consente di raggiungere il risultato nel suo contesto temporale. Le menzioni hanno un contatore separato dai normali non letti, così i messaggi che richiedono attenzione non vengono confusi con l'attività generale dei canali.
+La ricerca individua messaggi nella cronologia e consente di raggiungere il risultato nel suo contesto temporale. Nei canali, **Menzioni** apre la ricerca con il nickname corrente già compilato. PVT e menzioni provenienti dalle altre conversazioni compaiono in una finestra compatta: tocca **Apri** o il testo per raggiungere il messaggio e farlo lampeggiare; chiudi con **X** o con uno swipe a sinistra/destra. Le schede e il drawer continuano a mostrare i messaggi non letti.
 
 ![ricerca messaggi](../images/09_ricerca_messaggi.jpg)
 
