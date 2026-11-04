@@ -296,7 +296,7 @@ public class ChatFragment extends Fragment implements
         if (channel != null) {
             ChannelNotificationManager data = mConnectionInfo.getNotificationManager().getChannelManager(channel, false);
             if (data != null)
-                highlight = data.hasUnreadMessages() || data.getMentionCount() > 0;
+                highlight = data.hasUnreadMessages();
         }
         tab.getCustomView().findViewById(R.id.notification_icon).setVisibility(highlight ? View.VISIBLE : View.GONE);
     }
@@ -445,12 +445,6 @@ public class ChatFragment extends Fragment implements
         return null;
     }
 
-    public void startMentionNavigation() {
-        ChatMessagesFragment fragment = getCurrentMessagesFragment();
-        if (fragment != null)
-            fragment.startMentionNavigation();
-    }
-
     public String getCurrentVisibleMessageId() {
         ChatMessagesFragment fragment = getCurrentMessagesFragment();
         return fragment == null ? null : fragment.getFirstVisibleMessageId();
@@ -466,18 +460,6 @@ public class ChatFragment extends Fragment implements
         if (channel != null)
             mConnectionInfo.getNotificationManager().getChannelManager(channel, true)
                     .clearUnreadMessages();
-    }
-
-    public void markCurrentMentionsRead() {
-        ChatMessagesFragment fragment = getCurrentMessagesFragment();
-        if (fragment != null) {
-            fragment.markAllMentionsReviewed();
-            return;
-        }
-        String channel = getCurrentChannel();
-        if (channel != null)
-            mConnectionInfo.getNotificationManager().getChannelManager(channel, true)
-                    .markAllMentionsReviewed();
     }
 
     public ChatFragmentSendMessageHelper getSendMessageHelper() {
