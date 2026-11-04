@@ -27,7 +27,6 @@
             android:id="@+id/tabs"
             android:layout_width="match_parent"
             android:layout_height="@dimen/chat_tabs_height"
-            app:tabMinHeight="@dimen/chat_tabs_height"
             app:tabMode="scrollable"
             app:tabContentStart="20dp"
             app:tabIndicatorColor="?android:attr/textColorPrimary" />
