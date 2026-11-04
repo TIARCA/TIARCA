@@ -117,6 +117,8 @@ La sintassi manuale prevista è normalmente `/accept +nickname` per aggiungere e
 
 La ricerca individua messaggi nella cronologia e consente di raggiungere il risultato nel suo contesto temporale. Nei canali, **Menzioni** apre la ricerca con il nickname corrente già compilato. PVT e menzioni provenienti dalle altre conversazioni compaiono in una finestra compatta: tocca **Apri** o il testo per raggiungere il messaggio e farlo lampeggiare; chiudi con **X** o con uno swipe a sinistra/destra. Le schede e il drawer continuano a mostrare i messaggi non letti.
 
+In **Impostazioni → Notifiche** è possibile scegliere separatamente gli avvisi in-app per **messaggi privati (PVT)** e **menzioni nei canali**. Entrambi sono attivi per impostazione predefinita, anche ripristinando un backup precedente. È possibile disattivarne uno o entrambi; le notifiche Android in background conservano le proprie regole.
+
 ![ricerca messaggi](../images/09_ricerca_messaggi.jpg)
 
 ## 13. Ignore
