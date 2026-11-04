@@ -78,6 +78,10 @@ public class NotificationManager {
         if (listener != null) {
             if (!InAppAlertSettings.isEnabled())
                 mInAppAlerts.clear();
+            else
+                mInAppAlerts.removeDisabledTypes(
+                        InAppAlertSettings.isPrivateMessagesEnabled(),
+                        InAppAlertSettings.isMentionsEnabled());
             listener.onInAppAlertsChanged(false);
         }
     }
@@ -130,7 +134,9 @@ public class NotificationManager {
             boolean playback = NotificationRuleManager.sZNCPlaybackRule.appliesTo(
                     connection.getNotificationManager(), normalizedChannel, info);
             boolean direct = normalizedChannel == null;
-            if (InAppAlertSettings.shouldAlert(true, direct, mention, playback, info.getType())) {
+            if (InAppAlertSettings.shouldAlert(true, direct, mention, playback, info.getType(),
+                    InAppAlertSettings.isPrivateMessagesEnabled(),
+                    InAppAlertSettings.isMentionsEnabled())) {
                 String sender = info.getSender().getNick();
                 String target = direct ? sender : normalizedChannel;
                 String message = info.getMessage();
