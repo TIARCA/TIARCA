@@ -148,7 +148,7 @@
       "category": "tiarca",
       "title": "Mentions and search",
       "summary": "Use chat history search (Mentions preselects your nick in channels) to find messages.",
-      "body": "Use search to find messages in context. A compact in-app card alerts you to private messages and mentions in other conversations. Tap Open or the text to jump to the message, or swipe left/right (Close) to dismiss.",
+      "body": "Use search to find messages in context. In Settings > Notifications you can enable PVT and channel-mention alerts independently. A compact in-app card alerts you to private messages and mentions in other conversations. Tap Open or the text to jump to the message, or swipe left/right (Close) to dismiss.",
       "syntax": "",
       "example": "",
       "note": "Only locally available history is searchable.",
