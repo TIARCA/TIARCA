@@ -62,6 +62,29 @@ public class InAppAlertQueueTest {
     }
 
     @Test
+    public void changingAlertCategoriesDropsOnlyExcludedQueuedAlerts() {
+        InAppAlertQueue queue = new InAppAlertQueue();
+        InAppAlertQueue.Alert mention = alert("alice");
+        InAppAlertQueue.Alert direct = new InAppAlertQueue.Alert(UUID.fromString(
+                "00000000-0000-0000-0000-000000000002"), "bob", "bob",
+                "hello privately", true, "pvt-1", false);
+        assertTrue(queue.add(mention));
+        assertTrue(queue.add(direct));
+        queue.removeDisabledTypes(false, true);
+        assertSame(mention, queue.current());
+        assertEquals(0, queue.waitingCount());
+        queue.removeDisabledTypes(true, false);
+        assertNull(queue.current());
+
+        assertTrue(queue.add(mention));
+        assertTrue(queue.add(direct));
+        queue.removeDisabledTypes(true, false);
+        assertSame(direct, queue.current());
+        queue.removeDisabledTypes(true, true);
+        assertSame(direct, queue.current());
+    }
+
+    @Test
     public void isBoundedWithoutReplacingCurrentOrOlderWaitingAlerts() {
         InAppAlertQueue queue = new InAppAlertQueue();
         InAppAlertQueue.Alert first = alert("first");
