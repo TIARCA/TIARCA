@@ -7,6 +7,8 @@ public final class InAppAlertSettings {
 
     public static final String PREF_ENABLED = "in_app_message_alerts_enabled";
     public static final String PREF_SOUND = "in_app_message_alerts_sound";
+    public static final String PREF_PRIVATE_MESSAGES = "in_app_message_alerts_private";
+    public static final String PREF_MENTIONS = "in_app_message_alerts_mentions";
 
     private InAppAlertSettings() {
     }
@@ -19,11 +21,22 @@ public final class InAppAlertSettings {
         return SettingsHelper.getPreferences().getBoolean(PREF_SOUND, false);
     }
 
+    /** Both categories default on for existing installations and older restored backups. */
+    public static boolean isPrivateMessagesEnabled() {
+        return SettingsHelper.getPreferences().getBoolean(PREF_PRIVATE_MESSAGES, true);
+    }
+
+    public static boolean isMentionsEnabled() {
+        return SettingsHelper.getPreferences().getBoolean(PREF_MENTIONS, true);
+    }
+
     public static boolean shouldAlert(boolean fromOtherUser, boolean direct,
                                       boolean mention, boolean playback,
-                                      MessageInfo.MessageType type) {
-        return fromOtherUser && !playback &&
-                (type == MessageInfo.MessageType.NORMAL || type == MessageInfo.MessageType.ME) &&
-                (direct || mention);
+                                      MessageInfo.MessageType type,
+                                      boolean privateMessagesEnabled, boolean mentionsEnabled) {
+        if (!fromOtherUser || playback ||
+                (type != MessageInfo.MessageType.NORMAL && type != MessageInfo.MessageType.ME))
+            return false;
+        return direct ? privateMessagesEnabled : mention && mentionsEnabled;
     }
 }
