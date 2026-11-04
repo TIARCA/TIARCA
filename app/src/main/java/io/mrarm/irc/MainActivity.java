@@ -857,7 +857,17 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
             if (fragment.getCurrentChannel() != null)
                 new ChatMessageSearchDialog(this, fragment).show();
         } else if (id == R.id.action_mentions) {
-            ((ChatFragment) getCurrentFragment()).startMentionNavigation();
+            ChatFragment fragment = (ChatFragment) getCurrentFragment();
+            String channel = fragment.getCurrentChannel();
+            ServerConnectionApi api = (ServerConnectionApi) fragment.getConnectionInfo().getApiInstance();
+            if (channel != null && !channel.isEmpty() &&
+                    api.getServerConnectionData().getSupportList()
+                            .getSupportedChannelTypes().contains(channel.charAt(0))) {
+                new ChatMessageSearchDialog(this, fragment)
+                        .show(api.getServerConnectionData().getUserNick());
+            } else {
+                fragment.startMentionNavigation();
+            }
         } else if (id == R.id.action_mark_read) {
             ((ChatFragment) getCurrentFragment()).markCurrentConversationRead();
         } else if (id == R.id.action_mark_mentions_read) {
