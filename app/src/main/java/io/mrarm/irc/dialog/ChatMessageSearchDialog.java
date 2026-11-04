@@ -54,6 +54,10 @@ public class ChatMessageSearchDialog {
     }
 
     public void show() {
+        show(null);
+    }
+
+    public void show(String initialQuery) {
         int padding = (int) (16 * activity.getResources().getDisplayMetrics().density);
         LinearLayout root = new LinearLayout(activity);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -62,6 +66,10 @@ public class ChatMessageSearchDialog {
         query = new EditText(activity);
         query.setSingleLine(true);
         query.setHint(R.string.search_messages_hint);
+        if (initialQuery != null) {
+            query.setText(initialQuery);
+            query.setSelection(query.length());
+        }
         root.addView(query, new LinearLayout.LayoutParams(-1, -2));
 
         status = new TextView(activity);
