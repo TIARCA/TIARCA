@@ -15,6 +15,24 @@
         android:text="@string/notification_in_app_enabled" />
 
     <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/in_app_alerts_private"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:text="@string/notification_in_app_private_enabled" />
+
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/in_app_alerts_mentions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:text="@string/notification_in_app_mentions_enabled" />
+
+    <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/in_app_alerts_sound"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

@@ -598,6 +598,8 @@
     <!-- Notification settings -->
 
     <string name="notification_in_app_enabled">In-app banners for private messages and mentions</string>
+    <string name="notification_in_app_private_enabled">Private messages (PVT)</string>
+    <string name="notification_in_app_mentions_enabled">Mentions in channels</string>
     <string name="notification_in_app_sound">Sound for in-app banners (off by default)</string>
     <string name="notification_in_app_private">Private message from %1$s</string>
     <string name="notification_in_app_mention">%1$s mentioned you in %2$s</string>

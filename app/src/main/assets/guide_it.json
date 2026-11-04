@@ -148,7 +148,7 @@
       "category": "tiarca",
       "title": "Menzioni e ricerca",
       "summary": "Usa la ricerca nella cronologia; Menzioni precompila il nickname nei canali.",
-      "body": "Usa la ricerca per ritrovare i messaggi nel contesto. Una finestra compatta segnala PVT e menzioni nelle altre conversazioni: tocca Apri o il testo per raggiungere il messaggio, oppure scorri a sinistra/destra (Chiudi) per eliminarla.",
+      "body": "Usa la ricerca per ritrovare i messaggi nel contesto. In Impostazioni > Notifiche puoi scegliere separatamente gli avvisi per PVT e menzioni. Una finestra compatta segnala PVT e menzioni nelle altre conversazioni: tocca Apri o il testo per raggiungere il messaggio, oppure scorri a sinistra/destra (Chiudi) per eliminarla.",
       "syntax": "",
       "example": "",
       "note": "È ricercabile soltanto la cronologia disponibile localmente.",
