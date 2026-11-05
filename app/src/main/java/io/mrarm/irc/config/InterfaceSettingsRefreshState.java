@@ -31,6 +31,7 @@ public final class InterfaceSettingsRefreshState {
                 || ChatSettings.PREF_TEXT_AUTOCORRECT_ENABLED.equals(key)
                 || ChatSettings.PREF_APPBAR_COMPACT_MODE.equals(key)
                 || ChatSettings.PREF_SEND_BOX_ALWAYS_MULTILINE.equals(key)
+                || ChatSettings.PREF_STATUS_MESSAGE_MODE.equals(key)
                 || EventDisplaySettings.PREF_MONOCHROME_MODE.equals(key)
                 || EventDisplaySettings.PREF_MONOCHROME_KICK.equals(key)
                 || EventDisplaySettings.PREF_MONOCHROME_QUIT.equals(key)

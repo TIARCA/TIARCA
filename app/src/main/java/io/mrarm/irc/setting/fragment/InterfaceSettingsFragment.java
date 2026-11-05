@@ -43,6 +43,7 @@ import io.mrarm.irc.ThemeEditorActivity;
 import io.mrarm.irc.ThemedActivity;
 import io.mrarm.irc.config.AppSettings;
 import io.mrarm.irc.config.ChatSettings;
+import io.mrarm.irc.config.StatusMessageDisplaySettings;
 import io.mrarm.irc.config.EventDisplaySettings;
 import io.mrarm.irc.dialog.MenuBottomSheetDialog;
 import io.mrarm.irc.setting.ChatBackgroundSetting;
@@ -189,9 +190,12 @@ public class InterfaceSettingsFragment extends SettingsListFragment
                 getResources().getStringArray(R.array.pref_entries_nick_swipe_private_action),
                 getResources().getStringArray(R.array.pref_entry_values_nick_swipe_private_action))
                 .linkSetting(prefs, ChatSettings.PREF_NICK_SWIPE_LEFT_PRIVATE_ACTION));
-        a.add(new CheckBoxSetting(getString(R.string.pref_title_separate_status_messages),
-                getString(R.string.pref_summary_separate_status_messages))
-                .linkSetting(prefs, ChatSettings.PREF_SEPARATE_STATUS_MESSAGES));
+        // Keep the old checkbox selection when upgrading; new installs default to (ops).
+        StatusMessageDisplaySettings.migrateLegacyIfNeeded(prefs);
+        a.add(new ListSetting(getString(R.string.pref_title_status_message_mode),
+                getResources().getStringArray(R.array.pref_entries_status_message_mode),
+                getResources().getStringArray(R.array.pref_entry_values_status_message_mode))
+                .linkSetting(prefs, ChatSettings.PREF_STATUS_MESSAGE_MODE));
         a.add(new CheckBoxSetting(getString(R.string.pref_title_pvt_presence_events),
                 getString(R.string.pref_summary_pvt_presence_events))
                 .linkSetting(prefs, ChatSettings.PREF_PRIVATE_PRESENCE_EVENTS_ENABLED));

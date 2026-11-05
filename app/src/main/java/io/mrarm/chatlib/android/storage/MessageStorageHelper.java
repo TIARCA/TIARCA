@@ -22,6 +22,7 @@ import io.mrarm.chatlib.dto.TopicWhoTimeMessageInfo;
 class MessageStorageHelper {
 
     private static final String PROP_BATCH = "batch";
+    private static final String PROP_STATUS_MESSAGE = "statusMessage";
     private static final String PROP_NICKCHANGE_NEWNICK = "newNick";
     private static final String PROP_KICK_TARGET = "kickedNick";
     private static final String PROP_CHANNELMODE_ENTRIES = "entries";
@@ -62,7 +63,9 @@ class MessageStorageHelper {
             builder = new MessageInfo.Builder(sender, text, type);
         }
         builder.setDate(date);
-        if (o.has(PROP_BATCH)) {
+        if (o != null && o.has(PROP_STATUS_MESSAGE))
+            builder.setStatusMessage(o.get(PROP_STATUS_MESSAGE).getAsBoolean());
+        if (o != null && o.has(PROP_BATCH)) {
             // TODO: find the batch
         }
         return builder.build();
@@ -99,6 +102,8 @@ class MessageStorageHelper {
         JsonObject object = new JsonObject();
         if (info.getBatch() != null)
             object.addProperty(PROP_BATCH, info.getBatch().getUUID().toString());
+        if (info.isStatusMessage())
+            object.addProperty(PROP_STATUS_MESSAGE, true);
         if (info instanceof NickChangeMessageInfo) {
             NickChangeMessageInfo nickChangeMessage = ((NickChangeMessageInfo) info);
             object.addProperty(PROP_NICKCHANGE_NEWNICK, nickChangeMessage.getNewNick());

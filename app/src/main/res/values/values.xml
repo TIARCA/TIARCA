@@ -19,6 +19,11 @@
         <item>monospace</item>
         <item>atkinson_hyperlegible_next</item>
     </string-array>
+    <string-array name="pref_entry_values_status_message_mode" translatable="false">
+        <item>plain</item>
+        <item>prefix</item>
+        <item>separate</item>
+    </string-array>
     <string-array name="pref_entry_values_appbar_compact_mode">
         <item>never</item>
         <item>always</item>

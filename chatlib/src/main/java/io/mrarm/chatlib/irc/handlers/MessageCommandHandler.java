@@ -102,8 +102,11 @@ public class MessageCommandHandler implements CommandHandler {
                     if (channelData == null)
                         continue;
                 }
-                channelData.addMessage(new MessageInfo.Builder(
-                        sender.toSenderInfo(userUUID, channelData, automated), text, type), tags);
+                MessageInfo.Builder builder = new MessageInfo.Builder(
+                        sender.toSenderInfo(userUUID, channelData, automated), text, type);
+                builder.setStatusMessage(connection.getSupportList()
+                        .getStatusMessageChannel(rawChannel) != null);
+                channelData.addMessage(builder, tags);
             }
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
@@ -138,9 +141,12 @@ public class MessageCommandHandler implements CommandHandler {
                 ChannelData channelData = getChannelData(connection, sender, channel);
                 if (channelData == null)
                     continue;
-                channelData.addMessage(new MessageInfo.Builder(
+                MessageInfo.Builder builder = new MessageInfo.Builder(
                         sender.toSenderInfo(userUUID, channelData, automated), args,
-                        MessageInfo.MessageType.ME), tags);
+                        MessageInfo.MessageType.ME);
+                builder.setStatusMessage(connection.getSupportList()
+                        .getStatusMessageChannel(rawChannel) != null);
+                channelData.addMessage(builder, tags);
             }
         } else if (command.equals("PING") && !notice) {
             if (!rateLimitCtcpCommand() || args.length() > 32)

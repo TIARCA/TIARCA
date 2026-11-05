@@ -24,6 +24,8 @@ public class MessageInfo {
     private String message;
     private MessageType type;
     private BatchInfo batch;
+    /** True when this message was sent to an IRC STATUSMSG target (e.g. @#channel). */
+    private boolean statusMessage;
 
     public MessageInfo(MessageSenderInfo sender, Date date, String message, MessageType type) {
         this.sender = sender;
@@ -50,6 +52,10 @@ public class MessageInfo {
 
     public BatchInfo getBatch() {
         return batch;
+    }
+
+    public boolean isStatusMessage() {
+        return statusMessage;
     }
 
     public static class Builder {
@@ -82,6 +88,10 @@ public class MessageInfo {
 
         public void setBatch(BatchInfo batch) {
             messageInfo.batch = batch;
+        }
+
+        public void setStatusMessage(boolean statusMessage) {
+            messageInfo.statusMessage = statusMessage;
         }
 
         public MessageInfo build() {
