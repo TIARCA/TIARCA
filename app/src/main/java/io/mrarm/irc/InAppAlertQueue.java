@@ -5,6 +5,8 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.UUID;
 
+import io.mrarm.chatlib.irc.IRCCaseMapping;
+
 /**
  * Process-lifetime foreground alert queue. Keeps message text only in memory,
  * so private content is not copied into preferences, logs or backups.
@@ -36,6 +38,22 @@ public final class InAppAlertQueue {
 
     public boolean dismissCurrent() {
         return mItems.pollFirst() != null;
+    }
+
+    /** Viewing a PVT handles its queued alerts without dismissing any channel mentions. */
+    public boolean dismissPrivateConversation(UUID serverUUID, String target,
+                                               IRCCaseMapping caseMapping) {
+        boolean changed = false;
+        Iterator<Alert> iterator = mItems.iterator();
+        while (iterator.hasNext()) {
+            Alert alert = iterator.next();
+            if (alert.privateMessage && InAppAlertVisibility.isConversationVisible(
+                    serverUUID, target, alert.serverUUID, alert.target, caseMapping)) {
+                iterator.remove();
+                changed = true;
+            }
+        }
+        return changed;
     }
 
     public void clear() {

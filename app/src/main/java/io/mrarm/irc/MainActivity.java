@@ -426,6 +426,11 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
         super.onResume();
         WarningHelper.setActivity(this);
         NotificationManager.getInstance().setInAppAlertListener(mInAppAlertListener);
+        Fragment displayed = getCurrentFragment();
+        if (displayed instanceof ChatFragment && displayed.getView() != null) {
+            ChatFragment chat = (ChatFragment) displayed;
+            onConversationViewed(chat.getConnectionInfo(), chat.getCurrentChannel());
+        }
         mDCCDialogHandler.onResume();
         if (getCurrentFragment() instanceof ChatFragment && !ServerConnectionManager
                 .getInstance(this).hasConnection(((ChatFragment) getCurrentFragment())
@@ -482,9 +487,10 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
             return;
         if (current.privateMessage)
             connection.addStoredConversation(current.target);
+        // Acknowledge first: selecting a PVT may also remove queued alerts for that query.
+        notifications.dismissCurrentInAppAlert();
         // Center the stored message and flash it for 3 seconds.
         openServer(connection, current.target, current.messageId, false);
-        notifications.dismissCurrentInAppAlert();
     }
 
     private void updateInAppAlertPosition() {
@@ -613,9 +619,15 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
                     .commit();
         }
         mDrawerHelper.setSelectedChannel(server, channel);
+        onConversationViewed(server, channel);
         if (fromServerList)
             mBackReturnToServerList = true;
         return fragment;
+    }
+
+    /** Selecting a PVT acknowledges only its own alerts, not channel mentions. */
+    public void onConversationViewed(ServerConnectionInfo server, String channel) {
+        NotificationManager.getInstance().onPrivateConversationViewed(server, channel);
     }
 
     public ChatFragment openServer(ServerConnectionInfo server, String channel) {
