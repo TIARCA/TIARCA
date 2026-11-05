@@ -12,6 +12,9 @@
         <item>insert_nick</item>
         <item>private</item>
     </string-array>
+    <!-- Legacy translations retained for compatibility with existing locale resources. -->
+    <string name="pref_title_separate_status_messages">Privileged messages in a separate tab</string>
+    <string name="pref_summary_separate_status_messages">Show messages addressed by the server to privileged channel members (for example @#channel) in a separate tab instead of the original channel.</string>
     <string name="pref_title_status_message_mode">Operator-only channel messages</string>
     <string name="pref_summary_status_message_mode">Choose how to show messages addressed to privileged channel members (for example @#channel).</string>
     <string-array name="pref_entries_status_message_mode">
