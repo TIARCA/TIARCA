@@ -2,6 +2,7 @@ package io.mrarm.irc.util;
 
 import android.content.Context;
 import androidx.test.core.app.ApplicationProvider;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -26,6 +27,13 @@ public class MessageBuilderStatusMessageTest {
         SettingsHelper.getInstance(context);
         DefaultPreferences.get(context).edit().remove(
                 ChatSettings.PREF_SEPARATE_STATUS_MESSAGES).commit();
+    }
+
+    @After
+    public void tearDown() {
+        DefaultPreferences.get(context).edit()
+                .remove(ChatSettings.PREF_STATUS_MESSAGE_MODE)
+                .remove(ChatSettings.PREF_SEPARATE_STATUS_MESSAGES).commit();
     }
 
     private MessageInfo makeMessage(MessageInfo.MessageType type, boolean status) {

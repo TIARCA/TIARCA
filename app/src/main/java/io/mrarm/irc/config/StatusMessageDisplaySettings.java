@@ -1,6 +1,8 @@
 package io.mrarm.irc.config;
 
+import android.content.Context;
 import android.content.SharedPreferences;
+import io.mrarm.irc.util.DefaultPreferences;
 
 /** Display choice for server-advertised IRC STATUSMSG targets. */
 public final class StatusMessageDisplaySettings {
@@ -32,11 +34,11 @@ public final class StatusMessageDisplaySettings {
         }
     }
 
-    public static boolean isSeparate() {
-        return MODE_SEPARATE.equals(getMode(SettingsHelper.getPreferences()));
+    public static boolean isSeparate(Context context) {
+        return MODE_SEPARATE.equals(getMode(DefaultPreferences.get(context)));
     }
 
-    public static boolean showPrefix() {
-        return MODE_PREFIX.equals(getMode(SettingsHelper.getPreferences()));
+    public static boolean showPrefix(Context context) {
+        return MODE_PREFIX.equals(getMode(DefaultPreferences.get(context)));
     }
 }

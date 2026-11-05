@@ -398,7 +398,7 @@ public class MessageBuilder {
     private CharSequence getChatMessageBody(MessageInfo message) {
         CharSequence formatted = LinkHelper.addLinks(
                 IRCColorUtils.getFormattedString(mContext, message.getMessage()));
-        if (!message.isStatusMessage() || !StatusMessageDisplaySettings.showPrefix())
+        if (!message.isStatusMessage() || !StatusMessageDisplaySettings.showPrefix(mContext))
             return formatted;
         return new SpannableStringBuilder("(ops) ").append(formatted);
     }

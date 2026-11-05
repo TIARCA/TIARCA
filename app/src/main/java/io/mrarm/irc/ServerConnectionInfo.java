@@ -173,7 +173,8 @@ public class ServerConnectionInfo {
             MessageCommandHandler messageHandler = connection.getServerConnectionData()
                     .getCommandHandlerList().getHandler(MessageCommandHandler.class);
             connection.getServerConnectionData().setSeparateStatusMessageTargetsSupplier(
-                    StatusMessageDisplaySettings::isSeparate);
+                    () -> StatusMessageDisplaySettings.isSeparate(
+                            getConnectionManager().getContext()));
             DCCManager dccManager = DCCManager.getInstance(getConnectionManager().getContext());
             messageHandler.setDCCServerManager(dccManager.getServer());
             messageHandler.setDCCClientManager(dccManager.createClient(this));
