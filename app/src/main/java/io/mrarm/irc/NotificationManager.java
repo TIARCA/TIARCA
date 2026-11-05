@@ -100,6 +100,22 @@ public class NotificationManager {
             mInAppAlertListener.onInAppAlertsChanged(false);
     }
 
+    /** Opening a private conversation acknowledges its banners, but never channel mentions. */
+    public void onPrivateConversationViewed(ServerConnectionInfo connection, String target) {
+        if (connection == null || target == null || target.isEmpty())
+            return;
+        ChatApi api = connection.getApiInstance();
+        if (!(api instanceof ServerConnectionApi))
+            return;
+        ServerConnectionData data = ((ServerConnectionApi) api).getServerConnectionData();
+        if (data.getSupportList().getStatusMessageChannel(target) != null ||
+                data.getSupportList().getSupportedChannelTypes().contains(target.charAt(0)))
+            return;
+        if (mInAppAlerts.dismissPrivateConversation(connection.getUUID(), target,
+                data.getSupportList().getCaseMapping()) && mInAppAlertListener != null)
+            mInAppAlertListener.onInAppAlertsChanged(false);
+    }
+
     public interface InAppAlertListener {
         void onInAppAlertsChanged(boolean newlyReceived);
 

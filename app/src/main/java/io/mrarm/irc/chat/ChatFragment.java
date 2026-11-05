@@ -114,6 +114,7 @@ public class ChatFragment extends Fragment implements
                 String channel = mSectionsPagerAdapter.getChannel(i);
                 ((MainActivity) getActivity()).getDrawerHelper().setSelectedChannel(mConnectionInfo,
                         channel);
+                ((MainActivity) getActivity()).onConversationViewed(mConnectionInfo, channel);
                 if (channel != null)
                     DirectShareManager.publishConversation(requireContext(), mConnectionInfo,
                             channel);

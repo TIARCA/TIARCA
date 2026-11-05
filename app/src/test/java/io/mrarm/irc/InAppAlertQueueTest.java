@@ -4,6 +4,8 @@ import org.junit.Test;
 
 import java.util.UUID;
 
+import io.mrarm.chatlib.irc.IRCCaseMapping;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -82,6 +84,40 @@ public class InAppAlertQueueTest {
         assertSame(direct, queue.current());
         queue.removeDisabledTypes(true, true);
         assertSame(direct, queue.current());
+    }
+
+    @Test
+    public void openingPvtClearsAllItsQueuedAlertsButKeepsMentionsAndOtherConversations() {
+        UUID server = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID otherServer = UUID.fromString("00000000-0000-0000-0000-000000000002");
+        InAppAlertQueue queue = new InAppAlertQueue();
+        InAppAlertQueue.Alert first = new InAppAlertQueue.Alert(server,
+                "Alice", "Alice", "first", true, "pvt-1", false);
+        InAppAlertQueue.Alert mention = alert("channel");
+        InAppAlertQueue.Alert second = new InAppAlertQueue.Alert(server,
+                "aLiCe", "Alice", "second", true, "pvt-2", false);
+        InAppAlertQueue.Alert other = new InAppAlertQueue.Alert(otherServer,
+                "Alice", "Alice", "another server", true, "pvt-3", false);
+        InAppAlertQueue.Alert bob = new InAppAlertQueue.Alert(server,
+                "Bob", "Bob", "different PVT", true, "pvt-4", false);
+        queue.add(first);
+        queue.add(mention);
+        queue.add(second);
+        queue.add(other);
+        queue.add(bob);
+
+        assertTrue(queue.dismissPrivateConversation(server, "ALICE", IRCCaseMapping.RFC1459));
+        assertSame(mention, queue.current());
+        assertEquals(3, queue.size());
+        assertEquals(2, queue.waitingCount());
+        assertFalse(queue.dismissPrivateConversation(server, "#test", IRCCaseMapping.RFC1459));
+        assertFalse(queue.dismissPrivateConversation(server, null, IRCCaseMapping.RFC1459));
+        assertSame(mention, queue.current());
+        assertTrue(queue.dismissPrivateConversation(otherServer, "Alice", IRCCaseMapping.RFC1459));
+        assertEquals(2, queue.size());
+        assertTrue(queue.dismissPrivateConversation(server, "Bob", IRCCaseMapping.RFC1459));
+        assertSame(mention, queue.current());
+        assertEquals(1, queue.size());
     }
 
     @Test
