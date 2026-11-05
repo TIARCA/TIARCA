@@ -34,6 +34,7 @@ import io.mrarm.chatlib.message.MessageStorageApi;
 import io.mrarm.irc.chat.ChatUIData;
 import io.mrarm.irc.config.AppSettings;
 import io.mrarm.irc.config.ChatSettings;
+import io.mrarm.irc.config.StatusMessageDisplaySettings;
 import io.mrarm.irc.config.ServerConfigData;
 import io.mrarm.irc.config.ServerConfigManager;
 import io.mrarm.irc.util.DiagnosticLog;
@@ -172,7 +173,7 @@ public class ServerConnectionInfo {
             MessageCommandHandler messageHandler = connection.getServerConnectionData()
                     .getCommandHandlerList().getHandler(MessageCommandHandler.class);
             connection.getServerConnectionData().setSeparateStatusMessageTargetsSupplier(
-                    ChatSettings::isSeparateStatusMessages);
+                    StatusMessageDisplaySettings::isSeparate);
             DCCManager dccManager = DCCManager.getInstance(getConnectionManager().getContext());
             messageHandler.setDCCServerManager(dccManager.getServer());
             messageHandler.setDCCClientManager(dccManager.createClient(this));
