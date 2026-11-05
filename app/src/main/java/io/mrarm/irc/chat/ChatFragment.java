@@ -342,7 +342,7 @@ public class ChatFragment extends Fragment implements
             mAppBar.addView(mTabLayout);
             toolbar.setContentInsetStartWithNavigation(mNormalToolbarInset);
             ViewGroup.LayoutParams params = mTabLayout.getLayoutParams();
-            params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+            params.height = getResources().getDimensionPixelSize(R.dimen.chat_tabs_height);
             mTabLayout.setLayoutParams(params);
         }
     }
