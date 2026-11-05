@@ -64,7 +64,10 @@ ChatSettings:
       enum: ["none", "whois", "copy", "ignore", "monitor"]
     - spec: String nickSwipeLeftPrivateAction = "whois"
       enum: ["none", "whois", "copy", "ignore", "monitor"]
+    # Legacy checkbox kept to migrate existing installations and imported backups.
     - spec: boolean separateStatusMessages = false
+    - spec: String statusMessageMode = "prefix"
+      enum: ["plain", "prefix", "separate"]
 
     - spec: boolean hideJoinPartMessages = true
       getter: shouldHideJoinPartMessages

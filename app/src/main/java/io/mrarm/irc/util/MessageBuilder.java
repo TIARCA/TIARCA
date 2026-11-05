@@ -46,6 +46,7 @@ import io.mrarm.irc.R;
 import io.mrarm.irc.config.AutomatedSenderSettings;
 import io.mrarm.irc.config.EventDisplaySettings;
 import io.mrarm.irc.config.MessageFormatSettings;
+import io.mrarm.irc.config.StatusMessageDisplaySettings;
 import io.mrarm.irc.config.SettingsHelper;
 
 public class MessageBuilder {
@@ -393,6 +394,15 @@ public class MessageBuilder {
         return spannable;
     }
 
+    /** Only the rendered text receives (ops); the original IRC message stays untouched. */
+    private CharSequence getChatMessageBody(MessageInfo message) {
+        CharSequence formatted = LinkHelper.addLinks(
+                IRCColorUtils.getFormattedString(mContext, message.getMessage()));
+        if (!message.isStatusMessage() || !StatusMessageDisplaySettings.showPrefix())
+            return formatted;
+        return new SpannableStringBuilder("(ops) ").append(formatted);
+    }
+
     public CharSequence buildMessage(MessageInfo message) {
         return buildMessage(message, (ClickableSpan) null);
     }
@@ -412,15 +422,15 @@ public class MessageBuilder {
         switch (message.getType()) {
             case NORMAL:
                 return processFormat(mMessageFormat, message.getDate(), message.getSender(),
-                        LinkHelper.addLinks(IRCColorUtils.getFormattedString(mContext, message.getMessage())),
+                        getChatMessageBody(message),
                         senderClickSpan);
             case NOTICE:
                 return processFormat(mNoticeMessageFormat, message.getDate(), message.getSender(),
-                        LinkHelper.addLinks(IRCColorUtils.getFormattedString(mContext, message.getMessage())),
+                        getChatMessageBody(message),
                         senderClickSpan);
             case ME:
                 return processFormat(mActionMessageFormat, message.getDate(), message.getSender(),
-                        LinkHelper.addLinks(IRCColorUtils.getFormattedString(mContext, message.getMessage())),
+                        getChatMessageBody(message),
                         senderClickSpan);
             case JOIN: {
                 CharSequence event = SpannableStringHelper.getText(mContext, R.string.message_join,
@@ -535,11 +545,11 @@ public class MessageBuilder {
         switch (message.getType()) {
             case NORMAL:
                 return processFormat(mMentionMessageFormat, message.getDate(), message.getSender(),
-                        LinkHelper.addLinks(IRCColorUtils.getFormattedString(mContext, message.getMessage())),
+                        getChatMessageBody(message),
                         senderClickSpan);
             case ME:
                 return processFormat(mActionMentionMessageFormat, message.getDate(), message.getSender(),
-                        LinkHelper.addLinks(IRCColorUtils.getFormattedString(mContext, message.getMessage())),
+                        getChatMessageBody(message),
                         senderClickSpan);
         }
         return buildMessage(message, senderClickSpan, clickSpanFactory);

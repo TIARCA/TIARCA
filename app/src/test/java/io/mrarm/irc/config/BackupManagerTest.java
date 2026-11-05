@@ -165,6 +165,25 @@ public class BackupManagerTest {
     }
 
     @Test
+    public void roundTripBackupAndRestorePreservesStatusMessageDisplayMode() throws Exception {
+        DefaultPreferences.get(context).edit()
+                .putString(ChatSettings.PREF_STATUS_MESSAGE_MODE,
+                        StatusMessageDisplaySettings.MODE_PREFIX)
+                .commit();
+        File backupFile = new File(temporaryFolder.getRoot(), "statusmsg_mode_backup.zip");
+        BackupManager.createBackup(context, backupFile, null);
+
+        DefaultPreferences.get(context).edit()
+                .putString(ChatSettings.PREF_STATUS_MESSAGE_MODE,
+                        StatusMessageDisplaySettings.MODE_PLAIN)
+                .commit();
+        BackupManager.restoreBackup(context, backupFile, null);
+
+        assertEquals(StatusMessageDisplaySettings.MODE_PREFIX,
+                StatusMessageDisplaySettings.getMode(DefaultPreferences.get(context)));
+    }
+
+    @Test
     public void roundTripBackupAndRestorePreservesPersonalTmdbKey() throws Exception {
         DefaultPreferences.get(context).edit()
                 .putString(QuickCommandSettings.PREF_TMDB_KEY, "personal-backup-test-key").commit();

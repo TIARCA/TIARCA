@@ -93,6 +93,8 @@ public class StatusMessageRoutingTest {
         handleMessage(connection, "@#amicizia", "solo operatori");
 
         assertEquals(1, messageCount(messages, "#amicizia"));
+        assertTrue(messages.getMessages("#amicizia", 10, new MessageFilterOptions(),
+                null, null, null).get().getMessages().get(0).isStatusMessage());
         assertEquals(1, connection.getJoinedChannelList().size());
         assertEquals("#amicizia", connection.getJoinedChannelList().get(0));
     }
@@ -111,6 +113,8 @@ public class StatusMessageRoutingTest {
 
         assertEquals(0, messageCount(messages, "#amicizia"));
         assertEquals(1, messageCount(messages, "@#amicizia"));
+        assertTrue(messages.getMessages("@#amicizia", 10, new MessageFilterOptions(),
+                null, null, null).get().getMessages().get(0).isStatusMessage());
         assertTrue(connection.getJoinedChannelList().contains("#amicizia"));
         assertTrue(connection.getJoinedChannelList().contains("@#amicizia"));
     }

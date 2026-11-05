@@ -671,6 +671,7 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
     @UiSettingChangeCallback(keys = {
             ChatSettings.PREF_FONT,
             ChatSettings.PREF_FONT_SIZE,
+            ChatSettings.PREF_STATUS_MESSAGE_MODE,
             // it's enough to only register to the last format preference, as all preferences are always rewritten
             MessageFormatSettings.PREF_MESSAGE_FORMAT_EVENT_HOSTNAME
     })
