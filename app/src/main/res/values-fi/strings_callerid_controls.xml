@@ -6,4 +6,5 @@
     <string name="callerid_accept_remove">Estä yksityisviestit (-)</string>
     <string name="callerid_remove_confirm">Haluatko poistaa käyttäjän %1$s ACCEPT-listaltasi?</string>
     <string name="callerid_accept_remove_action">Poista</string>
+    <string name="notification_in_app_callerid">%1$s haluaa lähettää sinulle viestin, mutta +g on käytössä.</string>
 </resources>

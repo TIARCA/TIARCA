@@ -473,7 +473,11 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
         mInAppAlertMore.setOnClickListener(view ->
                 NotificationManager.getInstance().dismissCurrentInAppAlert());
         findViewById(R.id.in_app_alert_open).setOnClickListener(view -> openCurrentInAppAlert());
-        mInAppAlertMessage.setOnClickListener(view -> openCurrentInAppAlert());
+        mInAppAlertMessage.setOnClickListener(view -> {
+            InAppAlertQueue.Alert alert = NotificationManager.getInstance().getCurrentInAppAlert();
+            if (alert != null && !alert.callerId)
+                openCurrentInAppAlert();
+        });
     }
 
     private void openCurrentInAppAlert() {
@@ -485,6 +489,13 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
                 .getConnection(current.serverUUID);
         if (connection == null)
             return;
+        if (current.callerId) {
+            if (!connection.isConnected())
+                return;
+            CallerIdAcceptManager.setAccepted(connection, current.sender, true);
+            notifications.dismissCurrentInAppAlert();
+            return;
+        }
         if (current.privateMessage)
             connection.addStoredConversation(current.target);
         // Acknowledge first: selecting a PVT may also remove queued alerts for that query.
@@ -540,13 +551,16 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
             mInAppAlertHolder.setVisibility(View.GONE);
             return;
         }
-        String title = current.privateMessage
+        ((android.widget.Button) findViewById(R.id.in_app_alert_open)).setText(
+                current.callerId ? R.string.action_accept : R.string.action_open);
+        String title = current.callerId ? getString(R.string.notification_in_app_callerid, current.sender)
+                : current.privateMessage
                 ? getString(R.string.notification_in_app_private, current.sender)
                 : getString(R.string.notification_in_app_mention, current.sender, current.target);
         String preview = current.message.replace('\n', ' ').replace('\r', ' ').trim();
         if (preview.codePointCount(0, preview.length()) > 120)
             preview = preview.substring(0, preview.offsetByCodePoints(0, 120)) + "…";
-        mInAppAlertMessage.setText(title + "\n" + preview);
+        mInAppAlertMessage.setText(current.callerId ? title : title + "\n" + preview);
 
         int waiting = notifications.getWaitingInAppAlertCount();
         if (waiting == 0) {

@@ -201,7 +201,8 @@ public class ServerConnectionInfo {
             ServerConnectionData monitoredConnectionData = connection.getServerConnectionData();
             // WHOWAS must be installed before the network thread starts so replies are
             // structured regardless of whether the command came from the menu or /WHOWAS.
-            WhowasCommandHandler.getOrInstall(monitoredConnectionData);
+            WhowasCommandHandler.getOrInstall(monitoredConnectionData).setCallerIdListener(
+                    nick -> NotificationManager.getInstance().processCallerIdRequest(this, nick));
             connection.getUserInfoApi().subscribeNickChanges((info, oldNick, newNick) -> {
                 renameServiceNick(oldNick, newNick);
                 rememberPrivateConversationNickChange(oldNick, newNick);

@@ -123,6 +123,19 @@ public class NotificationManager {
         boolean isConversationVisible(ServerConnectionInfo connection, String target);
     }
 
+    /** A 718 is a private-message request, independent of the selected conversation. */
+    public void processCallerIdRequest(ServerConnectionInfo connection, String nick) {
+        InAppAlertListener listener = mInAppAlertListener;
+        if (listener == null || nick == null || nick.isEmpty())
+            return;
+        mUiHandler.post(() -> {
+            if (mInAppAlertListener == listener && InAppAlertSettings.isEnabled() &&
+                    InAppAlertSettings.isPrivateMessagesEnabled() &&
+                    mInAppAlerts.add(InAppAlertQueue.Alert.callerId(connection.getUUID(), nick)))
+                listener.onInAppAlertsChanged(true);
+        });
+    }
+
     private String mLastSummaryChannel = null;
 
     public void processMessage(Context context, ServerConnectionInfo connection, String channel,

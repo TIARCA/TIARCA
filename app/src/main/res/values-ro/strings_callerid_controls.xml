@@ -6,4 +6,5 @@
     <string name="callerid_accept_remove">Blochează mesajele private (-)</string>
     <string name="callerid_remove_confirm">Vrei să elimini %1$s din lista ACCEPT?</string>
     <string name="callerid_accept_remove_action">Elimină</string>
+    <string name="notification_in_app_callerid">%1$s vrea să îți scrie, dar ai modul +g activat.</string>
 </resources>

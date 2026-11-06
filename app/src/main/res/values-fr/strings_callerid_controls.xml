@@ -6,4 +6,5 @@
     <string name="callerid_accept_remove">Bloquer les messages privés (-)</string>
     <string name="callerid_remove_confirm">Voulez-vous retirer %1$s de votre liste ACCEPT ?</string>
     <string name="callerid_accept_remove_action">Retirer</string>
+    <string name="notification_in_app_callerid">%1$s veut vous écrire, mais le mode +g est activé.</string>
 </resources>
