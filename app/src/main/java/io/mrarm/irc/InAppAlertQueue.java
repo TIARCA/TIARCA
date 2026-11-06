@@ -47,7 +47,7 @@ public final class InAppAlertQueue {
         Iterator<Alert> iterator = mItems.iterator();
         while (iterator.hasNext()) {
             Alert alert = iterator.next();
-            if (alert.privateMessage && InAppAlertVisibility.isConversationVisible(
+            if (alert.privateMessage && !alert.callerId && InAppAlertVisibility.isConversationVisible(
                     serverUUID, target, alert.serverUUID, alert.target, caseMapping)) {
                 iterator.remove();
                 changed = true;
@@ -79,9 +79,20 @@ public final class InAppAlertQueue {
         /** Storage identifier used to navigate to the exact message and flash it. */
         public final String messageId;
         public final boolean mention;
+        public final boolean callerId;
 
         public Alert(UUID serverUUID, String target, String sender, String message,
                      boolean privateMessage, String messageId, boolean mention) {
+            this(serverUUID, target, sender, message, privateMessage, messageId, mention, false);
+        }
+
+        public static Alert callerId(UUID serverUUID, String nick) {
+            return new Alert(serverUUID, nick, nick, "", true, null, false, true);
+        }
+
+        private Alert(UUID serverUUID, String target, String sender, String message,
+                      boolean privateMessage, String messageId, boolean mention, boolean callerId) {
+            this.callerId = callerId;
             this.serverUUID = serverUUID;
             this.target = target;
             this.sender = sender;

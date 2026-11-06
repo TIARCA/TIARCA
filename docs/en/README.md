@@ -55,6 +55,8 @@ On compatible networks TIARCA supports IRC `MONITOR`. The dedicated Monitored Us
 ## 11. Caller-ID +g and ACCEPT
 On supporting networks, `+g` restricts who may privately message you. TIARCA handles numeric 718 and provides ACCEPT actions. In 0.9.2, user-initiated private chats automatically add the target to ACCEPT only while your current user mode includes `+g`.
 
+Caller-ID requests can also appear in the in-app private-message alert queue. **Accept** sends the command; the server response remains in the Server tab. Dismissing the alert does not accept the request.
+
 ## 12. Search, history and mentions
 Search locates messages in stored history and navigates to the result in chronological context. In a channel, **Mentions** opens search with your current nickname prefilled. Private messages and mentions from other conversations appear in a compact in-app alert: tap **Open** or its text to jump to and highlight the message, use **X** or swipe left/right to dismiss. Tabs and drawer still show unread messages.
 

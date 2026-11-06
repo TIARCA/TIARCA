@@ -51,6 +51,11 @@ public class WhowasCommandHandler implements CommandHandler {
     private static final int ERR_WASNOSUCHNICK = 406;
     private static final int RPL_TARGUMODEG = 718;
     private final Map<String, RequestState> requests = new HashMap<>();
+    private volatile java.util.function.Consumer<String> callerIdListener;
+
+    public void setCallerIdListener(java.util.function.Consumer<String> listener) {
+        callerIdListener = listener;
+    }
 
     public static WhowasCommandHandler getOrInstall(ServerConnectionData data) {
         WhowasCommandHandler handler = data.getCommandHandlerList().getHandler(WhowasCommandHandler.class);
@@ -91,6 +96,9 @@ public class WhowasCommandHandler implements CommandHandler {
                 String source = params.size() > 2 ? params.get(2) : null;
                 connection.getServerStatusData().addMessage(
                         new CallerIdStatusMessageInfo(callerNick, source));
+                java.util.function.Consumer<String> listener = callerIdListener;
+                if (listener != null)
+                    listener.accept(callerNick);
             }
             return;
         }

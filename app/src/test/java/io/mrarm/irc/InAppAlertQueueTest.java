@@ -121,6 +121,24 @@ public class InAppAlertQueueTest {
     }
 
     @Test
+    public void callerIdRequestRemainsInQueueWhenPrivateConversationIsViewed() {
+        UUID server = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        InAppAlertQueue queue = new InAppAlertQueue();
+        InAppAlertQueue.Alert mention = alert("channel");
+        InAppAlertQueue.Alert request = InAppAlertQueue.Alert.callerId(server, "Alice");
+        queue.add(mention);
+        queue.add(request);
+        assertFalse(queue.dismissPrivateConversation(server, "alice", IRCCaseMapping.RFC1459));
+        assertSame(mention, queue.current());
+        assertEquals(1, queue.waitingCount());
+        queue.dismissCurrent();
+        assertSame(request, queue.current());
+        assertTrue(request.callerId);
+        queue.removeDisabledTypes(false, true);
+        assertNull(queue.current());
+    }
+
+    @Test
     public void isBoundedWithoutReplacingCurrentOrOlderWaitingAlerts() {
         InAppAlertQueue queue = new InAppAlertQueue();
         InAppAlertQueue.Alert first = alert("first");

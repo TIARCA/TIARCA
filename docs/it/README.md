@@ -111,6 +111,8 @@ TIARCA supporta il comando IRC `MONITOR` sulle reti che lo implementano. La sche
 
 Sulle reti compatibili, `+g` limita chi può inviarti messaggi privati. TIARCA gestisce il numeric 718 e offre l'azione ACCEPT per autorizzare un utente. Dalla 0.9.2, se sei effettivamente in `+g` e sei tu ad avviare il PVT, l'utente viene aggiunto automaticamente alla accept list. Se `+g` non è attivo, l'apertura del PVT non aggiunge inutilmente il nickname alla lista.
 
+Le richieste +g possono apparire anche nella coda dei banner in-app per i PVT: **ACCETTA** invia il comando e la risposta del server resta nella scheda SERVER. Chiudere il banner non accetta la richiesta.
+
 La sintassi manuale prevista è normalmente `/accept +nickname` per aggiungere e `/accept -nickname` per rimuovere; la disponibilità concreta dipende dall'IRCd.
 
 ## 12. Ricerca, cronologia e menzioni
