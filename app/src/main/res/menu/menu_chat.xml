@@ -20,6 +20,7 @@
     <item android:id="@+id/action_direct_ignore" android:title="@string/action_ignore_user" android:icon="@drawable/ic_block" android:visible="false" app:iconTint="@android:color/white" app:showAsAction="always" />
     <item android:id="@+id/action_close_private_conversation" android:title="@string/action_close_direct" android:icon="@drawable/ic_close" android:visible="false" app:iconTint="@android:color/white" app:showAsAction="always" />
     <item android:id="@+id/action_direct_whois" android:title="@string/action_whois" android:visible="false" app:showAsAction="never" />
+    <item android:id="@+id/action_send_media_channel" android:title="@string/file_send_menu" android:visible="false" app:showAsAction="never" />
     <item android:id="@+id/action_members" android:title="@string/channel_members" app:showAsAction="never" />
     <item android:id="@+id/action_ignore_list" android:title="@string/ignored_users_label" app:showAsAction="never" />
     <item android:id="@+id/action_monitored_users" android:title="@string/title_activity_monitored_users" app:showAsAction="never" />

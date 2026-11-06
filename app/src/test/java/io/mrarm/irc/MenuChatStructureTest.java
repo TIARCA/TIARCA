@@ -55,6 +55,24 @@ public class MenuChatStructureTest {
     }
 
     @Test
+    public void channelSendIsInOverflowBetweenModesAndMembers() throws IOException {
+        String xml = readMenu();
+        int modes = xml.indexOf("@+id/action_channel_modes");
+        int send = xml.indexOf("@+id/action_send_media_channel");
+        int members = xml.indexOf("@+id/action_members");
+        assertTrue("Channel send must appear after channel modes", modes >= 0 && send > modes);
+        assertTrue("Channel send must appear before members", members > send);
+
+        int end = xml.indexOf("/>", send);
+        assertTrue("Channel send item is malformed", end > send);
+        String item = xml.substring(send, end);
+        assertTrue("Channel send must be an overflow action",
+                item.contains("app:showAsAction=\"never\""));
+        assertTrue("Channel send must be hidden outside channels",
+                item.contains("android:visible=\"false\""));
+    }
+
+    @Test
     public void pvtToolbarActionsInExactOrder() throws IOException {
         String xml = readMenu();
         assertImmediatelyOrdered(xml, "@+id/action_send_media", "@+id/action_callerid_accept_toggle");

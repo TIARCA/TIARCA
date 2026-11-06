@@ -4,6 +4,8 @@ import android.app.Activity;
 
 import androidx.appcompat.app.AlertDialog;
 
+import io.mrarm.chatlib.irc.ServerConnectionApi;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,7 +15,7 @@ import io.mrarm.irc.ServerConnectionInfo;
 import io.mrarm.irc.config.SharingSettings;
 import io.mrarm.irc.config.ChatSettings;
 
-/** Shared attachment menu used by WHOIS and direct-message chats. */
+/** Shared attachment menu used by WHOIS, private conversations and channels. */
 public final class SimosnapSendMenu {
 
     private SimosnapSendMenu() { }
@@ -22,6 +24,10 @@ public final class SimosnapSendMenu {
         if (!(activity instanceof MainActivity))
             return;
         MainActivity main = (MainActivity) activity;
+        boolean channelTarget = target != null && !target.isEmpty() &&
+                connection.getApiInstance() instanceof ServerConnectionApi &&
+                ((ServerConnectionApi) connection.getApiInstance()).getServerConnectionData()
+                        .getSupportList().getSupportedChannelTypes().contains(target.charAt(0));
         String[] all = activity.getResources().getStringArray(R.array.simosnap_send_options);
         List<String> labels = new ArrayList<>();
         List<Runnable> actions = new ArrayList<>();
@@ -41,7 +47,7 @@ public final class SimosnapSendMenu {
             add(activity, SharingSettings.PREF_OTHER_FILES, all[6], labels, actions,
                     () -> main.pickSimosnapFile(connection, target, "*/*"));
         }
-        if (ChatSettings.isDccSendVisible()) {
+        if (!channelTarget && ChatSettings.isDccSendVisible()) {
             labels.add(activity.getString(R.string.action_dcc_send));
             actions.add(() -> main.pickDccFile(connection, target));
         }
@@ -51,7 +57,8 @@ public final class SimosnapSendMenu {
                 .setTitle(R.string.file_send_menu)
                 .setItems(labels.toArray(new String[0]),
                         (dialog, which) -> {
-                            main.openDirectConversationForSharing(connection, target);
+                            if (!channelTarget)
+                                main.openDirectConversationForSharing(connection, target);
                             actions.get(which).run();
                         })
                 .setNegativeButton(R.string.action_cancel, null)
