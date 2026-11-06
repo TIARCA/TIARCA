@@ -820,6 +820,8 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
                             current, false);
             menu.findItem(R.id.action_channel_modes).setVisible(channelContext);
             menu.findItem(R.id.action_channel_bans).setVisible(operatorChannel);
+            menu.findItem(R.id.action_send_media_channel).setVisible(channelContext &&
+                    SharingSettings.hasAnyUploadOption(this));
         }
         return super.onPrepareOptionsMenu(menu) | hasChanges;
     }
@@ -915,7 +917,7 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
             ChatFragment fragment = (ChatFragment) getCurrentFragment();
             new ChannelBanListDialog(this, fragment.getConnectionInfo(),
                     fragment.getCurrentChannel()).show();
-        } else if (id == R.id.action_send_media) {
+        } else if (id == R.id.action_send_media || id == R.id.action_send_media_channel) {
             ChatFragment fragment = (ChatFragment) getCurrentFragment();
             SimosnapSendMenu.show(this, fragment.getConnectionInfo(),
                     fragment.getCurrentChannel());

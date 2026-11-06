@@ -37,11 +37,15 @@ public final class SharingSettings {
         return enabled(context, PREF_INTERNAL_VIEWER);
     }
 
+    public static boolean hasAnyUploadOption(Context context) {
+        return uploadsEnabled(context) &&
+                (enabled(context, PREF_PICK_IMAGE) || enabled(context, PREF_TAKE_PHOTO) ||
+                enabled(context, PREF_PICK_VIDEO) || enabled(context, PREF_RECORD_VIDEO) ||
+                enabled(context, PREF_PICK_AUDIO) || enabled(context, PREF_RECORD_VOICE) ||
+                enabled(context, PREF_OTHER_FILES));
+    }
+
     public static boolean hasAnySendOption(Context context) {
-        return ChatSettings.isDccSendVisible() || (uploadsEnabled(context) &&
-                (enabled(context, PREF_PICK_IMAGE) ||
-                enabled(context, PREF_TAKE_PHOTO) || enabled(context, PREF_PICK_VIDEO) ||
-                enabled(context, PREF_RECORD_VIDEO) || enabled(context, PREF_PICK_AUDIO) ||
-                enabled(context, PREF_RECORD_VOICE) || enabled(context, PREF_OTHER_FILES)));
+        return ChatSettings.isDccSendVisible() || hasAnyUploadOption(context);
     }
 }
