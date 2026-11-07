@@ -20,6 +20,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.nio.file.Files;
+import java.util.Base64;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
@@ -216,6 +218,26 @@ public class BackupManagerTest {
         BackupManager.restoreBackup(context, backupFile, null);
 
         assertTrue(UserPresetStore.contains(context, importedPreset));
+    }
+
+    @Test
+    public void restoresEncryptedBackupCreatedByLegacyZip4j13() throws Exception {
+        // Real AES-256 archive generated with Zip4j 1.3.3 (see Phase A migration).
+        // Fixture has preferences.json, notification_rules.json, command_aliases.json.
+        // The base64 is kept in source so tests do not download the old dependency.
+        String encodedLegacyArchive = "UEsDBBQACQBjAIs6Z10AAAAAAAAAAAAAAAAQAAsAcHJlZmVyZW5jZXMuanNvbgGZBwACAEFFAwgAkD7IOHBvjfo15DL4C8CGiagPfEaqDuMYBfjrYF/jGKnKcwAh51p6jvkxPB6LmgWbr89qRMjPfaNzgoN7UVoYqeN/UEsHCAAAAABCAAAAJAAAAFBLAwQUAAkAYwCLOmddAAAAAAAAAAAAAAAAFwALAG5vdGlmaWNhdGlvbl9ydWxlcy5qc29uAZkHAAIAQUUDCACVL5ccESh1ZuLUQ7wOdxR7V4qUMtOyGjJwaVt4UVf7kTf9KdfEEifH4xxFX4lFu5wsslqgyg9mUXmCPHsvNlEAtBGu8z3AiEW8rk7q1o9ARQin1jCy5Y7mDd8JVG9qE2JqHvBT122kU5CPP4Cnvh+qT09GAVuqNHqdjhdNOhYxWmg0WDZZJEXYUEsHCAAAAACIAAAAswAAAFBLAwQUAAkAYwCLOmddAAAAAAAAAAAAAAAAFAALAGNvbW1hbmRfYWxpYXNlcy5qc29uAZkHAAIAQUUDCABYD5MoJN3HHxj2vo+mI32X7yfgR1/NR/n7CDxH1S8S6FBLBwgAAAAAIAAAAAIAAABQSwECFAAUAAkAYwCLOmddAAAAAEIAAAAkAAAAEAALAAAAAAAAAAAAAAAAAAAAcHJlZmVyZW5jZXMuanNvbgGZBwACAEFFAwgAUEsBAhQAFAAJAGMAizpnXQAAAACIAAAAswAAABcACwAAAAAAAAAAAAAAiwAAAG5vdGlmaWNhdGlvbl9ydWxlcy5qc29uAZkHAAIAQUUDCABQSwECFAAUAAkAYwCLOmddAAAAACAAAAACAAAAFAALAAAAAAAAAAAAAABjAQAAY29tbWFuZF9hbGlhc2VzLmpzb24BmQcAAgBBRQMIAFBLBQYAAAAAAwADAOYAAADQAQAAAAA=";
+        File archive = new File(temporaryFolder.getRoot(), "zip4j-1x-encrypted.zip");
+        Files.write(archive.toPath(), Base64.getDecoder().decode(encodedLegacyArchive));
+
+        assertTrue(BackupManager.verifyBackupFile(archive));
+        assertTrue(BackupManager.isBackupPasswordProtected(archive));
+        DefaultPreferences.get(context).edit()
+                .putString("phase_a_legacy_marker", "newer-install-value").commit();
+
+        BackupManager.restoreBackup(context, archive, "legacy-password");
+
+        assertEquals("zip4j-1x", DefaultPreferences.get(context)
+                .getString("phase_a_legacy_marker", null));
     }
 
     @Test
