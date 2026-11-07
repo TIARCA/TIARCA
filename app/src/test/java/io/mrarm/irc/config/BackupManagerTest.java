@@ -7,6 +7,7 @@ import androidx.test.core.app.ApplicationProvider;
 import net.lingala.zip4j.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
 import net.lingala.zip4j.model.FileHeader;
+import net.lingala.zip4j.model.enums.AesKeyStrength;
 import net.lingala.zip4j.model.enums.EncryptionMethod;
 
 import org.junit.Before;
@@ -235,6 +236,10 @@ public class BackupManagerTest {
 
         assertTrue(BackupManager.verifyBackupFile(archive));
         assertTrue(BackupManager.isBackupPasswordProtected(archive));
+        try (ZipFile legacy = new ZipFile(archive, "legacy-password".toCharArray())) {
+            assertEquals(AesKeyStrength.KEY_STRENGTH_256, legacy.getFileHeader("preferences.json")
+                    .getAesExtraDataRecord().getAesKeyStrength());
+        }
         DefaultPreferences.get(context).edit()
                 .putString("phase_a_legacy_marker", "newer-install-value").commit();
 
@@ -257,6 +262,9 @@ public class BackupManagerTest {
             assertNotNull(zip.getFileHeader("preferences.json"));
             assertEquals(EncryptionMethod.AES,
                     zip.getFileHeader("preferences.json").getEncryptionMethod());
+            assertEquals(AesKeyStrength.KEY_STRENGTH_256,
+                    zip.getFileHeader("preferences.json").getAesExtraDataRecord()
+                            .getAesKeyStrength());
             assertNotNull(zip.getFileHeader("notification_rules.json"));
             assertNotNull(zip.getFileHeader("command_aliases.json"));
         }
