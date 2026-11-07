@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import androidx.activity.OnBackPressedCallback;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -110,6 +111,22 @@ public class ChannelListActivity extends ThemedActivity {
         mSearchView = findViewById(R.id.search_view);
         mListContainer = findViewById(R.id.list_container);
         mSecureListMessage = findViewById(R.id.secure_list_message);
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (mSearchAppBar.getVisibility() == View.VISIBLE) {
+                    setSearchMode(false);
+                    return;
+                }
+                setEnabled(false);
+                try {
+                    getOnBackPressedDispatcher().onBackPressed();
+                } finally {
+                    if (!isFinishing())
+                        setEnabled(true);
+                }
+            }
+        });
 
         String pickerToken = getIntent().getStringExtra(ARG_PICKER_TOKEN);
         if (pickerToken != null) {
@@ -316,15 +333,6 @@ public class ChannelListActivity extends ThemedActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (mSearchAppBar.getVisibility() == View.VISIBLE) {
-            setSearchMode(false);
-            return;
-        }
-        super.onBackPressed();
     }
 
     public void setSearchMode(boolean searchMode) {
