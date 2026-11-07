@@ -49,8 +49,12 @@ public final class ClientCertificateManager {
         KeyGenParameterSpec spec = new KeyGenParameterSpec.Builder(alias,
                 KeyProperties.PURPOSE_SIGN)
                 .setKeySize(2048)
-                .setDigests(KeyProperties.DIGEST_SHA256)
-                .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1)
+                .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA384,
+                        KeyProperties.DIGEST_SHA512)
+                // PKCS#1 signs the self-signed certificate and TLS 1.2 handshakes; TLS 1.3
+                // uses RSA-PSS for CertificateVerify (RFC 8446 section 4.4.3).
+                .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1,
+                        KeyProperties.SIGNATURE_PADDING_RSA_PSS)
                 .setUserAuthenticationRequired(false)
                 .setCertificateSubject(new X500Principal("CN=TIARCA IRC Client Certificate"))
                 .setCertificateSerialNumber(new BigInteger(64, new SecureRandom()).add(BigInteger.ONE))
