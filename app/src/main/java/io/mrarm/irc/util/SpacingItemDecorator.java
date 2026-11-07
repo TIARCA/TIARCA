@@ -2,7 +2,6 @@ package io.mrarm.irc.util;
 
 import android.content.Context;
 import android.graphics.Rect;
-import androidx.core.view.ViewCompat;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.RecyclerView.ItemDecoration;
 import android.view.View;
@@ -23,8 +22,7 @@ public class SpacingItemDecorator extends ItemDecoration {
     public void getItemOffsets(Rect outRect, View view, RecyclerView parent,
                                RecyclerView.State state) {
         if (parent.getChildLayoutPosition(view) != 0) {
-            if (ViewCompat.getLayoutDirection(parent) ==
-                    ViewCompat.LAYOUT_DIRECTION_RTL)
+            if (parent.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL)
                 outRect.right += spacing;
             else
                 outRect.left += spacing;
