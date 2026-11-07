@@ -14,7 +14,6 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 
 import net.lingala.zip4j.exception.ZipException;
-import net.lingala.zip4j.exception.ZipExceptionConstants;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -317,9 +316,7 @@ public class BackupProgressActivity extends SetupProgressActivity {
                 return RESULT_OK;
             } catch (IOException e) {
                 e.printStackTrace();
-                if (e.getCause() instanceof ZipException &&
-                        ((ZipException) e.getCause()).getCode() ==
-                                ZipExceptionConstants.WRONG_PASSWORD) {
+                if (isWrongBackupPassword(e)) {
                     DiagnosticLog.w(mContext, "BACKUP", () ->
                             "Restore failed because archive password was rejected", e);
                     return RESULT_INVALID_PASSWORD;
@@ -333,6 +330,16 @@ public class BackupProgressActivity extends SetupProgressActivity {
 
     }
 
+
+    /** Zip4j 2.x may surface password errors directly or wrapped in IOException. */
+    private static boolean isWrongBackupPassword(Throwable error) {
+        for (Throwable cause = error; cause != null; cause = cause.getCause()) {
+            if (cause instanceof ZipException &&
+                    ((ZipException) cause).getType() == ZipException.Type.WRONG_PASSWORD)
+                return true;
+        }
+        return false;
+    }
 
     private static class CopyRequest {
         public FileInputStream fis;
