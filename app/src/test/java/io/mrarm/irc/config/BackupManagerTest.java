@@ -4,6 +4,12 @@ import android.content.Context;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import net.lingala.zip4j.ZipFile;
+import net.lingala.zip4j.exception.ZipException;
+import net.lingala.zip4j.model.FileHeader;
+import net.lingala.zip4j.model.enums.AesKeyStrength;
+import net.lingala.zip4j.model.enums.EncryptionMethod;
+
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -14,7 +20,11 @@ import org.robolectric.annotation.Config;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.StringWriter;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Base64;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
@@ -22,12 +32,16 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import io.mrarm.irc.ServerConnectionManager;
+import io.mrarm.irc.setting.ListWithCustomSetting;
 import io.mrarm.irc.util.DefaultPreferences;
 import io.mrarm.irc.irc.MonitoredUsersManager;
 import io.mrarm.irc.util.theme.ThemeInfo;
 import io.mrarm.irc.util.theme.UserPresetStore;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -209,6 +223,118 @@ public class BackupManagerTest {
         BackupManager.restoreBackup(context, backupFile, null);
 
         assertTrue(UserPresetStore.contains(context, importedPreset));
+    }
+
+    @Test
+    public void restoresEncryptedBackupCreatedByLegacyZip4j13() throws Exception {
+        // Real AES-256 archive generated with Zip4j 1.3.3 (see Phase A migration).
+        // Fixture has preferences.json, notification_rules.json, command_aliases.json.
+        // The base64 is kept in source so tests do not download the old dependency.
+        String encodedLegacyArchive = "UEsDBBQACQBjAIs6Z10AAAAAAAAAAAAAAAAQAAsAcHJlZmVyZW5jZXMuanNvbgGZBwACAEFFAwgAkD7IOHBvjfo15DL4C8CGiagPfEaqDuMYBfjrYF/jGKnKcwAh51p6jvkxPB6LmgWbr89qRMjPfaNzgoN7UVoYqeN/UEsHCAAAAABCAAAAJAAAAFBLAwQUAAkAYwCLOmddAAAAAAAAAAAAAAAAFwALAG5vdGlmaWNhdGlvbl9ydWxlcy5qc29uAZkHAAIAQUUDCACVL5ccESh1ZuLUQ7wOdxR7V4qUMtOyGjJwaVt4UVf7kTf9KdfEEifH4xxFX4lFu5wsslqgyg9mUXmCPHsvNlEAtBGu8z3AiEW8rk7q1o9ARQin1jCy5Y7mDd8JVG9qE2JqHvBT122kU5CPP4Cnvh+qT09GAVuqNHqdjhdNOhYxWmg0WDZZJEXYUEsHCAAAAACIAAAAswAAAFBLAwQUAAkAYwCLOmddAAAAAAAAAAAAAAAAFAALAGNvbW1hbmRfYWxpYXNlcy5qc29uAZkHAAIAQUUDCABYD5MoJN3HHxj2vo+mI32X7yfgR1/NR/n7CDxH1S8S6FBLBwgAAAAAIAAAAAIAAABQSwECFAAUAAkAYwCLOmddAAAAAEIAAAAkAAAAEAALAAAAAAAAAAAAAAAAAAAAcHJlZmVyZW5jZXMuanNvbgGZBwACAEFFAwgAUEsBAhQAFAAJAGMAizpnXQAAAACIAAAAswAAABcACwAAAAAAAAAAAAAAiwAAAG5vdGlmaWNhdGlvbl9ydWxlcy5qc29uAZkHAAIAQUUDCABQSwECFAAUAAkAYwCLOmddAAAAACAAAAACAAAAFAALAAAAAAAAAAAAAABjAQAAY29tbWFuZF9hbGlhc2VzLmpzb24BmQcAAgBBRQMIAFBLBQYAAAAAAwADAOYAAADQAQAAAAA=";
+        File archive = new File(temporaryFolder.getRoot(), "zip4j-1x-encrypted.zip");
+        Files.write(archive.toPath(), Base64.getDecoder().decode(encodedLegacyArchive));
+
+        assertTrue(BackupManager.verifyBackupFile(archive));
+        assertTrue(BackupManager.isBackupPasswordProtected(archive));
+        try (ZipFile legacy = new ZipFile(archive, "legacy-password".toCharArray())) {
+            assertEquals(AesKeyStrength.KEY_STRENGTH_256, legacy.getFileHeader("preferences.json")
+                    .getAesExtraDataRecord().getAesKeyStrength());
+        }
+        DefaultPreferences.get(context).edit()
+                .putString("phase_a_legacy_marker", "newer-install-value").commit();
+
+        BackupManager.restoreBackup(context, archive, "legacy-password");
+
+        assertEquals("zip4j-1x", DefaultPreferences.get(context)
+                .getString("phase_a_legacy_marker", null));
+    }
+
+    @Test
+    public void encryptedBackupRoundTripAndWrongPasswordPreserveExistingPreferences() throws Exception {
+        final String key = "phase_a_backup_test";
+        File archive = new File(temporaryFolder.getRoot(), "encrypted-backup.zip");
+        DefaultPreferences.get(context).edit().putString(key, "saved-value").commit();
+
+        BackupManager.createBackup(context, archive, "correct-password");
+        assertTrue(BackupManager.verifyBackupFile(archive));
+        assertTrue(BackupManager.isBackupPasswordProtected(archive));
+        try (ZipFile zip = new ZipFile(archive, "correct-password".toCharArray())) {
+            assertNotNull(zip.getFileHeader("preferences.json"));
+            assertEquals(EncryptionMethod.AES,
+                    zip.getFileHeader("preferences.json").getEncryptionMethod());
+            assertEquals(AesKeyStrength.KEY_STRENGTH_256,
+                    zip.getFileHeader("preferences.json").getAesExtraDataRecord()
+                            .getAesKeyStrength());
+            assertNotNull(zip.getFileHeader("notification_rules.json"));
+            assertNotNull(zip.getFileHeader("command_aliases.json"));
+        }
+
+        DefaultPreferences.get(context).edit().putString(key, "current-value").commit();
+        try {
+            BackupManager.restoreBackup(context, archive, "wrong-password");
+            fail("Wrong password must reject a protected backup");
+        } catch (IOException expected) {
+            Throwable cause = expected;
+            boolean wrongPassword = false;
+            while (cause != null) {
+                if (cause instanceof ZipException
+                        && ((ZipException) cause).getType() == ZipException.Type.WRONG_PASSWORD) {
+                    wrongPassword = true;
+                    break;
+                }
+                cause = cause.getCause();
+            }
+            assertTrue("Wrong password must be distinguishable", wrongPassword);
+        }
+        assertEquals("current-value", DefaultPreferences.get(context).getString(key, null));
+
+        BackupManager.restoreBackup(context, archive, "correct-password");
+        assertEquals("saved-value", DefaultPreferences.get(context).getString(key, null));
+    }
+
+    @Test
+    public void encryptedBackupPreservesCustomFontFileAndArchivePath() throws Exception {
+        // A fresh Robolectric application must not reuse SettingsHelper's singleton
+        // from a prior test; otherwise it reads another test's SharedPreferences.
+        org.robolectric.util.ReflectionHelpers.setStaticField(SettingsHelper.class, "mInstance", null);
+        String fontName = "sample-font.ttf";
+        byte[] originalFont = "test-font-data".getBytes(StandardCharsets.UTF_8);
+        File storedFont = ListWithCustomSetting.getCustomFile(
+                context, ChatSettings.PREF_FONT, fontName);
+        assertNotNull(storedFont);
+        storedFont.getParentFile().mkdirs();
+        Files.write(storedFont.toPath(), originalFont);
+        DefaultPreferences.get(context).edit()
+                .putString(ChatSettings.PREF_FONT, "custom:" + fontName).commit();
+        assertTrue("Custom font must be included by SettingsHelper",
+                SettingsHelper.getInstance(context).getCustomFiles().contains(storedFont));
+
+        File archive = new File(temporaryFolder.getRoot(), "font-encrypted.zip");
+        BackupManager.createBackup(context, archive, "font-password");
+        try (ZipFile zip = new ZipFile(archive, "font-password".toCharArray())) {
+            List<String> entryNames = new ArrayList<>();
+            for (FileHeader entry : zip.getFileHeaders())
+                entryNames.add(entry.getFileName());
+            assertNotNull("Backup ZIP entries: " + entryNames,
+                    zip.getFileHeader("pref_values/" + storedFont.getName()));
+        }
+
+        assertTrue(storedFont.delete());
+        BackupManager.restoreBackup(context, archive, "font-password");
+        assertArrayEquals(originalFont, Files.readAllBytes(storedFont.toPath()));
+    }
+
+    @Test
+    public void plainBackupIsDetectedAsUnencrypted() throws Exception {
+        File archive = new File(temporaryFolder.getRoot(), "plain-backup.zip");
+        BackupManager.createBackup(context, archive, null);
+        assertTrue(BackupManager.verifyBackupFile(archive));
+        assertFalse(BackupManager.isBackupPasswordProtected(archive));
+        try (ZipFile zip = new ZipFile(archive)) {
+            assertNotNull(zip.getFileHeader("preferences.json"));
+            assertNotNull(zip.getFileHeader("notification_rules.json"));
+            assertNotNull(zip.getFileHeader("command_aliases.json"));
+        }
     }
 
     @Test
