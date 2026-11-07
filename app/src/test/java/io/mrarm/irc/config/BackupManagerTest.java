@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider;
 
 import net.lingala.zip4j.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
+import net.lingala.zip4j.model.FileHeader;
 import net.lingala.zip4j.model.enums.EncryptionMethod;
 
 import org.junit.Before;
@@ -21,6 +22,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -293,11 +295,17 @@ public class BackupManagerTest {
         Files.write(storedFont.toPath(), originalFont);
         DefaultPreferences.get(context).edit()
                 .putString(ChatSettings.PREF_FONT, "custom:" + fontName).commit();
+        assertTrue("Custom font must be included by SettingsHelper",
+                SettingsHelper.getInstance(context).getCustomFiles().contains(storedFont));
 
         File archive = new File(temporaryFolder.getRoot(), "font-encrypted.zip");
         BackupManager.createBackup(context, archive, "font-password");
         try (ZipFile zip = new ZipFile(archive, "font-password".toCharArray())) {
-            assertNotNull(zip.getFileHeader("pref_values/" + storedFont.getName()));
+            List<String> entryNames = new ArrayList<>();
+            for (FileHeader entry : zip.getFileHeaders())
+                entryNames.add(entry.getFileName());
+            assertNotNull("Backup ZIP entries: " + entryNames,
+                    zip.getFileHeader("pref_values/" + storedFont.getName()));
         }
 
         assertTrue(storedFont.delete());
