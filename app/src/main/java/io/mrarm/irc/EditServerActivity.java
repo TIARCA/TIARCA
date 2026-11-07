@@ -894,6 +894,14 @@ public class EditServerActivity extends ThemedActivity {
                 }
                 if (privKey == null || cert == null)
                     errorResId = R.string.error_cert_or_privkey_missing;
+                if (errorResId == -1) {
+                    try {
+                        if (!ClientCertificateManager.keyMatchesCertificate(cert, privKey))
+                            errorResId = R.string.server_client_certificate_import_mismatch;
+                    } catch (java.security.GeneralSecurityException e) {
+                        errorResId = R.string.server_client_certificate_import_mismatch;
+                    }
+                }
             } catch (IOException e) {
                 errorResId = R.string.error_file_open;
                 e.printStackTrace();
@@ -902,8 +910,9 @@ public class EditServerActivity extends ThemedActivity {
                 mServerCert = cert;
                 mServerPrivKey = privKey.getEncoded();
                 mServerPrivKeyType = privKey.getAlgorithm();
-                mServerAuthSASLExtFP.setText(getString(R.string.server_sasl_ext_fp,
-                        getCertificateFingerprint(mServerCert)));
+                mServerKeyStoreAlias = null;
+                mServerClientCertificateEnabled.setChecked(true);
+                refreshCertificateSummary();
             } else {
                 new AlertDialog.Builder(this)
                         .setTitle(R.string.error_generic)
