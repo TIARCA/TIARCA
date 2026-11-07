@@ -4,6 +4,10 @@ import android.content.Context;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import net.lingala.zip4j.ZipFile;
+import net.lingala.zip4j.exception.ZipException;
+import net.lingala.zip4j.model.enums.EncryptionMethod;
+
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -14,6 +18,7 @@ import org.robolectric.annotation.Config;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -28,6 +33,8 @@ import io.mrarm.irc.util.theme.ThemeInfo;
 import io.mrarm.irc.util.theme.UserPresetStore;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -209,6 +216,59 @@ public class BackupManagerTest {
         BackupManager.restoreBackup(context, backupFile, null);
 
         assertTrue(UserPresetStore.contains(context, importedPreset));
+    }
+
+    @Test
+    public void encryptedBackupRoundTripAndWrongPasswordPreserveExistingPreferences() throws Exception {
+        final String key = "phase_a_backup_test";
+        File archive = new File(temporaryFolder.getRoot(), "encrypted-backup.zip");
+        DefaultPreferences.get(context).edit().putString(key, "saved-value").commit();
+
+        BackupManager.createBackup(context, archive, "correct-password");
+        assertTrue(BackupManager.verifyBackupFile(archive));
+        assertTrue(BackupManager.isBackupPasswordProtected(archive));
+        try (ZipFile zip = new ZipFile(archive, "correct-password".toCharArray())) {
+            assertNotNull(zip.getFileHeader("preferences.json"));
+            assertEquals(EncryptionMethod.AES,
+                    zip.getFileHeader("preferences.json").getEncryptionMethod());
+            assertNotNull(zip.getFileHeader("notification_rules.json"));
+            assertNotNull(zip.getFileHeader("command_aliases.json"));
+        }
+
+        DefaultPreferences.get(context).edit().putString(key, "current-value").commit();
+        try {
+            BackupManager.restoreBackup(context, archive, "wrong-password");
+            fail("Wrong password must reject a protected backup");
+        } catch (IOException expected) {
+            Throwable cause = expected;
+            boolean wrongPassword = false;
+            while (cause != null) {
+                if (cause instanceof ZipException
+                        && ((ZipException) cause).getType() == ZipException.Type.WRONG_PASSWORD) {
+                    wrongPassword = true;
+                    break;
+                }
+                cause = cause.getCause();
+            }
+            assertTrue("Wrong password must be distinguishable", wrongPassword);
+        }
+        assertEquals("current-value", DefaultPreferences.get(context).getString(key, null));
+
+        BackupManager.restoreBackup(context, archive, "correct-password");
+        assertEquals("saved-value", DefaultPreferences.get(context).getString(key, null));
+    }
+
+    @Test
+    public void plainBackupIsDetectedAsUnencrypted() throws Exception {
+        File archive = new File(temporaryFolder.getRoot(), "plain-backup.zip");
+        BackupManager.createBackup(context, archive, null);
+        assertTrue(BackupManager.verifyBackupFile(archive));
+        assertFalse(BackupManager.isBackupPasswordProtected(archive));
+        try (ZipFile zip = new ZipFile(archive)) {
+            assertNotNull(zip.getFileHeader("preferences.json"));
+            assertNotNull(zip.getFileHeader("notification_rules.json"));
+            assertNotNull(zip.getFileHeader("command_aliases.json"));
+        }
     }
 
     @Test
