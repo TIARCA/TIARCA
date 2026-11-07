@@ -548,6 +548,8 @@ public class EditServerActivity extends ThemedActivity {
             succeeded = false;
         }
 
+        if (!validateClientCertificateSelection())
+            succeeded = false;
         return succeeded;
     }
 
@@ -584,7 +586,7 @@ public class EditServerActivity extends ThemedActivity {
             if (!valid)
                 return false;
         }
-        return true;
+        return validateClientCertificateSelection();
     }
 
     private ServerConfigData buildTemporaryServerConfig() {
@@ -613,14 +615,9 @@ public class EditServerActivity extends ThemedActivity {
             }
         } else if (authMode == 2) {
             data.authMode = ServerConfigData.AUTH_SASL_EXTERNAL;
-            try {
-                data.authCertData = mServerCert == null ? null : mServerCert.getEncoded();
-            } catch (CertificateEncodingException e) {
-                throw new RuntimeException(e);
-            }
-            data.authCertPrivKey = mServerPrivKey;
-            data.authCertPrivKeyType = mServerPrivKeyType;
         }
+        data.presentClientCertificate = mServerClientCertificateEnabled.isChecked();
+        copySelectedCertificate(data);
         return data;
     }
 
@@ -763,9 +760,10 @@ public class EditServerActivity extends ThemedActivity {
         mEditServer.realname = nullifyIfEmpty(mServerRealname.getText().toString());
         mEditServer.pass = nullifyIfEmpty(mServerPass.getPassword());
         int authModeInt = mServerAuthMode.getSelectedItemPosition();
-        mEditServer.authCertData = null;
-        mEditServer.authCertPrivKey = null;
-        mEditServer.authCertPrivKeyType = null;
+        // Keep certificate material when switching between PLAIN and EXTERNAL.
+        // The client certificate can be presented over TLS independently of SASL.
+        mEditServer.presentClientCertificate = mServerClientCertificateEnabled.isChecked();
+        copySelectedCertificate(mEditServer);
         if (authModeInt == 1) {
             mEditServer.authMode = ServerConfigData.AUTH_SASL;
             if (mIsNewServer) {
@@ -779,14 +777,7 @@ public class EditServerActivity extends ThemedActivity {
             mEditServer.authMode = ServerConfigData.AUTH_SASL_EXTERNAL;
             mEditServer.authUser = null;
             mEditServer.authPass = null;
-            try {
-                mEditServer.authCertData = mServerCert != null ? mServerCert.getEncoded() : null;
-            } catch (CertificateEncodingException e) {
-                throw new RuntimeException(e);
-            }
-            mEditServer.authCertPrivKey = mServerPrivKey;
-            mEditServer.authCertPrivKeyType = mServerPrivKeyType;
-        } else {
+         } else {
             mEditServer.authMode = null;
             mEditServer.authUser = null;
             mEditServer.authPass = null;
