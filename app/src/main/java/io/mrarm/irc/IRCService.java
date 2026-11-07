@@ -52,7 +52,10 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
                 mConnectivityManager.getNetworkCapabilities(activeNetwork);
         boolean connected = hasInternetConnectivity();
         boolean wifi = ServerConnectionManager.isWifiConnected(this);
-        DiagnosticLog.d(this, "NETWORK", () -> "Active network connected=" + connected +
+        String networkId = DiagnosticLog.pseudonym("network",
+                activeNetwork == null ? null : activeNetwork.toString());
+        DiagnosticLog.d(this, "NETWORK", () -> "Active network id=" + networkId +
+                ", connected=" + connected +
                 ", validated=" + hasCapability(capabilities,
                 NetworkCapabilities.NET_CAPABILITY_VALIDATED) + ", wifi=" + wifi +
                 ", cellular=" + hasTransport(capabilities,
@@ -61,10 +64,14 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
         if (mLastInternetConnectivity != null && mLastInternetConnectivity == connected &&
                 mLastWifiConnectivity != null && mLastWifiConnectivity == wifi)
             return;
+        Boolean previousConnected = mLastInternetConnectivity;
+        Boolean previousWifi = mLastWifiConnectivity;
         mLastInternetConnectivity = connected;
         mLastWifiConnectivity = wifi;
-        DiagnosticLog.i(this, "NETWORK", () -> "Connectivity changed connected=" + connected +
-                ", wifi=" + wifi);
+        DiagnosticLog.i(this, "NETWORK", () -> "Connectivity changed network=" + networkId +
+                ", connected=" + connected + ", wifi=" + wifi +
+                ", previousConnected=" + previousConnected +
+                ", previousWifi=" + previousWifi);
         ServerConnectionManager.getInstance(this).notifyConnectivityChanged(connected);
         ServerPingScheduler.getInstance(this).onWifiStateChanged(wifi);
     };
@@ -290,13 +297,19 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
             mNetworkCallback = new ConnectivityManager.NetworkCallback() {
                 @Override
                 public void onAvailable(Network network) {
-                    DiagnosticLog.d(IRCService.this, "NETWORK", () -> "Network became available");
+                    String networkId = DiagnosticLog.pseudonym("network",
+                            network == null ? null : network.toString());
+                    DiagnosticLog.d(IRCService.this, "NETWORK", () ->
+                            "Network became available id=" + networkId);
                     scheduleConnectivityChanged();
                 }
 
                 @Override
                 public void onLost(Network network) {
-                    DiagnosticLog.d(IRCService.this, "NETWORK", () -> "Network was lost");
+                    String networkId = DiagnosticLog.pseudonym("network",
+                            network == null ? null : network.toString());
+                    DiagnosticLog.d(IRCService.this, "NETWORK", () ->
+                            "Network was lost id=" + networkId);
                     // Re-read the active network: another transport may already have replaced it.
                     scheduleConnectivityChanged();
                 }
@@ -304,8 +317,11 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
                 @Override
                 public void onCapabilitiesChanged(Network network,
                                                   NetworkCapabilities capabilities) {
+                    String networkId = DiagnosticLog.pseudonym("network",
+                            network == null ? null : network.toString());
                     DiagnosticLog.d(IRCService.this, "NETWORK", () ->
-                            "Capabilities changed internet=" + hasCapability(capabilities,
+                            "Capabilities changed id=" + networkId +
+                            ", internet=" + hasCapability(capabilities,
                             NetworkCapabilities.NET_CAPABILITY_INTERNET) + ", validated=" +
                             hasCapability(capabilities,
                             NetworkCapabilities.NET_CAPABILITY_VALIDATED) + ", wifi=" +
