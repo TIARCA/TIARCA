@@ -18,7 +18,9 @@ gradlePlugin {
 }
 
 dependencies {
-    implementation 'com.android.tools.build:gradle-api:9.5.0'
+    // AGP is supplied by the host Android build; this plugin only needs its
+    // public API to compile, not a second AGP graph at plugin runtime.
+    compileOnly 'com.android.tools.build:gradle-api:9.5.0'
     implementation 'org.yaml:snakeyaml:2.7'
     implementation 'com.squareup:javawriter:2.5.1'
 }
