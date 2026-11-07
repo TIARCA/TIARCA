@@ -46,6 +46,9 @@ jobs:
           mkdir -p build/dependency-audit
           ./gradlew :app:dependencies --configuration "${variant}ReleaseRuntimeClasspath" > "build/dependency-audit/${variant}-release-runtime.txt"
           ./gradlew :app:dependencies --configuration "${variant}DebugRuntimeClasspath" > "build/dependency-audit/${variant}-debug-runtime.txt"
+          ./gradlew :app:dependencies --configuration "${variant}DebugUnitTestRuntimeClasspath" > "build/dependency-audit/${variant}-unit-test-runtime.txt"
+          ./gradlew :chatlib:dependencies --configuration testRuntimeClasspath > "build/dependency-audit/chatlib-test-runtime.txt"
+          ./gradlew buildEnvironment > "build/dependency-audit/buildscript-runtime.txt"
 
       - name: Check resolved dependencies against OSV advisories
         run: python tools/audit_maven_osv.py build/dependency-audit --output build/dependency-audit/osv-findings.json
