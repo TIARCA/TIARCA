@@ -37,6 +37,23 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
 
+      - name: Inventory resolved dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          variant="${{ matrix.flavor }}"
+          variant="${variant,}"
+          mkdir -p build/dependency-audit
+          ./gradlew :app:dependencies --configuration "${variant}ReleaseRuntimeClasspath" > "build/dependency-audit/${variant}-release-runtime.txt"
+          ./gradlew :app:dependencies --configuration "${variant}DebugRuntimeClasspath" > "build/dependency-audit/${variant}-debug-runtime.txt"
+
+      - name: Upload dependency inventory
+        uses: actions/upload-artifact@v6
+        with:
+          name: dependency-inventory-${{ matrix.flavor }}
+          path: build/dependency-audit/
+          retention-days: 7
+
       - name: Run unit tests
         run: ./gradlew :app:test${{ matrix.flavor }}DebugUnitTest
 
