@@ -49,12 +49,17 @@ public final class ClientCertificateManager {
         KeyGenParameterSpec spec = new KeyGenParameterSpec.Builder(alias,
                 KeyProperties.PURPOSE_SIGN)
                 .setKeySize(2048)
-                .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA384,
-                        KeyProperties.DIGEST_SHA512)
-                // PKCS#1 signs the self-signed certificate and TLS 1.2 handshakes; TLS 1.3
-                // uses RSA-PSS for CertificateVerify (RFC 8446 section 4.4.3).
+                // TLS engines may apply the message digest themselves. Android explicitly
+                // recommends DIGEST_NONE for private keys used in client authentication.
+                .setDigests(KeyProperties.DIGEST_NONE, KeyProperties.DIGEST_SHA256,
+                        KeyProperties.DIGEST_SHA384, KeyProperties.DIGEST_SHA512)
                 .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1,
                         KeyProperties.SIGNATURE_PADDING_RSA_PSS)
+                // Android Conscrypt performs RSA-PSS padding in BoringSSL and requests
+                // RSA/ECB/NoPadding from AndroidKeyStore for the already-padded data.
+                // See https://github.com/google/conscrypt/issues/1201.
+                // No new encryption/decryption purposes are authorized for this key.
+                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
                 .setUserAuthenticationRequired(false)
                 .setCertificateSubject(new X500Principal("CN=TIARCA IRC Client Certificate"))
                 .setCertificateSerialNumber(new BigInteger(64, new SecureRandom()).add(BigInteger.ONE))
