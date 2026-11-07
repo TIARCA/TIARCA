@@ -8,6 +8,7 @@ import io.mrarm.chatlib.irc.*;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class WhoisCommandHandler extends RequestResponseCommandHandler<String, WhoisInfo> {
@@ -56,7 +57,8 @@ public class WhoisCommandHandler extends RequestResponseCommandHandler<String, W
                        List<String> params, Map<String, String> tags)
             throws InvalidMessageException {
         int numeric = CommandHandler.toNumeric(command);
-        String nick = CommandHandler.getParamWithCheck(params, 1).toLowerCase();
+        String replyNick = CommandHandler.getParamWithCheck(params, 1);
+        String nick = replyNick.toLowerCase(Locale.ROOT);
         if (numeric == RPL_WHOISBOT) {
             AutomatedSenderRegistry.rememberBot(connection, nick);
             return;
@@ -76,7 +78,7 @@ public class WhoisCommandHandler extends RequestResponseCommandHandler<String, W
             }
         }
         if (numeric == RPL_WHOISUSER) {
-            builder.setUserInfo(nick, CommandHandler.getParamWithCheck(params, 2),
+            builder.setUserInfo(replyNick, CommandHandler.getParamWithCheck(params, 2),
                     CommandHandler.getParamWithCheck(params, 3), CommandHandler.getParamOrNull(params, 5));
         } else if (numeric == RPL_WHOISSERVER) {
             builder.setServerInfo(CommandHandler.getParamWithCheck(params, 2),
@@ -101,6 +103,10 @@ public class WhoisCommandHandler extends RequestResponseCommandHandler<String, W
         } else if (numeric == RPL_ENDOFWHOIS) {
             currentReply.remove(nick);
             WhoisInfo whoisInfo = builder.build();
+            // A completed WHOIS is the freshest server-confirmed away state. Clear stale
+            // away flags as well when no RPL_AWAY (301) was included in this reply.
+            connection.setUserAway(whoisInfo.getNick(), whoisInfo.getUser(), whoisInfo.getHost(),
+                    whoisInfo.getAwayMessage() != null, whoisInfo.getAwayMessage());
             onResponse(nick, whoisInfo);
             connection.getServerStatusData().addMessage(new WhoisStatusMessageInfo(
                     sender != null ? sender.getServerName() : null, new Date(), whoisInfo));
@@ -124,11 +130,11 @@ public class WhoisCommandHandler extends RequestResponseCommandHandler<String, W
     @Override
     public boolean onRequested(String i, Callback<WhoisInfo> callback,
                                ErrorCallback<String> errorCallback) {
-        return super.onRequested(i.toLowerCase(), callback, errorCallback);
+        return super.onRequested(i.toLowerCase(Locale.ROOT), callback, errorCallback);
     }
 
     public void onAwayMessage(String nick, String message) {
-        WhoisInfo.Builder builder = currentReply.get(nick);
+        WhoisInfo.Builder builder = currentReply.get(nick.toLowerCase(Locale.ROOT));
         if (builder != null)
             builder.setAway(message);
     }
