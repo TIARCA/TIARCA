@@ -1,6 +1,5 @@
 package io.mrarm.irc.util;
 
-import androidx.core.view.ViewCompat;
 import androidx.recyclerview.widget.RecyclerView;
 import android.view.animation.AnimationUtils;
 
@@ -25,7 +24,7 @@ public class RecyclerViewScrollerRunnable implements Runnable {
         if (mScrollDir == dir)
             return;
         if (dir != 0 && mScrollDir == 0)
-            ViewCompat.postOnAnimation(mRecyclerView, this);
+            mRecyclerView.postOnAnimation(this);
         mScrollDir = dir;
         mPrevTime = AnimationUtils.currentAnimationTimeMillis();
     }
@@ -42,7 +41,7 @@ public class RecyclerViewScrollerRunnable implements Runnable {
         mRecyclerView.scrollBy(0, (int) (delta * mAutoscrollAmount * mScrollDir));
         if (mScrolledListener != null)
             mScrolledListener.onScrolled(mScrollDir);
-        ViewCompat.postOnAnimation(mRecyclerView, this);
+        mRecyclerView.postOnAnimation(this);
     }
 
 
