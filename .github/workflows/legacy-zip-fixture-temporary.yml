@@ -1,0 +1,65 @@
+name: Generate legacy Zip4j 1.3.3 backup fixture (temporary)
+
+on:
+  push:
+    branches:
+      - validation/legacy-zip4j13-fixture
+
+permissions:
+  contents: read
+
+jobs:
+  fixture:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Generate AES-256 encrypted ZIP using Zip4j 1.3.3
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --silent --show-error -o zip4j-1.3.3.jar https://repo.maven.apache.org/maven2/net/lingala/zip4j/zip4j/1.3.3/zip4j-1.3.3.jar
+          cat > LegacyArchive.java <<'EOF'
+          import java.io.*;
+          import java.nio.charset.StandardCharsets;
+          import net.lingala.zip4j.core.ZipFile;
+          import net.lingala.zip4j.model.ZipParameters;
+          import net.lingala.zip4j.util.Zip4jConstants;
+
+          public class LegacyArchive {
+            public static void main(String[] args) throws Exception {
+              ZipFile zip = new ZipFile("legacy-zip4j13-aes256.zip");
+              ZipParameters params = new ZipParameters();
+              params.setCompressionMethod(Zip4jConstants.COMP_DEFLATE);
+              params.setCompressionLevel(Zip4jConstants.DEFLATE_LEVEL_NORMAL);
+              params.setEncryptFiles(true);
+              params.setEncryptionMethod(Zip4jConstants.ENC_METHOD_AES);
+              params.setAesKeyStrength(Zip4jConstants.AES_STRENGTH_256);
+              params.setPassword("legacy-password");
+              params.setSourceExternalStream(true);
+              add(zip, params, "preferences.json", "{\"phase_a_legacy_marker\":\"zip4j-1x\"}");
+              add(zip, params, "notification_rules.json",
+                  "{\"version\":1,\"zncPlaybackRuleEnabled\":true,\"nickMentionRuleSettings\":{},\"directMessageRuleSettings\":{},\"directNoticeRuleSettings\":{},\"channelNoticeRuleSettings\":{},\"userRules\":[]}");
+              add(zip, params, "command_aliases.json", "{}");
+            }
+            private static void add(ZipFile zip, ZipParameters params, String name, String contents)
+                throws Exception {
+              params.setFileNameInZip(name);
+              zip.addStream(new ByteArrayInputStream(contents.getBytes(StandardCharsets.UTF_8)), params);
+            }
+          }
+          EOF
+          javac -cp zip4j-1.3.3.jar LegacyArchive.java
+          java -cp zip4j-1.3.3.jar:. LegacyArchive
+          echo "LEGACY_ZIP_BASE64_BEGIN"
+          base64 -w0 legacy-zip4j13-aes256.zip
+          echo
+          echo "LEGACY_ZIP_BASE64_END"
+          sha256sum legacy-zip4j13-aes256.zip
