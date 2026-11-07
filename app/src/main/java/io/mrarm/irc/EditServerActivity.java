@@ -2,6 +2,8 @@ package io.mrarm.irc;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -34,38 +36,24 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.google.android.material.textfield.TextInputLayout;
 
-import org.spongycastle.asn1.x500.X500Name;
-import org.spongycastle.asn1.x509.SubjectPublicKeyInfo;
-import org.spongycastle.cert.X509CertificateHolder;
-import org.spongycastle.cert.X509v3CertificateBuilder;
-import org.spongycastle.operator.ContentSigner;
-import org.spongycastle.operator.jcajce.JcaContentSignerBuilder;
-
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.math.BigInteger;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.SecureRandom;
 import java.security.cert.CertificateEncodingException;
-import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
 import io.mrarm.chatlib.dto.ChannelList;
+import io.mrarm.irc.config.ClientCertificateManager;
 import io.mrarm.irc.config.IdentitySettings;
 import io.mrarm.irc.config.ServerCertificateManager;
 import io.mrarm.irc.config.ServerConfigData;
 import io.mrarm.irc.config.ServerConfigManager;
+import io.mrarm.irc.util.AppExecutors;
 import io.mrarm.irc.util.ExpandIconStateHelper;
 import io.mrarm.irc.util.PEMParser;
 import io.mrarm.irc.util.SimpleTextWatcher;
@@ -104,6 +92,7 @@ public class EditServerActivity extends ThemedActivity {
     private EditText mServerAuthUser;
     private TextInputLayout mServerAuthUserCtr;
     private View mServerAuthSASLExt;
+    private CheckBox mServerClientCertificateEnabled;
     private TextView mServerAuthSASLExtFP;
     private View mServerAuthSASLExtImportButton;
     private View mServerAuthSASLExtCreateButton;
@@ -140,6 +129,7 @@ public class EditServerActivity extends ThemedActivity {
     private X509Certificate mServerCert = null;
     private byte[] mServerPrivKey = null;
     private String mServerPrivKeyType;
+    private String mServerKeyStoreAlias;
     private ActivityResultLauncher<Intent> mSaslCertificateLauncher;
     private ActivityResultLauncher<Intent> mChannelListPickerLauncher;
     private TemporaryChannelListConnection mTemporaryChannelListConnection;
@@ -219,9 +209,14 @@ public class EditServerActivity extends ThemedActivity {
                 findViewById(R.id.server_auth_password),
                 findViewById(R.id.server_auth_password_reset));
         mServerAuthSASLExt = findViewById(R.id.server_sasl_ext_main_ctr);
+        mServerClientCertificateEnabled = findViewById(R.id.server_client_certificate_enabled);
         mServerAuthSASLExtFP = findViewById(R.id.server_sasl_ext_fp);
         mServerAuthSASLExtImportButton = findViewById(R.id.server_sasl_ext_import);
         mServerAuthSASLExtCreateButton = findViewById(R.id.server_sasl_ext_create);
+        mServerClientCertificateEnabled.setOnCheckedChangeListener((button, checked) ->
+                updateClientCertificateVisibility());
+        findViewById(R.id.server_client_certificate_help).setOnClickListener(v ->
+                showCertificateRegistrationGuide());
         mServerNick = findViewById(R.id.server_nick);
         mServerUser = findViewById(R.id.server_user);
         mServerRealname = findViewById(R.id.server_realname);
@@ -299,23 +294,21 @@ public class EditServerActivity extends ThemedActivity {
                     // PLAIN credentials stay in the simple block. Advanced only chooses a mode.
                     mServerAuthUserCtr.setVisibility(View.GONE);
                     mServerAuthPassMainCtr.setVisibility(View.GONE);
-                    mServerAuthSASLExt.setVisibility(position == 2 ? View.VISIBLE : View.GONE);
+                    updateClientCertificateVisibility();
                     syncSimpleAuthFromMode(position);
                     return;
                 }
                 if (position == 0) {
                     mServerAuthUserCtr.setVisibility(View.GONE);
                     mServerAuthPassMainCtr.setVisibility(View.GONE);
-                    mServerAuthSASLExt.setVisibility(View.GONE);
                 } else if (position == 1) {
                     mServerAuthUserCtr.setVisibility(View.VISIBLE);
                     mServerAuthPassMainCtr.setVisibility(View.VISIBLE);
-                    mServerAuthSASLExt.setVisibility(View.GONE);
                 } else if (position == 2) {
                     mServerAuthUserCtr.setVisibility(View.GONE);
                     mServerAuthPassMainCtr.setVisibility(View.GONE);
-                    mServerAuthSASLExt.setVisibility(View.VISIBLE);
                 }
+                updateClientCertificateVisibility();
             }
 
             @Override
@@ -330,10 +323,14 @@ public class EditServerActivity extends ThemedActivity {
             mSaslCertificateLauncher.launch(intent);
         });
         mServerAuthSASLExtCreateButton.setOnClickListener((View v) -> {
-            try {
+            if (mServerCert != null) {
+                new AlertDialog.Builder(this)
+                        .setMessage(R.string.server_client_certificate_generate_confirm)
+                        .setPositiveButton(android.R.string.ok, (dialog, which) -> generateCert())
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .show();
+            } else {
                 generateCert();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
             }
         });
 
@@ -366,12 +363,11 @@ public class EditServerActivity extends ThemedActivity {
                 mServerAuthUser.setText(mEditServer.authUser);
             }
             mServerCert = mEditServer.getAuthCert();
-            if (mServerCert != null) {
-                mServerAuthSASLExtFP.setText(getString(R.string.server_sasl_ext_fp,
-                        getCertificateFingerprint(mServerCert)));
-            }
             mServerPrivKey = mEditServer.authCertPrivKey;
             mServerPrivKeyType = mEditServer.authCertPrivKeyType;
+            mServerKeyStoreAlias = mEditServer.authCertKeyStoreAlias;
+            mServerClientCertificateEnabled.setChecked(mEditServer.shouldPresentClientCertificate());
+            refreshCertificateSummary();
             if (mEditServer.authMode != null) {
                 switch (mEditServer.authMode) {
                     case ServerConfigData.AUTH_SASL:
