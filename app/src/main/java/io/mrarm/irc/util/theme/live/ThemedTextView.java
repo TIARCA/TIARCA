@@ -5,7 +5,6 @@ import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
 import androidx.core.graphics.drawable.DrawableCompat;
-import androidx.core.widget.TextViewCompat;
 import androidx.appcompat.widget.AppCompatTextView;
 import android.util.AttributeSet;
 import android.widget.TextView;
@@ -84,10 +83,10 @@ public class ThemedTextView extends AppCompatTextView {
     }
 
     private static void updateCompoundDrawable(TextView view, int index, ColorStateList tint) {
-        Drawable[] drawables = TextViewCompat.getCompoundDrawablesRelative(view);
+        Drawable[] drawables = view.getCompoundDrawablesRelative();
         drawables[index] = DrawableCompat.wrap(drawables[index].mutate());
         DrawableCompat.setTintList(drawables[index], tint);
-        TextViewCompat.setCompoundDrawablesRelative(view, drawables[0], drawables[1], drawables[2], drawables[3]);
+        view.setCompoundDrawablesRelative(drawables[0], drawables[1], drawables[2], drawables[3]);
     }
 
 }
