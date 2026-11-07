@@ -14,11 +14,13 @@ configurations.configureEach {
 }
 
 android {
-    compileSdkVersion 36
+    // TIARCA is Java-only: avoid adding the AGP 9 built-in Kotlin runtime to APKs.
+    enableKotlin = false
+    compileSdk 36
     defaultConfig {
         applicationId "io.tiarca.irc"
-        minSdkVersion 28
-        targetSdkVersion 36
+        minSdk 28
+        targetSdk 36
         versionCode 91000
         versionName "0.9.10"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -27,7 +29,7 @@ android {
         }
         vectorDrawables.useSupportLibrary = true
     }
-    flavorDimensions 'distribution'
+    flavorDimensions += 'distribution'
     productFlavors {
         standard {
             dimension 'distribution'
