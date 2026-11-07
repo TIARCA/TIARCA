@@ -130,6 +130,8 @@ public class EditServerActivity extends ThemedActivity {
     private byte[] mServerPrivKey = null;
     private String mServerPrivKeyType;
     private String mServerKeyStoreAlias;
+    /** Newly generated key not yet saved to server configuration. */
+    private String mPendingKeyStoreAlias;
     private ActivityResultLauncher<Intent> mSaslCertificateLauncher;
     private ActivityResultLauncher<Intent> mChannelListPickerLauncher;
     private TemporaryChannelListConnection mTemporaryChannelListConnection;
@@ -800,6 +802,10 @@ public class EditServerActivity extends ThemedActivity {
         }
         if (addConnection)
             ServerConnectionManager.getInstance(this).tryCreateConnection(mEditServer, this);
+        // The selected protected key now belongs to persisted configuration.
+        if (mServerKeyStoreAlias != null &&
+                mServerKeyStoreAlias.equals(mPendingKeyStoreAlias))
+            mPendingKeyStoreAlias = null;
         return true;
     }
 
@@ -822,6 +828,7 @@ public class EditServerActivity extends ThemedActivity {
             mTemporaryChannelListConnection = null;
         }
         dismissChannelListProgress();
+        discardPendingProtectedKey();
         super.onDestroy();
     }
 
@@ -910,6 +917,7 @@ public class EditServerActivity extends ThemedActivity {
                 mServerCert = cert;
                 mServerPrivKey = privKey.getEncoded();
                 mServerPrivKeyType = privKey.getAlgorithm();
+                discardPendingProtectedKey();
                 mServerKeyStoreAlias = null;
                 mServerClientCertificateEnabled.setChecked(true);
                 refreshCertificateSummary();
@@ -1042,6 +1050,23 @@ public class EditServerActivity extends ThemedActivity {
         }
     }
 
+    private void discardProtectedKey(String alias) {
+        AppExecutors.IO.execute(() -> {
+            try {
+                ClientCertificateManager.deleteProtectedIdentity(alias);
+            } catch (java.security.GeneralSecurityException e) {
+                Log.w(TAG, "Could not clean up uncommitted client key", e);
+            }
+        });
+    }
+
+    private void discardPendingProtectedKey() {
+        String alias = mPendingKeyStoreAlias;
+        mPendingKeyStoreAlias = null;
+        if (alias != null)
+            discardProtectedKey(alias);
+    }
+
     private void generateCert() {
         mServerAuthSASLExtCreateButton.setEnabled(false);
         mServerAuthSASLExtImportButton.setEnabled(false);
@@ -1050,8 +1075,12 @@ public class EditServerActivity extends ThemedActivity {
                 ClientCertificateManager.Identity identity =
                         ClientCertificateManager.generateProtectedIdentity();
                 runOnUiThread(() -> {
-                    if (isFinishing() || isDestroyed())
+                    if (isFinishing() || isDestroyed()) {
+                        discardProtectedKey(identity.alias);
                         return;
+                    }
+                    discardPendingProtectedKey();
+                    mPendingKeyStoreAlias = identity.alias;
                     mServerCert = identity.certificate;
                     mServerKeyStoreAlias = identity.alias;
                     mServerPrivKey = null;
