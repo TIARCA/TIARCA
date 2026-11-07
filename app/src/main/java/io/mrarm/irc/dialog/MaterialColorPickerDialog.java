@@ -3,7 +3,6 @@ package io.mrarm.irc.dialog;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.content.Context;
-import androidx.core.view.ViewCompat;
 import androidx.appcompat.app.AlertDialog;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
@@ -43,7 +42,7 @@ public class MaterialColorPickerDialog {
             picker.closeColor();
         });
         picker.setBackButtonVisibilityCallback((boolean visible) -> {
-            boolean isRtl = ViewCompat.getLayoutDirection(title) == ViewCompat.LAYOUT_DIRECTION_RTL;
+            boolean isRtl = title.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
             if (!visible && backButton.getVisibility() != View.VISIBLE)
                 return;
             float titleToXDp = 8.f;
