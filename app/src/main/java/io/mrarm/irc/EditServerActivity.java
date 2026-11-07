@@ -2,6 +2,8 @@ package io.mrarm.irc;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -34,38 +36,24 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.google.android.material.textfield.TextInputLayout;
 
-import org.spongycastle.asn1.x500.X500Name;
-import org.spongycastle.asn1.x509.SubjectPublicKeyInfo;
-import org.spongycastle.cert.X509CertificateHolder;
-import org.spongycastle.cert.X509v3CertificateBuilder;
-import org.spongycastle.operator.ContentSigner;
-import org.spongycastle.operator.jcajce.JcaContentSignerBuilder;
-
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.math.BigInteger;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.SecureRandom;
 import java.security.cert.CertificateEncodingException;
-import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
 import io.mrarm.chatlib.dto.ChannelList;
+import io.mrarm.irc.config.ClientCertificateManager;
 import io.mrarm.irc.config.IdentitySettings;
 import io.mrarm.irc.config.ServerCertificateManager;
 import io.mrarm.irc.config.ServerConfigData;
 import io.mrarm.irc.config.ServerConfigManager;
+import io.mrarm.irc.util.AppExecutors;
 import io.mrarm.irc.util.ExpandIconStateHelper;
 import io.mrarm.irc.util.PEMParser;
 import io.mrarm.irc.util.SimpleTextWatcher;
@@ -104,6 +92,7 @@ public class EditServerActivity extends ThemedActivity {
     private EditText mServerAuthUser;
     private TextInputLayout mServerAuthUserCtr;
     private View mServerAuthSASLExt;
+    private CheckBox mServerClientCertificateEnabled;
     private TextView mServerAuthSASLExtFP;
     private View mServerAuthSASLExtImportButton;
     private View mServerAuthSASLExtCreateButton;
@@ -140,6 +129,9 @@ public class EditServerActivity extends ThemedActivity {
     private X509Certificate mServerCert = null;
     private byte[] mServerPrivKey = null;
     private String mServerPrivKeyType;
+    private String mServerKeyStoreAlias;
+    /** Newly generated key not yet saved to server configuration. */
+    private String mPendingKeyStoreAlias;
     private ActivityResultLauncher<Intent> mSaslCertificateLauncher;
     private ActivityResultLauncher<Intent> mChannelListPickerLauncher;
     private TemporaryChannelListConnection mTemporaryChannelListConnection;
@@ -219,9 +211,14 @@ public class EditServerActivity extends ThemedActivity {
                 findViewById(R.id.server_auth_password),
                 findViewById(R.id.server_auth_password_reset));
         mServerAuthSASLExt = findViewById(R.id.server_sasl_ext_main_ctr);
+        mServerClientCertificateEnabled = findViewById(R.id.server_client_certificate_enabled);
         mServerAuthSASLExtFP = findViewById(R.id.server_sasl_ext_fp);
         mServerAuthSASLExtImportButton = findViewById(R.id.server_sasl_ext_import);
         mServerAuthSASLExtCreateButton = findViewById(R.id.server_sasl_ext_create);
+        mServerClientCertificateEnabled.setOnCheckedChangeListener((button, checked) ->
+                updateClientCertificateVisibility());
+        findViewById(R.id.server_client_certificate_help).setOnClickListener(v ->
+                showCertificateRegistrationGuide());
         mServerNick = findViewById(R.id.server_nick);
         mServerUser = findViewById(R.id.server_user);
         mServerRealname = findViewById(R.id.server_realname);
@@ -299,23 +296,21 @@ public class EditServerActivity extends ThemedActivity {
                     // PLAIN credentials stay in the simple block. Advanced only chooses a mode.
                     mServerAuthUserCtr.setVisibility(View.GONE);
                     mServerAuthPassMainCtr.setVisibility(View.GONE);
-                    mServerAuthSASLExt.setVisibility(position == 2 ? View.VISIBLE : View.GONE);
+                    updateClientCertificateVisibility();
                     syncSimpleAuthFromMode(position);
                     return;
                 }
                 if (position == 0) {
                     mServerAuthUserCtr.setVisibility(View.GONE);
                     mServerAuthPassMainCtr.setVisibility(View.GONE);
-                    mServerAuthSASLExt.setVisibility(View.GONE);
                 } else if (position == 1) {
                     mServerAuthUserCtr.setVisibility(View.VISIBLE);
                     mServerAuthPassMainCtr.setVisibility(View.VISIBLE);
-                    mServerAuthSASLExt.setVisibility(View.GONE);
                 } else if (position == 2) {
                     mServerAuthUserCtr.setVisibility(View.GONE);
                     mServerAuthPassMainCtr.setVisibility(View.GONE);
-                    mServerAuthSASLExt.setVisibility(View.VISIBLE);
                 }
+                updateClientCertificateVisibility();
             }
 
             @Override
@@ -330,10 +325,14 @@ public class EditServerActivity extends ThemedActivity {
             mSaslCertificateLauncher.launch(intent);
         });
         mServerAuthSASLExtCreateButton.setOnClickListener((View v) -> {
-            try {
+            if (mServerCert != null) {
+                new AlertDialog.Builder(this)
+                        .setMessage(R.string.server_client_certificate_generate_confirm)
+                        .setPositiveButton(android.R.string.ok, (dialog, which) -> generateCert())
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .show();
+            } else {
                 generateCert();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
             }
         });
 
@@ -366,12 +365,11 @@ public class EditServerActivity extends ThemedActivity {
                 mServerAuthUser.setText(mEditServer.authUser);
             }
             mServerCert = mEditServer.getAuthCert();
-            if (mServerCert != null) {
-                mServerAuthSASLExtFP.setText(getString(R.string.server_sasl_ext_fp,
-                        getCertificateFingerprint(mServerCert)));
-            }
             mServerPrivKey = mEditServer.authCertPrivKey;
             mServerPrivKeyType = mEditServer.authCertPrivKeyType;
+            mServerKeyStoreAlias = mEditServer.authCertKeyStoreAlias;
+            mServerClientCertificateEnabled.setChecked(mEditServer.shouldPresentClientCertificate());
+            refreshCertificateSummary();
             if (mEditServer.authMode != null) {
                 switch (mEditServer.authMode) {
                     case ServerConfigData.AUTH_SASL:
@@ -552,6 +550,8 @@ public class EditServerActivity extends ThemedActivity {
             succeeded = false;
         }
 
+        if (!validateClientCertificateSelection())
+            succeeded = false;
         return succeeded;
     }
 
@@ -588,7 +588,7 @@ public class EditServerActivity extends ThemedActivity {
             if (!valid)
                 return false;
         }
-        return true;
+        return validateClientCertificateSelection();
     }
 
     private ServerConfigData buildTemporaryServerConfig() {
@@ -617,14 +617,9 @@ public class EditServerActivity extends ThemedActivity {
             }
         } else if (authMode == 2) {
             data.authMode = ServerConfigData.AUTH_SASL_EXTERNAL;
-            try {
-                data.authCertData = mServerCert == null ? null : mServerCert.getEncoded();
-            } catch (CertificateEncodingException e) {
-                throw new RuntimeException(e);
-            }
-            data.authCertPrivKey = mServerPrivKey;
-            data.authCertPrivKeyType = mServerPrivKeyType;
         }
+        data.presentClientCertificate = mServerClientCertificateEnabled.isChecked();
+        copySelectedCertificate(data);
         return data;
     }
 
@@ -767,9 +762,10 @@ public class EditServerActivity extends ThemedActivity {
         mEditServer.realname = nullifyIfEmpty(mServerRealname.getText().toString());
         mEditServer.pass = nullifyIfEmpty(mServerPass.getPassword());
         int authModeInt = mServerAuthMode.getSelectedItemPosition();
-        mEditServer.authCertData = null;
-        mEditServer.authCertPrivKey = null;
-        mEditServer.authCertPrivKeyType = null;
+        // Keep certificate material when switching between PLAIN and EXTERNAL.
+        // The client certificate can be presented over TLS independently of SASL.
+        mEditServer.presentClientCertificate = mServerClientCertificateEnabled.isChecked();
+        copySelectedCertificate(mEditServer);
         if (authModeInt == 1) {
             mEditServer.authMode = ServerConfigData.AUTH_SASL;
             if (mIsNewServer) {
@@ -783,13 +779,6 @@ public class EditServerActivity extends ThemedActivity {
             mEditServer.authMode = ServerConfigData.AUTH_SASL_EXTERNAL;
             mEditServer.authUser = null;
             mEditServer.authPass = null;
-            try {
-                mEditServer.authCertData = mServerCert != null ? mServerCert.getEncoded() : null;
-            } catch (CertificateEncodingException e) {
-                throw new RuntimeException(e);
-            }
-            mEditServer.authCertPrivKey = mServerPrivKey;
-            mEditServer.authCertPrivKeyType = mServerPrivKeyType;
         } else {
             mEditServer.authMode = null;
             mEditServer.authUser = null;
@@ -813,6 +802,10 @@ public class EditServerActivity extends ThemedActivity {
         }
         if (addConnection)
             ServerConnectionManager.getInstance(this).tryCreateConnection(mEditServer, this);
+        // The selected protected key now belongs to persisted configuration.
+        if (mServerKeyStoreAlias != null &&
+                mServerKeyStoreAlias.equals(mPendingKeyStoreAlias))
+            mPendingKeyStoreAlias = null;
         return true;
     }
 
@@ -835,6 +828,7 @@ public class EditServerActivity extends ThemedActivity {
             mTemporaryChannelListConnection = null;
         }
         dismissChannelListProgress();
+        discardPendingProtectedKey();
         super.onDestroy();
     }
 
@@ -907,6 +901,14 @@ public class EditServerActivity extends ThemedActivity {
                 }
                 if (privKey == null || cert == null)
                     errorResId = R.string.error_cert_or_privkey_missing;
+                if (errorResId == -1) {
+                    try {
+                        if (!ClientCertificateManager.keyMatchesCertificate(cert, privKey))
+                            errorResId = R.string.server_client_certificate_import_mismatch;
+                    } catch (java.security.GeneralSecurityException e) {
+                        errorResId = R.string.server_client_certificate_import_mismatch;
+                    }
+                }
             } catch (IOException e) {
                 errorResId = R.string.error_file_open;
                 e.printStackTrace();
@@ -915,8 +917,10 @@ public class EditServerActivity extends ThemedActivity {
                 mServerCert = cert;
                 mServerPrivKey = privKey.getEncoded();
                 mServerPrivKeyType = privKey.getAlgorithm();
-                mServerAuthSASLExtFP.setText(getString(R.string.server_sasl_ext_fp,
-                        getCertificateFingerprint(mServerCert)));
+                discardPendingProtectedKey();
+                mServerKeyStoreAlias = null;
+                mServerClientCertificateEnabled.setChecked(true);
+                refreshCertificateSummary();
             } else {
                 new AlertDialog.Builder(this)
                         .setTitle(R.string.error_generic)
@@ -930,40 +934,178 @@ public class EditServerActivity extends ThemedActivity {
         return sslEnabled ? 6697 : 6667;
     }
 
-    private static String getCertificateFingerprint(X509Certificate cert) {
+    private void updateClientCertificateVisibility() {
+        boolean requiredForSasl = mServerAuthMode.getSelectedItemPosition() == 2;
+        if (requiredForSasl && !mServerClientCertificateEnabled.isChecked())
+            mServerClientCertificateEnabled.setChecked(true);
+        mServerClientCertificateEnabled.setEnabled(!requiredForSasl);
+        mServerAuthSASLExt.setVisibility(
+                requiredForSasl || mServerClientCertificateEnabled.isChecked()
+                        ? View.VISIBLE : View.GONE);
+    }
+
+    private boolean isClientCertificateUsable() {
+        if (mServerCert == null)
+            return false;
+        if (mServerKeyStoreAlias == null)
+            return mServerPrivKey != null && mServerPrivKey.length > 0;
         try {
-            StringBuilder builder = new StringBuilder();
-            MessageDigest digest = MessageDigest.getInstance("SHA-1");
-            byte[] bytes = digest.digest(cert.getEncoded());
-            for (byte b : bytes)
-                builder.append(String.format("%02x", b));
-            return builder.toString();
-        } catch (NoSuchAlgorithmException | CertificateEncodingException e) {
-            throw new RuntimeException(e);
+            return ClientCertificateManager.getPrivateKey(mServerKeyStoreAlias) != null;
+        } catch (java.security.GeneralSecurityException e) {
+            Log.w(TAG, "Client certificate key unavailable in Android Keystore", e);
+            return false;
         }
     }
 
-    private void generateCert() throws Exception {
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-        keyPairGenerator.initialize(2048);
-        KeyPair kp = keyPairGenerator.generateKeyPair();
+    private boolean validateClientCertificateSelection() {
+        boolean needsCertificate = mServerAuthMode.getSelectedItemPosition() == 2 ||
+                mServerClientCertificateEnabled.isChecked();
+        if (!needsCertificate)
+            return true;
+        if (!mServerSSL.isChecked()) {
+            Toast.makeText(this, R.string.server_client_certificate_tls_required,
+                    Toast.LENGTH_LONG).show();
+            return false;
+        }
+        if (!isClientCertificateUsable()) {
+            Toast.makeText(this, R.string.server_client_certificate_select_first,
+                    Toast.LENGTH_LONG).show();
+            return false;
+        }
+        return true;
+    }
 
-        X500Name name = new X500Name("CN=TIARCA IRC Client Certificate");
-        BigInteger serial = new BigInteger(64, new SecureRandom());
-        Date from = new Date();
-        Date to = new Date(from.getTime() + 30L * 365L * 24L * 60L * 60L * 1000L);
-        X509v3CertificateBuilder builder = new X509v3CertificateBuilder(name, serial, from, to,
-                name, SubjectPublicKeyInfo.getInstance(kp.getPublic().getEncoded()));
-        ContentSigner signer = new JcaContentSignerBuilder("SHA256WithRSA").build(kp.getPrivate());
-        X509CertificateHolder holder = builder.build(signer);
+    private void copySelectedCertificate(ServerConfigData target) {
+        try {
+            target.authCertData = mServerCert == null ? null : mServerCert.getEncoded();
+        } catch (CertificateEncodingException e) {
+            throw new IllegalStateException("Invalid client certificate", e);
+        }
+        target.authCertPrivKey = mServerPrivKey;
+        target.authCertPrivKeyType = mServerPrivKeyType;
+        target.authCertKeyStoreAlias = mServerKeyStoreAlias;
+    }
 
-        CertificateFactory factory = CertificateFactory.getInstance("X.509");
-        mServerCert = (X509Certificate) factory.generateCertificate(
-                new ByteArrayInputStream(holder.getEncoded()));
-        mServerPrivKey = kp.getPrivate().getEncoded();
-        mServerPrivKeyType = kp.getPrivate().getAlgorithm();
-        mServerAuthSASLExtFP.setText(getString(R.string.server_sasl_ext_fp,
-                getCertificateFingerprint(mServerCert)));
+    private void refreshCertificateSummary() {
+        if (mServerCert == null) {
+            mServerAuthSASLExtFP.setText(R.string.server_sasl_ext_none);
+            return;
+        }
+        if (!isClientCertificateUsable()) {
+            mServerAuthSASLExtFP.setText(R.string.server_client_certificate_missing_key);
+            return;
+        }
+        try {
+            String sha512 = ClientCertificateManager.fingerprint(mServerCert, "SHA-512");
+            String sha1 = ClientCertificateManager.fingerprint(mServerCert, "SHA-1");
+            String location = getString(mServerKeyStoreAlias == null
+                    ? R.string.server_client_certificate_portable
+                    : R.string.server_client_certificate_protected);
+            mServerAuthSASLExtFP.setText(
+                    getString(R.string.server_client_certificate_fingerprints, sha512, sha1) +
+                            "\n" + location);
+        } catch (java.security.GeneralSecurityException e) {
+            Log.e(TAG, "Could not calculate certificate fingerprints", e);
+            mServerAuthSASLExtFP.setText(R.string.server_sasl_ext_none);
+        }
+    }
+
+    private void showCertificateRegistrationGuide() {
+        String message = getString(R.string.server_client_certificate_help_text);
+        if (isClientCertificateUsable()) {
+            try {
+                final String sha512 = ClientCertificateManager.fingerprint(
+                        mServerCert, "SHA-512");
+                final String sha1 = ClientCertificateManager.fingerprint(mServerCert, "SHA-1");
+                new AlertDialog.Builder(this)
+                        .setTitle(R.string.server_client_certificate_help_title)
+                        .setMessage(message + getString(
+                                R.string.server_client_certificate_help_fingerprint, sha512, sha1))
+                        .setPositiveButton(R.string.server_client_certificate_copy_sha512,
+                                (dialog, which) -> copyFingerprint(sha512))
+                        .setNeutralButton(R.string.server_client_certificate_copy_sha1,
+                                (dialog, which) -> copyFingerprint(sha1))
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .show();
+                return;
+            } catch (java.security.GeneralSecurityException e) {
+                Log.e(TAG, "Could not calculate certificate fingerprints", e);
+            }
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.server_client_certificate_help_title)
+                .setMessage(message)
+                .setPositiveButton(android.R.string.ok, null)
+                .show();
+    }
+
+    private void copyFingerprint(String fingerprint) {
+        ClipboardManager clipboard = (ClipboardManager) getSystemService(
+                Context.CLIPBOARD_SERVICE);
+        if (clipboard != null) {
+            clipboard.setPrimaryClip(ClipData.newPlainText("IRC certificate fingerprint",
+                    fingerprint));
+            Toast.makeText(this, R.string.server_client_certificate_copy_done,
+                    Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void discardProtectedKey(String alias) {
+        AppExecutors.IO.execute(() -> {
+            try {
+                ClientCertificateManager.deleteProtectedIdentity(alias);
+            } catch (java.security.GeneralSecurityException e) {
+                Log.w(TAG, "Could not clean up uncommitted client key", e);
+            }
+        });
+    }
+
+    private void discardPendingProtectedKey() {
+        String alias = mPendingKeyStoreAlias;
+        mPendingKeyStoreAlias = null;
+        if (alias != null)
+            discardProtectedKey(alias);
+    }
+
+    private void generateCert() {
+        mServerAuthSASLExtCreateButton.setEnabled(false);
+        mServerAuthSASLExtImportButton.setEnabled(false);
+        AppExecutors.IO.execute(() -> {
+            try {
+                ClientCertificateManager.Identity identity =
+                        ClientCertificateManager.generateProtectedIdentity();
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) {
+                        discardProtectedKey(identity.alias);
+                        return;
+                    }
+                    discardPendingProtectedKey();
+                    mPendingKeyStoreAlias = identity.alias;
+                    mServerCert = identity.certificate;
+                    mServerKeyStoreAlias = identity.alias;
+                    mServerPrivKey = null;
+                    mServerPrivKeyType = null;
+                    mServerClientCertificateEnabled.setChecked(true);
+                    mServerAuthSASLExtCreateButton.setEnabled(true);
+                    mServerAuthSASLExtImportButton.setEnabled(true);
+                    refreshCertificateSummary();
+                    showCertificateRegistrationGuide();
+                });
+            } catch (Exception e) {
+                Log.e(TAG, "Could not generate Android Keystore client certificate", e);
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed())
+                        return;
+                    mServerAuthSASLExtCreateButton.setEnabled(true);
+                    mServerAuthSASLExtImportButton.setEnabled(true);
+                    new AlertDialog.Builder(this)
+                            .setTitle(R.string.error_generic)
+                            .setMessage(R.string.server_client_certificate_generate_failed)
+                            .setPositiveButton(android.R.string.ok, null)
+                            .show();
+                });
+            }
+        });
     }
 
     private static String nullifyIfEmpty(String val) {

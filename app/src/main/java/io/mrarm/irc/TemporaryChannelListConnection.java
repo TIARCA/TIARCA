@@ -4,6 +4,8 @@ import android.content.Context;
 
 import java.nio.charset.Charset;
 import java.security.GeneralSecurityException;
+import java.security.PrivateKey;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -137,11 +139,11 @@ public final class TemporaryChannelListConnection {
 
         if (mConfig.ssl) {
             KeyManager[] keyManagers = null;
-            if (ServerConfigData.AUTH_SASL_EXTERNAL.equals(mConfig.authMode) &&
-                    mConfig.getAuthCert() != null && mConfig.getAuthPrivateKey() != null) {
-                keyManagers = new KeyManager[] {
-                        new UserKeyManager(mConfig.getAuthCert(), mConfig.getAuthPrivateKey())
-                };
+            if (mConfig.shouldPresentClientCertificate()) {
+                X509Certificate cert = mConfig.getAuthCert();
+                PrivateKey key = mConfig.getAuthPrivateKey();
+                if (cert != null && key != null)
+                    keyManagers = new KeyManager[] { new UserKeyManager(cert, key) };
             }
             SSLContext sslContext = SSLContext.getInstance("TLS");
             sslContext.init(keyManagers, null, null);

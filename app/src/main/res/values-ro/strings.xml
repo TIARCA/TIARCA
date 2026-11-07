@@ -311,7 +311,7 @@
     <string-array name="server_auth_modes">
         <item>Nici unul</item>
         <item>Nume de utilizator cu parola (SASL)</item>
-        <item>Certificat de client (CertFP)</item>
+        <item>Certificat de client (SASL EXTERNAL)</item>
     </string-array>
     <string name="server_password">Parola server</string>
 

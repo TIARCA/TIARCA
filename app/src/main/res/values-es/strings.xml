@@ -300,7 +300,7 @@
     <string-array name="server_auth_modes">
         <item>Ninguno</item>
         <item>Nombre de usuario con contraseña (SASL)</item>
-        <item>(CertFP)</item>
+        <item>Certificado de cliente (SASL EXTERNAL)</item>
     </string-array>
     <string name="server_password">Contraseña del servidor</string>
 

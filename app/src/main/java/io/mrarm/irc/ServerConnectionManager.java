@@ -14,6 +14,8 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.nio.charset.Charset;
 import java.security.GeneralSecurityException;
+import java.security.PrivateKey;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -210,13 +212,17 @@ public class ServerConnectionManager {
             if (data.authMode.equals(ServerConfigData.AUTH_SASL) && data.authUser != null &&
                     data.authPass != null)
                 saslOptions = SASLOptions.createPlainAuth(data.authUser, data.authPass);
-            if (data.authMode.equals(ServerConfigData.AUTH_SASL_EXTERNAL)) {
+            if (data.authMode.equals(ServerConfigData.AUTH_SASL_EXTERNAL))
                 saslOptions = SASLOptions.createExternal();
-                userKeyManager = new UserKeyManager(data.getAuthCert(), data.getAuthPrivateKey());
-            }
         }
 
         if (data.ssl) {
+            if (data.shouldPresentClientCertificate()) {
+                X509Certificate cert = data.getAuthCert();
+                PrivateKey privateKey = data.getAuthPrivateKey();
+                if (cert != null && privateKey != null)
+                    userKeyManager = new UserKeyManager(cert, privateKey);
+            }
             UserOverrideTrustManager sslHelper = new UserOverrideTrustManager(mContext, data.uuid);
             try {
                 SSLContext sslContext = SSLContext.getInstance("TLS");

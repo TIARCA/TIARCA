@@ -303,6 +303,24 @@
     <string name="server_sasl_ext_fp">Impronta digitale del certificato: %1$s</string>
     <string name="server_sasl_ext_import">Importa PEM</string>
     <string name="server_sasl_ext_create">Crea nuovo</string>
+    <string name="server_client_certificate_enabled">Presenta certificato TLS client (CertFP / SASL EXTERNAL)</string>
+    <string name="server_client_certificate_help">Registra certificato / Nuovo telefono</string>
+    <string name="server_client_certificate_fingerprints">SHA-512: %1$s\nSHA-1: %2$s</string>
+    <string name="server_client_certificate_missing_key">Chiave del certificato non disponibile su questo dispositivo. Genera un nuovo certificato e registralo presso la rete IRC.</string>
+    <string name="server_client_certificate_protected">Protetto su questo dispositivo (Android Keystore); la chiave privata non può essere trasferita con il backup.</string>
+    <string name="server_client_certificate_portable">Certificato importato (trasferibile con un backup cifrato).</string>
+    <string name="server_client_certificate_help_title">Registra un certificato client</string>
+    <string name="server_client_certificate_help_text">Quando cambi telefono, genera un nuovo certificato sul nuovo dispositivo. Associa quindi la nuova impronta al tuo account IRC usando il vecchio telefono, oppure accedi temporaneamente con nome utente e password SASL mantenendo attiva la voce “Presenta certificato TLS client”. Sulle reti che lo consentono, identificati a NickServ e usa /msg NickServ CERT ADD per registrare il certificato presentato nella connessione TLS. Altre reti richiedono un comando con impronta o una procedura diversa: consulta la loro documentazione. Dopo la registrazione torna a SASL EXTERNAL. Non devi creare un nuovo account IRC. La chiave privata protetta non è trasferibile su un altro telefono.</string>
+    <string name="server_client_certificate_help_fingerprint">\n\nImpronta SHA-512:\n%1$s\n\nImpronta SHA-1:\n%2$s</string>
+    <string name="server_client_certificate_copy_sha512">Copia SHA-512</string>
+    <string name="server_client_certificate_copy_sha1">Copia SHA-1</string>
+    <string name="server_client_certificate_copy_done">Impronta copiata</string>
+    <string name="server_client_certificate_generate_confirm">Un nuovo certificato avrà una impronta diversa. La rete IRC non lo riconoscerà finché non avrai registrato la nuova impronta sul tuo account. Continuare?</string>
+    <string name="server_client_certificate_generate_failed">Impossibile generare un certificato protetto su questo dispositivo.</string>
+    <string name="server_client_certificate_import_mismatch">La chiave privata non corrisponde al certificato importato.</string>
+    <string name="server_client_certificate_tls_required">Per presentare un certificato client occorre attivare SSL/TLS.</string>
+    <string name="server_client_certificate_select_first">Genera o importa un certificato client valido prima di collegarti.</string>
+    <string name="server_client_certificate_backup_warning">Uno o più certificati client protetti non sono stati ripristinati: le relative chiavi private restano sul dispositivo originale. Apri il server interessato, genera un nuovo certificato e registralo sulla rete IRC. I certificati importati e trasferibili non sono interessati.</string>
     <string name="error_cert_already_present">Il file specificato ha più di una singola voce di certificato.</string>
     <string name="error_privkey_already_present">Il file specificato ha più di una singola voce di chiave privata.</string>
     <string name="error_cert_or_privkey_missing">Nel file specificato manca una chiave privata o un certificato.</string>
@@ -310,7 +328,7 @@
     <string-array name="server_auth_modes">
         <item>Nessuno</item>
         <item>Nome utente con password (SASL)</item>
-        <item>Certificato cliente (CertFP)</item>
+        <item>Certificato client (SASL EXTERNAL)</item>
     </string-array>
     <string name="server_password">Password del server</string>
 

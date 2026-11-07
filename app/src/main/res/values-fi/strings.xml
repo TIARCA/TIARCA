@@ -300,7 +300,7 @@
     <string-array name="server_auth_modes">
         <item>Ei mitään</item>
         <item>Käyttäjätunnus salasanalla (SASL)</item>
-        <item>-asiakassertifikaatti (CertFP)</item>
+        <item>Asiakassertifikaatti (SASL EXTERNAL)</item>
     </string-array>
     <string name="server_password">Palvelimen salasana</string>
 

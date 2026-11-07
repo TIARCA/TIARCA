@@ -322,7 +322,7 @@
     <string-array name="server_auth_modes">
         <item>Brak</item>
         <item>Nazwa użytkownika i hasło (SASL)</item>
-        <item>Certyfikat klienta (CertFP)</item>
+        <item>Certyfikat klienta (SASL EXTERNAL)</item>
     </string-array>
     <string name="server_password">Hasło serwera</string>
 

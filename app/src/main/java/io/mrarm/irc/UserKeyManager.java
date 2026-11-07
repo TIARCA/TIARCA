@@ -5,6 +5,7 @@ import java.security.Principal;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.X509ExtendedKeyManager;
 
 public class UserKeyManager extends X509ExtendedKeyManager {
@@ -35,6 +36,14 @@ public class UserKeyManager extends X509ExtendedKeyManager {
         return null;
     }
 
+    // Android 11+ SSLSocket may use Conscrypt's SSLEngine internally.
+    // X509ExtendedKeyManager's default implementation returns null here.
+    @Override
+    public String chooseEngineClientAlias(String[] keyType, Principal[] issuers,
+            SSLEngine engine) {
+        return chooseClientAlias(keyType, issuers, null);
+    }
+
     @Override
     public String[] getServerAliases(String keyType, Principal[] issuers) {
         return new String[0];
@@ -42,6 +51,12 @@ public class UserKeyManager extends X509ExtendedKeyManager {
 
     @Override
     public String chooseServerAlias(String keyType, Principal[] issuers, Socket socket) {
+        return null;
+    }
+
+    @Override
+    public String chooseEngineServerAlias(String keyType, Principal[] issuers,
+            SSLEngine engine) {
         return null;
     }
 
