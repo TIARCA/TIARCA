@@ -286,6 +286,9 @@ public class BackupManagerTest {
 
     @Test
     public void encryptedBackupPreservesCustomFontFileAndArchivePath() throws Exception {
+        // A fresh Robolectric application must not reuse SettingsHelper's singleton
+        // from a prior test; otherwise it reads another test's SharedPreferences.
+        org.robolectric.util.ReflectionHelpers.setStaticField(SettingsHelper.class, "mInstance", null);
         String fontName = "sample-font.ttf";
         byte[] originalFont = "test-font-data".getBytes(StandardCharsets.UTF_8);
         File storedFont = ListWithCustomSetting.getCustomFile(
