@@ -16,7 +16,7 @@ jobs:
       - name: Checkout exact phase A source
         uses: actions/checkout@v5
         with:
-          ref: e1c38ddc2053d091858de57379c2d6682654f587
+          ref: 462afd05f2a2eddba875b4316f91d7bfe862d2b0
 
       - name: Set up JDK 21
         uses: actions/setup-java@v5
@@ -66,14 +66,14 @@ jobs:
           mkdir -p candidate-apks
           for FLAVOR in standard fdroid; do
             APK=$(find "app/build/outputs/apk/$FLAVOR/release" -maxdepth 1 -type f -name '*.apk' | sort | head -n 1)
-            cp "$APK" "candidate-apks/TIARCA-$FLAVOR-phase-a-e1c38dd.apk"
+            cp "$APK" "candidate-apks/TIARCA-$FLAVOR-phase-a-462afd0.apk"
           done
           (cd candidate-apks && sha256sum *.apk > SHA256SUMS)
 
       - name: Upload signed candidate APKs
         uses: actions/upload-artifact@v6
         with:
-          name: TIARCA-phase-a-candidate-e1c38dd
+          name: TIARCA-phase-a-candidate-462afd0
           path: candidate-apks/
           retention-days: 14
 
@@ -88,14 +88,14 @@ jobs:
       - name: Checkout independent A
         uses: actions/checkout@v5
         with:
-          ref: e1c38ddc2053d091858de57379c2d6682654f587
+          ref: 462afd05f2a2eddba875b4316f91d7bfe862d2b0
           path: build-a
           fetch-depth: 1
 
       - name: Checkout independent B
         uses: actions/checkout@v5
         with:
-          ref: e1c38ddc2053d091858de57379c2d6682654f587
+          ref: 462afd05f2a2eddba875b4316f91d7bfe862d2b0
           path: build-b
           fetch-depth: 1
 
