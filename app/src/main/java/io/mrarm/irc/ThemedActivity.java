@@ -3,8 +3,8 @@ package io.mrarm.irc;
 import android.content.res.Configuration;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.TypedValue;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.view.ViewGroup;
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AlertDialog;
@@ -100,22 +100,49 @@ public class ThemedActivity extends AppCompatActivity implements ThemeManager.Th
         applyActionBarContentInset();
     }
 
-    /** Keeps legacy ActionBar screens below their bar when Android 15+ enforces edge-to-edge. */
+    /** Keep legacy ActionBar content below the real toolbar, including the status bar inset.
+     * Android 15+ edge-to-edge can place the content and the AppCompat ActionBar in overlapping
+     * window coordinates. A fixed actionBarSize padding misses the status bar on some devices.
+     */
     private void applyActionBarContentInset() {
         if (Build.VERSION.SDK_INT < 35 || getSupportActionBar() == null)
             return;
         ViewGroup content = findViewById(android.R.id.content);
-        if (content == null || content.getChildCount() != 1)
+        if (content == null || content.getChildCount() == 0)
             return;
         View root = content.getChildAt(0);
-        TypedValue actionBarSize = new TypedValue();
-        if (!getTheme().resolveAttribute(androidx.appcompat.R.attr.actionBarSize,
-                actionBarSize, true))
-            return;
-        int height = TypedValue.complexToDimensionPixelSize(actionBarSize.data,
-                getResources().getDisplayMetrics());
-        root.setPadding(root.getPaddingLeft(), root.getPaddingTop() + height,
-                root.getPaddingRight(), root.getPaddingBottom());
+        int originalTopPadding = root.getPaddingTop();
+
+        // Positions are meaningful only after the action bar and content have been laid out.
+        root.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+            @Override
+            public boolean onPreDraw() {
+                ViewTreeObserver observer = root.getViewTreeObserver();
+                if (observer.isAlive())
+                    observer.removeOnPreDrawListener(this);
+
+                View actionBar = findViewById(androidx.appcompat.R.id.action_bar_container);
+                if (actionBar == null || actionBar.getVisibility() != View.VISIBLE ||
+                        actionBar.getHeight() == 0)
+                    return true;
+
+                int[] contentPosition = new int[2];
+                int[] actionBarPosition = new int[2];
+                root.getLocationInWindow(contentPosition);
+                actionBar.getLocationInWindow(actionBarPosition);
+                int overlap = actionBarOverlap(contentPosition[1],
+                        actionBarPosition[1], actionBar.getHeight());
+                int requiredTopPadding = originalTopPadding + overlap;
+                if (root.getPaddingTop() != requiredTopPadding)
+                    root.setPadding(root.getPaddingLeft(), requiredTopPadding,
+                            root.getPaddingRight(), root.getPaddingBottom());
+                return true;
+            }
+        });
+    }
+
+    static int actionBarOverlap(int contentTop, int barTop, int barHeight) {
+        return Math.max(0, barTop + barHeight - contentTop);
     }
 
     @Override
