@@ -777,7 +777,7 @@ public class EditServerActivity extends ThemedActivity {
             mEditServer.authMode = ServerConfigData.AUTH_SASL_EXTERNAL;
             mEditServer.authUser = null;
             mEditServer.authPass = null;
-         } else {
+        } else {
             mEditServer.authMode = null;
             mEditServer.authUser = null;
             mEditServer.authPass = null;
