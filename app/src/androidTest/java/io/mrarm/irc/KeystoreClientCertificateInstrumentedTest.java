@@ -1,6 +1,9 @@
 package io.mrarm.irc;
 
 import android.os.Build;
+import android.util.Base64;
+
+import androidx.test.platform.app.InstrumentationRegistry;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
@@ -8,15 +11,18 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.net.InetAddress;
-import java.net.Socket;
-import java.security.Principal;
 import java.security.PrivateKey;
+import java.security.KeyStore;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
@@ -27,7 +33,6 @@ import io.mrarm.irc.config.ClientCertificateManager;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -61,8 +66,9 @@ public class KeystoreClientCertificateInstrumentedTest {
             cert.checkValidity();
             assertTrue(ClientCertificateManager.keyMatchesCertificate(cert, privateKey));
 
-            // The same self-signed test certificate is used on both sides of loopback TLS.
-            // Trust-all managers are restricted to this local instrumentation test.
+            // The server uses a separate test-only PKCS#12 identity: AndroidKeyStore key
+            // support for the SERVER role must not obscure the client-authentication test.
+            // Trust-all managers are restricted to this loopback instrumentation test.
             X509TrustManager localTestTrust = new X509TrustManager() {
                 @Override
                 public void checkClientTrusted(X509Certificate[] chain, String authType) {
@@ -79,19 +85,15 @@ public class KeystoreClientCertificateInstrumentedTest {
             };
             TrustManager[] trustManagers = new TrustManager[] { localTestTrust };
 
-            UserKeyManager serverKey = new UserKeyManager(cert, privateKey) {
-                @Override
-                public String[] getServerAliases(String keyType, Principal[] issuers) {
-                    return "RSA".equals(keyType) ? new String[] { "main" } : new String[0];
-                }
+            KeyStore testServerKeys = KeyStore.getInstance("PKCS12");
+            byte[] pkcs12 = readTestServerKeystore();
+            testServerKeys.load(new ByteArrayInputStream(pkcs12), "test-only".toCharArray());
+            KeyManagerFactory serverKeyManagers = KeyManagerFactory.getInstance(
+                    KeyManagerFactory.getDefaultAlgorithm());
+            serverKeyManagers.init(testServerKeys, "test-only".toCharArray());
 
-                @Override
-                public String chooseServerAlias(String keyType, Principal[] issuers, Socket socket) {
-                    return "RSA".equals(keyType) ? "main" : null;
-                }
-            };
             SSLContext serverContext = SSLContext.getInstance("TLS");
-            serverContext.init(new KeyManager[] { serverKey }, trustManagers, null);
+            serverContext.init(serverKeyManagers.getKeyManagers(), trustManagers, null);
             SSLContext clientContext = SSLContext.getInstance("TLS");
             clientContext.init(new KeyManager[] { new UserKeyManager(cert, privateKey) },
                     trustManagers, null);
@@ -120,22 +122,38 @@ public class KeystoreClientCertificateInstrumentedTest {
                 }, "tiarca-keystore-tls-test");
                 server.start();
 
+                Throwable clientError = null;
                 try (SSLSocket client = (SSLSocket) clientContext.getSocketFactory()
                         .createSocket("127.0.0.1", listener.getLocalPort())) {
                     client.setEnabledProtocols(new String[] { protocol });
                     client.setSoTimeout(15000);
                     client.startHandshake();
                     assertEquals(protocol, client.getSession().getProtocol());
+                } catch (Throwable error) {
+                    clientError = error;
                 }
 
                 assertTrue("Server handshake did not finish", finished.await(20, TimeUnit.SECONDS));
-                if (serverError.get() != null)
-                    throw new AssertionError("TLS server did not receive a valid client cert",
-                            serverError.get());
+                if (clientError != null || serverError.get() != null)
+                    throw new AssertionError("TLS " + protocol +
+                            " client error=" + clientError + ", server error=" + serverError.get(),
+                            clientError != null ? clientError : serverError.get());
             }
         } finally {
             ClientCertificateManager.deleteProtectedIdentity(identity.alias);
             assertNull(ClientCertificateManager.getPrivateKey(identity.alias));
+        }
+    }
+    private static byte[] readTestServerKeystore() throws Exception {
+        // Stored only in the androidTest APK; never included in production APKs.
+        try (InputStream in = InstrumentationRegistry.getInstrumentation()
+                .getContext().getAssets().open("tls-server-test.p12.base64");
+             ByteArrayOutputStream encoded = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[4096];
+            int count;
+            while ((count = in.read(buffer)) != -1)
+                encoded.write(buffer, 0, count);
+            return Base64.decode(encoded.toByteArray(), Base64.DEFAULT);
         }
     }
 }
