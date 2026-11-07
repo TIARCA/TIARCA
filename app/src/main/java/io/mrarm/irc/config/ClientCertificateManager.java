@@ -61,9 +61,9 @@ public final class ClientCertificateManager {
         KeyPairGenerator generator = KeyPairGenerator.getInstance(
                 KeyProperties.KEY_ALGORITHM_RSA, STORE);
         generator.initialize(spec);
-        generator.generateKeyPair();
 
         try {
+            generator.generateKeyPair();
             KeyStore store = openStore();
             X509Certificate certificate = (X509Certificate) store.getCertificate(alias);
             PrivateKey privateKey = getPrivateKey(alias);
@@ -74,10 +74,19 @@ public final class ClientCertificateManager {
             certificate.verify(certificate.getPublicKey());
             return new Identity(alias, certificate);
         } catch (GeneralSecurityException e) {
-            // Only delete the fresh, uncommitted alias, never a key used by another server.
-            openStore().deleteEntry(alias);
+            // Only delete this newly generated alias, not a key referenced by another server.
+            try {
+                deleteProtectedIdentity(alias);
+            } catch (GeneralSecurityException cleanupError) {
+                e.addSuppressed(cleanupError);
+            }
             throw e;
         }
+    }
+
+    public static void deleteProtectedIdentity(String alias) throws GeneralSecurityException {
+        if (alias != null && alias.startsWith(ALIAS_PREFIX))
+            openStore().deleteEntry(alias);
     }
 
     public static PrivateKey getPrivateKey(String alias) throws GeneralSecurityException {
