@@ -43,6 +43,10 @@ public class ServerConfigData {
     public byte[] authCertData;
     public byte[] authCertPrivKey;
     public String authCertPrivKeyType;
+    /** Non-exportable private key alias. Null for imported and legacy PKCS#8 identities. */
+    public String authCertKeyStoreAlias;
+    /** Null in pre-B2 configs: SASL EXTERNAL previously implied presenting a TLS certificate. */
+    public Boolean presentClientCertificate;
 
     public List<String> nicks;
     public String user;
@@ -133,6 +137,10 @@ public class ServerConfigData {
         return trimmed;
     }
 
+    public boolean shouldPresentClientCertificate() {
+        return AUTH_SASL_EXTERNAL.equals(authMode) || Boolean.TRUE.equals(presentClientCertificate);
+    }
+
     public X509Certificate getAuthCert() {
         if (authCertData == null)
             return null;
@@ -150,9 +158,11 @@ public class ServerConfigData {
     }
 
     public PrivateKey getAuthPrivateKey() {
-        if (authCertPrivKey == null)
-            return null;
         try {
+            if (authCertKeyStoreAlias != null)
+                return ClientCertificateManager.getPrivateKey(authCertKeyStoreAlias);
+            if (authCertPrivKey == null || authCertPrivKeyType == null)
+                return null;
             KeyFactory factory = KeyFactory.getInstance(authCertPrivKeyType);
             PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(authCertPrivKey);
             return factory.generatePrivate(keySpec);
@@ -161,8 +171,9 @@ public class ServerConfigData {
             e.printStackTrace();
             DiagnosticLog.e("TLS", () -> diagnosticId() +
                     " client private key decode failed algorithm=" +
-                    (authCertPrivKeyType == null ? "unknown" : authCertPrivKeyType) +
-                    ", bytes=" + authCertPrivKey.length, e);
+                    (authCertKeyStoreAlias != null ? "AndroidKeyStore" :
+                            (authCertPrivKeyType == null ? "unknown" : authCertPrivKeyType)) +
+                    ", bytes=" + (authCertPrivKey == null ? 0 : authCertPrivKey.length), e);
         }
         return null;
     }

@@ -39,7 +39,6 @@
     <init>(...);
 }
 
--dontwarn org.spongycastle.**
 -dontwarn org.junit.**
 -dontwarn android.test.**
 

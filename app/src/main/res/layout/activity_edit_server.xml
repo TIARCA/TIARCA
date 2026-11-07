@@ -249,14 +249,24 @@
 
             </RelativeLayout>
 
+            <CheckBox
+                android:id="@+id/server_client_certificate_enabled"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/server_auth_password_main_ctr"
+                android:layout_marginStart="50dp"
+                android:layout_marginTop="8dp"
+                android:text="@string/server_client_certificate_enabled" />
+
             <LinearLayout
                 android:id="@+id/server_sasl_ext_main_ctr"
+                android:visibility="gone"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:orientation="vertical"
                 android:layout_marginStart="50dp"
-                android:layout_below="@+id/server_auth_username_ctr">
+                android:layout_below="@+id/server_client_certificate_enabled">
 
                 <TextView
                     android:id="@+id/server_sasl_ext_fp"
@@ -288,6 +298,15 @@
                         android:paddingRight="10dp"
                         style="@style/Widget.AppCompat.Button.Borderless.Colored"
                         android:text="@string/server_sasl_ext_create" />
+
+                    <Button
+                        android:id="@+id/server_client_certificate_help"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingLeft="10dp"
+                        android:paddingRight="10dp"
+                        style="@style/Widget.AppCompat.Button.Borderless.Colored"
+                        android:text="@string/server_client_certificate_help" />
 
                 </com.google.android.flexbox.FlexboxLayout>
 

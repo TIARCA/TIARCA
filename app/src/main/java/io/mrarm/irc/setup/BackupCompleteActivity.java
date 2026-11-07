@@ -5,6 +5,8 @@ import android.view.View;
 import android.widget.TextView;
 
 import io.mrarm.irc.R;
+import io.mrarm.irc.config.ServerConfigData;
+import io.mrarm.irc.config.ServerConfigManager;
 
 public class BackupCompleteActivity extends SetupBigHeaderActivity {
 
@@ -20,7 +22,19 @@ public class BackupCompleteActivity extends SetupBigHeaderActivity {
 
         int desc = getIntent().getIntExtra(ARG_DESC_TEXT, -1);
         if (desc != -1) {
-            ((TextView) findViewById(R.id.desc)).setText(desc);
+            TextView description = findViewById(R.id.desc);
+            description.setText(desc);
+            if (getIntent().getBooleanExtra(ARG_RESTORE_MODE, false) &&
+                    desc == R.string.backup_restored) {
+                for (ServerConfigData server : ServerConfigManager.getInstance(this).getServers()) {
+                    if (server.authCertKeyStoreAlias != null &&
+                            server.getAuthPrivateKey() == null) {
+                        description.append("\n\n" + getString(
+                                R.string.server_client_certificate_backup_warning));
+                        break;
+                    }
+                }
+            }
         }
         findViewById(R.id.finish).setOnClickListener((View v) -> {
             setSetupFinished();

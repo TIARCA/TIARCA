@@ -302,6 +302,24 @@
     <string name="server_sasl_ext_fp">Certificate fingerprint: %1$s</string>
     <string name="server_sasl_ext_import">Import PEM</string>
     <string name="server_sasl_ext_create">Create new</string>
+    <string name="server_client_certificate_enabled">Present TLS client certificate (CertFP / SASL EXTERNAL)</string>
+    <string name="server_client_certificate_help">Register certificate / New phone</string>
+    <string name="server_client_certificate_fingerprints">SHA-512: %1$s\nSHA-1: %2$s</string>
+    <string name="server_client_certificate_missing_key">Certificate key unavailable on this device. Generate a new certificate, then register it with your IRC network.</string>
+    <string name="server_client_certificate_protected">Protected on this device (Android Keystore); the private key cannot be transferred in a backup.</string>
+    <string name="server_client_certificate_portable">Imported certificate (portable with encrypted backup).</string>
+    <string name="server_client_certificate_help_title">Register a client certificate</string>
+    <string name="server_client_certificate_help_text">When changing phones, create a new certificate on the new device. Then add its fingerprint to your existing IRC account using the old phone, or connect temporarily with SASL username/password while keeping “Present TLS client certificate” enabled. On networks that support it, identify to NickServ and use /msg NickServ CERT ADD to register the certificate currently presented over TLS. Other networks may require a command with a fingerprint or a different procedure; check their instructions. Return to SASL EXTERNAL after registering. You do not need to create a new IRC account. A protected private key cannot be restored to another device.</string>
+    <string name="server_client_certificate_help_fingerprint">\n\nSHA-512 fingerprint:\n%1$s\n\nSHA-1 fingerprint:\n%2$s</string>
+    <string name="server_client_certificate_copy_sha512">Copy SHA-512</string>
+    <string name="server_client_certificate_copy_sha1">Copy SHA-1</string>
+    <string name="server_client_certificate_copy_done">Fingerprint copied</string>
+    <string name="server_client_certificate_generate_confirm">A new certificate will have a different fingerprint. The IRC network will not recognize it until you register the new fingerprint with your account. Continue?</string>
+    <string name="server_client_certificate_generate_failed">Could not create a protected certificate on this device.</string>
+    <string name="server_client_certificate_import_mismatch">The private key does not match the imported certificate.</string>
+    <string name="server_client_certificate_tls_required">A TLS client certificate requires SSL/TLS to be enabled.</string>
+    <string name="server_client_certificate_select_first">Generate or import a valid client certificate before connecting.</string>
+    <string name="server_client_certificate_backup_warning">One or more protected client certificates were not restored: their private keys remain on the original device. Open each affected server, generate a new certificate and register it with the IRC network. Imported portable certificates are unaffected.</string>
     <string name="error_cert_already_present">The specified file has more than a single certificate entry.</string>
     <string name="error_privkey_already_present">The specified file has more than a single private key entry.</string>
     <string name="error_cert_or_privkey_missing">The specified file is missing either a private key or a certificate.</string>
@@ -309,7 +327,7 @@
     <string-array name="server_auth_modes">
         <item>None</item>
         <item>Username with password (SASL)</item>
-        <item>Client certificate (CertFP)</item>
+        <item>Client certificate (SASL EXTERNAL)</item>
     </string-array>
     <string name="server_password">Server password</string>
 
