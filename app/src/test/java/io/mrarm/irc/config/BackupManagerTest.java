@@ -29,11 +29,13 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import io.mrarm.irc.ServerConnectionManager;
+import io.mrarm.irc.setting.ListWithCustomSetting;
 import io.mrarm.irc.util.DefaultPreferences;
 import io.mrarm.irc.irc.MonitoredUsersManager;
 import io.mrarm.irc.util.theme.ThemeInfo;
 import io.mrarm.irc.util.theme.UserPresetStore;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
@@ -278,6 +280,29 @@ public class BackupManagerTest {
 
         BackupManager.restoreBackup(context, archive, "correct-password");
         assertEquals("saved-value", DefaultPreferences.get(context).getString(key, null));
+    }
+
+    @Test
+    public void encryptedBackupPreservesCustomFontFileAndArchivePath() throws Exception {
+        String fontName = "sample-font.ttf";
+        byte[] originalFont = "test-font-data".getBytes(StandardCharsets.UTF_8);
+        File storedFont = ListWithCustomSetting.getCustomFile(
+                context, ChatSettings.PREF_FONT, fontName);
+        assertNotNull(storedFont);
+        storedFont.getParentFile().mkdirs();
+        Files.write(storedFont.toPath(), originalFont);
+        DefaultPreferences.get(context).edit()
+                .putString(ChatSettings.PREF_FONT, "custom:" + fontName).commit();
+
+        File archive = new File(temporaryFolder.getRoot(), "font-encrypted.zip");
+        BackupManager.createBackup(context, archive, "font-password");
+        try (ZipFile zip = new ZipFile(archive, "font-password".toCharArray())) {
+            assertNotNull(zip.getFileHeader("pref_values/" + storedFont.getName()));
+        }
+
+        assertTrue(storedFont.delete());
+        BackupManager.restoreBackup(context, archive, "font-password");
+        assertArrayEquals(originalFont, Files.readAllBytes(storedFont.toPath()));
     }
 
     @Test
