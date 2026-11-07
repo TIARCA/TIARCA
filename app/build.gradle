@@ -7,6 +7,12 @@ if (releasePropertiesFile.exists()) {
     releasePropertiesFile.withInputStream { releaseProperties.load(it) }
 }
 
+// Fail rather than silently using dynamic or changing application/test dependencies.
+// This guards resolution stability; it does NOT pin bytes or replace SHA-256 verification.
+configurations.configureEach {
+    resolutionStrategy.failOnNonReproducibleResolution()
+}
+
 android {
     compileSdkVersion 36
     defaultConfig {
