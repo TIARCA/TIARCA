@@ -50,6 +50,17 @@ jobs:
           ./gradlew :chatlib:dependencies --configuration testRuntimeClasspath > "build/dependency-audit/chatlib-test-runtime.txt"
           ./gradlew buildEnvironment > "build/dependency-audit/buildscript-runtime.txt"
 
+      - name: Run unit tests
+        run: ./gradlew :app:test${{ matrix.flavor }}DebugUnitTest
+
+      - name: Build debug APK
+        run: ./gradlew :app:assemble${{ matrix.flavor }}Debug :app:assemble${{ matrix.flavor }}Release
+
+      - name: Verify distribution APK
+        run: python tools/verify_distribution_apk.py ${{ matrix.flavor }}
+
+      # Run application compilation/tests before known build-tool CVEs fail the audit gate.
+      # OSV still fails the job: do not downgrade security findings to warnings.
       - name: Check resolved dependencies against OSV advisories
         run: python tools/audit_maven_osv.py build/dependency-audit --output build/dependency-audit/osv-findings.json
 
@@ -61,11 +72,3 @@ jobs:
           path: build/dependency-audit/
           retention-days: 7
 
-      - name: Run unit tests
-        run: ./gradlew :app:test${{ matrix.flavor }}DebugUnitTest
-
-      - name: Build debug APK
-        run: ./gradlew :app:assemble${{ matrix.flavor }}Debug :app:assemble${{ matrix.flavor }}Release
-
-      - name: Verify distribution APK
-        run: python tools/verify_distribution_apk.py ${{ matrix.flavor }}
