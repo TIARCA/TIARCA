@@ -23,6 +23,11 @@ JitPack dependencies. The restriction prevents JitPack being consulted as a
 fallback for unrelated dependency groups. It does **not** verify artifact
 contents and does not make JitPack inherently trusted.
 
+App and test dependency configurations now use Gradle's
+`failOnNonReproducibleResolution()` guard. This rejects changing and dynamic
+version selectors even when introduced transitively. It does not lock the
+transitive graph to specific versions, verify hashes, or scan for CVEs.
+
 PR CI captures the resolved **debug and release runtime dependency graphs**
 for both `Standard` and `Fdroid` variants. Download the seven-day
 `dependency-inventory-Standard` and `dependency-inventory-Fdroid`
