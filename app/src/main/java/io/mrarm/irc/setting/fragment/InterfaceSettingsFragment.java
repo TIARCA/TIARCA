@@ -22,6 +22,8 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.graphics.ColorUtils;
+import androidx.core.view.MenuProvider;
+import androidx.lifecycle.Lifecycle;
 import androidx.core.widget.CompoundButtonCompat;
 
 import java.io.FileInputStream;
@@ -101,7 +103,39 @@ public class InterfaceSettingsFragment extends SettingsListFragment
         mExportThemeLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(), result ->
                         exportThemeTo(result.getData()));
-        setHasOptionsMenu(true);
+        requireActivity().addMenuProvider(new MenuProvider() {
+            @Override
+            public void onCreateMenu(Menu menu, MenuInflater inflater) {
+                inflater.inflate(R.menu.menu_settings_interface, menu);
+                menu.findItem(R.id.action_save_theme).setEnabled(true);
+            }
+
+            @Override
+            public boolean onMenuItemSelected(MenuItem item) {
+                if (item.getItemId() == R.id.action_import_theme) {
+                    Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                    intent.addCategory(Intent.CATEGORY_OPENABLE);
+                    intent.setType("*/*");
+                    mImportThemeLauncher.launch(intent);
+                    return true;
+                }
+                if (item.getItemId() == R.id.action_save_theme) {
+                    ThemeInfo theme = prepareThemeForExport();
+                    if (theme == null) {
+                        Toast.makeText(getContext(), R.string.error_generic, Toast.LENGTH_SHORT).show();
+                        return true;
+                    }
+                    mPendingExportTheme = theme;
+                    Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                    intent.addCategory(Intent.CATEGORY_OPENABLE);
+                    intent.setType(ThemeArchive.MIME_TYPE);
+                    intent.putExtra(Intent.EXTRA_TITLE, theme.name + ThemeArchive.FILE_EXTENSION);
+                    mExportThemeLauncher.launch(intent);
+                    return true;
+                }
+                return false;
+            }
+        }, this, Lifecycle.State.RESUMED);
     }
 
     @Override
@@ -496,35 +530,6 @@ public class InterfaceSettingsFragment extends SettingsListFragment
             if (temporary)
                 ThemeManager.getInstance(getContext()).deleteTheme(theme);
         }
-    }
-
-    @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        super.onCreateOptionsMenu(menu, inflater);
-        inflater.inflate(R.menu.menu_settings_interface, menu);
-        menu.findItem(R.id.action_import_theme).setOnMenuItemClickListener((i) -> {
-            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-            intent.addCategory(Intent.CATEGORY_OPENABLE);
-            intent.setType("*/*");
-            mImportThemeLauncher.launch(intent);
-            return true;
-        });
-        MenuItem saveTheme = menu.findItem(R.id.action_save_theme);
-        saveTheme.setEnabled(true);
-        saveTheme.setOnMenuItemClickListener((i) -> {
-            ThemeInfo theme = prepareThemeForExport();
-            if (theme == null) {
-                Toast.makeText(getContext(), R.string.error_generic, Toast.LENGTH_SHORT).show();
-                return true;
-            }
-            mPendingExportTheme = theme;
-            Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-            intent.addCategory(Intent.CATEGORY_OPENABLE);
-            intent.setType(ThemeArchive.MIME_TYPE);
-            intent.putExtra(Intent.EXTRA_TITLE, theme.name + ThemeArchive.FILE_EXTENSION);
-            mExportThemeLauncher.launch(intent);
-            return true;
-        });
     }
 
     public static final class ThemeOptionSetting extends RadioButtonSetting {

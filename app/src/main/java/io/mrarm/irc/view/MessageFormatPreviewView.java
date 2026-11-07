@@ -16,7 +16,6 @@ import android.widget.TextView;
 
 import androidx.appcompat.widget.AppCompatTextView;
 import androidx.core.content.ContextCompat;
-import androidx.core.view.ViewCompat;
 
 import java.util.Date;
 
@@ -71,7 +70,7 @@ public class MessageFormatPreviewView extends LinearLayout
         GradientDrawable avatarBackground = new GradientDrawable();
         avatarBackground.setShape(GradientDrawable.OVAL);
         avatarBackground.setColor(DEMO_AVATAR_PURPLE);
-        ViewCompat.setBackground(mAvatar, avatarBackground);
+        mAvatar.setBackground(avatarBackground);
         int avatarSize = dp(32);
         addView(mAvatar, new LayoutParams(avatarSize, avatarSize));
 

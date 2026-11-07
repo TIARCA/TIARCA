@@ -1,8 +1,5 @@
 package io.mrarm.irc.setting.fragment.theme;
 
-import android.os.Bundle;
-import androidx.annotation.Nullable;
-
 import java.util.Collection;
 
 import io.mrarm.irc.R;
@@ -14,12 +11,6 @@ import io.mrarm.irc.util.theme.ThemeManager;
 import io.mrarm.irc.util.theme.live.LiveThemeManager;
 
 public class CommonThemeSettings extends BaseThemeEditorFragment {
-
-    @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setHasOptionsMenu(true);
-    }
 
     @Override
     public SettingsListAdapter createAdapter() {

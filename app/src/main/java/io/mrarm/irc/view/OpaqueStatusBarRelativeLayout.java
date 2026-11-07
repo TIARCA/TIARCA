@@ -48,7 +48,7 @@ public class OpaqueStatusBarRelativeLayout extends RelativeLayout {
             mTopInset = systemBars.top;
             setPadding(systemBars.left, mTopInset, systemBars.right,
                     Math.max(systemBars.bottom, ime.bottom));
-            ViewCompat.postInvalidateOnAnimation(this);
+            postInvalidateOnAnimation();
             return WindowInsetsCompat.CONSUMED;
         });
     }
@@ -73,7 +73,7 @@ public class OpaqueStatusBarRelativeLayout extends RelativeLayout {
 
     public void setInsetColor(int color) {
         mInsetDrawable = new ColorDrawable(color);
-        ViewCompat.postInvalidateOnAnimation(this);
+        postInvalidateOnAnimation();
     }
 
     @Override

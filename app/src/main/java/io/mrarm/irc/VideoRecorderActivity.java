@@ -17,6 +17,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.VideoView;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
@@ -83,6 +84,12 @@ public class VideoRecorderActivity extends ThemedActivity {
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                cancelAndFinish();
+            }
+        });
         setTitle(R.string.video_recorder_title);
         if (!hasRecorderPermissions()) {
             Toast.makeText(this, R.string.video_recorder_permission_required, Toast.LENGTH_LONG).show();
@@ -314,8 +321,6 @@ public class VideoRecorderActivity extends ThemedActivity {
         setResult(RESULT_CANCELED);
         finish();
     }
-
-    @Override public void onBackPressed() { cancelAndFinish(); }
 
     @Override protected void onPause() {
         super.onPause();

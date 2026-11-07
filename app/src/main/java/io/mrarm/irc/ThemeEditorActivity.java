@@ -2,6 +2,7 @@ package io.mrarm.irc;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.NonNull;
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
@@ -79,6 +80,19 @@ public class ThemeEditorActivity extends ThemedActivity {
             throw new RuntimeException("Invalid theme UUID");
 
         super.onCreate(savedInstanceState);
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                ThemeManager.getInstance(ThemeEditorActivity.this).invalidateCurrentCustomTheme();
+                setEnabled(false);
+                try {
+                    getOnBackPressedDispatcher().onBackPressed();
+                } finally {
+                    if (!isFinishing())
+                        setEnabled(true);
+                }
+            }
+        });
         mExportThemeLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(), result ->
                         exportThemeTo(result.getData()));
@@ -108,7 +122,7 @@ public class ThemeEditorActivity extends ThemedActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
-            onBackPressed();
+            getOnBackPressedDispatcher().onBackPressed();
             return true;
         }
         if (item.getItemId() == R.id.action_rename) {
@@ -153,12 +167,6 @@ public class ThemeEditorActivity extends ThemedActivity {
             e.printStackTrace();
             Toast.makeText(this, R.string.error_generic, Toast.LENGTH_SHORT).show();
         }
-    }
-
-    @Override
-    public void onBackPressed() {
-        ThemeManager.getInstance(this).invalidateCurrentCustomTheme();
-        super.onBackPressed();
     }
 
     @Override

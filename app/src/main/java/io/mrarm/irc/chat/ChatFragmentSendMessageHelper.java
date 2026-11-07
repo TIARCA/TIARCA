@@ -7,7 +7,6 @@ import android.net.Uri;
 import android.graphics.Typeface;
 import androidx.annotation.NonNull;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
-import androidx.core.view.MarginLayoutParamsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.ItemTouchHelper;
@@ -169,10 +168,10 @@ public class ChatFragmentSendMessageHelper implements SendMessageHelper.Callback
         RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams)
                 mSendText.getLayoutParams();
         if (visible) {
-            MarginLayoutParamsCompat.setMarginStart(layoutParams, 0);
+            layoutParams.setMarginStart(0);
             mTabIcon.setVisibility(View.VISIBLE);
         } else {
-            MarginLayoutParamsCompat.setMarginStart(layoutParams, mContext.getResources()
+            layoutParams.setMarginStart(mContext.getResources()
                     .getDimensionPixelSize(R.dimen.message_edit_text_margin_left));
             mTabIcon.setVisibility(View.GONE);
         }
