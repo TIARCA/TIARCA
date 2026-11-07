@@ -1,5 +1,7 @@
 package io.mrarm.irc;
 
+import android.os.Build;
+
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import org.junit.Test;
@@ -41,6 +43,8 @@ public class KeystoreClientCertificateInstrumentedTest {
 
     @Test
     public void clientCertificateWorksWithTls13() throws Exception {
+        // TLS 1.3 is available from Android 10; Android 9 must exercise TLS 1.2 only.
+        org.junit.Assume.assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q);
         verifyMutualTls("TLSv1.3");
     }
 
