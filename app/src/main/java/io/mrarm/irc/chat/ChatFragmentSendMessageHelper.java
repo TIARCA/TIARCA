@@ -168,10 +168,10 @@ public class ChatFragmentSendMessageHelper implements SendMessageHelper.Callback
         RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams)
                 mSendText.getLayoutParams();
         if (visible) {
-            layoutParams.setMarginStart( 0);
+            layoutParams.setMarginStart(0);
             mTabIcon.setVisibility(View.VISIBLE);
         } else {
-            layoutParams.setMarginStart( mContext.getResources()
+            layoutParams.setMarginStart(mContext.getResources()
                     .getDimensionPixelSize(R.dimen.message_edit_text_margin_left));
             mTabIcon.setVisibility(View.GONE);
         }
