@@ -1,3 +1,7 @@
+# Retain pre-AGP-9 release behavior during the toolchain migration:
+# proguard-android.txt disabled R8 optimization. Evaluate enabling it separately.
+-dontoptimize
+
 # Add project specific ProGuard rules here.
 # By default, the flags in this file are appended to flags specified in
 # /home/paul/Documents/app/android-sdk/tools/proguard/proguard-android.txt
