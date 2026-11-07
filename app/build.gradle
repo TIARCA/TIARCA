@@ -105,6 +105,9 @@ dependencies {
     }
     // chatlib-android-storage 0.3.1 is included as source so its SQLite lock-order
     // deadlock can be fixed locally.
+    // Security: override vulnerable transitive Guava 33.3.1-android.
+    // GHSA-xxph-c9ww-hj94 / CVE-2026-102554 is fixed in 33.7.2-android.
+    implementation 'com.google.guava:guava:33.7.2-android'
     implementation 'com.google.code.gson:gson:2.15.0'
     implementation 'net.lingala.zip4j:zip4j:2.11.6'
     implementation 'com.github.mcmrarm:arscwriter:0.1.0'
