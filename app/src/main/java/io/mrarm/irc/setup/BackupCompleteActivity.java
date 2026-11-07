@@ -4,6 +4,8 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
 
+import androidx.activity.OnBackPressedCallback;
+
 import io.mrarm.irc.R;
 import io.mrarm.irc.config.ServerConfigData;
 import io.mrarm.irc.config.ServerConfigManager;
@@ -17,6 +19,12 @@ public class BackupCompleteActivity extends SetupBigHeaderActivity {
     protected void onCreate(Bundle savedInstanceState) {
         setCustomContentView(R.layout.activity_backup_complete);
         super.onCreate(savedInstanceState);
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                setSetupFinished();
+            }
+        });
         if (getIntent().getBooleanExtra(ARG_RESTORE_MODE, false))
             setTitle(R.string.title_activity_restore);
 
@@ -39,12 +47,6 @@ public class BackupCompleteActivity extends SetupBigHeaderActivity {
         findViewById(R.id.finish).setOnClickListener((View v) -> {
             setSetupFinished();
         });
-    }
-
-    @Override
-    public void onBackPressed() {
-        setSetupFinished();
-        super.onBackPressed();
     }
 
 }
