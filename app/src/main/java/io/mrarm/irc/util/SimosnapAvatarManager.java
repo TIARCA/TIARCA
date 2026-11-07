@@ -66,10 +66,26 @@ public final class SimosnapAvatarManager {
                                         String whoisAccount) {
         if (!isSupported(connection))
             return null;
-        String account = chooseAccount(getAccount(connection, nick), whoisAccount);
+        String knownAccount = getAccount(connection, nick);
+        String account = chooseAccount(knownAccount, whoisAccount);
+        String knownId = DiagnosticLog.pseudonym("account", knownAccount);
+        String whoisId = DiagnosticLog.pseudonym("account", whoisAccount);
+        String selectedId = DiagnosticLog.pseudonym("account", account);
+        DiagnosticLog.d("AVATAR", () ->
+                "WHOIS account resolution known=" + knownId +
+                        ", whois=" + whoisId +
+                        ", exactMatch=" + equalsAccount(knownAccount, whoisAccount, false) +
+                        ", caseInsensitiveMatch=" + equalsAccount(knownAccount, whoisAccount, true) +
+                        ", selected=" + selectedId);
         if (whoisAccount != null && !whoisAccount.trim().isEmpty())
             rememberAccount(connection, nick, whoisAccount);
         return account;
+    }
+
+    private static boolean equalsAccount(String first, String second, boolean ignoreCase) {
+        if (first == null || second == null)
+            return first == second;
+        return ignoreCase ? first.equalsIgnoreCase(second) : first.equals(second);
     }
 
     static String chooseAccount(String knownAccount, String whoisAccount) {
