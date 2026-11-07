@@ -2,6 +2,7 @@ package io.mrarm.irc.build;
 
 import com.squareup.javawriter.JavaWriter;
 
+import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
@@ -20,7 +21,7 @@ import javax.lang.model.element.Modifier;
 public class SettingsBuilder {
 
     public static void generateJavaFiles(File sourceFile, File outputDir) throws IOException {
-        Yaml yaml = new Yaml(new SafeConstructor());
+        Yaml yaml = new Yaml(new SafeConstructor(new LoaderOptions()));
         Map<?, ?> srcFile = yaml.load(new FileReader(sourceFile));
         String pkg = (String) srcFile.getOrDefault("package", null);
         for (Map.Entry e : srcFile.entrySet()) {
