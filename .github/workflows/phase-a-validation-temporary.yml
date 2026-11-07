@@ -66,7 +66,7 @@ jobs:
           mkdir -p candidate-apks
           for FLAVOR in standard fdroid; do
             APK=$(find "app/build/outputs/apk/$FLAVOR/release" -maxdepth 1 -type f -name '*.apk' | sort | head -n 1)
-            cp "$APK" "candidate-apks/TIARCA-$FLAVOR-phase-a-0b24b66.apk"
+            cp "$APK" "candidate-apks/TIARCA-$FLAVOR-phase-a-e1c38dd.apk"
           done
           (cd candidate-apks && sha256sum *.apk > SHA256SUMS)
 
