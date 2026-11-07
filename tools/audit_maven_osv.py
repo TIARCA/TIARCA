@@ -103,7 +103,7 @@ def main():
             "audited_versions": len(union),
             "source_files": sorted(reports),
             "findings": findings,
-            "note": "OSV absence of known advisories is not proof of safety; buildscript and included-build graphs are not included."
+            "note": "OSV checks only Maven coordinates in the listed resolved Gradle configurations; absence of advisories is not proof of safety, artifact integrity, or safe build execution."
         }
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
