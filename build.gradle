@@ -6,7 +6,12 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:9.5.0'
+        // The app is Java-only and disables AGP 9 built-in Kotlin.
+        // Try omitting the unused vulnerable Kotlin Gradle plugin rather than
+        // forcing Kotlin 2.4.x, whose AGP 9.5 compatibility is not established.
+        classpath('com.android.tools.build:gradle:9.5.0') {
+            exclude group: 'org.jetbrains.kotlin', module: 'kotlin-gradle-plugin'
+        }
         classpath 'io.mrarm.irc:build:1.0'
 
         // Patch vulnerable transitive *build-tool* components (not Android app runtime).
