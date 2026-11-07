@@ -47,7 +47,11 @@ jobs:
           ./gradlew :app:dependencies --configuration "${variant}ReleaseRuntimeClasspath" > "build/dependency-audit/${variant}-release-runtime.txt"
           ./gradlew :app:dependencies --configuration "${variant}DebugRuntimeClasspath" > "build/dependency-audit/${variant}-debug-runtime.txt"
 
+      - name: Check resolved dependencies against OSV advisories
+        run: python tools/audit_maven_osv.py build/dependency-audit --output build/dependency-audit/osv-findings.json
+
       - name: Upload dependency inventory
+        if: always()
         uses: actions/upload-artifact@v6
         with:
           name: dependency-inventory-${{ matrix.flavor }}

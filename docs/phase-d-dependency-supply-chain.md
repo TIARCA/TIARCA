@@ -57,3 +57,17 @@ distribution checks.
 
 No release, tag, version increment or merge to `main` is authorized by this
 document.
+
+## Additional verification workflows
+
+The `tools/audit_maven_osv.py` CI check queries OSV's Maven advisory API for
+resolved application runtime dependency versions. Findings or an unavailable
+OSV service fail the check; results (including IDs) are saved to the existing
+dependency inventory artifact. This is not a complete check of build tooling,
+Gradle plugin dependencies or unreported vulnerabilities.
+
+The dedicated `Verify TIARCA reproducible APKs` workflow makes two independent
+unsigned Standard and F-Droid release builds, each with its own Gradle user
+home and no build cache, and compares each pair byte-for-byte. It does not
+use signing secrets, push tags or publish an APK. This verification is narrower
+than the full F-Droid rebuild/signature comparison against a released artifact.
