@@ -76,6 +76,26 @@ jobs:
             echo "$flavor: byte-for-byte identical"
           done
 
+      - name: Generate Gradle SHA-256 catalog A
+        working-directory: build-a
+        env:
+          GRADLE_USER_HOME: ${{ runner.temp }}/tiarca-gradle-a
+        run: ./gradlew --no-daemon --write-verification-metadata sha256 :app:assembleStandardRelease :app:assembleFdroidRelease :app:testStandardDebugUnitTest :app:testFdroidDebugUnitTest
+
+      - name: Generate Gradle SHA-256 catalog B
+        working-directory: build-b
+        env:
+          GRADLE_USER_HOME: ${{ runner.temp }}/tiarca-gradle-b
+        run: ./gradlew --no-daemon --write-verification-metadata sha256 :app:assembleStandardRelease :app:assembleFdroidRelease :app:testStandardDebugUnitTest :app:testFdroidDebugUnitTest
+
+      - name: Compare independently generated checksum catalogs
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmp build-a/gradle/verification-metadata.xml build-b/gradle/verification-metadata.xml
+          cp build-a/gradle/verification-metadata.xml reproducibility-report/verification-metadata.xml
+          sha256sum reproducibility-report/verification-metadata.xml
+
       - name: Upload reproducibility hashes
         if: always()
         uses: actions/upload-artifact@v6
