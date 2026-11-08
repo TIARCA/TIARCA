@@ -34,8 +34,11 @@ jobs:
       - name: Verify release home is synchronized
         run: python tools/sync_release_home.py --check
 
-      - name: Setup Gradle
+      - name: Setup pinned Gradle 9.9.0
         uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '9.9.0'
+          cache-provider: basic
 
       - name: Inventory resolved dependencies
         shell: bash
@@ -44,18 +47,18 @@ jobs:
           variant="${{ matrix.flavor }}"
           variant="${variant,}"
           mkdir -p build/dependency-audit
-          ./gradlew :app:dependencies --configuration "${variant}ReleaseRuntimeClasspath" > "build/dependency-audit/${variant}-release-runtime.txt"
-          ./gradlew :app:dependencies --configuration "${variant}DebugRuntimeClasspath" > "build/dependency-audit/${variant}-debug-runtime.txt"
-          ./gradlew :app:dependencies --configuration "${variant}DebugUnitTestRuntimeClasspath" > "build/dependency-audit/${variant}-unit-test-runtime.txt"
-          ./gradlew :chatlib:dependencies --configuration testRuntimeClasspath > "build/dependency-audit/chatlib-test-runtime.txt"
-          ./gradlew buildEnvironment > "build/dependency-audit/buildscript-runtime.txt"
-          ./gradlew -p app/ircSettingsPlugin dependencies --configuration runtimeClasspath > "build/dependency-audit/settings-plugin-runtime.txt"
+          gradle :app:dependencies --configuration "${variant}ReleaseRuntimeClasspath" > "build/dependency-audit/${variant}-release-runtime.txt"
+          gradle :app:dependencies --configuration "${variant}DebugRuntimeClasspath" > "build/dependency-audit/${variant}-debug-runtime.txt"
+          gradle :app:dependencies --configuration "${variant}DebugUnitTestRuntimeClasspath" > "build/dependency-audit/${variant}-unit-test-runtime.txt"
+          gradle :chatlib:dependencies --configuration testRuntimeClasspath > "build/dependency-audit/chatlib-test-runtime.txt"
+          gradle buildEnvironment > "build/dependency-audit/buildscript-runtime.txt"
+          gradle -p app/ircSettingsPlugin dependencies --configuration runtimeClasspath > "build/dependency-audit/settings-plugin-runtime.txt"
 
       - name: Run unit tests
-        run: ./gradlew :app:test${{ matrix.flavor }}DebugUnitTest
+        run: gradle :app:test${{ matrix.flavor }}DebugUnitTest
 
       - name: Build debug APK
-        run: ./gradlew :app:assemble${{ matrix.flavor }}Debug :app:assemble${{ matrix.flavor }}Release
+        run: gradle :app:assemble${{ matrix.flavor }}Debug :app:assemble${{ matrix.flavor }}Release
 
       - name: Verify distribution APK
         run: python tools/verify_distribution_apk.py ${{ matrix.flavor }}
