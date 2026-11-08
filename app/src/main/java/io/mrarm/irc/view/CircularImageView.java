@@ -46,6 +46,10 @@ public class CircularImageView extends AppCompatImageView {
         invalidate();
     }
 
+    boolean isAwayIndicatorVisible() {
+        return awayIndicatorVisible;
+    }
+
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
