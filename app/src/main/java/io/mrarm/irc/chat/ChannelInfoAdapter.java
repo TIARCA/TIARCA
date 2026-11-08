@@ -39,6 +39,7 @@ import io.mrarm.irc.util.SpannableStringHelper;
 import io.mrarm.irc.util.StyledAttributesHelper;
 import io.mrarm.irc.util.SimosnapAvatarLoader;
 import io.mrarm.irc.util.SimosnapAvatarManager;
+import io.mrarm.irc.view.CircularImageView;
 import io.mrarm.chatlib.user.UserInfo;
 
 public class ChannelInfoAdapter extends RecyclerView.Adapter {
@@ -97,6 +98,8 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
 
         if (!contextChanged && TextUtils.equals(topic, mTopic) && TextUtils.equals(topicSetBy, mTopicSetBy)
                 && java.util.Objects.equals(topicSetOn, mTopicSetOn) && areMemberListEquals(mMembers, members)) {
+            // AWAY changes do not change nicknames or prefixes, but they change row badges.
+            notifyVisibleMemberRowsChanged();
             return;
         }
 
@@ -504,7 +507,7 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
         private ServerConnectionInfo mConnection;
         private String mChannel;
         private TextView mText;
-        private ImageView mAvatar;
+        private CircularImageView mAvatar;
 
         public MemberHolder(View v) {
             super(v);
@@ -531,7 +534,9 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
             mConnection = connection;
             mChannel = channel;
             bindText(mText, nickWithPrefix);
-            mText.setAlpha(isAway(connection, nickWithPrefix.getNick()) ? 0.55f : 1f);
+            boolean away = isAway(connection, nickWithPrefix.getNick());
+            mText.setAlpha(away ? 0.55f : 1f);
+            mAvatar.setAwayIndicatorVisible(away);
             mText.setTag(nickWithPrefix.getNick());
             String account = SimosnapAvatarManager.getAccount(connection,
                     nickWithPrefix.getNick());
