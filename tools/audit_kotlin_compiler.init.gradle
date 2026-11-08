@@ -1,0 +1,42 @@
+// Audit-only Gradle init script: force both independent builds to download the
+// Kotlin compiler artifact used intermittently by the build-tool dependency graph.
+// It is NEVER applied to normal TIARCA CI, Candidate, APK or Release builds.
+// The expected checksum is independently published in JetBrains/kotlin's
+// gradle/verification-metadata.xml for kotlin-compiler-embeddable:2.4.0.
+import java.security.MessageDigest
+
+gradle.beforeProject { project ->
+    if (project != project.rootProject) {
+        return
+    }
+
+    def verificationCompiler = project.configurations.create('tiarcaAuditKotlinCompiler') {
+        canBeResolved = true
+        canBeConsumed = false
+        transitive = false
+    }
+    project.dependencies.add('tiarcaAuditKotlinCompiler',
+            'org.jetbrains.kotlin:kotlin-compiler-embeddable:2.4.0')
+
+    project.tasks.register('resolveTiarcaAuditKotlinCompiler') {
+        group = 'verification'
+        description = 'Resolve and validate the optional build-tool Kotlin compiler JAR.'
+        doLast {
+            def jars = verificationCompiler.files
+            if (jars.size() != 1) {
+                throw new org.gradle.api.GradleException(
+                        "Expected exactly one Kotlin compiler JAR, got ${jars.size()}")
+            }
+            def jar = jars.iterator().next()
+            def actual = MessageDigest.getInstance('SHA-256')
+                    .digest(jar.bytes)
+                    .collect { String.format('%02x', it & 0xff) }.join('')
+            def expected = 'c2b25e8c1c93ec416ba4327f5e31eaec0f0c8847241b9353e294b8db9dce564f'
+            if (actual != expected) {
+                throw new org.gradle.api.GradleException(
+                        "JetBrains Kotlin compiler artifact hash mismatch: ${actual}")
+            }
+            logger.lifecycle('Verified Kotlin compiler 2.4.0 JAR SHA-256: {}', actual)
+        }
+    }
+}
