@@ -21,6 +21,9 @@ jobs:
       - name: Make Gradle executable
         run: chmod +x gradlew
 
+      - name: Bootstrap pinned Gradle with retry
+        run: bash tools/bootstrap_gradle.sh
+
       - name: Restore release keystore
         shell: bash
         run: |
