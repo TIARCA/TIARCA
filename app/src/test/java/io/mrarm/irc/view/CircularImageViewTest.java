@@ -34,11 +34,26 @@ public class CircularImageViewTest {
         assertEquals(Color.BLUE, draw(avatar).getPixel(54, 54));
 
         avatar.setAwayIndicatorVisible(true);
-        assertEquals(ContextCompat.getColor(context, R.color.userAwayColorPrimary),
-                draw(avatar).getPixel(54, 54));
+        Bitmap withBadge = draw(avatar);
+        int orange = ContextCompat.getColor(context, R.color.userAwayColorPrimary);
+        org.junit.Assert.assertTrue("AWAY color missing; center pixel="
+                + Integer.toHexString(withBadge.getPixel(54, 54)),
+                containsPixel(withBadge, orange));
 
         avatar.setAwayIndicatorVisible(false);
-        assertEquals(Color.BLUE, draw(avatar).getPixel(54, 54));
+        Bitmap withoutBadge = draw(avatar);
+        assertEquals(Color.BLUE, withoutBadge.getPixel(54, 54));
+        org.junit.Assert.assertFalse(containsPixel(withoutBadge, orange));
+    }
+
+    private static boolean containsPixel(Bitmap bitmap, int color) {
+        for (int y = 0; y < bitmap.getHeight(); y++) {
+            for (int x = 0; x < bitmap.getWidth(); x++) {
+                if (bitmap.getPixel(x, y) == color)
+                    return true;
+            }
+        }
+        return false;
     }
 
     private static Bitmap draw(CircularImageView view) {
