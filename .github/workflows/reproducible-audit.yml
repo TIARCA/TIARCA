@@ -97,7 +97,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cmp build-a/gradle/verification-metadata.xml build-b/gradle/verification-metadata.xml
+          if ! cmp -s build-a/gradle/verification-metadata.xml build-b/gradle/verification-metadata.xml; then
+            echo "::error::Independently generated Gradle verification catalogs differ"
+            diff -u build-a/gradle/verification-metadata.xml build-b/gradle/verification-metadata.xml | head -n 120 || true
+            exit 1
+          fi
           cp build-a/gradle/verification-metadata.xml reproducibility-report/verification-metadata.xml
           sha256sum reproducibility-report/verification-metadata.xml
 
