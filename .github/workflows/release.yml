@@ -140,6 +140,13 @@ jobs:
           distribution: temurin
           java-version: "21"
 
+      # The toolchain is shared, but source checkouts and Gradle user homes are isolated.
+      - name: Setup pinned Gradle 9.9.0
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '9.9.0'
+          cache-provider: basic
+
       - name: Prepare deterministic environment
         shell: bash
         run: |
@@ -154,13 +161,13 @@ jobs:
         working-directory: build-a
         env:
           GRADLE_USER_HOME: ${{ runner.temp }}/gradle-a
-        run: ./gradlew --no-daemon --no-build-cache clean :app:assembleStandardRelease :app:assembleFdroidRelease
+        run: gradle --no-daemon --no-build-cache clean :app:assembleStandardRelease :app:assembleFdroidRelease
 
       - name: Build unsigned release B
         working-directory: build-b
         env:
           GRADLE_USER_HOME: ${{ runner.temp }}/gradle-b
-        run: ./gradlew --no-daemon --no-build-cache clean :app:assembleStandardRelease :app:assembleFdroidRelease
+        run: gradle --no-daemon --no-build-cache clean :app:assembleStandardRelease :app:assembleFdroidRelease
 
       - name: Compare APKs
         id: compare
@@ -226,10 +233,12 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: gradle
 
-      - name: Make Gradle executable
-        run: chmod +x gradlew
+      - name: Setup pinned Gradle 9.9.0
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '9.9.0'
+          cache-provider: basic
 
       - name: Restore release keystore
         shell: bash
@@ -247,7 +256,7 @@ jobs:
           EOF
 
       - name: Build signed release APK
-        run: ./gradlew :app:assembleStandardRelease :app:assembleFdroidRelease
+        run: gradle :app:assembleStandardRelease :app:assembleFdroidRelease
 
       - name: Verify signing certificates
         shell: bash
