@@ -55,13 +55,17 @@ jobs:
         working-directory: build-a
         env:
           GRADLE_USER_HOME: ${{ runner.temp }}/tiarca-gradle-a
-        run: ./gradlew --no-daemon --no-build-cache clean :app:assembleStandardRelease :app:assembleFdroidRelease
+        run: |
+          bash tools/bootstrap_gradle.sh
+          ./gradlew --no-daemon --no-build-cache clean :app:assembleStandardRelease :app:assembleFdroidRelease
 
       - name: Build unsigned APKs B
         working-directory: build-b
         env:
           GRADLE_USER_HOME: ${{ runner.temp }}/tiarca-gradle-b
-        run: ./gradlew --no-daemon --no-build-cache clean :app:assembleStandardRelease :app:assembleFdroidRelease
+        run: |
+          bash tools/bootstrap_gradle.sh
+          ./gradlew --no-daemon --no-build-cache clean :app:assembleStandardRelease :app:assembleFdroidRelease
 
       - name: Compare APKs byte-for-byte
         shell: bash
