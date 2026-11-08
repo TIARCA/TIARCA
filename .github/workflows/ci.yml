@@ -37,6 +37,9 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
 
+      - name: Bootstrap pinned Gradle with retry
+        run: bash tools/bootstrap_gradle.sh
+
       - name: Inventory resolved dependencies
         shell: bash
         run: |
