@@ -551,28 +551,28 @@ public class ChatSelectTouchListener implements RecyclerView.OnItemTouchListener
 
         @Override
         public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
-            switch (item.getItemId()) {
-                case R.id.action_copy:
-                    io.mrarm.irc.util.ClipboardUtils.copyPlainText(mRecyclerView.getContext(),
-                            "IRC Messages", getSelectedText());
-                    clearSelection();
-                    mode.finish();
-                    return true;
-                case R.id.action_share:
-                    Intent intent = new Intent(Intent.ACTION_SEND);
-                    intent.putExtra(Intent.EXTRA_TEXT, getSelectedText());
-                    intent.setType("text/plain");
-                    mRecyclerView.getContext().startActivity(Intent.createChooser(intent,
-                            mRecyclerView.getContext().getString(R.string.message_share_title)));
-                    clearSelection();
-                    mode.finish();
-                    return true;
-                case R.id.action_delete:
-                    deleteSelectedMessages();
-                    return true;
-                default:
-                    return false;
+            int actionId = item.getItemId();
+            // AGP 9 generates non-final resource IDs, so these cannot be switch cases.
+            if (actionId == R.id.action_copy) {
+                io.mrarm.irc.util.ClipboardUtils.copyPlainText(mRecyclerView.getContext(),
+                        "IRC Messages", getSelectedText());
+                clearSelection();
+                mode.finish();
+                return true;
+            } else if (actionId == R.id.action_share) {
+                Intent intent = new Intent(Intent.ACTION_SEND);
+                intent.putExtra(Intent.EXTRA_TEXT, getSelectedText());
+                intent.setType("text/plain");
+                mRecyclerView.getContext().startActivity(Intent.createChooser(intent,
+                        mRecyclerView.getContext().getString(R.string.message_share_title)));
+                clearSelection();
+                mode.finish();
+                return true;
+            } else if (actionId == R.id.action_delete) {
+                deleteSelectedMessages();
+                return true;
             }
+            return false;
         }
 
         @Override

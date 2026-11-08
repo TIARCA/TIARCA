@@ -7,12 +7,20 @@ if (releasePropertiesFile.exists()) {
     releasePropertiesFile.withInputStream { releaseProperties.load(it) }
 }
 
+// Fail rather than silently using dynamic or changing application/test dependencies.
+// This guards resolution stability; it does NOT pin bytes or replace SHA-256 verification.
+configurations.configureEach {
+    resolutionStrategy.failOnNonReproducibleResolution()
+}
+
 android {
-    compileSdkVersion 36
+    // TIARCA is Java-only: avoid adding the AGP 9 built-in Kotlin runtime to APKs.
+    enableKotlin = false
+    compileSdk 36
     defaultConfig {
         applicationId "io.tiarca.irc"
-        minSdkVersion 28
-        targetSdkVersion 36
+        minSdk 28
+        targetSdk 36
         versionCode 91000
         versionName "0.9.10"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -21,7 +29,7 @@ android {
         }
         vectorDrawables.useSupportLibrary = true
     }
-    flavorDimensions 'distribution'
+    flavorDimensions += 'distribution'
     productFlavors {
         standard {
             dimension 'distribution'
@@ -61,7 +69,7 @@ android {
         release {
             minifyEnabled true
             shrinkResources true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             if (releasePropertiesFile.exists()) signingConfig signingConfigs.release
         }
         debug { multiDexEnabled true }
@@ -99,6 +107,9 @@ dependencies {
     }
     // chatlib-android-storage 0.3.1 is included as source so its SQLite lock-order
     // deadlock can be fixed locally.
+    // Security: override vulnerable transitive Guava 33.3.1-android.
+    // GHSA-xxph-c9ww-hj94 / CVE-2026-102554 is fixed in 33.7.2-android.
+    implementation 'com.google.guava:guava:33.7.2-android'
     implementation 'com.google.code.gson:gson:2.15.0'
     implementation 'net.lingala.zip4j:zip4j:2.11.6'
     implementation 'com.github.mcmrarm:arscwriter:0.1.0'

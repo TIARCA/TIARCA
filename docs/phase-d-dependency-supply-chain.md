@@ -1,0 +1,73 @@
+# Phase D — Dependency supply-chain audit (experimental branch)
+
+This document describes the initial, **non-release** hardening work. It is not a
+claim that the full dependency graph is vulnerability-free.
+
+## Verified baseline (7 November 2026)
+
+- Base branch: `main` after phase C, commit `6ffde2d6da3eedd090495d831dc8e7ea078417c9`.
+- Application: `versionName 0.9.10`, `versionCode 91000`. Do not change them in this phase.
+- Repositories: Google Maven, Maven Central and JitPack for app dependencies;
+  Google Maven and Maven Central for the buildscript and included Gradle plugin.
+- The Gradle wrapper already specifies `distributionSha256Sum`.
+- Repository tree has no committed application JAR/AAR/SO artifacts. The Gradle
+  wrapper JAR is the only committed JAR.
+- Phase C upgraded direct AndroidX/Material/CameraX/test libraries, but did not
+  independently audit all their transitive dependencies.
+
+## Experimental change
+
+The app's JitPack Maven repository now accepts only the
+`com.github.mcmrarm` group, corresponding to TIARCA's existing declared
+JitPack dependencies. The restriction prevents JitPack being consulted as a
+fallback for unrelated dependency groups. It does **not** verify artifact
+contents and does not make JitPack inherently trusted.
+
+App and test dependency configurations now use Gradle's
+`failOnNonReproducibleResolution()` guard. This rejects changing and dynamic
+version selectors even when introduced transitively. It does not lock the
+transitive graph to specific versions, verify hashes, or scan for CVEs.
+
+PR CI captures the resolved **debug and release runtime dependency graphs**
+for both `Standard` and `Fdroid` variants. Download the seven-day
+`dependency-inventory-Standard` and `dependency-inventory-Fdroid`
+artifacts from the CI run for the exact PR commit. The reports are evidence for
+a follow-up transitive dependency review; they are not vulnerability scan
+results. The CI still runs its existing unit tests, APK builds and
+distribution checks.
+
+## Before considering merge
+
+1. Confirm both CI matrix jobs succeed; inspect their inventory artifacts for
+   missing modules, unexpected version upgrades, snapshots and deprecated or
+   unmaintained components.
+2. Review the exact versions against upstream advisories and an independently
+   maintained vulnerability database (for example OSV). Record findings with
+   affected versions and references. Do not infer absence of vulnerabilities
+   from a successful build.
+3. Evaluate Gradle SHA-256 dependency verification only after trustworthy
+   artifact hashes can be generated and *reviewed* for **all** resolved
+   buildscript, included-build, test and application dependencies. Never add
+   an incomplete verification-metadata.xml merely to say verification is on.
+4. Run the existing release workflow in non-publishing mode (or an equivalent
+   controlled double build) to verify byte-for-byte reproducibility before
+   shipping supply-chain changes. Verify the F-Droid build path separately.
+5. Check device behavior only if a dependency actually changes. Nothing in
+   this first experiment changes application source or direct versions.
+
+No release, tag, version increment or merge to `main` is authorized by this
+document.
+
+## Additional verification workflows
+
+The `tools/audit_maven_osv.py` CI check queries OSV's Maven advisory API for
+resolved application runtime dependency versions. Findings or an unavailable
+OSV service fail the check; results (including IDs) are saved to the existing
+dependency inventory artifact. This is not a complete check of build tooling,
+Gradle plugin dependencies or unreported vulnerabilities.
+
+The dedicated `Verify TIARCA reproducible APKs` workflow makes two independent
+unsigned Standard and F-Droid release builds, each with its own Gradle user
+home and no build cache, and compares each pair byte-for-byte. It does not
+use signing secrets, push tags or publish an APK. This verification is narrower
+than the full F-Droid rebuild/signature comparison against a released artifact.
