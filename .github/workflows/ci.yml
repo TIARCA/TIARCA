@@ -40,7 +40,7 @@ jobs:
           cache-provider: basic
 
       - name: Cache verified Gradle 9.9.0 archive
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ runner.temp }}/tiarca-gradle-archive/gradle-9.9.0-bin.zip
           key: tiarca-gradle-dist-9.9.0-0b00b0ffe07c4d4789c12d4935a44a7057d55774b7540bd4a3f76f336deb177a
