@@ -154,13 +154,17 @@ jobs:
         working-directory: build-a
         env:
           GRADLE_USER_HOME: ${{ runner.temp }}/gradle-a
-        run: ./gradlew --no-daemon --no-build-cache clean :app:assembleStandardRelease :app:assembleFdroidRelease
+        run: |
+          bash tools/bootstrap_gradle.sh
+          ./gradlew --no-daemon --no-build-cache clean :app:assembleStandardRelease :app:assembleFdroidRelease
 
       - name: Build unsigned release B
         working-directory: build-b
         env:
           GRADLE_USER_HOME: ${{ runner.temp }}/gradle-b
-        run: ./gradlew --no-daemon --no-build-cache clean :app:assembleStandardRelease :app:assembleFdroidRelease
+        run: |
+          bash tools/bootstrap_gradle.sh
+          ./gradlew --no-daemon --no-build-cache clean :app:assembleStandardRelease :app:assembleFdroidRelease
 
       - name: Compare APKs
         id: compare
@@ -247,7 +251,9 @@ jobs:
           EOF
 
       - name: Build signed release APK
-        run: ./gradlew :app:assembleStandardRelease :app:assembleFdroidRelease
+        run: |
+          bash tools/bootstrap_gradle.sh
+          ./gradlew :app:assembleStandardRelease :app:assembleFdroidRelease
 
       - name: Verify signing certificates
         shell: bash
