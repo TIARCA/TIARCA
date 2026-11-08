@@ -6,8 +6,8 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 properties="${repo_root}/gradle/wrapper/gradle-wrapper.properties"
-version="$(sed -nE 's@^distributionUrl=.*gradle-([0-9.]+)-bin\\.zip$@\\1@p' "${properties}")"
-expected_sha="$(sed -nE 's/^distributionSha256Sum=([a-f0-9]{64})$/\\1/p' "${properties}")"
+version="$(sed -nE 's@^distributionUrl=.*gradle-([0-9.]+)-bin\.zip$@\1@p' "${properties}")"
+expected_sha="$(sed -nE 's/^distributionSha256Sum=([a-f0-9]{64})$/\1/p' "${properties}")"
 
 if [[ -z "${version}" || -z "${expected_sha}" ]]; then
     echo "Missing pinned Gradle version or SHA-256 in wrapper properties" >&2
@@ -21,7 +21,7 @@ gradle_bin="${install_dir}/gradle-${version}/bin"
 mkdir -p "${archive_dir}"
 
 verify_archive() {
-    printf '%s  %s\\n' "${expected_sha}" "${archive}" | sha256sum -c --status
+    printf '%s  %s\n' "${expected_sha}" "${archive}" | sha256sum -c --status
 }
 
 if [[ -f "${archive}" ]] && verify_archive; then
@@ -32,9 +32,9 @@ else
     for attempt in 1 2 3; do
         echo "Downloading official Gradle ${version} release asset via GitHub API (attempt ${attempt}/3)."
         rm -f "${archive}"
-        if gh release download "v${version}" \\
-            --repo gradle/gradle-distributions \\
-            --pattern "gradle-${version}-bin.zip" \\
+        if gh release download "v${version}" \
+            --repo gradle/gradle-distributions \
+            --pattern "gradle-${version}-bin.zip" \
             --dir "${archive_dir}" && verify_archive; then
             downloaded=true
             break
