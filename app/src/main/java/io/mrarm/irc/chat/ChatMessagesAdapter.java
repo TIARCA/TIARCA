@@ -16,7 +16,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.app.Dialog;
 import android.widget.TextView;
-import android.widget.ImageView;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -27,6 +26,8 @@ import io.mrarm.chatlib.dto.MessageId;
 import io.mrarm.chatlib.dto.MessageInfo;
 import io.mrarm.irc.NotificationManager;
 import io.mrarm.irc.MainActivity;
+import io.mrarm.irc.ServerConnectionInfo;
+import io.mrarm.chatlib.user.UserInfo;
 import io.mrarm.irc.R;
 import io.mrarm.irc.config.ChatSettings;
 import io.mrarm.irc.irc.CallerIdAcceptManager;
@@ -42,6 +43,7 @@ import io.mrarm.irc.util.InitialAvatarDrawable;
 import io.mrarm.irc.util.SimosnapAvatarLoader;
 import io.mrarm.irc.util.SimosnapAvatarManager;
 import io.mrarm.irc.view.RightClockMessageTextView;
+import io.mrarm.irc.view.CircularImageView;
 
 public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
         implements ChatSelectTouchListener.AdapterInterface {
@@ -361,10 +363,32 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         return (int) (id + mItemIdOffset);
     }
 
+    /** Refresh only the currently attached avatars after an IRC AWAY-NOTIFY change. */
+    public void refreshVisibleAwayIndicators(RecyclerView recyclerView) {
+        for (int i = 0; i < recyclerView.getChildCount(); i++) {
+            RecyclerView.ViewHolder holder = recyclerView.getChildViewHolder(recyclerView.getChildAt(i));
+            if (holder instanceof MessageHolder)
+                ((MessageHolder) holder).refreshAwayIndicator();
+        }
+    }
+
+    private boolean isAway(String nick) {
+        ServerConnectionInfo connection = mFragment.getConnectionInfo();
+        if (nick == null || connection == null || connection.getApiInstance() == null)
+            return false;
+        try {
+            UserInfo user = connection.getApiInstance().getUserInfoApi()
+                    .getUser(nick, null, null, null, null).get();
+            return user != null && user.isAway();
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
     public class MessageHolder extends RecyclerView.ViewHolder {
 
         private TextView mText;
-        private ImageView mAvatar;
+        private CircularImageView mAvatar;
         private ViewGroup.LayoutParams mDefaultLayoutParams;
 
         public MessageHolder(View v) {
@@ -505,10 +529,12 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                     message.getType() == MessageInfo.MessageType.NOTICE;
             if (!formats.getMessageAvatars() || !userMessage || nick == null || nick.isEmpty()) {
                 mAvatar.setTag(null);
+                mAvatar.setAwayIndicatorVisible(false);
                 SimosnapAvatarLoader.clear(mAvatar, null);
                 return;
             }
             mAvatar.setTag(nick);
+            refreshAwayIndicator();
             // Cancel any in-flight image request from a recycled row before showing the fallback.
             SimosnapAvatarLoader.clear(mAvatar, null);
             InitialAvatarDrawable fallback = new InitialAvatarDrawable(nick,
@@ -523,6 +549,11 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                     mAvatar.setVisibility(View.VISIBLE);
                 }
             });
+        }
+
+        void refreshAwayIndicator() {
+            Object nick = mAvatar.getTag();
+            mAvatar.setAwayIndicatorVisible(nick instanceof String && isAway((String) nick));
         }
 
     }
