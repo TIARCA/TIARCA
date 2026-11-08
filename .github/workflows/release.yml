@@ -140,6 +140,23 @@ jobs:
           distribution: temurin
           java-version: "21"
 
+      # The toolchain is shared, but source checkouts and Gradle user homes are isolated.
+      - name: Configure Gradle caching and validate wrapper
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+
+      - name: Cache verified Gradle 9.9.0 archive
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/tiarca-gradle-archive/gradle-9.9.0-bin.zip
+          key: tiarca-gradle-dist-9.9.0-0b00b0ffe07c4d4789c12d4935a44a7057d55774b7540bd4a3f76f336deb177a
+
+      - name: Install checksum-verified Gradle 9.9.0
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash build-a/tools/install_pinned_gradle.sh
+
       - name: Prepare deterministic environment
         shell: bash
         run: |
@@ -154,13 +171,13 @@ jobs:
         working-directory: build-a
         env:
           GRADLE_USER_HOME: ${{ runner.temp }}/gradle-a
-        run: ./gradlew --no-daemon --no-build-cache clean :app:assembleStandardRelease :app:assembleFdroidRelease
+        run: gradle --no-daemon --no-build-cache clean :app:assembleStandardRelease :app:assembleFdroidRelease
 
       - name: Build unsigned release B
         working-directory: build-b
         env:
           GRADLE_USER_HOME: ${{ runner.temp }}/gradle-b
-        run: ./gradlew --no-daemon --no-build-cache clean :app:assembleStandardRelease :app:assembleFdroidRelease
+        run: gradle --no-daemon --no-build-cache clean :app:assembleStandardRelease :app:assembleFdroidRelease
 
       - name: Compare APKs
         id: compare
@@ -226,10 +243,22 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: gradle
 
-      - name: Make Gradle executable
-        run: chmod +x gradlew
+      - name: Configure Gradle caching and validate wrapper
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+
+      - name: Cache verified Gradle 9.9.0 archive
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/tiarca-gradle-archive/gradle-9.9.0-bin.zip
+          key: tiarca-gradle-dist-9.9.0-0b00b0ffe07c4d4789c12d4935a44a7057d55774b7540bd4a3f76f336deb177a
+
+      - name: Install checksum-verified Gradle 9.9.0
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash tools/install_pinned_gradle.sh
 
       - name: Restore release keystore
         shell: bash
@@ -247,7 +276,7 @@ jobs:
           EOF
 
       - name: Build signed release APK
-        run: ./gradlew :app:assembleStandardRelease :app:assembleFdroidRelease
+        run: gradle :app:assembleStandardRelease :app:assembleFdroidRelease
 
       - name: Verify signing certificates
         shell: bash

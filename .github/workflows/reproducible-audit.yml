@@ -42,6 +42,24 @@ jobs:
           distribution: temurin
           java-version: '21'
 
+      # Tool installation is shared, but the two builds have isolated GRADLE_USER_HOME
+      # and sources; no resolved dependencies or build outputs are shared.
+      - name: Configure Gradle caching and validate wrapper
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+
+      - name: Cache verified Gradle 9.9.0 archive
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/tiarca-gradle-archive/gradle-9.9.0-bin.zip
+          key: tiarca-gradle-dist-9.9.0-0b00b0ffe07c4d4789c12d4935a44a7057d55774b7540bd4a3f76f336deb177a
+
+      - name: Install checksum-verified Gradle 9.9.0
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash build-a/tools/install_pinned_gradle.sh
+
       - name: Prepare deterministic environment
         shell: bash
         run: |
@@ -55,13 +73,13 @@ jobs:
         working-directory: build-a
         env:
           GRADLE_USER_HOME: ${{ runner.temp }}/tiarca-gradle-a
-        run: ./gradlew --no-daemon --no-build-cache clean :app:assembleStandardRelease :app:assembleFdroidRelease
+        run: gradle --no-daemon --no-build-cache clean :app:assembleStandardRelease :app:assembleFdroidRelease
 
       - name: Build unsigned APKs B
         working-directory: build-b
         env:
           GRADLE_USER_HOME: ${{ runner.temp }}/tiarca-gradle-b
-        run: ./gradlew --no-daemon --no-build-cache clean :app:assembleStandardRelease :app:assembleFdroidRelease
+        run: gradle --no-daemon --no-build-cache clean :app:assembleStandardRelease :app:assembleFdroidRelease
 
       - name: Compare APKs byte-for-byte
         shell: bash
@@ -81,19 +99,27 @@ jobs:
         working-directory: build-a
         env:
           GRADLE_USER_HOME: ${{ runner.temp }}/tiarca-gradle-a
-        run: ./gradlew --no-daemon --write-verification-metadata sha256 :app:assembleStandardRelease :app:assembleFdroidRelease :app:testStandardDebugUnitTest :app:testFdroidDebugUnitTest
+        run: gradle --no-daemon --init-script tools/audit_kotlin_compiler.init.gradle --write-verification-metadata sha256 :resolveTiarcaAuditKotlinCompiler :app:assembleStandardRelease :app:assembleFdroidRelease :app:testStandardDebugUnitTest :app:testFdroidDebugUnitTest
 
       - name: Generate Gradle SHA-256 catalog B
         working-directory: build-b
         env:
           GRADLE_USER_HOME: ${{ runner.temp }}/tiarca-gradle-b
-        run: ./gradlew --no-daemon --write-verification-metadata sha256 :app:assembleStandardRelease :app:assembleFdroidRelease :app:testStandardDebugUnitTest :app:testFdroidDebugUnitTest
+        run: gradle --no-daemon --init-script tools/audit_kotlin_compiler.init.gradle --write-verification-metadata sha256 :resolveTiarcaAuditKotlinCompiler :app:assembleStandardRelease :app:assembleFdroidRelease :app:testStandardDebugUnitTest :app:testFdroidDebugUnitTest
 
       - name: Compare independently generated checksum catalogs
         shell: bash
         run: |
           set -euo pipefail
-          cmp build-a/gradle/verification-metadata.xml build-b/gradle/verification-metadata.xml
+          if ! cmp -s build-a/gradle/verification-metadata.xml build-b/gradle/verification-metadata.xml; then
+            echo "::error::Independently resolved Gradle SHA-256 catalogs differ"
+            # Keep the complete evidence and print a bounded diff, without bypassing the gate.
+            cp build-a/gradle/verification-metadata.xml reproducibility-report/verification-metadata-A.xml
+            cp build-b/gradle/verification-metadata.xml reproducibility-report/verification-metadata-B.xml
+            diff -u build-a/gradle/verification-metadata.xml build-b/gradle/verification-metadata.xml > reproducibility-report/catalog.diff || true
+            head -n 160 reproducibility-report/catalog.diff
+            exit 1
+          fi
           cp build-a/gradle/verification-metadata.xml reproducibility-report/verification-metadata.xml
           sha256sum reproducibility-report/verification-metadata.xml
 
