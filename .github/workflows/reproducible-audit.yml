@@ -99,13 +99,13 @@ jobs:
         working-directory: build-a
         env:
           GRADLE_USER_HOME: ${{ runner.temp }}/tiarca-gradle-a
-        run: gradle --no-daemon --write-verification-metadata sha256 :app:assembleStandardRelease :app:assembleFdroidRelease :app:testStandardDebugUnitTest :app:testFdroidDebugUnitTest
+        run: gradle --no-daemon --init-script tools/audit_kotlin_compiler.init.gradle --write-verification-metadata sha256 :resolveTiarcaAuditKotlinCompiler :app:assembleStandardRelease :app:assembleFdroidRelease :app:testStandardDebugUnitTest :app:testFdroidDebugUnitTest
 
       - name: Generate Gradle SHA-256 catalog B
         working-directory: build-b
         env:
           GRADLE_USER_HOME: ${{ runner.temp }}/tiarca-gradle-b
-        run: gradle --no-daemon --write-verification-metadata sha256 :app:assembleStandardRelease :app:assembleFdroidRelease :app:testStandardDebugUnitTest :app:testFdroidDebugUnitTest
+        run: gradle --no-daemon --init-script tools/audit_kotlin_compiler.init.gradle --write-verification-metadata sha256 :resolveTiarcaAuditKotlinCompiler :app:assembleStandardRelease :app:assembleFdroidRelease :app:testStandardDebugUnitTest :app:testFdroidDebugUnitTest
 
       - name: Compare independently generated checksum catalogs
         shell: bash
