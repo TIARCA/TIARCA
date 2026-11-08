@@ -642,6 +642,7 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
             if (mRecyclerView != null)
                 mRecyclerView.post(this::updateReadPosition);
             requestMemberRefreshIfNeeded();
+            refreshVisibleAwayIndicators();
         }
     }
 
@@ -784,13 +785,26 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
         });
     }
 
+    private void refreshVisibleAwayIndicators() {
+        RecyclerView recyclerView = mRecyclerView;
+        if (recyclerView == null || mAdapter == null)
+            return;
+        // Channel callbacks can arrive off the UI thread; do not mutate attached rows there.
+        recyclerView.post(() -> {
+            if (mIsResumed && mRecyclerView == recyclerView && mAdapter != null)
+                mAdapter.refreshVisibleAwayIndicators(recyclerView);
+        });
+    }
+
     @Override
     public void onMemberListChanged(List<NickWithPrefix> list) {
         List<NickWithPrefix> sorted = list != null ? new ArrayList<>(list) : new ArrayList<>();
         sortMembers(sorted);
         this.mMembers = sorted;
-        if (mIsResumed)
+        if (mIsResumed) {
             updateParentCurrentChannel();
+            refreshVisibleAwayIndicators();
+        }
     }
 
     private void sortMembers(List<NickWithPrefix> list) {
