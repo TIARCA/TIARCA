@@ -296,7 +296,7 @@ public final class OperatorActionsComposerDialog {
             // G: accepts an ISO 3166-1 alpha-2 country code. WHOIS 344 provides
             // a verified starting value when the server makes it available.
             String initial = state.matchingValues.get('G');
-            promptValue("G: " + context.getString(R.string.operator_composer_country),
+            promptValue(context.getString(R.string.operator_composer_country),
                     initial, value -> {
                         state.matchingValues.put('G', value.toUpperCase(java.util.Locale.ROOT));
                         state.matching.add('G');
