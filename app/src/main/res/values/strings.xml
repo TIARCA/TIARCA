@@ -1148,8 +1148,8 @@
     <string name="operator_composer_extban">EXTBAN</string>
     <string name="operator_composer_acting">ACTING</string>
     <string name="operator_composer_matching">MATCHING</string>
-    <string name="operator_composer_mask_match">MASK MATCHING</string>
-    <string name="operator_composer_preview">COMMAND PREVIEW · editable</string>
+    <string name="operator_composer_mask_match">MASK</string>
+    <string name="operator_composer_preview">PREVIEW</string>
     <string name="operator_composer_regenerate">Regenerate preview</string>
     <string name="operator_composer_missing_extban">Server does not advertise EXTBAN: special modes unavailable.</string>
     <string name="operator_composer_modified">Preview edited manually: press Regenerate to apply new selections.</string>
