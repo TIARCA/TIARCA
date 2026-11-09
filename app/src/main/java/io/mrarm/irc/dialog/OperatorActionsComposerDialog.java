@@ -24,6 +24,8 @@ import androidx.appcompat.app.AlertDialog;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import io.mrarm.chatlib.dto.ModeList;
 import io.mrarm.chatlib.dto.NickWithPrefix;
@@ -57,7 +59,7 @@ public final class OperatorActionsComposerDialog {
     private boolean updatingPreview;
     private boolean updatingMask;
     private boolean manuallyEdited;
-    private final List<CheckBox> modeChecks = new ArrayList<>();
+    private final Map<Character, CheckBox> matchingChecks = new LinkedHashMap<>();
 
     public OperatorActionsComposerDialog(Context context, ServerConnectionInfo connection,
                                          String channel, String nick, String ident, String host,
@@ -174,7 +176,6 @@ public final class OperatorActionsComposerDialog {
                 state.wantedModes.put(mode, value);
                 updatePreview();
             });
-            modeChecks.add(box);
             row.addView(box);
         }
         if (row.getChildCount() != 0) scrollRow(root, row);
@@ -411,6 +412,7 @@ public final class OperatorActionsComposerDialog {
             }
         });
         holder[0] = box;
+        matchingChecks.put(code, box);
         row.addView(box);
         return box;
     }
@@ -454,6 +456,11 @@ public final class OperatorActionsComposerDialog {
     }
 
     private void updatePreview() {
+        // Keep prompted matching values and checkboxes in sync even when the prompt was cancelled.
+        for (Map.Entry<Character, CheckBox> entry : matchingChecks.entrySet()) {
+            boolean selected = state.matching.contains(entry.getKey());
+            if (entry.getValue().isChecked() != selected) entry.getValue().setChecked(selected);
+        }
         if (preview == null) return;
         OperatorCommandComposer.Result result = OperatorCommandComposer.build(state, dialect);
         if (manuallyEdited) {
