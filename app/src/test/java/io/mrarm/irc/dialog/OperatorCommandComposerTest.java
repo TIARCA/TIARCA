@@ -24,7 +24,7 @@ public class OperatorCommandComposerTest {
     }
 
     private OperatorCommandComposer.Dialect inspircd() {
-        return new OperatorCommandComposer.Dialect(",mNuRGrjz", "R");
+        return new OperatorCommandComposer.Dialect(",mNuURGrjz", "R");
     }
 
     @Test public void combinesModeKickAndIndependentMatchingBans() {
