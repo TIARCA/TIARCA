@@ -402,8 +402,15 @@ public final class OperatorActionsComposerDialog {
     }
 
     private CheckBox addMatching(LinearLayout row, char code, String label) {
-        CheckBox box = checkbox(label, false, dialect.supportsMatching(code),
-                value -> toggleMatching(code, value));
+        final CheckBox[] holder = new CheckBox[1];
+        CheckBox box = checkbox(label, false, dialect.supportsMatching(code), value -> {
+            toggleMatching(code, value);
+            // A value prompt can be cancelled: never leave a checked UI without a matching rule.
+            if (value && !state.matching.contains(code)) {
+                holder[0].post(() -> holder[0].setChecked(state.matching.contains(code)));
+            }
+        });
+        holder[0] = box;
         row.addView(box);
         return box;
     }
@@ -551,6 +558,14 @@ public final class OperatorActionsComposerDialog {
                     if (!UserBottomSheetDialog.hasOperatorPrivileges(connection, state.channel)) {
                         Toast.makeText(context, R.string.operator_not_authorised, Toast.LENGTH_LONG).show();
                         return;
+                    }
+                    if (!manuallyEdited) {
+                        OperatorCommandComposer.Result generated =
+                                OperatorCommandComposer.build(state, dialect);
+                        if (generated.error != null) {
+                            warning.setText(generated.error);
+                            return;
+                        }
                     }
                     OperatorCommandComposer.Result parsed =
                             OperatorCommandComposer.parsePreview(preview.getText().toString(),
