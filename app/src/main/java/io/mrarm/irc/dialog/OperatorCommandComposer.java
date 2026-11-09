@@ -136,7 +136,7 @@ public final class OperatorCommandComposer {
         public final Map<Character, String> matchingValues = new LinkedHashMap<>();
 
         public String hostMask() {
-            if (validParameter(manualMask)) return manualMask;
+            if (manualMask != null) return manualMask;
             return (useNick && validParameter(maskNick) ? maskNick : "*") + "!" +
                     (useIdent && validParameter(ident) ? ident : "*") + "@" +
                     (useHost && validParameter(host) ? host : "*");
@@ -176,6 +176,8 @@ public final class OperatorCommandComposer {
             commands.add("KICK " + s.channel + " " + s.nick +
                     (message.isEmpty() ? "" : " :" + message));
         }
+        if ((s.unban || s.ban || !s.acting.isEmpty()) && !validParameter(s.hostMask()))
+            return new Result(commands, "Invalid or empty mask");
         if (s.unban) commands.add("MODE " + s.channel + " -b " + s.hostMask());
         if (s.ban || !s.acting.isEmpty()) {
             List<String> targets = new ArrayList<>();
