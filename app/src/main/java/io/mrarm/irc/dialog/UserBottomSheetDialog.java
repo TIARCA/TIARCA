@@ -71,6 +71,7 @@ public class UserBottomSheetDialog {
     private String mRealName;
     private String mAccount;
     private String mAuthenticatedAccount;
+    private String mCountryCode;
     private String mSourceChannel;
     private boolean mSourceChannelExplicit;
     private boolean mHistoricalData;
@@ -103,6 +104,7 @@ public class UserBottomSheetDialog {
     public void requestData(String nick, ChatApi connection) {
         mHost = null;
         mAuthenticatedAccount = null;
+        mCountryCode = null;
         mAccount = SimosnapAvatarManager.resolveAccount(mConnection, nick, null);
         setUser(nick, null, null, false);
         connection.sendWhois(nick, (WhoisInfo info) -> {
@@ -118,6 +120,7 @@ public class UserBottomSheetDialog {
         mHistoricalData = false;
         mHost = info.getHost();
         mAuthenticatedAccount = info.getLoggedInAsAccount();
+        mCountryCode = info.getCountryCode();
         mAccount = SimosnapAvatarManager.resolveAccount(
                 mConnection, info.getNick(), mAuthenticatedAccount);
         String awayMessage = info.getAwayMessage();
@@ -400,7 +403,7 @@ public class UserBottomSheetDialog {
         }
 
         new OperatorActionsComposerDialog(mContext, mConnection, mSourceChannel,
-                mNick, mUser, mHost, mRealName, mAuthenticatedAccount,
+                mNick, mUser, mHost, mRealName, mAuthenticatedAccount, mCountryCode,
                 mTargetPresent).show();
     }
 
