@@ -192,9 +192,18 @@ public final class OperatorActionsComposerDialog {
                 state.wantedModes.put(mode, value);
                 updatePreview();
             });
-            row.addView(box);
+            box.setMaxLines(2);
+            if (modes.length() <= 5) {
+                row.addView(box, new LinearLayout.LayoutParams(0,
+                        LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+            } else {
+                row.addView(box);
+            }
         }
-        if (row.getChildCount() != 0) scrollRow(root, row);
+        if (row.getChildCount() != 0) {
+            if (modes.length() <= 5) line(root, row);
+            else scrollRow(root, row);
+        }
     }
 
     private void buildActions(LinearLayout root) {
@@ -523,16 +532,16 @@ public final class OperatorActionsComposerDialog {
         boxes.addView(checkbox(context.getString(R.string.operator_composer_nickname), state.useNick, true, value -> {
             state.useNick = value;
             refreshMask();
-        }));
+        }), new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
         boxes.addView(checkbox(context.getString(R.string.operator_composer_ident), state.useIdent, true, value -> {
             state.useIdent = value;
             refreshMask();
-        }));
+        }), new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
         boxes.addView(checkbox(context.getString(R.string.operator_composer_host), state.useHost, true, value -> {
             state.useHost = value;
             refreshMask();
-        }));
-        scrollRow(root, boxes);
+        }), new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        line(root, boxes);
         mask = new EditText(context);
         mask.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         mask.setSingleLine(true);
