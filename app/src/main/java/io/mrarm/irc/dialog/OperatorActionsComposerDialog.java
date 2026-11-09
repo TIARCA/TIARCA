@@ -126,6 +126,30 @@ public final class OperatorActionsComposerDialog {
         root.addView(header);
     }
 
+
+    /**
+     * Solid 1dp lines instead of drawable dividers (some theme backgrounds expand into
+     * thick white bars). Neutral grey stays legible in light and dark presets.
+     */
+    private View separator() {
+        View divider = new View(context);
+        divider.setBackgroundColor(0xFF808080);
+        return divider;
+    }
+
+    private void sectionWithDivider(LinearLayout root, String title) {
+        LinearLayout headerRow = horizontal();
+        TextView header = text(title, 14);
+        header.setTypeface(null, android.graphics.Typeface.BOLD);
+        header.setPadding(0, dp(5), 0, dp(1));
+        headerRow.addView(header);
+        LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(
+                0, dp(1), 1f);
+        dividerParams.setMargins(dp(14), dp(4), 0, 0);
+        headerRow.addView(separator(), dividerParams);
+        line(root, headerRow);
+    }
+
     private void line(LinearLayout root, View child) {
         root.addView(child, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
@@ -450,11 +474,15 @@ public final class OperatorActionsComposerDialog {
 
         LinearLayout.LayoutParams left = new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-        left.setMargins(0, 0, dp(5), 0);
         panels.addView(actingPanel, left);
+        // The extban panels have a 34dp header and two 42dp checkbox rows.
+        // Draw a straight 1dp separator between their checkbox areas.
+        LinearLayout.LayoutParams verticalRule = new LinearLayout.LayoutParams(
+                dp(1), dp(84));
+        verticalRule.setMargins(dp(5), dp(34), dp(5), 0);
+        panels.addView(separator(), verticalRule);
         LinearLayout.LayoutParams right = new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-        right.setMargins(dp(5), 0, 0, 0);
         panels.addView(matchingPanel, right);
         line(root, panels);
         updateExtraLabels();
@@ -624,13 +652,13 @@ public final class OperatorActionsComposerDialog {
         line(content, details);
         buildMemberModes(content);
 
-        section(content, context.getString(R.string.operator_composer_actions));
+        sectionWithDivider(content, context.getString(R.string.operator_composer_actions));
         buildActions(content);
 
-        section(content, context.getString(R.string.operator_composer_extban));
+        sectionWithDivider(content, context.getString(R.string.operator_composer_extban));
         buildExtbans(content);
 
-        section(content, context.getString(R.string.operator_composer_mask_match));
+        sectionWithDivider(content, context.getString(R.string.operator_composer_mask_match));
         buildMask(content);
 
         section(content, context.getString(R.string.operator_composer_preview));
