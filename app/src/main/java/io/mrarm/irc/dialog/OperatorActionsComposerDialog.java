@@ -8,6 +8,7 @@ import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.Window;
+import android.view.WindowManager;
 import android.view.ViewGroup;
 import android.view.View;
 import android.widget.AdapterView;
@@ -49,6 +50,7 @@ public final class OperatorActionsComposerDialog {
     private final OperatorCommandComposer.Dialect dialect;
     private final boolean targetPresent;
     private final String realName;
+    private final String countryCode;
 
     private EditText preview;
     private EditText mask;
@@ -57,6 +59,7 @@ public final class OperatorActionsComposerDialog {
     private Button moreActing;
     private Button moreMatching;
     private CheckBox timedCheck;
+    private CheckBox banCheck;
     private CheckBox unauthedCheck;
     private boolean updatingPreview;
     private boolean updatingMask;
@@ -65,10 +68,13 @@ public final class OperatorActionsComposerDialog {
 
     public OperatorActionsComposerDialog(Context context, ServerConnectionInfo connection,
                                          String channel, String nick, String ident, String host,
-                                         String realName, String account, boolean targetPresent) {
+                                         String realName, String account, String countryCode,
+                                         boolean targetPresent) {
         this.context = context;
         this.connection = connection;
         this.realName = realName;
+        this.countryCode = countryCode != null && countryCode.matches("(?i)[A-Z]{2}") &&
+                !countryCode.equalsIgnoreCase("XX") ? countryCode.toUpperCase(java.util.Locale.ROOT) : null;
         this.targetPresent = targetPresent;
         state.channel = channel;
         state.nick = nick;
@@ -76,6 +82,7 @@ public final class OperatorActionsComposerDialog {
         state.ident = ident;
         state.host = host;
         state.account = account;
+        if (this.countryCode != null) state.matchingValues.put('G', this.countryCode);
         if (host == null || host.isEmpty()) {
             state.useHost = false;
             state.useNick = true;
@@ -113,7 +120,7 @@ public final class OperatorActionsComposerDialog {
     private void section(LinearLayout root, String title) {
         TextView header = text(title, 14);
         header.setTypeface(null, android.graphics.Typeface.BOLD);
-        header.setPadding(0, dp(7), 0, dp(2));
+        header.setPadding(0, dp(5), 0, dp(1));
         root.addView(header);
     }
 
@@ -137,8 +144,8 @@ public final class OperatorActionsComposerDialog {
         box.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
         box.setMinWidth(0);
         box.setMinimumWidth(0);
-        box.setMinHeight(dp(36));
-        box.setMinimumHeight(dp(36));
+        box.setMinHeight(dp(32));
+        box.setMinimumHeight(dp(32));
         box.setGravity(Gravity.CENTER_VERTICAL);
         box.setChecked(checked);
         box.setEnabled(enabled);
@@ -227,12 +234,16 @@ public final class OperatorActionsComposerDialog {
         });
 
         LinearLayout banRow = horizontal();
-        banRow.addView(checkbox(context.getString(R.string.operator_composer_ban), false, true, value -> {
+        banCheck = checkbox(context.getString(R.string.operator_composer_ban), false, true, value -> {
             state.ban = value;
+            if (!value && timedCheck != null && timedCheck.isChecked())
+                timedCheck.setChecked(false);
             updatePreview();
-        }));
+        });
+        banRow.addView(banCheck);
         timedCheck = checkbox(context.getString(R.string.operator_composer_timed), false, dialect.supportsTimed(), value -> {
             state.timed = value;
+            if (value && !banCheck.isChecked()) banCheck.setChecked(true);
             updatePreview();
         });
         banRow.addView(timedCheck);
@@ -245,6 +256,7 @@ public final class OperatorActionsComposerDialog {
         duration.setEnabled(false);
         timedCheck.setOnCheckedChangeListener((v, checked) -> {
             state.timed = checked;
+            if (checked && !banCheck.isChecked()) banCheck.setChecked(true);
             duration.setEnabled(checked);
             updatePreview();
         });
@@ -276,14 +288,7 @@ public final class OperatorActionsComposerDialog {
             updatePreview();
             return;
         }
-        if (code == 'R' && (state.account == null || state.account.trim().isEmpty())) {
-            promptValue("Account", state.account, value -> {
-                state.account = value;
-                state.matching.add('R');
-                updatePreview();
-            });
-            return;
-        }
+        if (code == 'R' && TextUtils.isEmpty(state.account)) return;
         if (code != 'R' && code != 'U' &&
                 !state.matchingValues.containsKey(code)) {
             promptValue("Valore " + code + ":", "", value -> {
@@ -438,7 +443,8 @@ public final class OperatorActionsComposerDialog {
 
     private CheckBox addMatching(LinearLayout row, char code, String label) {
         final CheckBox[] holder = new CheckBox[1];
-        CheckBox box = checkbox(label, false, dialect.supportsMatching(code), value -> {
+        CheckBox box = checkbox(label, false, dialect.supportsMatching(code) &&
+                (code != 'R' || !TextUtils.isEmpty(state.account)), value -> {
             toggleMatching(code, value);
             // A value prompt can be cancelled: never leave a checked UI without a matching rule.
             if (value && !state.matching.contains(code)) {
@@ -529,6 +535,9 @@ public final class OperatorActionsComposerDialog {
         content.setPadding(dp(12), dp(2), dp(12), dp(4));
         ScrollView scroll = new ScrollView(context);
         scroll.setFillViewport(false);
+        scroll.setVerticalScrollBarEnabled(true);
+        scroll.setFocusableInTouchMode(true);
+        scroll.setClipToPadding(false);
         scroll.addView(content);
 
         section(content, context.getString(R.string.operator_composer_user_modes, state.channel));
@@ -570,8 +579,8 @@ public final class OperatorActionsComposerDialog {
         preview = new EditText(context);
         preview.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         preview.setTypeface(android.graphics.Typeface.MONOSPACE);
-        preview.setMinLines(3);
-        preview.setMaxLines(5);
+        preview.setMinLines(4);
+        preview.setMaxLines(8);
         preview.setGravity(Gravity.TOP | Gravity.START);
         preview.setHorizontallyScrolling(false);
         line(content, preview);
@@ -629,12 +638,21 @@ public final class OperatorActionsComposerDialog {
                     Toast.makeText(context, R.string.operator_command_sent, Toast.LENGTH_SHORT).show();
                     dialog.dismiss();
                 }));
-        dialog.show();
-        // Use nearly the whole phone width, rather than losing space to AlertDialog defaults.
         Window window = dialog.getWindow();
-        if (window != null)
+        if (window != null) {
+            // Reflow the dialog above the IME; without ADJUST_RESIZE the lower fields
+            // disappear behind the keyboard on several Android versions.
+            window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE |
+                    WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+        }
+        dialog.show();
+        if (window != null) {
             window.setLayout(context.getResources().getDisplayMetrics().widthPixels - dp(16),
-                    ViewGroup.LayoutParams.WRAP_CONTENT);
+                    ViewGroup.LayoutParams.MATCH_PARENT);
+        }
+        // Do not focus an EditText on open: opening the keyboard would immediately
+        // shrink the usable area before the operator has chosen an action.
+        scroll.requestFocus();
         updatePreview();
     }
 }
