@@ -298,11 +298,6 @@ public final class OperatorActionsComposerDialog {
             String initial = state.matchingValues.get('G');
             promptValue("G: " + context.getString(R.string.operator_composer_country),
                     initial, value -> {
-                        if (!value.matches("(?i)[A-Z]{2}")) {
-                            Toast.makeText(context, R.string.operator_composer_country_invalid,
-                                    Toast.LENGTH_LONG).show();
-                            return;
-                        }
                         state.matchingValues.put('G', value.toUpperCase(java.util.Locale.ROOT));
                         state.matching.add('G');
                         updatePreview();
@@ -337,6 +332,10 @@ public final class OperatorActionsComposerDialog {
         dialog.setOnShowListener(ignored -> dialog.getButton(DialogInterface.BUTTON_POSITIVE)
                 .setOnClickListener(v -> {
                     String value = editor.getText().toString().trim();
+                    if (title.startsWith("G:") && !value.matches("(?i)[A-Z]{2}")) {
+                        editor.setError(context.getString(R.string.operator_composer_country_invalid));
+                        return;
+                    }
                     if (value.isEmpty() || value.matches(".*\\s.*")) {
                         editor.setError(context.getString(R.string.operator_invalid_mask));
                         return;
