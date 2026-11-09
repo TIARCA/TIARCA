@@ -127,8 +127,8 @@ public final class OperatorCommandComposer {
     }
 
     public static final class State {
-        public String channel, nick, maskNick, ident, host, account, reason = "", duration = "3h";
-        public boolean kick, ban, timed, useNick, useIdent, useHost = true;
+        public String channel, nick, maskNick, ident, host, manualMask, account, reason = "", duration = "3h";
+        public boolean kick, ban, unban, timed, useNick, useIdent, useHost = true;
         public final Map<Character, Boolean> currentModes = new LinkedHashMap<>();
         public final Map<Character, Boolean> wantedModes = new LinkedHashMap<>();
         public final Set<Character> acting = new LinkedHashSet<>();
@@ -136,6 +136,7 @@ public final class OperatorCommandComposer {
         public final Map<Character, String> matchingValues = new LinkedHashMap<>();
 
         public String hostMask() {
+            if (validParameter(manualMask)) return manualMask;
             return (useNick && validParameter(maskNick) ? maskNick : "*") + "!" +
                     (useIdent && validParameter(ident) ? ident : "*") + "@" +
                     (useHost && validParameter(host) ? host : "*");
@@ -175,6 +176,7 @@ public final class OperatorCommandComposer {
             commands.add("KICK " + s.channel + " " + s.nick +
                     (message.isEmpty() ? "" : " :" + message));
         }
+        if (s.unban) commands.add("MODE " + s.channel + " -b " + s.hostMask());
         if (s.ban || !s.acting.isEmpty()) {
             List<String> targets = new ArrayList<>();
             if (s.matching.isEmpty()) {
