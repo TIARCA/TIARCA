@@ -268,21 +268,15 @@ public final class OperatorActionsComposerDialog {
             updatePreview();
         }));
         banRow.addView(duration);
-        Button others = compactExtrasButton();
-        others.setText(R.string.operator_composer_more_actions);
-        others.setOnClickListener(v -> {
-            String[] options = {context.getString(R.string.operator_composer_remove_ban)};
-            new AlertDialog.Builder(context).setTitle(R.string.operator_composer_more_actions)
-                    .setMultiChoiceItems(options, new boolean[]{state.unban},
-                            (dialog, index, checked) -> {
-                                state.unban = checked;
-                                updatePreview();
-                            })
-                    .setPositiveButton(R.string.action_ok, null).show();
-        });
-        banRow.addView(others, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, dp(36)));
         line(root, banRow);
+        // Unban is the only extra action: keep it directly selectable as shown.
+        CheckBox unban = checkbox(context.getString(R.string.operator_composer_remove_ban),
+                false, true, checked -> {
+                    state.unban = checked;
+                    updatePreview();
+                });
+        unban.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        line(root, unban);
     }
 
     private void toggleMatching(char code, boolean checked) {
@@ -415,27 +409,45 @@ public final class OperatorActionsComposerDialog {
             TextView status = text(context.getString(R.string.operator_composer_missing_extban), 11);
             line(root, status);
         }
-        // The section label and its "Other" selector occupy their own compact line.
-        // Keeping all three checkboxes on the next line avoids horizontal clipping.
+
+        // Align ACTING and MATCHING as two equal-width panels. Both panels
+        // share identical header and checkbox-row heights, even for long labels.
+        LinearLayout panels = horizontal();
+        LinearLayout actingPanel = vertical();
+        LinearLayout matchingPanel = vertical();
+
         moreActing = compactExtrasButton();
         moreActing.setOnClickListener(v -> showExtras(true));
-        extbanSubheading(root, R.string.operator_composer_acting, moreActing);
-
-        LinearLayout acts = horizontal();
-        addActing(acts, 'm', context.getString(R.string.operator_composer_mute));
-        addActing(acts, 'u', context.getString(R.string.operator_composer_auditorium));
-        addActing(acts, 'N', context.getString(R.string.operator_composer_nonick));
-        line(root, acts);
+        extbanSubheading(actingPanel, R.string.operator_composer_acting, moreActing);
+        LinearLayout actingTop = horizontal();
+        addActing(actingTop, 'm', context.getString(R.string.operator_composer_mute), 1f);
+        addActing(actingTop, 'N', context.getString(R.string.operator_composer_nonick), 1f);
+        line(actingPanel, actingTop);
+        LinearLayout actingBottom = horizontal();
+        addActing(actingBottom, 'u', context.getString(R.string.operator_composer_auditorium), 1f);
+        line(actingPanel, actingBottom);
 
         moreMatching = compactExtrasButton();
         moreMatching.setOnClickListener(v -> showExtras(false));
-        extbanSubheading(root, R.string.operator_composer_matching, moreMatching);
+        extbanSubheading(matchingPanel, R.string.operator_composer_matching, moreMatching);
+        LinearLayout matchingTop = horizontal();
+        addMatching(matchingTop, 'R', context.getString(R.string.operator_composer_account), 1f);
+        addMatching(matchingTop, 'G', context.getString(R.string.operator_composer_country), 1f);
+        line(matchingPanel, matchingTop);
+        LinearLayout matchingBottom = horizontal();
+        unauthedCheck = addMatching(matchingBottom, 'U',
+                context.getString(R.string.operator_composer_unauth), 1f);
+        line(matchingPanel, matchingBottom);
 
-        LinearLayout matches = horizontal();
-        addMatching(matches, 'R', context.getString(R.string.operator_composer_account));
-        unauthedCheck = addMatching(matches, 'U', context.getString(R.string.operator_composer_unauth));
-        addMatching(matches, 'G', context.getString(R.string.operator_composer_country));
-        line(root, matches);
+        LinearLayout.LayoutParams left = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        left.setMargins(0, 0, dp(5), 0);
+        panels.addView(actingPanel, left);
+        LinearLayout.LayoutParams right = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        right.setMargins(dp(5), 0, 0, 0);
+        panels.addView(matchingPanel, right);
+        line(root, panels);
         updateExtraLabels();
     }
 
@@ -447,8 +459,6 @@ public final class OperatorActionsComposerDialog {
         button.setMinHeight(dp(30));
         button.setMinimumWidth(0);
         button.setMinWidth(0);
-        button.setMinWidth(0);
-        button.setMinimumWidth(0);
         button.setPadding(dp(6), 0, dp(6), 0);
         return button;
     }
@@ -460,39 +470,43 @@ public final class OperatorActionsComposerDialog {
         row.addView(label, new LinearLayout.LayoutParams(0,
                 LinearLayout.LayoutParams.WRAP_CONTENT, 1));
         row.addView(extras, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, dp(32)));
-        line(root, row);
+                LinearLayout.LayoutParams.WRAP_CONTENT, dp(30)));
+        root.addView(row, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(34)));
     }
 
-    private void addActing(LinearLayout row, char code, String label) {
+    private void addActing(LinearLayout row, char code, String label, float weight) {
         CheckBox box = checkbox(label, false, dialect.supportsActing(code), value -> {
             if (value) state.acting.add(code);
             else state.acting.remove(code);
             updatePreview();
         });
-        box.setMaxLines(2);
-        // Auditorium needs more width than Mute, especially with enlarged fonts.
-        row.addView(box, new LinearLayout.LayoutParams(0,
-                LinearLayout.LayoutParams.WRAP_CONTENT, code == 'u' ? 1.35f : 0.90f));
+        addExtbanCell(row, box, weight);
     }
 
-    private CheckBox addMatching(LinearLayout row, char code, String label) {
+    private CheckBox addMatching(LinearLayout row, char code, String label, float weight) {
         final CheckBox[] holder = new CheckBox[1];
         CheckBox box = checkbox(label, false, dialect.supportsMatching(code) &&
                 (code != 'R' || !TextUtils.isEmpty(state.account)), value -> {
             toggleMatching(code, value);
-            // A value prompt can be cancelled: never leave a checked UI without a matching rule.
+            // Value prompts can be cancelled: keep the checkbox and state in sync.
             if (value && !state.matching.contains(code)) {
                 holder[0].post(() -> holder[0].setChecked(state.matching.contains(code)));
             }
         });
         holder[0] = box;
         matchingChecks.put(code, box);
-        box.setMaxLines(2);
-        // The full "Non autenticati" label must remain readable, not clipped.
-        row.addView(box, new LinearLayout.LayoutParams(0,
-                LinearLayout.LayoutParams.WRAP_CONTENT, code == 'U' ? 1.55f : 0.85f));
+        addExtbanCell(row, box, weight);
         return box;
+    }
+
+    private void addExtbanCell(LinearLayout row, CheckBox box, float weight) {
+        box.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+        box.setMaxLines(2);
+        box.setIncludeFontPadding(false);
+        box.setPadding(0, 0, 0, 0);
+        box.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+        row.addView(box, new LinearLayout.LayoutParams(0, dp(42), weight));
     }
 
     private void refreshMask() {
@@ -614,7 +628,7 @@ public final class OperatorActionsComposerDialog {
         preview = new EditText(context);
         preview.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         preview.setTypeface(android.graphics.Typeface.MONOSPACE);
-        preview.setMinLines(5);
+        preview.setMinLines(6);
         preview.setMaxLines(10);
         preview.setImeOptions(EditorInfo.IME_FLAG_NO_EXTRACT_UI);
         preview.setGravity(Gravity.TOP | Gravity.START);
