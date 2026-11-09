@@ -127,7 +127,7 @@ public final class OperatorCommandComposer {
     }
 
     public static final class State {
-        public String channel, nick, ident, host, account, reason = "", duration = "3h";
+        public String channel, nick, maskNick, ident, host, account, reason = "", duration = "3h";
         public boolean kick, ban, timed, useNick, useIdent, useHost = true;
         public final Map<Character, Boolean> currentModes = new LinkedHashMap<>();
         public final Map<Character, Boolean> wantedModes = new LinkedHashMap<>();
@@ -136,7 +136,7 @@ public final class OperatorCommandComposer {
         public final Map<Character, String> matchingValues = new LinkedHashMap<>();
 
         public String hostMask() {
-            return (useNick && validParameter(nick) ? nick : "*") + "!" +
+            return (useNick && validParameter(maskNick) ? maskNick : "*") + "!" +
                     (useIdent && validParameter(ident) ? ident : "*") + "@" +
                     (useHost && validParameter(host) ? host : "*");
         }
