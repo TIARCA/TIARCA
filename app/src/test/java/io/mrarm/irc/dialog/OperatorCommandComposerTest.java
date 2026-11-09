@@ -65,6 +65,37 @@ public class OperatorCommandComposerTest {
         assertEquals(4, OperatorCommandComposer.build(s, inspircd()).commands.size());
     }
 
+    @Test public void combinesThreeActingBansWithOneMatching() {
+        OperatorCommandComposer.State s = state();
+        s.ban = true;
+        s.acting.add('m');
+        s.acting.add('u');
+        s.acting.add('N');
+        s.matching.add('U');
+        OperatorCommandComposer.Result result = OperatorCommandComposer.build(s, inspircd());
+        assertNull(result.error);
+        assertEquals(Arrays.asList(
+                "MODE #canale +b m:U:*!*@host",
+                "MODE #canale +b u:U:*!*@host",
+                "MODE #canale +b N:U:*!*@host"
+        ), result.commands);
+    }
+
+    @Test public void multipleMatchingExtbansAreSeparateOrConditions() {
+        OperatorCommandComposer.State s = state();
+        s.ban = true;
+        s.acting.add('m');
+        s.matching.add('U');
+        s.matching.add('G');
+        s.matchingValues.put('G', "IT");
+        OperatorCommandComposer.Result result = OperatorCommandComposer.build(s, inspircd());
+        assertNull(result.error);
+        assertEquals(Arrays.asList(
+                "MODE #canale +b m:U:*!*@host",
+                "MODE #canale +b m:G:IT"
+        ), result.commands);
+    }
+
     @Test public void timedBanUsesThreeHoursByDefault() {
         OperatorCommandComposer.State s = state();
         s.ban = true;
