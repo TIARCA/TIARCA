@@ -183,7 +183,7 @@ public final class OperatorActionsComposerDialog {
 
     private void buildActions(LinearLayout root) {
         LinearLayout kickRow = horizontal();
-        kickRow.addView(checkbox("Kick", false, targetPresent, value -> {
+        kickRow.addView(checkbox(context.getString(R.string.operator_composer_kick), false, targetPresent, value -> {
             state.kick = value;
             updatePreview();
         }));
@@ -220,11 +220,11 @@ public final class OperatorActionsComposerDialog {
         });
 
         LinearLayout banRow = horizontal();
-        banRow.addView(checkbox("Ban", false, true, value -> {
+        banRow.addView(checkbox(context.getString(R.string.operator_composer_ban), false, true, value -> {
             state.ban = value;
             updatePreview();
         }));
-        timedCheck = checkbox("Timed", false, dialect.supportsTimed(), value -> {
+        timedCheck = checkbox(context.getString(R.string.operator_composer_timed), false, dialect.supportsTimed(), value -> {
             state.timed = value;
             updatePreview();
         });
@@ -247,11 +247,11 @@ public final class OperatorActionsComposerDialog {
         }));
         banRow.addView(duration);
         Button others = new Button(context);
-        others.setText("Altre azioni");
+        others.setText(R.string.operator_composer_more_actions);
         others.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
         others.setOnClickListener(v -> {
-            String[] options = {"Rimuovi ban sulla maschera"};
-            new AlertDialog.Builder(context).setTitle("Altre azioni")
+            String[] options = {context.getString(R.string.operator_composer_remove_ban)};
+            new AlertDialog.Builder(context).setTitle(R.string.operator_composer_more_actions)
                     .setMultiChoiceItems(options, new boolean[]{state.unban},
                             (dialog, index, checked) -> {
                                 state.unban = checked;
@@ -334,11 +334,11 @@ public final class OperatorActionsComposerDialog {
             }
         }
         if (options.isEmpty()) {
-            Toast.makeText(context, "Nessuna altra extban annunciata dal server",
+            Toast.makeText(context, R.string.operator_composer_no_extras,
                     Toast.LENGTH_SHORT).show();
             return;
         }
-        new AlertDialog.Builder(context).setTitle(acting ? "Altre acting" : "Altre matching")
+        new AlertDialog.Builder(context).setTitle(acting ? R.string.operator_composer_other_acting : R.string.operator_composer_other_matching)
                 .setItems(options.toArray(new String[0]), (d, index) -> {
                     char code = supported.get(index);
                     if (acting) {
@@ -353,28 +353,28 @@ public final class OperatorActionsComposerDialog {
     }
 
     private void updateExtraLabels() {
-        if (moreActing != null) moreActing.setText("Altri (" +
+        if (moreActing != null) moreActing.setText(context.getString(R.string.operator_composer_others_count,
                 Math.max(0, state.acting.size() -
                         (state.acting.contains('m') ? 1 : 0) -
                         (state.acting.contains('u') ? 1 : 0) -
-                        (state.acting.contains('N') ? 1 : 0)) + ") ▾");
-        if (moreMatching != null) moreMatching.setText("Altri (" +
+                        (state.acting.contains('N') ? 1 : 0)));
+        if (moreMatching != null) moreMatching.setText(context.getString(R.string.operator_composer_others_count,
                 Math.max(0, state.matching.size() -
                         (state.matching.contains('R') ? 1 : 0) -
                         (state.matching.contains('U') ? 1 : 0) -
-                        (state.matching.contains('G') ? 1 : 0)) + ") ▾");
+                        (state.matching.contains('G') ? 1 : 0)));
     }
 
     private void buildExtbans(LinearLayout root) {
         if (!dialect.hasExtbans()) {
-            TextView status = text("Il server non annuncia EXTBAN: comandi speciali non disponibili.", 12);
+            TextView status = text(context.getString(R.string.operator_composer_missing_extban), 12);
             line(root, status);
         }
         LinearLayout acts = horizontal();
-        acts.addView(text("ACTING  ", 12));
-        addActing(acts, 'm', "m: Mute");
-        addActing(acts, 'u', "u: Auditorium");
-        addActing(acts, 'N', "N: Nonick");
+        acts.addView(text(context.getString(R.string.operator_composer_acting) + "  ", 12));
+        addActing(acts, 'm', context.getString(R.string.operator_composer_mute));
+        addActing(acts, 'u', context.getString(R.string.operator_composer_auditorium));
+        addActing(acts, 'N', context.getString(R.string.operator_composer_nonick));
         moreActing = new Button(context);
         moreActing.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
         moreActing.setOnClickListener(v -> showExtras(true));
@@ -382,10 +382,10 @@ public final class OperatorActionsComposerDialog {
         scrollRow(root, acts);
 
         LinearLayout matches = horizontal();
-        matches.addView(text("MATCHING  ", 12));
-        addMatching(matches, 'R', "R: Account");
-        unauthedCheck = addMatching(matches, 'U', "U: Non autenticati");
-        addMatching(matches, 'G', "G: Paese");
+        matches.addView(text(context.getString(R.string.operator_composer_matching) + "  ", 12));
+        addMatching(matches, 'R', context.getString(R.string.operator_composer_account));
+        unauthedCheck = addMatching(matches, 'U', context.getString(R.string.operator_composer_unauth));
+        addMatching(matches, 'G', context.getString(R.string.operator_composer_country));
         moreMatching = new Button(context);
         moreMatching.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
         moreMatching.setOnClickListener(v -> showExtras(false));
@@ -428,15 +428,15 @@ public final class OperatorActionsComposerDialog {
 
     private void buildMask(LinearLayout root) {
         LinearLayout boxes = horizontal();
-        boxes.addView(checkbox("Nickname", state.useNick, true, value -> {
+        boxes.addView(checkbox(context.getString(R.string.operator_composer_nickname), state.useNick, true, value -> {
             state.useNick = value;
             refreshMask();
         }));
-        boxes.addView(checkbox("Ident", state.useIdent, true, value -> {
+        boxes.addView(checkbox(context.getString(R.string.operator_composer_ident), state.useIdent, true, value -> {
             state.useIdent = value;
             refreshMask();
         }));
-        boxes.addView(checkbox("Host", state.useHost, true, value -> {
+        boxes.addView(checkbox(context.getString(R.string.operator_composer_host), state.useHost, true, value -> {
             state.useHost = value;
             refreshMask();
         }));
@@ -464,7 +464,7 @@ public final class OperatorActionsComposerDialog {
         if (preview == null) return;
         OperatorCommandComposer.Result result = OperatorCommandComposer.build(state, dialect);
         if (manuallyEdited) {
-            warning.setText("Anteprima modificata a mano: premi Rigenera per applicare le selezioni.");
+            warning.setText(R.string.operator_composer_modified);
         } else {
             updatingPreview = true;
             preview.setText(result.preview());
@@ -494,7 +494,7 @@ public final class OperatorActionsComposerDialog {
         scroll.setFillViewport(false);
         scroll.addView(content);
 
-        section(content, "UTENTE E MODE · " + state.channel);
+        section(content, context.getString(R.string.operator_composer_user_modes, state.channel));
         EditText identity = new EditText(context);
         identity.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         identity.setSingleLine(true);
@@ -512,23 +512,24 @@ public final class OperatorActionsComposerDialog {
                 refreshMask();
             }
         }));
-        TextView details = text("Real name: " + (realName == null ? "—" : realName) +
-                "   ·   Account: " + (state.account == null ? "—" : state.account), 12);
+        TextView details = text(context.getString(R.string.operator_composer_details,
+                realName == null ? context.getString(R.string.operator_composer_unavailable) : realName,
+                state.account == null ? context.getString(R.string.operator_composer_unavailable) : state.account), 12);
         details.setSingleLine(true);
         details.setEllipsize(TextUtils.TruncateAt.END);
         line(content, details);
         buildMemberModes(content);
 
-        section(content, "AZIONI");
+        section(content, context.getString(R.string.operator_composer_actions));
         buildActions(content);
 
-        section(content, "EXTBAN");
+        section(content, context.getString(R.string.operator_composer_extban));
         buildExtbans(content);
 
-        section(content, "CORRISPONDENZA MASCHERA");
+        section(content, context.getString(R.string.operator_composer_mask_match));
         buildMask(content);
 
-        section(content, "ANTEPRIMA COMANDI · modificabile");
+        section(content, context.getString(R.string.operator_composer_preview));
         preview = new EditText(context);
         preview.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         preview.setTypeface(android.graphics.Typeface.MONOSPACE);
@@ -542,11 +543,11 @@ public final class OperatorActionsComposerDialog {
         preview.addTextChangedListener(watcher(() -> {
             if (!updatingPreview) {
                 manuallyEdited = true;
-                warning.setText("Anteprima manuale: i comandi saranno inviati come scritti.");
+                warning.setText(R.string.operator_composer_manual);
             }
         }));
         Button regenerate = new Button(context);
-        regenerate.setText("Rigenera anteprima");
+        regenerate.setText(R.string.operator_composer_regenerate);
         regenerate.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         regenerate.setOnClickListener(v -> {
             manuallyEdited = false;
