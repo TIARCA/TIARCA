@@ -7,8 +7,10 @@ import android.text.TextWatcher;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.graphics.Rect;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
 import android.view.ViewGroup;
 import android.view.View;
 import android.widget.AdapterView;
@@ -251,7 +253,8 @@ public final class OperatorActionsComposerDialog {
         duration.setText("3h");
         duration.setSingleLine(true);
         duration.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        duration.setEms(4);
+        duration.setEms(3);
+        duration.setSelectAllOnFocus(true);
         duration.setHint("3h");
         duration.setEnabled(false);
         timedCheck.setOnCheckedChangeListener((v, checked) -> {
@@ -265,9 +268,8 @@ public final class OperatorActionsComposerDialog {
             updatePreview();
         }));
         banRow.addView(duration);
-        Button others = new Button(context);
+        Button others = compactExtrasButton();
         others.setText(R.string.operator_composer_more_actions);
-        others.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
         others.setOnClickListener(v -> {
             String[] options = {context.getString(R.string.operator_composer_remove_ban)};
             new AlertDialog.Builder(context).setTitle(R.string.operator_composer_more_actions)
@@ -278,8 +280,9 @@ public final class OperatorActionsComposerDialog {
                             })
                     .setPositiveButton(R.string.action_ok, null).show();
         });
-        banRow.addView(others);
-        scrollRow(root, banRow);
+        banRow.addView(others, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, dp(36)));
+        line(root, banRow);
     }
 
     private void toggleMatching(char code, boolean checked) {
@@ -289,6 +292,23 @@ public final class OperatorActionsComposerDialog {
             return;
         }
         if (code == 'R' && TextUtils.isEmpty(state.account)) return;
+        if (code == 'G') {
+            // G: accepts an ISO 3166-1 alpha-2 country code. WHOIS 344 provides
+            // a verified starting value when the server makes it available.
+            String initial = state.matchingValues.get('G');
+            promptValue("G: " + context.getString(R.string.operator_composer_country),
+                    initial, value -> {
+                        if (!value.matches("(?i)[A-Z]{2}")) {
+                            Toast.makeText(context, R.string.operator_composer_country_invalid,
+                                    Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        state.matchingValues.put('G', value.toUpperCase(java.util.Locale.ROOT));
+                        state.matching.add('G');
+                        updatePreview();
+                    });
+            return;
+        }
         if (code != 'R' && code != 'U' &&
                 !state.matchingValues.containsKey(code)) {
             promptValue("Valore " + code + ":", "", value -> {
@@ -350,18 +370,32 @@ public final class OperatorActionsComposerDialog {
                     Toast.LENGTH_SHORT).show();
             return;
         }
-        new AlertDialog.Builder(context).setTitle(acting ? R.string.operator_composer_other_acting : R.string.operator_composer_other_matching)
-                .setItems(options.toArray(new String[0]), (d, index) -> {
-                    char code = supported.get(index);
-                    if (acting) {
-                        if (!state.acting.add(code)) state.acting.remove(code);
-                        updatePreview();
-                    } else {
-                        toggleMatching(code, !state.matching.contains(code));
+        // Use actual multi-choice controls: several acting extbans may be selected at
+        // once. Each acting is emitted as a separate ban combined with each matching.
+        boolean[] selected = new boolean[supported.size()];
+        for (int i = 0; i < supported.size(); i++)
+            selected[i] = (acting ? state.acting : state.matching).contains(supported.get(i));
+        String[] labels = new String[options.size()];
+        for (int i = 0; i < options.size(); i++)
+            labels[i] = options.get(i).substring(2);
+        new AlertDialog.Builder(context)
+                .setTitle(acting ? R.string.operator_composer_other_acting :
+                        R.string.operator_composer_other_matching)
+                .setMultiChoiceItems(labels, selected, (d, index, checked) -> selected[index] = checked)
+                .setNegativeButton(R.string.action_cancel, null)
+                .setPositiveButton(R.string.action_ok, (d, which) -> {
+                    for (int i = 0; i < supported.size(); i++) {
+                        char code = supported.get(i);
+                        if (acting) {
+                            if (selected[i]) state.acting.add(code);
+                            else state.acting.remove(code);
+                        } else if (selected[i] != state.matching.contains(code)) {
+                            toggleMatching(code, selected[i]);
+                        }
                     }
                     updateExtraLabels();
-                })
-                .setNegativeButton(R.string.action_cancel, null).show();
+                    updatePreview();
+                }).show();
     }
 
     private void updateExtraLabels() {
@@ -412,6 +446,8 @@ public final class OperatorActionsComposerDialog {
         button.setAllCaps(false);
         button.setMinimumHeight(dp(30));
         button.setMinHeight(dp(30));
+        button.setMinimumWidth(0);
+        button.setMinWidth(0);
         button.setMinWidth(0);
         button.setMinimumWidth(0);
         button.setPadding(dp(6), 0, dp(6), 0);
@@ -579,8 +615,9 @@ public final class OperatorActionsComposerDialog {
         preview = new EditText(context);
         preview.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         preview.setTypeface(android.graphics.Typeface.MONOSPACE);
-        preview.setMinLines(4);
-        preview.setMaxLines(8);
+        preview.setMinLines(5);
+        preview.setMaxLines(10);
+        preview.setImeOptions(EditorInfo.IME_FLAG_NO_EXTRACT_UI);
         preview.setGravity(Gravity.TOP | Gravity.START);
         preview.setHorizontallyScrolling(false);
         line(content, preview);
@@ -595,6 +632,7 @@ public final class OperatorActionsComposerDialog {
         Button regenerate = new Button(context);
         regenerate.setText(R.string.operator_composer_regenerate);
         regenerate.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        regenerate.setAllCaps(false);
         regenerate.setMinHeight(dp(34));
         regenerate.setMinimumHeight(dp(34));
         regenerate.setPadding(dp(6), 0, dp(6), 0);
@@ -604,8 +642,12 @@ public final class OperatorActionsComposerDialog {
         });
         line(content, regenerate);
 
+        TextView dialogTitle = text(
+                context.getString(R.string.operator_actions_for, state.channel), 16);
+        dialogTitle.setTypeface(null, android.graphics.Typeface.BOLD);
+        dialogTitle.setPadding(dp(16), dp(10), dp(12), dp(4));
         AlertDialog dialog = new AlertDialog.Builder(context)
-                .setTitle(context.getString(R.string.operator_actions_for, state.channel))
+                .setCustomTitle(dialogTitle)
                 .setView(scroll)
                 .setNegativeButton(R.string.action_cancel, null)
                 .setPositiveButton(R.string.action_ok, null)
@@ -647,9 +689,26 @@ public final class OperatorActionsComposerDialog {
         }
         dialog.show();
         if (window != null) {
+            // WRAP_CONTENT rather than MATCH_PARENT is essential: the latter extends
+            // under the status bar and keyboard on some Android/HyperOS versions.
             window.setLayout(context.getResources().getDisplayMetrics().widthPixels - dp(16),
-                    ViewGroup.LayoutParams.MATCH_PARENT);
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
         }
+        // When the IME reduces the visible area, ScrollView will remeasure. If the
+        // user was editing a field near the bottom, bring it back into view.
+        scroll.addOnLayoutChangeListener((v, left, top, right, bottom,
+                                          oldLeft, oldTop, oldRight, oldBottom) -> {
+            if (bottom - top >= oldBottom - oldTop) return;
+            View focused = content.findFocus();
+            if (!(focused instanceof EditText)) return;
+            focused.post(() -> {
+                Rect rect = new Rect();
+                focused.getDrawingRect(rect);
+                scroll.offsetDescendantRectToMyCoords(focused, rect);
+                int desired = Math.max(0, rect.bottom - scroll.getHeight() + dp(16));
+                if (desired > scroll.getScrollY()) scroll.smoothScrollTo(0, desired);
+            });
+        });
         // Do not focus an EditText on open: opening the keyboard would immediately
         // shrink the usable area before the operator has chosen an action.
         scroll.requestFocus();
