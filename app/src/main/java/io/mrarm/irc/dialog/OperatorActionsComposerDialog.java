@@ -7,6 +7,8 @@ import android.text.TextWatcher;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.Window;
+import android.view.ViewGroup;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -111,7 +113,7 @@ public final class OperatorActionsComposerDialog {
     private void section(LinearLayout root, String title) {
         TextView header = text(title, 14);
         header.setTypeface(null, android.graphics.Typeface.BOLD);
-        header.setPadding(0, dp(14), 0, dp(5));
+        header.setPadding(0, dp(7), 0, dp(2));
         root.addView(header);
     }
 
@@ -132,10 +134,15 @@ public final class OperatorActionsComposerDialog {
                               java.util.function.Consumer<Boolean> change) {
         CheckBox box = new CheckBox(context);
         box.setText(title);
-        box.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        box.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        box.setMinWidth(0);
+        box.setMinimumWidth(0);
+        box.setMinHeight(dp(36));
+        box.setMinimumHeight(dp(36));
+        box.setGravity(Gravity.CENTER_VERTICAL);
         box.setChecked(checked);
         box.setEnabled(enabled);
-        box.setPadding(0, 0, dp(5), 0);
+        box.setPadding(0, 0, dp(2), 0);
         box.setOnCheckedChangeListener((v, value) -> change.accept(value));
         return box;
     }
@@ -367,39 +374,65 @@ public final class OperatorActionsComposerDialog {
 
     private void buildExtbans(LinearLayout root) {
         if (!dialect.hasExtbans()) {
-            TextView status = text(context.getString(R.string.operator_composer_missing_extban), 12);
+            TextView status = text(context.getString(R.string.operator_composer_missing_extban), 11);
             line(root, status);
         }
+        // The section label and its "Other" selector occupy their own compact line.
+        // Keeping all three checkboxes on the next line avoids horizontal clipping.
+        moreActing = compactExtrasButton();
+        moreActing.setOnClickListener(v -> showExtras(true));
+        extbanSubheading(root, R.string.operator_composer_acting, moreActing);
+
         LinearLayout acts = horizontal();
-        acts.addView(text(context.getString(R.string.operator_composer_acting) + "  ", 12));
         addActing(acts, 'm', context.getString(R.string.operator_composer_mute));
         addActing(acts, 'u', context.getString(R.string.operator_composer_auditorium));
         addActing(acts, 'N', context.getString(R.string.operator_composer_nonick));
-        moreActing = new Button(context);
-        moreActing.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-        moreActing.setOnClickListener(v -> showExtras(true));
-        acts.addView(moreActing);
-        scrollRow(root, acts);
+        line(root, acts);
+
+        moreMatching = compactExtrasButton();
+        moreMatching.setOnClickListener(v -> showExtras(false));
+        extbanSubheading(root, R.string.operator_composer_matching, moreMatching);
 
         LinearLayout matches = horizontal();
-        matches.addView(text(context.getString(R.string.operator_composer_matching) + "  ", 12));
         addMatching(matches, 'R', context.getString(R.string.operator_composer_account));
         unauthedCheck = addMatching(matches, 'U', context.getString(R.string.operator_composer_unauth));
         addMatching(matches, 'G', context.getString(R.string.operator_composer_country));
-        moreMatching = new Button(context);
-        moreMatching.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-        moreMatching.setOnClickListener(v -> showExtras(false));
-        matches.addView(moreMatching);
-        scrollRow(root, matches);
+        line(root, matches);
         updateExtraLabels();
     }
 
+    private Button compactExtrasButton() {
+        Button button = new Button(context);
+        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+        button.setAllCaps(false);
+        button.setMinimumHeight(dp(30));
+        button.setMinHeight(dp(30));
+        button.setMinWidth(0);
+        button.setMinimumWidth(0);
+        button.setPadding(dp(6), 0, dp(6), 0);
+        return button;
+    }
+
+    private void extbanSubheading(LinearLayout root, int labelId, Button extras) {
+        LinearLayout row = horizontal();
+        TextView label = text(context.getString(labelId), 11);
+        label.setTypeface(null, android.graphics.Typeface.BOLD);
+        row.addView(label, new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+        row.addView(extras, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, dp(32)));
+        line(root, row);
+    }
+
     private void addActing(LinearLayout row, char code, String label) {
-        row.addView(checkbox(label, false, dialect.supportsActing(code), value -> {
+        CheckBox box = checkbox(label, false, dialect.supportsActing(code), value -> {
             if (value) state.acting.add(code);
             else state.acting.remove(code);
             updatePreview();
-        }));
+        });
+        box.setMaxLines(2);
+        row.addView(box, new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1));
     }
 
     private CheckBox addMatching(LinearLayout row, char code, String label) {
@@ -413,7 +446,9 @@ public final class OperatorActionsComposerDialog {
         });
         holder[0] = box;
         matchingChecks.put(code, box);
-        row.addView(box);
+        box.setMaxLines(2);
+        row.addView(box, new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1));
         return box;
     }
 
@@ -489,7 +524,7 @@ public final class OperatorActionsComposerDialog {
 
     public void show() {
         LinearLayout content = vertical();
-        content.setPadding(dp(16), dp(4), dp(16), dp(8));
+        content.setPadding(dp(12), dp(2), dp(12), dp(4));
         ScrollView scroll = new ScrollView(context);
         scroll.setFillViewport(false);
         scroll.addView(content);
@@ -533,8 +568,8 @@ public final class OperatorActionsComposerDialog {
         preview = new EditText(context);
         preview.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         preview.setTypeface(android.graphics.Typeface.MONOSPACE);
-        preview.setMinLines(4);
-        preview.setMaxLines(7);
+        preview.setMinLines(3);
+        preview.setMaxLines(5);
         preview.setGravity(Gravity.TOP | Gravity.START);
         preview.setHorizontallyScrolling(false);
         line(content, preview);
@@ -548,7 +583,10 @@ public final class OperatorActionsComposerDialog {
         }));
         Button regenerate = new Button(context);
         regenerate.setText(R.string.operator_composer_regenerate);
-        regenerate.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        regenerate.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        regenerate.setMinHeight(dp(34));
+        regenerate.setMinimumHeight(dp(34));
+        regenerate.setPadding(dp(6), 0, dp(6), 0);
         regenerate.setOnClickListener(v -> {
             manuallyEdited = false;
             updatePreview();
@@ -590,6 +628,11 @@ public final class OperatorActionsComposerDialog {
                     dialog.dismiss();
                 }));
         dialog.show();
+        // Use nearly the whole phone width, rather than losing space to AlertDialog defaults.
+        Window window = dialog.getWindow();
+        if (window != null)
+            window.setLayout(context.getResources().getDisplayMetrics().widthPixels - dp(16),
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
         updatePreview();
     }
 }
