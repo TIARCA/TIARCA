@@ -1151,8 +1151,8 @@
     <string name="operator_composer_extban">EXTBAN</string>
     <string name="operator_composer_acting">ACTING</string>
     <string name="operator_composer_matching">MATCHING</string>
-    <string name="operator_composer_mask_match">CORRISPONDENZA MASCHERA</string>
-    <string name="operator_composer_preview">ANTEPRIMA COMANDI · modificabile</string>
+    <string name="operator_composer_mask_match">MASK</string>
+    <string name="operator_composer_preview">PREVIEW</string>
     <string name="operator_composer_regenerate">Rigenera anteprima</string>
     <string name="operator_composer_missing_extban">Il server non annuncia EXTBAN: comandi speciali non disponibili.</string>
     <string name="operator_composer_modified">Anteprima modificata a mano: premi Rigenera per applicare le selezioni.</string>
