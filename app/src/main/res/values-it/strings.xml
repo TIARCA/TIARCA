@@ -1142,4 +1142,35 @@
     <string name="media_open_external">Aperto esternamente</string>
     <string name="media_audio_label">Riproduzione audio</string>
 
+    <string name="operator_composer_user_modes">UTENTE E MODE · %1$s</string>
+    <string name="operator_composer_details">Real name: %1$s  ·  Account: %2$s</string>
+    <string name="operator_composer_unavailable">—</string>
+    <string name="operator_composer_actions">AZIONI</string>
+    <string name="operator_composer_more_actions">Altre azioni</string>
+    <string name="operator_composer_remove_ban">Rimuovi ban sulla maschera</string>
+    <string name="operator_composer_extban">EXTBAN</string>
+    <string name="operator_composer_acting">ACTING</string>
+    <string name="operator_composer_matching">MATCHING</string>
+    <string name="operator_composer_mask_match">CORRISPONDENZA MASCHERA</string>
+    <string name="operator_composer_preview">ANTEPRIMA COMANDI · modificabile</string>
+    <string name="operator_composer_regenerate">Rigenera anteprima</string>
+    <string name="operator_composer_missing_extban">Il server non annuncia EXTBAN: comandi speciali non disponibili.</string>
+    <string name="operator_composer_modified">Anteprima modificata a mano: premi Rigenera per applicare le selezioni.</string>
+    <string name="operator_composer_manual">Anteprima manuale: i comandi saranno inviati come scritti.</string>
+    <string name="operator_composer_no_extras">Nessuna altra extban annunciata dal server</string>
+    <string name="operator_composer_other_acting">Altre acting</string>
+    <string name="operator_composer_other_matching">Altre matching</string>
+    <string name="operator_composer_others_count">Altri (%1$d) ▾</string>
+    <string name="operator_composer_country">G: Paese</string>
+    <string name="operator_composer_unauth">U: Non autenticati</string>
+    <string name="operator_composer_account">R: Account</string>
+    <string name="operator_composer_nonick">N: Nonick</string>
+    <string name="operator_composer_auditorium">u: Auditorium</string>
+    <string name="operator_composer_mute">m: Mute</string>
+    <string name="operator_composer_kick">Kick</string>
+    <string name="operator_composer_ban">Ban</string>
+    <string name="operator_composer_timed">Timed</string>
+    <string name="operator_composer_nickname">Nickname</string>
+    <string name="operator_composer_ident">Ident</string>
+    <string name="operator_composer_host">Host</string>
 </resources>
