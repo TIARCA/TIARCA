@@ -431,8 +431,9 @@ public final class OperatorActionsComposerDialog {
             updatePreview();
         });
         box.setMaxLines(2);
+        // Auditorium needs more width than Mute, especially with enlarged fonts.
         row.addView(box, new LinearLayout.LayoutParams(0,
-                LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+                LinearLayout.LayoutParams.WRAP_CONTENT, code == 'u' ? 1.35f : 0.90f));
     }
 
     private CheckBox addMatching(LinearLayout row, char code, String label) {
@@ -447,8 +448,9 @@ public final class OperatorActionsComposerDialog {
         holder[0] = box;
         matchingChecks.put(code, box);
         box.setMaxLines(2);
+        // The full "Non autenticati" label must remain readable, not clipped.
         row.addView(box, new LinearLayout.LayoutParams(0,
-                LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+                LinearLayout.LayoutParams.WRAP_CONTENT, code == 'U' ? 1.55f : 0.85f));
         return box;
     }
 
