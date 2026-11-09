@@ -357,12 +357,12 @@ public final class OperatorActionsComposerDialog {
                 Math.max(0, state.acting.size() -
                         (state.acting.contains('m') ? 1 : 0) -
                         (state.acting.contains('u') ? 1 : 0) -
-                        (state.acting.contains('N') ? 1 : 0)));
+                        (state.acting.contains('N') ? 1 : 0))));
         if (moreMatching != null) moreMatching.setText(context.getString(R.string.operator_composer_others_count,
                 Math.max(0, state.matching.size() -
                         (state.matching.contains('R') ? 1 : 0) -
                         (state.matching.contains('U') ? 1 : 0) -
-                        (state.matching.contains('G') ? 1 : 0)));
+                        (state.matching.contains('G') ? 1 : 0))));
     }
 
     private void buildExtbans(LinearLayout root) {
