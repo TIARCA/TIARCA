@@ -67,6 +67,20 @@ public final class LuaScriptsActivity extends ThemedActivity {
         list.removeAllViews();
         list.addView(text(getString(R.string.lua_scripts_description), 15));
         list.addView(button(R.string.lua_scripts_import, this::openPicker));
+        list.addView(button(R.string.lua_scripts_remove_all, () ->
+                new AlertDialog.Builder(this)
+                        .setTitle(R.string.lua_scripts_remove_all)
+                        .setMessage(R.string.lua_scripts_remove_all_confirm)
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .setPositiveButton(R.string.lua_scripts_remove_all, (dialog, which) -> {
+                            try {
+                                store.clearAll();
+                                LuaScriptDispatcher.get(this).reload();
+                                render();
+                            } catch (IOException error) {
+                                failure(error);
+                            }
+                        }).show()));
         list.addView(button(R.string.lua_scripts_refresh, this::render));
         List<LuaScriptStore.Script> scripts = store.list();
         if (scripts.isEmpty()) {

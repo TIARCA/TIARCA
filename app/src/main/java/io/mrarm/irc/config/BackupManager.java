@@ -36,6 +36,8 @@ import java.util.Set;
 import java.util.UUID;
 
 import io.mrarm.irc.ServerConnectionManager;
+import io.mrarm.irc.lua.LuaScriptStore;
+import io.mrarm.irc.lua.LuaScriptDispatcher;
 import io.mrarm.irc.setting.ListWithCustomSetting;
 import io.mrarm.irc.util.theme.ThemeInfo;
 import io.mrarm.irc.util.theme.ThemeManager;
@@ -125,6 +127,9 @@ public class BackupManager {
                     .toArray(new String[0]);
             zipFile.addStream(new ByteArrayInputStream(
                     SettingsHelper.getGson().toJson(importedPresetIds).getBytes()), params);
+            // User-imported Lua sources are backed up, but activation and
+            // send permissions are ALWAYS excluded and must be granted again.
+            LuaScriptStore.get(context).exportToBackup(zipFile, params);
         } catch (ZipException e) {
             throw new IOException(e);
         }
@@ -273,6 +278,11 @@ public class BackupManager {
             } catch (ZipException ignored) {
             }
             NotificationCountStorage.getInstance(context).open();
+
+            // Validate all restored Lua sources/hash and keep them DISABLED.
+            // Missing Lua entries in older backups clear the current script list.
+            LuaScriptStore.get(context).restoreFromBackup(zipFile);
+            LuaScriptDispatcher.get(context).reload();
 
             themeManager.reloadThemes();
         } catch (ZipException e) {

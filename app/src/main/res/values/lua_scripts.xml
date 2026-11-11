@@ -22,4 +22,6 @@
     <string name="lua_scripts_send_permission">Also allow automatic replies in the same conversation (tiarca.send)</string>
     <string name="lua_scripts_imported">Imported %1$s (disabled)</string>
     <string name="lua_scripts_error">Lua script error</string>
+    <string name="lua_scripts_remove_all">Remove all Lua scripts</string>
+    <string name="lua_scripts_remove_all_confirm">Delete all imported Lua sources and revoke their permissions?</string>
 </resources>
