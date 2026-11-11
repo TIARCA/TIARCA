@@ -77,7 +77,7 @@ int tiarca_lua_poc_run(const char *script, size_t script_size,
     }
 
     ProbeBudget budget = {0, memory_budget_bytes, 0, instruction_budget};
-    lua_State *state = lua_newstate(limited_alloc, &budget);
+    lua_State *state = lua_newstate(limited_alloc, &budget, luaL_makeseed(NULL));
     if (state == NULL) {
         snprintf(output, output_size, "failed to create Lua state (memory budget)");
         return 1;
