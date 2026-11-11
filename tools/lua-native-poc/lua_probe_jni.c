@@ -11,7 +11,7 @@
 #include "lua_sandbox.h"
 
 JNIEXPORT jstring JNICALL
-Java_io_tiarca_irc_luapoc_LuaProbe_runProbe(JNIEnv *env, jclass type, jstring script) {
+Java_io_mrarm_irc_lua_NativeLuaProbe_runProbe(JNIEnv *env, jclass type, jstring script) {
     (void)type;
     if (script == NULL) {
         return (*env)->NewStringUTF(env, "invalid probe argument");
