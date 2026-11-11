@@ -86,12 +86,14 @@ public final class LuaScriptDispatcher {
         }
 
         @Override public void onServiceDisconnected(ComponentName name) {
+            disableInFlightAfterCrash();
             clearPending();
             remote = null;
             // With BIND_AUTO_CREATE Android may reconnect; then loadAll runs again.
         }
 
         @Override public void onBindingDied(ComponentName name) {
+            disableInFlightAfterCrash();
             clearPending();
             remote = null;
             main.post(() -> {
@@ -148,6 +150,16 @@ public final class LuaScriptDispatcher {
             remote = null;
             context.unbindService(connection);
             bound = false;
+        }
+    }
+
+    private void disableInFlightAfterCrash() {
+        // Only disable scripts actually executing when an isolated service dies;
+        // unrelated, idle scripts are safe to reload after reconnection.
+        for (Pending request : pending.values()) {
+            if (request.isEvent)
+                store.fail(request.scriptId,
+                        "Lua process terminated while executing this script");
         }
     }
 

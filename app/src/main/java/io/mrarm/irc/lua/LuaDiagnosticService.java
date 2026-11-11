@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.Looper;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
@@ -36,6 +37,10 @@ public final class LuaDiagnosticService extends Service {
     public static final String EXTRA_ISOLATED = "isolated";
     public static final String EXTRA_PID = "pid";
 
+    private static final long SCRIPT_TIMEOUT_MS = 3000L;
+    private final Handler watchdog = new Handler(Looper.getMainLooper());
+    private final java.util.concurrent.atomic.AtomicInteger activeCall =
+            new java.util.concurrent.atomic.AtomicInteger();
     private HandlerThread worker;
     private Messenger messenger;
 
@@ -102,6 +107,24 @@ public final class LuaDiagnosticService extends Service {
 
     private void handleUserScript(Message message) {
         if (message.replyTo == null) return;
+        // Lua runs on a worker. The independent main looper is the watchdog:
+        // a non-returning native function cannot bypass this by missing Lua
+        // instruction hooks. Only this isolated process is terminated.
+        final int generation = activeCall.incrementAndGet();
+        Runnable timeout = () -> {
+            if (activeCall.get() == generation)
+                Process.killProcess(Process.myPid());
+        };
+        watchdog.postDelayed(timeout, SCRIPT_TIMEOUT_MS);
+        try {
+            handleScriptWithinBudget(message);
+        } finally {
+            activeCall.incrementAndGet();
+            watchdog.removeCallbacks(timeout);
+        }
+    }
+
+    private void handleScriptWithinBudget(Message message) {
         Bundle request = message.getData();
         String scriptId = request.getString(EXTRA_SCRIPT_ID);
         if (scriptId == null || scriptId.length() != 36) return;
