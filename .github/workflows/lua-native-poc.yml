@@ -9,6 +9,12 @@ on:
       - 'app/src/main/cpp/**'
       - 'app/src/main/java/io/mrarm/irc/lua/NativeLuaRuntime.java'
       - '.github/workflows/lua-native-poc.yml'
+  pull_request:
+    paths:
+      - 'tools/lua-native-poc/**'
+      - 'app/src/main/cpp/**'
+      - 'app/src/main/java/io/mrarm/irc/lua/NativeLuaRuntime.java'
+      - '.github/workflows/lua-native-poc.yml'
   workflow_dispatch:
 
 permissions:
