@@ -70,6 +70,8 @@ public class UserBottomSheetDialog {
     private String mHost;
     private String mRealName;
     private String mAccount;
+    private String mAuthenticatedAccount;
+    private String mCountryCode;
     private String mSourceChannel;
     private boolean mSourceChannelExplicit;
     private boolean mHistoricalData;
@@ -101,6 +103,8 @@ public class UserBottomSheetDialog {
 
     public void requestData(String nick, ChatApi connection) {
         mHost = null;
+        mAuthenticatedAccount = null;
+        mCountryCode = null;
         mAccount = SimosnapAvatarManager.resolveAccount(mConnection, nick, null);
         setUser(nick, null, null, false);
         connection.sendWhois(nick, (WhoisInfo info) -> {
@@ -115,8 +119,10 @@ public class UserBottomSheetDialog {
         mEntries.clear();
         mHistoricalData = false;
         mHost = info.getHost();
+        mAuthenticatedAccount = info.getLoggedInAsAccount();
+        mCountryCode = info.getCountryCode();
         mAccount = SimosnapAvatarManager.resolveAccount(
-                mConnection, info.getNick(), info.getLoggedInAsAccount());
+                mConnection, info.getNick(), mAuthenticatedAccount);
         String awayMessage = info.getAwayMessage();
         boolean away = awayMessage != null;
         UserInfo knownUser = getKnownUser(info.getNick());
@@ -396,58 +402,9 @@ public class UserBottomSheetDialog {
             return;
         }
 
-        boolean hostAvailable = isSafeIrcParameter(mHost);
-        boolean identAvailable = isSafeIrcParameter(mUser);
-        MenuBottomSheetDialog menu = new MenuBottomSheetDialog(mContext);
-        menu.addHeader(mContext.getString(R.string.operator_actions_for, mSourceChannel));
-        menu.addItem(mContext.getString(R.string.operator_kick), R.drawable.ic_close,
-                mTargetPresent, item -> {
-            showKickDialog(false);
-            return true;
-        });
-        menu.addItem(mContext.getString(R.string.operator_kickban), R.drawable.ic_delete,
-                hostAvailable, item -> {
-            showKickDialog(true);
-            return true;
-        });
-        menu.addItem(mContext.getString(R.string.operator_kickban_ident), R.drawable.ic_delete,
-                true, item -> {
-            showKickbanIdentDialog();
-            return true;
-        });
-        menu.addItem(mContext.getString(R.string.operator_tban), R.drawable.ic_history,
-                hostAvailable, item -> {
-                    showTbanDialog();
-                    return true;
-                });
-        menu.addItem(mContext.getString(R.string.operator_mute), R.drawable.ic_lock_small,
-                hostAvailable, item -> {
-                    showSimpleConfirmation(R.string.operator_mute,
-                            "MODE " + mSourceChannel + " +b m:*!*@" + mHost);
-                    return true;
-                });
-        menu.addItem(mContext.getString(R.string.operator_audi), R.drawable.ic_user,
-                identAvailable, item -> {
-                    showSimpleConfirmation(R.string.operator_audi,
-                            "MODE " + mSourceChannel + " +b u:*!" + mUser + "@*");
-                    return true;
-                });
-        menu.addItem(mContext.getString(R.string.operator_unban_host), R.drawable.ic_refresh,
-                hostAvailable, item -> {
-                    showMaskCommandDialog(R.string.operator_unban_host,
-                            "MODE " + mSourceChannel + " -b ", "*!*@" + mHost);
-                    return true;
-                });
-        NickWithPrefix targetMember = findMember(mSourceChannel, mNick);
-        boolean targetHasVoice = ChannelOperatorUtils.hasVoice(mConnection, targetMember);
-        int voiceAction = targetHasVoice ? R.string.operator_devoice : R.string.operator_voice;
-        menu.addItem(mContext.getString(voiceAction), R.drawable.ic_add_circle_outline,
-                mTargetPresent, item -> {
-                    showSimpleConfirmation(voiceAction,
-                            "MODE " + mSourceChannel + " " + (targetHasVoice ? "-v " : "+v ") + mNick);
-                    return true;
-                });
-        menu.show();
+        new OperatorActionsComposerDialog(mContext, mConnection, mSourceChannel,
+                mNick, mUser, mHost, mRealName, mAuthenticatedAccount, mCountryCode,
+                mTargetPresent).show();
     }
 
     private void showKickDialog(boolean kickban) {

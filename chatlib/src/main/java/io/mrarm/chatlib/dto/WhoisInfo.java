@@ -15,6 +15,8 @@ public class WhoisInfo {
     private int idle;
     private List<ChannelWithNickPrefixes> channels;
     private String account;
+    // Optional server-reported GeoIP alpha-2 code, never inferred from the hostname.
+    private String countryCode;
     private boolean secureConnection;
     private String awayMessage;
 
@@ -56,6 +58,10 @@ public class WhoisInfo {
 
     public String getLoggedInAsAccount() {
         return account;
+    }
+
+    public String getCountryCode() {
+        return countryCode;
     }
 
     public boolean isConnectionSecure() {
@@ -118,6 +124,10 @@ public class WhoisInfo {
 
         public void setAccount(String account) {
             object.account = account;
+        }
+
+        public void setCountryCode(String countryCode) {
+            object.countryCode = countryCode;
         }
 
         public void setSecure(boolean secureConnection) {

@@ -16,6 +16,8 @@ public class ISupportCommandHandler implements CommandHandler {
     public static final String PARAM_STATUSMSG = "STATUSMSG";
     public static final String PARAM_CHANMODES = "CHANMODES";
     public static final String PARAM_EXCEPTS = "EXCEPTS";
+    public static final String PARAM_EXTBAN = "EXTBAN";
+    public static final String PARAM_ACCOUNTEXTBAN = "ACCOUNTEXTBAN";
     public static final String PARAM_MONITOR = "MONITOR";
     public static final String PARAM_SECURELIST = "SECURELIST";
     public static final String PARAM_CASEMAPPING = "CASEMAPPING";
@@ -86,6 +88,10 @@ public class ISupportCommandHandler implements CommandHandler {
                         supportList.getSupportedFlagChannelModes()
                 );
             }
+        } else if (param.equals(PARAM_EXTBAN)) {
+            supportList.setExtban(remove ? null : value);
+        } else if (param.equals(PARAM_ACCOUNTEXTBAN)) {
+            supportList.setAccountExtban(remove ? null : value);
         } else if (param.equals(PARAM_MONITOR)) {
             try { supportList.setMonitorLimit(remove ? -1 : Integer.parseInt(value)); }
             catch (NumberFormatException | NullPointerException ignored) { supportList.setMonitorLimit(-1); }

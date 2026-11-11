@@ -1139,4 +1139,36 @@
     <string name="media_open_external">Open externally</string>
     <string name="media_audio_label">Audio playback</string>
 
+    <string name="operator_composer_user_modes">USER AND MODES · %1$s</string>
+    <string name="operator_composer_details">Real name: %1$s  ·  Account: %2$s</string>
+    <string name="operator_composer_unavailable">—</string>
+    <string name="operator_composer_actions">ACTIONS</string>
+    <string name="operator_composer_more_actions">Other actions</string>
+    <string name="operator_composer_remove_ban">Remove ban for this mask</string>
+    <string name="operator_composer_extban">EXTBAN</string>
+    <string name="operator_composer_acting">ACTING</string>
+    <string name="operator_composer_matching">MATCHING</string>
+    <string name="operator_composer_mask_match">MASK</string>
+    <string name="operator_composer_preview">PREVIEW</string>
+    <string name="operator_composer_regenerate">Regenerate preview</string>
+    <string name="operator_composer_missing_extban">Server does not advertise EXTBAN: special modes unavailable.</string>
+    <string name="operator_composer_modified">Preview edited manually: press Regenerate to apply new selections.</string>
+    <string name="operator_composer_manual">Manual preview: commands will be sent exactly as entered.</string>
+    <string name="operator_composer_no_extras">No other extended bans advertised by server</string>
+    <string name="operator_composer_other_acting">Other acting</string>
+    <string name="operator_composer_other_matching">Other matching</string>
+    <string name="operator_composer_others_count">Other (%1$d) ▾</string>
+    <string name="operator_composer_country">G: Country</string>
+    <string name="operator_composer_unauth">U: Unauthenticated</string>
+    <string name="operator_composer_account">R: Account</string>
+    <string name="operator_composer_nonick">N: No nick changes</string>
+    <string name="operator_composer_auditorium">u: Auditorium</string>
+    <string name="operator_composer_mute">m: Mute</string>
+    <string name="operator_composer_kick">Kick</string>
+    <string name="operator_composer_ban">Ban</string>
+    <string name="operator_composer_timed">Timed</string>
+    <string name="operator_composer_nickname">Nickname</string>
+    <string name="operator_composer_ident">Ident</string>
+    <string name="operator_composer_host">Host</string>
+    <string name="operator_composer_country_invalid">Enter a two-letter ISO country code (e.g. IT).</string>
 </resources>

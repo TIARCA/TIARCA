@@ -21,6 +21,8 @@ public class WhoisCommandHandler extends RequestResponseCommandHandler<String, W
     public static final int RPL_WHOISCHANNELS = 319;
     public static final int RPL_WHOISACCOUNT = 330;
     public static final int RPL_WHOISBOT = 335;
+    // Optional InspIRCd geoban numeric: <client> <nick> <alpha2> :country name.
+    public static final int RPL_WHOISCOUNTRY = 344;
     public static final int RPL_WHOISSECURE = 671;
 
     public static final int ERR_NOSUCHNICK = 401;
@@ -44,7 +46,7 @@ public class WhoisCommandHandler extends RequestResponseCommandHandler<String, W
     public Object[] getHandledCommands() {
         return new Object[] { RPL_WHOISUSER, RPL_WHOISSERVER, RPL_WHOISOPERATOR,
                 RPL_WHOISIDLE, RPL_ENDOFWHOIS, RPL_WHOISCHANNELS, RPL_WHOISACCOUNT,
-                RPL_WHOISBOT, RPL_WHOISSECURE };
+                RPL_WHOISBOT, RPL_WHOISSECURE, RPL_WHOISCOUNTRY };
     }
 
     @Override
@@ -98,6 +100,12 @@ public class WhoisCommandHandler extends RequestResponseCommandHandler<String, W
             }
         } else if (numeric == RPL_WHOISACCOUNT) {
             builder.setAccount(CommandHandler.getParamWithCheck(params, 2));
+        } else if (numeric == RPL_WHOISCOUNTRY) {
+            // 344 is not universal. Accept only the explicit two-letter value attached
+            // to this ongoing WHOIS, not the country name or a guessed DNS suffix.
+            String country = CommandHandler.getParamOrNull(params, 2);
+            if (country != null && country.matches("(?i)[A-Z]{2}"))
+                builder.setCountryCode(country.toUpperCase(Locale.ROOT));
         } else if (numeric == RPL_WHOISSECURE) {
             builder.setSecure(true);
         } else if (numeric == RPL_ENDOFWHOIS) {

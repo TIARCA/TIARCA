@@ -13,9 +13,19 @@ public class ServerSupportList {
     private ModeList channelModesValueExactUnset = new ModeList("k"); // single value, has add&remove param
     private ModeList channelModesValue = new ModeList("l"); // single value, has add param
     private ModeList channelModesFlag = new ModeList("imnpst"); // no params
+    // Advertised by RPL_ISUPPORT 005; null means not advertised.
+    // The raw values are retained because extended-ban names are server-specific.
+    private String extban;
+    private String accountExtban;
     private int monitorLimit = -1;
     private int secureListWaitSeconds = -1;
     private IRCCaseMapping caseMapping = IRCCaseMapping.RFC1459;
+
+    public synchronized String getExtban() { return extban; }
+    public synchronized void setExtban(String value) { extban = value; }
+
+    public synchronized String getAccountExtban() { return accountExtban; }
+    public synchronized void setAccountExtban(String value) { accountExtban = value; }
 
     /** -1 means that the server did not advertise standard IRC MONITOR support. */
     public int getMonitorLimit() { return monitorLimit; }
