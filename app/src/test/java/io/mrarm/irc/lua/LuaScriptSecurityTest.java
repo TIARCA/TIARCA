@@ -34,6 +34,23 @@ public class LuaScriptSecurityTest {
                 "message", "otherNick", "bello ciao"));
     }
 
+    @Test public void localCommandCannotBypassSendPermissionOrTarget() {
+        assertFalse(LuaActionPolicy.permitsSend(approved(false), SERVER_ID, "#chat",
+                "command", "#chat", "Ciao"));
+        assertTrue(LuaActionPolicy.permitsSend(approved(true), SERVER_ID, "#chat",
+                "command", "#chat", "Ciao"));
+        assertFalse(LuaActionPolicy.permitsSend(approved(true), OTHER_SERVER, "#chat",
+                "command", "#chat", "Ciao"));
+        assertFalse(LuaActionPolicy.permitsSend(approved(true), SERVER_ID, "#chat",
+                "command", "#other", "Ciao"));
+        assertFalse(LuaActionPolicy.permitsSend(approved(true), SERVER_ID, "",
+                "command", "", "Ciao"));
+        assertFalse(LuaActionPolicy.permitsSend(approved(true), SERVER_ID, "#chat",
+                "command", "#chat", "Line1\nLine2"));
+        assertFalse(LuaActionPolicy.permitsSend(approved(true), SERVER_ID, "#chat",
+                "unknown", "#chat", "Ciao"));
+    }
+
     @Test public void scopeCannotBeChangedByScript() {
         assertFalse(LuaActionPolicy.permitsSend(approved(true), OTHER_SERVER, "#chat",
                 "message", "#chat", "Hello"));
