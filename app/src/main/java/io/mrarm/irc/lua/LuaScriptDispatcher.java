@@ -54,6 +54,7 @@ public final class LuaScriptDispatcher {
     private final Handler io;
     private final AtomicInteger sequence = new AtomicInteger();
     private final AtomicInteger pendingEvents = new AtomicInteger();
+    private final AtomicInteger queuedEvents = new AtomicInteger();
     private final Map<Integer, Pending> pending = new ConcurrentHashMap<>();
     private final Map<String, Long> lastScriptSend = new HashMap<>();
     private final Map<String, Long> lastServerSend = new HashMap<>();
@@ -234,28 +235,38 @@ public final class LuaScriptDispatcher {
     private void enqueue(String event, String server, String channel,
                          String nick, String text, String messageType, long time) {
         if (remote == null || store.enabledOn(server).isEmpty()) return;
-        io.post(() -> {
-            if (remote == null) return;
-            List<LuaScriptStore.Script> eligible = store.enabledOn(server);
-            for (LuaScriptStore.Script script : eligible) {
-                if (pendingEvents.incrementAndGet() > MAX_PENDING_EVENTS) {
-                    pendingEvents.decrementAndGet();
-                    return; // bounded queue: drop event rather than block IRC thread
+        // Bound events *before* adding to HandlerThread, not only in-flight Binder
+        // requests: otherwise a burst of IRC messages can grow the Java queue.
+        if (queuedEvents.incrementAndGet() > MAX_PENDING_EVENTS) {
+            queuedEvents.decrementAndGet();
+            return;
+        }
+        if (!io.post(() -> {
+            try {
+                if (remote == null) return;
+                List<LuaScriptStore.Script> eligible = store.enabledOn(server);
+                for (LuaScriptStore.Script script : eligible) {
+                    if (pendingEvents.incrementAndGet() > MAX_PENDING_EVENTS) {
+                        pendingEvents.decrementAndGet();
+                        return; // drop event; never block IRC threads
+                    }
+                    Message request = Message.obtain(null, LuaDiagnosticService.REQUEST_EVENT);
+                    Bundle data = new Bundle();
+                    data.putString(LuaDiagnosticService.EXTRA_SCRIPT_ID, script.id);
+                    data.putString(LuaDiagnosticService.EXTRA_EVENT, event);
+                    data.putString(LuaDiagnosticService.EXTRA_SERVER, server);
+                    data.putString(LuaDiagnosticService.EXTRA_CHANNEL, channel);
+                    data.putString(LuaDiagnosticService.EXTRA_NICK, nick);
+                    data.putString(LuaDiagnosticService.EXTRA_TEXT, text);
+                    data.putString(LuaDiagnosticService.EXTRA_MESSAGE_TYPE, messageType);
+                    data.putLong(LuaDiagnosticService.EXTRA_TIME, time);
+                    request.setData(data);
+                    sendMessage(request, new Pending(script.id, server, channel, event, true));
                 }
-                Message request = Message.obtain(null, LuaDiagnosticService.REQUEST_EVENT);
-                Bundle data = new Bundle();
-                data.putString(LuaDiagnosticService.EXTRA_SCRIPT_ID, script.id);
-                data.putString(LuaDiagnosticService.EXTRA_EVENT, event);
-                data.putString(LuaDiagnosticService.EXTRA_SERVER, server);
-                data.putString(LuaDiagnosticService.EXTRA_CHANNEL, channel);
-                data.putString(LuaDiagnosticService.EXTRA_NICK, nick);
-                data.putString(LuaDiagnosticService.EXTRA_TEXT, text);
-                data.putString(LuaDiagnosticService.EXTRA_MESSAGE_TYPE, messageType);
-                data.putLong(LuaDiagnosticService.EXTRA_TIME, time);
-                request.setData(data);
-                sendMessage(request, new Pending(script.id, server, channel, event, true));
+            } finally {
+                queuedEvents.decrementAndGet();
             }
-        });
+        })) queuedEvents.decrementAndGet();
     }
 
     private boolean handleReply(Message message) {
