@@ -205,14 +205,24 @@ public final class LuaScriptsActivity extends ThemedActivity {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode != PICK_LUA || resultCode != Activity.RESULT_OK ||
                 data == null || data.getData() == null) return;
-        try {
-            LuaScriptStore.Script imported = store.importFromUri(data.getData());
-            Toast.makeText(this, getString(R.string.lua_scripts_imported, imported.name),
-                    Toast.LENGTH_LONG).show();
-            render();
-        } catch (IOException error) {
-            failure(error);
-        }
+        final android.net.Uri selected = data.getData();
+        // SAF providers may be remote/cloud backed. Do not block the UI thread
+        // while reading the selected source document.
+        new Thread(() -> {
+            try {
+                LuaScriptStore.Script imported = store.importFromUri(selected);
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    Toast.makeText(this, getString(R.string.lua_scripts_imported, imported.name),
+                            Toast.LENGTH_LONG).show();
+                    render();
+                });
+            } catch (IOException error) {
+                runOnUiThread(() -> {
+                    if (!isFinishing() && !isDestroyed()) failure(error);
+                });
+            }
+        }, "tiarca-lua-import").start();
     }
 
     private void failure(Exception error) {

@@ -103,3 +103,13 @@ normal IRC connection continues.
    sources return but permission must be reapproved.
 9. Test all supported ABIs, light/dark UI, foreground/background,
    APK size, RAM, battery and reproducible full APKs.
+
+## Example scripts
+
+Two manually importable sources are included in the repository:
+- [Count messages](lua-examples/count_messages.lua), log-only.
+- [Same-conversation reply](lua-examples/auto_reply.lua), which requires the
+  optional per-script `tiarca.send` permission.
+
+Download the `.lua` file explicitly and select it in the Android document
+picker. These examples are **not** downloaded or executed automatically.
