@@ -106,10 +106,14 @@ normal IRC connection continues.
 
 ## Example scripts
 
-Two manually importable sources are included in the repository:
+Three manually importable sources are included in the repository:
 - [Count messages](lua-examples/count_messages.lua), log-only.
 - [Same-conversation reply](lua-examples/auto_reply.lua), which requires the
   optional per-script `tiarca.send` permission.
+- [Private "ciao bello" reply](lua-examples/ciao_bello_pvt.lua), which responds
+  "bello ciao" only to incoming private messages matching "ciao bello"
+  (case-insensitive, ignoring outer whitespace). Requires send consent.
+  It checks that the event's conversation target equals its sender nick.
 
 Download the `.lua` file explicitly and select it in the Android document
 picker. These examples are **not** downloaded or executed automatically.
