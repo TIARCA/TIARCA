@@ -196,12 +196,11 @@
     <string name="file_upload_title">Invia tramite Simosnap</string>
     <string name="file_upload_confirm">Carica %1$s (%2$s) e invia il collegamento temporaneo a %3$s?</string>
 
-    <string name="file_upload_choose_service">Scegli il servizio di caricamento</string>
     <string name="file_upload_insert_confirm">Caricare %1$s (%2$s) e inserire il collegamento nella bozza?</string>
-    <string name="file_upload_service_disclosure">SimosNap richiede un account IRC registrato e autenticato. TempSend è un servizio esterno indipendente, anonimo: i collegamenti scadono dopo 7 giorni e chiunque li possieda può scaricare o eliminare il file.</string>
-    <string name="file_upload_simosnap_option">SimosNap (account)</string>
-    <string name="file_upload_tempsend_option">TempSend (anonimo)</string>
-    <string name="file_upload_auth_required">Per caricare su SimosNap devi usare un account registrato e autenticato sulla rete IRC SimosNap. Puoi scegliere TempSend per inviare senza account.</string>
+    <string name="file_upload_connection_required">Connettiti a SimosNap e autentica il tuo account IRC prima di caricare un file.</string>
+    <string name="file_upload_auth_required">SimosNap richiede un account IRC registrato e autenticato per caricare file. Identificati tramite NickServ o attiva SASL, poi riprova.</string>
+    <string name="file_upload_busy">È già in corso una richiesta di autenticazione per un invio. Riprova quando termina.</string>
+    <string name="file_upload_token_timeout">SimosNap non ha restituito un token per l\'invio. Controlla che il tuo account sia autenticato e riprova.</string>
     <string name="file_upload_progress">Caricamento file temporaneo…</string>
     <string name="file_upload_sent">File caricato e collegamento inviato</string>
     <string name="file_upload_failed">Caricamento non riuscito: %1$s</string>
