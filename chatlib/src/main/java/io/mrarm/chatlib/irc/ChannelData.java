@@ -105,13 +105,6 @@ public class ChannelData {
         }
     }
 
-    /** Snapshot count of members for local diagnostics; never expose the mutable list. */
-    public int getMemberCount() {
-        synchronized (membersLock) {
-            return members.size();
-        }
-    }
-
     public List<Member> getMembers() {
         synchronized (membersLock) {
             return members;
