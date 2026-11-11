@@ -36,10 +36,22 @@ It does not compile standalone lua/luac, package, os, io or debug libraries.
 - very large string allocation rejected via bounded allocator;
 - precompiled bytecode rejected (Lua load mode t);
 - Android NDK r28c ARM64 shared library compilation;
-- byte-for-byte comparison of two independent Android CMake build directories;
+- byte-for-byte comparison of stripped Android .so output from two independent CMake build directories;
 - ELF LOAD segment alignment >= 16 KiB.
 
 The last three tests require the branch GitHub Actions workflow to complete.
+
+## Measured result (11 November 2026)
+
+Successful branch workflow: https://github.com/TIARCA/TIARCA/actions/runs/43019398825
+- Official Lua source SHA-256 verified: yes.
+- Host: 8 checks passed inside one CTest case.
+- Android arm64-v8a with NDK 28.2.13676358: linked successfully.
+- Unstripped native output: 1,546,792 bytes. The independent raw outputs were NOT byte-for-byte identical.
+- Stripped native output: 284,168 bytes. The independent stripped outputs WERE byte-for-byte identical.
+- SHA-256 of both stripped files: 8521b8dfbda6e899b32d1877796a43cf0f18d2ca7f39d83c1e1ec4c9bbb5cb28.
+- ELF load alignments: 16384, 16384, 16384 bytes.
+- These are native binary metrics, NOT APK-size or F-Droid reproducibility proofs.
 
 ## Explicitly NOT verified
 
