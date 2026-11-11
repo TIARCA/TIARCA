@@ -150,7 +150,7 @@ public final class LuaDiagnosticService extends Service {
                         nick.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 96 ||
                         text.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 2048 ||
                         !("message".equals(event) || "connected".equals(event) ||
-                                "disconnected".equals(event))) {
+                                "disconnected".equals(event) || "command".equals(event))) {
                     status = "ERROR: invalid event";
                 } else {
                     byte[][] nativeActions = NativeLuaRuntime.dispatch(scriptId, event,
