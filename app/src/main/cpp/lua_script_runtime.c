@@ -29,8 +29,8 @@ typedef struct ScriptVm {
     lua_State *L;
     size_t allocated;
     unsigned long steps;
-    int callbacks[3][MAX_HANDLERS];
-    int count[3];
+    int callbacks[4][MAX_HANDLERS];
+    int count[4];
     int event_active;
     int action_count;
     ScriptAction actions[MAX_ACTIONS];
@@ -70,6 +70,7 @@ static int event_kind(const char *name) {
     if (!strcmp(name, "message")) return 0;
     if (!strcmp(name, "connected")) return 1;
     if (!strcmp(name, "disconnected")) return 2;
+    if (!strcmp(name, "command")) return 3;
     return -1;
 }
 
@@ -311,7 +312,7 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatch(JNIEnv *env, jclass unused,
         set_field(L, "nick", nick);
         set_field(L, "text", text);
         set_field(L, "message_type", type);
-        const char *event_names[] = {"message", "connected", "disconnected"};
+        const char *event_names[] = {"message", "connected", "disconnected", "command"};
         set_field(L, "type", event_names[kind]);
         lua_pushinteger(L, (lua_Integer)timestamp);
         lua_setfield(L, -2, "timestamp");
