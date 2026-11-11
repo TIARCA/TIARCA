@@ -25,6 +25,15 @@ public class LuaScriptSecurityTest {
                 "message", "#chat", "Hello"));
     }
 
+    @Test public void privateReplyIsAllowedOnlyWithSendConsent() {
+        assertFalse(LuaActionPolicy.permitsSend(approved(false), SERVER_ID, "M99",
+                "message", "M99", "bello ciao"));
+        assertTrue(LuaActionPolicy.permitsSend(approved(true), SERVER_ID, "M99",
+                "message", "M99", "bello ciao"));
+        assertFalse(LuaActionPolicy.permitsSend(approved(true), SERVER_ID, "M99",
+                "message", "otherNick", "bello ciao"));
+    }
+
     @Test public void scopeCannotBeChangedByScript() {
         assertFalse(LuaActionPolicy.permitsSend(approved(true), OTHER_SERVER, "#chat",
                 "message", "#chat", "Hello"));
