@@ -38,6 +38,7 @@ import io.mrarm.chatlib.irc.CommandHandlerList;
 import io.mrarm.irc.R;
 import io.mrarm.irc.ServerConnectionInfo;
 import io.mrarm.irc.irc.ExtJwtCommandHandler;
+import io.mrarm.irc.util.SimosnapAvatarManager;
 
 /** Uploads a picked Android document to the SimosNap TUS endpoint and shares its URL. */
 public final class SimosnapUploader {
@@ -209,6 +210,11 @@ public final class SimosnapUploader {
                                               UploadCallback callback) {
         if (!connection.isConnected() || !(connection.getApiInstance() instanceof IRCConnection)) {
             showUploadMessage(activity, R.string.file_upload_connection_required);
+            return;
+        }
+        // Do not forward JWTs from unrelated IRC networks to SimosNap.
+        if (!SimosnapAvatarManager.isSupported(connection)) {
+            showUploadMessage(activity, R.string.file_upload_network_required);
             return;
         }
 
