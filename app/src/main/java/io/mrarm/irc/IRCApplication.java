@@ -27,6 +27,10 @@ public class IRCApplication extends Application implements Application.ActivityL
     @Override
     public void onCreate() {
         super.onCreate();
+        // An isolated service does not share TIARCA's UID or data. Never run
+        // normal application initialization (settings, files, notifications) there.
+        if (android.os.Process.isIsolated())
+            return;
         SettingsHelper.getInstance(this);
         DiagnosticLog.initialize(this);
         installDiagnosticCrashHandler();
