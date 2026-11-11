@@ -57,6 +57,18 @@ public final class HostLuaRuntimeTest {
         check(connected.length == 4 && "connected:test-server".equals(connected[3]),
                 "Connection event callback expected");
 
+        String commands = "tiarca.on('command', function(e) "
+                + "if e.text == 'ping' then tiarca.log('pong') end end)";
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes(commands)))),
+                "Command callback should register");
+        String[] invoked = event(OTHER, "command", "#example", "myNick", "ping");
+        check(invoked.length == 4 && "OK".equals(invoked[0]) &&
+                        "log".equals(invoked[1]) && "pong".equals(invoked[3]),
+                "Only explicit command invocation should trigger command callbacks");
+        String[] notInvoked = event(OTHER, "message", "#example", "alice", "ping");
+        check(notInvoked.length == 1 && "OK".equals(notInvoked[0]),
+                "Incoming chat text must not be treated as a local command");
+
         String noLibs = "tiarca.on('message', function(e) "
                 + "tiarca.log(type(io)..':'..type(os)..':'..type(package)..':'"
                 + "..type(debug)..':'..type(require)) end)";
@@ -87,6 +99,6 @@ public final class HostLuaRuntimeTest {
                 bytes("#x"), bytes("a"), bytes("b"), bytes("normal"), 0L) == null,
                 "Unloaded script must disappear");
         NativeLuaRuntime.clear();
-        System.out.println("Native Lua script JNI: 8 acceptance cases passed.");
+        System.out.println("Native Lua script JNI: command and sandbox acceptance passed.");
     }
 }
