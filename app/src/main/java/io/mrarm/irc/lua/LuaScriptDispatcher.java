@@ -245,6 +245,29 @@ public final class LuaScriptDispatcher {
         enqueue("message", serverId, channel, sender.getNick(), text, name, timestamp);
     }
 
+    /**
+     * Explicit local /lua invocation. Never forwards the command to the IRC
+     * server; only enabled scripts on this connection receive the text.
+     * False means the UI should retain the command for retry.
+     */
+    public boolean onCommand(ServerConnectionInfo connection, String channel, String command) {
+        if (connection == null || !connection.isConnected() ||
+                connection.getApiInstance() == null || command == null || command.isEmpty())
+            return false;
+        String target = channel == null ? "" : channel;
+        String nick = connection.getUserNick();
+        if (nick == null) nick = "";
+        if (target.length() > 64 || nick.length() > 64 || command.length() > 1024 ||
+                target.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 96 ||
+                nick.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 96 ||
+                command.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 2048 ||
+                command.indexOf('\n') >= 0 || command.indexOf('\r') >= 0 ||
+                command.indexOf('\0') >= 0)
+            return false;
+        return enqueue("command", connection.getUUID().toString(), target, nick,
+                command, "", System.currentTimeMillis() / 1000);
+    }
+
     public void onConnectionChanged(ServerConnectionInfo connection, boolean connected) {
         if (connection == null) return;
         enqueue(connected ? "connected" : "disconnected",
@@ -252,16 +275,16 @@ public final class LuaScriptDispatcher {
                 System.currentTimeMillis() / 1000);
     }
 
-    private void enqueue(String event, String server, String channel,
-                         String nick, String text, String messageType, long time) {
-        if (remote == null || store.enabledOn(server).isEmpty()) return;
+    private boolean enqueue(String event, String server, String channel,
+                            String nick, String text, String messageType, long time) {
+        if (remote == null || store.enabledOn(server).isEmpty()) return false;
         // Bound events *before* adding to HandlerThread, not only in-flight Binder
         // requests: otherwise a burst of IRC messages can grow the Java queue.
         if (queuedEvents.incrementAndGet() > MAX_PENDING_EVENTS) {
             queuedEvents.decrementAndGet();
-            return;
+            return false;
         }
-        if (!io.post(() -> {
+        boolean accepted = io.post(() -> {
             try {
                 if (remote == null) return;
                 List<LuaScriptStore.Script> eligible = store.enabledOn(server);
@@ -286,7 +309,9 @@ public final class LuaScriptDispatcher {
             } finally {
                 queuedEvents.decrementAndGet();
             }
-        })) queuedEvents.decrementAndGet();
+        });
+        if (!accepted) queuedEvents.decrementAndGet();
+        return accepted;
     }
 
     private boolean handleReply(Message message) {
