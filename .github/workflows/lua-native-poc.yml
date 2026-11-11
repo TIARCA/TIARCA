@@ -63,10 +63,26 @@ jobs:
               -DLUA_SOURCE_DIR="$PWD/build/lua-source/lua-${LUA_VERSION}/src"
             cmake --build "build/lua-android-$variant" --parallel 2
           done
-          cmp build/lua-android-a/libtiarca_lua_probe.so build/lua-android-b/libtiarca_lua_probe.so
-          sha256sum build/lua-android-{a,b}/libtiarca_lua_probe.so
-          stat --printf='Android arm64-v8a native .so: %s bytes\n' \
-            build/lua-android-a/libtiarca_lua_probe.so
+          a=build/lua-android-a/libtiarca_lua_probe.so
+          b=build/lua-android-b/libtiarca_lua_probe.so
+          toolbin="$ANDROID_HOME/ndk/${NDK_VERSION}/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          echo 'Unstripped build hashes (diagnostic):'
+          sha256sum "$a" "$b"
+          if cmp -s "$a" "$b"; then
+            echo 'Unstripped binaries are byte-identical'
+          else
+            echo 'Unstripped binaries differ; checking whether nondeterminism is limited to removable metadata'
+            "$toolbin/llvm-readelf" -SW "$a" | tail -25
+            cmp -l "$a" "$b" | head -12 || true
+          fi
+          "$toolbin/llvm-strip" --strip-all -o build/lua-android-a/libtiarca_lua_probe-stripped.so "$a"
+          "$toolbin/llvm-strip" --strip-all -o build/lua-android-b/libtiarca_lua_probe-stripped.so "$b"
+          echo 'Stripped production-style build hashes:'
+          sha256sum build/lua-android-{a,b}/libtiarca_lua_probe-stripped.so
+          cmp build/lua-android-a/libtiarca_lua_probe-stripped.so build/lua-android-b/libtiarca_lua_probe-stripped.so
+          stat --printf='Android arm64-v8a raw .so: %s bytes\n' "$a"
+          stat --printf='Android arm64-v8a stripped .so: %s bytes\n' \
+            build/lua-android-a/libtiarca_lua_probe-stripped.so
 
       - name: Verify 16 KiB ELF load segment alignment
         shell: bash
@@ -93,5 +109,6 @@ jobs:
           name: lua-5.5.1-android-arm64-poc
           path: |
             build/lua-android-a/libtiarca_lua_probe.so
+            build/lua-android-a/libtiarca_lua_probe-stripped.so
             build/lua-android-a/elf-headers.txt
           retention-days: 7
