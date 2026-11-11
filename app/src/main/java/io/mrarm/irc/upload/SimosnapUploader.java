@@ -26,7 +26,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.ProtocolException;
+import java.net.URI;
 import java.net.URL;
+import java.util.UUID;
 import java.nio.charset.Charset;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
@@ -43,6 +45,8 @@ import io.mrarm.irc.irc.ExtJwtCommandHandler;
 public final class SimosnapUploader {
 
     private static final String ENDPOINT = "https://media.simosnap.com";
+    private static final String TEMP_SEND_ENDPOINT = "https://tempsend.com/send";
+    private static final String TEMP_SEND_TTL_SECONDS = "604800";
     private static final int CHUNK_SIZE = 512 * 1024;
     private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor();
 
@@ -67,7 +71,7 @@ public final class SimosnapUploader {
                 Toast.makeText(activity, validation, Toast.LENGTH_LONG).show();
                 return;
             }
-            acquireTokenAndUpload(activity, connection, null, uri, file, callback);
+            showConfirmation(activity, connection, null, uri, file, callback);
         } catch (IOException e) {
             Toast.makeText(activity, R.string.error_file_open, Toast.LENGTH_SHORT).show();
         }
@@ -97,14 +101,21 @@ public final class SimosnapUploader {
     private static void showConfirmation(Activity activity, ServerConnectionInfo connection,
                                          String targetNick, Uri uri, FileInfo file,
                                          UploadCallback callback) {
-            new AlertDialog.Builder(activity)
-                    .setTitle(R.string.file_upload_title)
-                    .setMessage(activity.getString(R.string.file_upload_confirm,
-                            file.name, formatSize(file.size), targetNick))
-                    .setNegativeButton(R.string.action_cancel, null)
-                    .setPositiveButton(R.string.action_ok, (dialog, which) ->
-                            acquireTokenAndUpload(activity, connection, targetNick, uri, file, callback))
-                    .show();
+        String summary = targetNick == null
+                ? activity.getString(R.string.file_upload_insert_confirm,
+                        file.name, formatSize(file.size))
+                : activity.getString(R.string.file_upload_confirm,
+                        file.name, formatSize(file.size), targetNick);
+        new AlertDialog.Builder(activity)
+                .setTitle(R.string.file_upload_choose_service)
+                .setMessage(summary + "\n\n" + activity.getString(R.string.file_upload_service_disclosure))
+                .setNegativeButton(R.string.action_cancel, null)
+                .setPositiveButton(R.string.file_upload_simosnap_option, (dialog, which) ->
+                        acquireTokenAndUpload(activity, connection, targetNick, uri, file, callback))
+                .setNeutralButton(R.string.file_upload_tempsend_option, (dialog, which) ->
+                        startUpload(activity, (IRCConnection) connection.getApiInstance(),
+                                targetNick, uri, file, null, callback, true))
+                .show();
     }
 
     private static void preparePrivateImage(Activity activity, ServerConnectionInfo connection,
@@ -213,42 +224,64 @@ public final class SimosnapUploader {
         }
         AtomicBoolean started = new AtomicBoolean(false);
         ExtJwtCommandHandler.Callback jwtCallback = token -> {
-            if (started.compareAndSet(false, true))
-                startUpload(activity, irc, targetNick, uri, file, token, callback);
+            if (started.compareAndSet(false, true)) {
+                if (token == null || token.isEmpty())
+                    showAuthenticationRequired(activity);
+                else
+                    startUpload(activity, irc, targetNick, uri, file, token, callback);
+            }
         };
         handler.request(jwtCallback);
         ExtJwtCommandHandler finalHandler = handler;
         irc.sendCommandRaw("EXTJWT *", null, error -> {
             if (started.compareAndSet(false, true)) {
                 finalHandler.cancel(jwtCallback);
-                startUpload(activity, irc, targetNick, uri, file, null, callback);
+                showAuthenticationRequired(activity);
             }
         });
         // Networks without EXTJWT may not send an error the old library understands.
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             if (started.compareAndSet(false, true)) {
                 finalHandler.cancel(jwtCallback);
-                startUpload(activity, irc, targetNick, uri, file, null, callback);
+                showAuthenticationRequired(activity);
             }
         }, 6000);
     }
 
+    private static void showAuthenticationRequired(Activity activity) {
+        activity.runOnUiThread(() -> {
+            if (!activity.isFinishing() && !activity.isDestroyed())
+                Toast.makeText(activity, R.string.file_upload_auth_required,
+                        Toast.LENGTH_LONG).show();
+        });
+    }
+
     private static void startUpload(Activity activity, IRCConnection irc, String targetNick,
                                     Uri uri, FileInfo file, String token, UploadCallback callback) {
+        startUpload(activity, irc, targetNick, uri, file, token, callback, false);
+    }
+
+    private static void startUpload(Activity activity, IRCConnection irc, String targetNick,
+                                    Uri uri, FileInfo file, String token, UploadCallback callback,
+                                    boolean useTempSend) {
         if (Looper.myLooper() != Looper.getMainLooper()) {
-            activity.runOnUiThread(() -> startUpload(activity, irc, targetNick, uri, file, token, callback));
+            activity.runOnUiThread(() ->
+                    startUpload(activity, irc, targetNick, uri, file, token, callback, useTempSend));
             return;
         }
         UploadControl control = new UploadControl();
-        ProgressUi progress = ProgressUi.show(activity, R.string.file_upload_title,
+        ProgressUi progress = ProgressUi.show(activity,
+                useTempSend ? R.string.file_upload_tempsend_option : R.string.file_upload_title,
                 R.string.file_upload_progress, true, control::cancel);
         EXECUTOR.execute(() -> {
             try {
-                String url = uploadTus(activity.getContentResolver(), uri, file, token, control,
-                        sent -> activity.runOnUiThread(() ->
-                                progress.setProgress(file.size > 0 ?
-                                        (int) (sent * 100 / file.size) : 0)));
-                String publicUrl = toFriendlyUrl(url);
+                ProgressListener listener = sent -> activity.runOnUiThread(() ->
+                        progress.setProgress(file.size > 0 ?
+                                (int) (sent * 100 / file.size) : 0));
+                String url = useTempSend
+                        ? uploadTempSend(activity.getContentResolver(), uri, file, control, listener)
+                        : uploadTus(activity.getContentResolver(), uri, file, token, control, listener);
+                String publicUrl = useTempSend ? url : toFriendlyUrl(url);
                 if (callback != null) {
                     activity.runOnUiThread(() -> {
                         progress.dismiss(activity);
@@ -297,6 +330,9 @@ public final class SimosnapUploader {
             create.getOutputStream().close();
             control.checkCancelled();
             int status = create.getResponseCode();
+            if (status == 401 || status == 403)
+                throw new IOException("SimosNap: registered and authenticated IRC account required (HTTP "
+                        + status + ")");
             if (status != 201)
                 throw new IOException("TUS create HTTP " + status);
             String location = create.getHeaderField("Location");
@@ -343,6 +379,81 @@ public final class SimosnapUploader {
             }
         }
         return uploadUrl.toString();
+    }
+
+    /**
+     * Optional, user-selected upload destination for guests. No credentials or
+     * SimosNap tokens are forwarded to this unrelated third-party service.
+     */
+    private static String uploadTempSend(ContentResolver resolver, Uri uri, FileInfo file,
+                                         UploadControl control, ProgressListener listener)
+            throws IOException {
+        String boundary = "tiarca-" + UUID.randomUUID();
+        String safeName = file.name.replace("\\", "_").replace("\"", "_");
+        String safeMime = file.mime.matches("[A-Za-z0-9!#    private static void configureTimeouts(HttpURLConnection connection) {^_.+-]+/[A-Za-z0-9!#    private static void configureTimeouts(HttpURLConnection connection) {^_.+-]+")
+                ? file.mime : "application/octet-stream";
+        byte[] prefix = ("--" + boundary + "\r\n"
+                + "Content-Disposition: form-data; name=\"expire\"\r\n\r\n"
+                + TEMP_SEND_TTL_SECONDS + "\r\n"
+                + "--" + boundary + "\r\n"
+                + "Content-Disposition: form-data; name=\"file\"; filename=\""
+                + safeName + "\"\r\n"
+                + "Content-Type: " + safeMime + "\r\n\r\n")
+                .getBytes(Charset.forName("UTF-8"));
+        byte[] suffix = ("\r\n--" + boundary + "--\r\n")
+                .getBytes(Charset.forName("UTF-8"));
+        HttpURLConnection request = (HttpURLConnection)
+                new URL(TEMP_SEND_ENDPOINT).openConnection();
+        try {
+            control.use(request);
+            configureTimeouts(request);
+            request.setRequestMethod("POST");
+            request.setInstanceFollowRedirects(false);
+            request.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
+            request.setDoOutput(true);
+            request.setFixedLengthStreamingMode(prefix.length + file.size + suffix.length);
+            try (InputStream input = new BufferedInputStream(resolver.openInputStream(uri));
+                 OutputStream out = request.getOutputStream()) {
+                if (input == null)
+                    throw new IOException("File not readable");
+                out.write(prefix);
+                long sent = 0;
+                byte[] chunk = new byte[CHUNK_SIZE];
+                int count;
+                while ((count = input.read(chunk)) != -1) {
+                    control.checkCancelled();
+                    out.write(chunk, 0, count);
+                    sent += count;
+                    listener.onProgress(sent);
+                }
+                if (sent != file.size)
+                    throw new IOException("File size changed during upload");
+                out.write(suffix);
+            }
+            control.checkCancelled();
+            int status = request.getResponseCode();
+            if (status != 302)
+                throw new IOException("TempSend upload HTTP " + status);
+            return validateTempSendLocation(request.getHeaderField("Location"));
+        } finally {
+            control.clear(request);
+            request.disconnect();
+        }
+    }
+
+    static String validateTempSendLocation(String location) throws IOException {
+        try {
+            URI address = new URI(location);
+            if (!"https".equalsIgnoreCase(address.getScheme())
+                    || !"tempsend.com".equalsIgnoreCase(address.getHost())
+                    || address.getUserInfo() != null || address.getPort() != -1
+                    || address.getQuery() != null || address.getFragment() != null
+                    || address.getPath() == null || !address.getPath().matches("/[a-z]{8}"))
+                throw new IOException("Invalid TempSend response URL");
+            return address.toASCIIString();
+        } catch (java.net.URISyntaxException | NullPointerException error) {
+            throw new IOException("Invalid TempSend response URL", error);
+        }
     }
 
     private static void configureTimeouts(HttpURLConnection connection) {
