@@ -25,6 +25,7 @@ import io.mrarm.chatlib.dto.MessageInfo;
 import io.mrarm.chatlib.irc.IRCConnection;
 import io.mrarm.chatlib.message.MessageListener;
 import io.mrarm.irc.job.ServerPingScheduler;
+import io.mrarm.irc.lua.LuaScriptDispatcher;
 import io.mrarm.irc.util.DiagnosticLog;
 import io.mrarm.irc.util.WarningHelper;
 
@@ -70,6 +71,7 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
     };
 
     private boolean mCreatedChannel = false;
+    private LuaScriptDispatcher luaScripts;
 
     private final Map<ServerConnectionInfo, MessageListener> messageListeners = new HashMap<>();
     private final Map<ServerConnectionInfo, ServerConnectionInfo.InfoChangeListener> stateListeners =
@@ -105,6 +107,8 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
         WarningHelper.setAppContext(getApplicationContext());
 
         ChatLogStorageManager.getInstance(getApplicationContext());
+        luaScripts = LuaScriptDispatcher.get(this);
+        luaScripts.start();
 
         for (ServerConnectionInfo connection : ServerConnectionManager.getInstance(this).getConnections())
             onConnectionAdded(connection);
@@ -128,6 +132,7 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
         }
 
         stopConnectivityMonitoring();
+        if (luaScripts != null) luaScripts.stop();
 
         ServerPingScheduler.getInstance(this).stop();
     }
@@ -201,6 +206,7 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
                            MessageId messageId) {
         NotificationManager.getInstance().processMessage(this, connection, channel, info, messageId);
         ChatLogStorageManager.getInstance(this).onMessage(connection);
+        if (luaScripts != null) luaScripts.onMessage(connection, channel, info);
     }
 
     @Override
@@ -212,11 +218,17 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
         connection.getApiInstance().getMessageStorageApi().subscribeChannelMessages(null, listener, null, null);
 
         String serverId = DiagnosticLog.pseudonym("server", connection.getUUID().toString());
-        ServerConnectionInfo.InfoChangeListener stateListener = changed ->
-                DiagnosticLog.i(this, "CONNECTION", () -> serverId + " connected=" +
-                        changed.isConnected() + ", connecting=" + changed.isConnecting() +
-                        ", disconnecting=" + changed.isDisconnecting() +
-                        ", userDisconnect=" + changed.hasUserDisconnectRequest());
+        final java.util.concurrent.atomic.AtomicBoolean lastConnected =
+                new java.util.concurrent.atomic.AtomicBoolean(connection.isConnected());
+        ServerConnectionInfo.InfoChangeListener stateListener = changed -> {
+            boolean connected = changed.isConnected();
+            if (lastConnected.getAndSet(connected) != connected && luaScripts != null)
+                luaScripts.onConnectionChanged(changed, connected);
+            DiagnosticLog.i(this, "CONNECTION", () -> serverId + " connected=" +
+                    connected + ", connecting=" + changed.isConnecting() +
+                    ", disconnecting=" + changed.isDisconnecting() +
+                    ", userDisconnect=" + changed.hasUserDisconnectRequest());
+        };
         stateListeners.put(connection, stateListener);
         connection.addOnChannelInfoChangeListener(stateListener);
 

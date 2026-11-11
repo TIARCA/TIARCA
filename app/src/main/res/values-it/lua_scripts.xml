@@ -1,0 +1,25 @@
+<resources>
+    <string name="lua_scripts_title">Script Lua (sperimentale)</string>
+    <string name="lua_scripts_description">Importa sorgenti .lua dal dispositivo. Gli script sono inizialmente disattivati. Scegli una singola rete IRC e autorizza esplicitamente la lettura di messaggi e nickname. Le risposte automatiche richiedono un permesso distinto. Gli script non accedono direttamente a file, rete o API Android.</string>
+    <string name="lua_scripts_import">Importa script .lua</string>
+    <string name="lua_scripts_refresh">Aggiorna stato e log</string>
+    <string name="lua_scripts_empty">Nessuno script importato.</string>
+    <string name="lua_scripts_enabled">Attivo</string>
+    <string name="lua_scripts_disabled">Disattivato</string>
+    <string name="lua_scripts_enable">Attiva</string>
+    <string name="lua_scripts_disable">Disattiva</string>
+    <string name="lua_scripts_delete">Elimina script</string>
+    <string name="lua_scripts_reload">Ricarica script</string>
+    <string name="lua_scripts_reloaded">Script Lua ricaricati</string>
+    <string name="lua_scripts_server_label">Rete: %1$s</string>
+    <string name="lua_scripts_sending_enabled">Permesso: risposte automatiche attive</string>
+    <string name="lua_scripts_last_error">Errore (script disattivato): %1$s</string>
+    <string name="lua_scripts_last_log">Ultimo log dello script: %1$s</string>
+    <string name="lua_scripts_no_servers">Configura prima un server IRC.</string>
+    <string name="lua_scripts_choose_server">Scegli l’unica rete accessibile allo script</string>
+    <string name="lua_scripts_consent_title">Autorizzi questo script?</string>
+    <string name="lua_scripts_consent_body">Lo script Lua potrà leggere i messaggi e i nickname ricevuti su %1$s. Non potrà leggere password o file. Se attivato, viene eseguito automaticamente all’arrivo dei messaggi. Attiva solo script fidati.</string>
+    <string name="lua_scripts_send_permission">Consenti anche risposte automatiche nella stessa conversazione (tiarca.send)</string>
+    <string name="lua_scripts_imported">Importato %1$s (disattivato)</string>
+    <string name="lua_scripts_error">Errore script Lua</string>
+</resources>

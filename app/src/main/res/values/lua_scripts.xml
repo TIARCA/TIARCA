@@ -1,0 +1,25 @@
+<resources>
+    <string name="lua_scripts_title">Lua scripts (experimental)</string>
+    <string name="lua_scripts_description">Import .lua sources from your device. Scripts start disabled. Choose one IRC server and explicitly approve access to incoming message text and nicknames. Automatic replies require a separate permission. No file, network or Android API access is provided to scripts.</string>
+    <string name="lua_scripts_import">Import .lua script</string>
+    <string name="lua_scripts_refresh">Refresh status and logs</string>
+    <string name="lua_scripts_empty">No scripts imported.</string>
+    <string name="lua_scripts_enabled">Enabled</string>
+    <string name="lua_scripts_disabled">Disabled</string>
+    <string name="lua_scripts_enable">Enable</string>
+    <string name="lua_scripts_disable">Disable</string>
+    <string name="lua_scripts_delete">Delete script</string>
+    <string name="lua_scripts_reload">Reload script</string>
+    <string name="lua_scripts_reloaded">Lua scripts reloaded</string>
+    <string name="lua_scripts_server_label">Server: %1$s</string>
+    <string name="lua_scripts_sending_enabled">Permission: automatic replies enabled</string>
+    <string name="lua_scripts_last_error">Error (script disabled): %1$s</string>
+    <string name="lua_scripts_last_log">Last script log: %1$s</string>
+    <string name="lua_scripts_no_servers">Configure an IRC server first.</string>
+    <string name="lua_scripts_choose_server">Choose the only server this script can access</string>
+    <string name="lua_scripts_consent_title">Allow script access?</string>
+    <string name="lua_scripts_consent_body">This Lua script may read message text and nicknames received on %1$s. It cannot read server passwords or files. If enabled, it runs automatically when messages arrive. Only enable scripts you trust.</string>
+    <string name="lua_scripts_send_permission">Also allow automatic replies in the same conversation (tiarca.send)</string>
+    <string name="lua_scripts_imported">Imported %1$s (disabled)</string>
+    <string name="lua_scripts_error">Lua script error</string>
+</resources>
