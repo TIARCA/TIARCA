@@ -146,7 +146,9 @@ public final class LuaDiagnosticService extends Service {
                 String messageType = request.getString(EXTRA_MESSAGE_TYPE, "");
                 if (server.length() != 36 || channel.length() > 64 ||
                         nick.length() > 64 || text.length() > 1024 ||
-                        (int) text.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 2048 ||
+                        channel.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 96 ||
+                        nick.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 96 ||
+                        text.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 2048 ||
                         !("message".equals(event) || "connected".equals(event) ||
                                 "disconnected".equals(event))) {
                     status = "ERROR: invalid event";

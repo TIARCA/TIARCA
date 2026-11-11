@@ -235,6 +235,8 @@ public final class LuaScriptDispatcher {
         }
         String text = info.getMessage();
         if (channel.length() > 64 || sender.getNick().length() > 64 || text.length() > 1024 ||
+                channel.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 96 ||
+                sender.getNick().getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 96 ||
                 text.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 2048) return;
         String serverId = connection.getUUID().toString();
         String name = type.name().toLowerCase(java.util.Locale.ROOT);
