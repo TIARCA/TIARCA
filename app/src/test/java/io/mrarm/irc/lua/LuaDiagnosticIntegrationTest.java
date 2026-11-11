@@ -30,6 +30,20 @@ public class LuaDiagnosticIntegrationTest {
         assertTrue(code.contains("case \"memory\""));
     }
 
+    @Test public void sendConsentIsVisibleAndExplicitlyOptIn() throws Exception {
+        String activity = Files.readString(
+                Path.of("src/main/java/io/mrarm/irc/lua/LuaScriptsActivity.java"));
+        // A message and a list in the same AlertDialog hid the send checkbox.
+        // The dialog must contain both the explanatory text and a separate checkbox.
+        assertTrue(activity.contains("new CheckBox(this)"));
+        assertTrue(activity.contains("allowSend.setText(R.string.lua_scripts_send_permission)"));
+        assertTrue(activity.contains("allowSend.setChecked(false)"));
+        assertTrue(activity.contains("content.addView(allowSend)"));
+        assertTrue(activity.contains(".setView(scroll)"));
+        assertTrue(activity.contains("allowSend.isChecked()"));
+        assertFalse(activity.contains(".setMultiChoiceItems("));
+    }
+
     @Test public void nativeBuildUsesVendoredSource() throws Exception {
         String cmake = new String(Files.readAllBytes(Path.of("src/main/cpp/CMakeLists.txt")),
                 StandardCharsets.UTF_8);
