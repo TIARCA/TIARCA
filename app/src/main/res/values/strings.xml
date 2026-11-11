@@ -194,6 +194,13 @@
     <string name="file_upload_action">Send file</string>
     <string name="file_upload_title">Send with SimosNap</string>
     <string name="file_upload_confirm">Upload %1$s (%2$s) and send the temporary link to %3$s?</string>
+
+    <string name="file_upload_insert_confirm">Upload %1$s (%2$s) and insert the link into your draft?</string>
+    <string name="file_upload_network_required">SimosNap uploads require a connection to the SimosNap IRC network.</string>
+    <string name="file_upload_connection_required">Connect to SimosNap and authenticate your IRC account before uploading.</string>
+    <string name="file_upload_auth_required">SimosNap requires a registered, authenticated IRC account to upload files. Identify to NickServ or enable SASL, then try again.</string>
+    <string name="file_upload_busy">An upload authentication request is already running. Please retry after it finishes.</string>
+    <string name="file_upload_token_timeout">SimosNap did not return an upload authentication token. Check that you are authenticated and retry.</string>
     <string name="file_upload_progress">Uploading temporary file…</string>
     <string name="file_upload_sent">File uploaded and link sent</string>
     <string name="file_upload_failed">Upload failed: %1$s</string>

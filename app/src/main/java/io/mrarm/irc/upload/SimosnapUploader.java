@@ -38,6 +38,7 @@ import io.mrarm.chatlib.irc.CommandHandlerList;
 import io.mrarm.irc.R;
 import io.mrarm.irc.ServerConnectionInfo;
 import io.mrarm.irc.irc.ExtJwtCommandHandler;
+import io.mrarm.irc.util.SimosnapAvatarManager;
 
 /** Uploads a picked Android document to the SimosNap TUS endpoint and shares its URL. */
 public final class SimosnapUploader {
@@ -67,7 +68,7 @@ public final class SimosnapUploader {
                 Toast.makeText(activity, validation, Toast.LENGTH_LONG).show();
                 return;
             }
-            acquireTokenAndUpload(activity, connection, null, uri, file, callback);
+            showConfirmation(activity, connection, null, uri, file, callback);
         } catch (IOException e) {
             Toast.makeText(activity, R.string.error_file_open, Toast.LENGTH_SHORT).show();
         }
@@ -99,8 +100,11 @@ public final class SimosnapUploader {
                                          UploadCallback callback) {
             new AlertDialog.Builder(activity)
                     .setTitle(R.string.file_upload_title)
-                    .setMessage(activity.getString(R.string.file_upload_confirm,
-                            file.name, formatSize(file.size), targetNick))
+                    .setMessage(targetNick == null
+                            ? activity.getString(R.string.file_upload_insert_confirm,
+                                    file.name, formatSize(file.size))
+                            : activity.getString(R.string.file_upload_confirm,
+                                    file.name, formatSize(file.size), targetNick))
                     .setNegativeButton(R.string.action_cancel, null)
                     .setPositiveButton(R.string.action_ok, (dialog, which) ->
                             acquireTokenAndUpload(activity, connection, targetNick, uri, file, callback))
@@ -202,8 +206,20 @@ public final class SimosnapUploader {
     }
 
     private static void acquireTokenAndUpload(Activity activity, ServerConnectionInfo connection,
-                                               String targetNick, Uri uri, FileInfo file,
-                                               UploadCallback callback) {
+                                              String targetNick, Uri uri, FileInfo file,
+                                              UploadCallback callback) {
+        if (!connection.isConnected() || !(connection.getApiInstance() instanceof IRCConnection)) {
+            showUploadMessage(activity, R.string.file_upload_connection_required);
+            return;
+        }
+        // Do not forward JWTs from unrelated IRC networks to SimosNap.
+        if (!SimosnapAvatarManager.isSupported(connection)) {
+            showUploadMessage(activity, R.string.file_upload_network_required);
+            return;
+        }
+
+        // EXTJWT is requested from this exact IRC connection, not a global account,
+        // so separate SimosNap sessions retain their respective identities.
         IRCConnection irc = (IRCConnection) connection.getApiInstance();
         CommandHandlerList handlers = irc.getServerConnectionData().getCommandHandlerList();
         ExtJwtCommandHandler handler = handlers.getHandler(ExtJwtCommandHandler.class);
@@ -211,26 +227,51 @@ public final class SimosnapUploader {
             handler = new ExtJwtCommandHandler();
             handlers.registerHandler(handler);
         }
-        AtomicBoolean started = new AtomicBoolean(false);
+        AtomicBoolean finished = new AtomicBoolean(false);
         ExtJwtCommandHandler.Callback jwtCallback = token -> {
-            if (started.compareAndSet(false, true))
+            if (!finished.compareAndSet(false, true))
+                return;
+            if (!connection.isConnected() || connection.getApiInstance() != irc) {
+                showUploadMessage(activity, R.string.file_upload_connection_required);
+            } else if (!isJwtFormat(token)) {
+                showUploadMessage(activity, R.string.file_upload_auth_required);
+            } else {
                 startUpload(activity, irc, targetNick, uri, file, token, callback);
+            }
         };
-        handler.request(jwtCallback);
+
+        if (!handler.request(jwtCallback)) {
+            showUploadMessage(activity, R.string.file_upload_busy);
+            return;
+        }
         ExtJwtCommandHandler finalHandler = handler;
         irc.sendCommandRaw("EXTJWT *", null, error -> {
-            if (started.compareAndSet(false, true)) {
+            if (finished.compareAndSet(false, true)) {
                 finalHandler.cancel(jwtCallback);
-                startUpload(activity, irc, targetNick, uri, file, null, callback);
+                showUploadMessage(activity, R.string.file_upload_auth_required);
             }
         });
-        // Networks without EXTJWT may not send an error the old library understands.
+        // An unsupported EXTJWT command may not trigger a callback through chatlib.
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            if (started.compareAndSet(false, true)) {
+            if (finished.compareAndSet(false, true)) {
                 finalHandler.cancel(jwtCallback);
-                startUpload(activity, irc, targetNick, uri, file, null, callback);
+                showUploadMessage(activity, R.string.file_upload_token_timeout);
             }
-        }, 6000);
+        }, 10000);
+    }
+
+    // Syntax check only. Only the SimosNap media server can validate a token's
+    // signature, expiry and the account associated with the IRC session.
+    static boolean isJwtFormat(String token) {
+        return token != null && token.length() <= 8192
+                && token.matches("[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+");
+    }
+
+    private static void showUploadMessage(Activity activity, int messageId) {
+        activity.runOnUiThread(() -> {
+            if (!activity.isFinishing() && !activity.isDestroyed())
+                Toast.makeText(activity, messageId, Toast.LENGTH_LONG).show();
+        });
     }
 
     private static void startUpload(Activity activity, IRCConnection irc, String targetNick,
@@ -280,6 +321,8 @@ public final class SimosnapUploader {
 
     private static String uploadTus(ContentResolver resolver, Uri uri, FileInfo file, String token,
                                     UploadControl control, ProgressListener listener) throws IOException {
+        if (!isJwtFormat(token))
+            throw new IOException("SimosNap authentication token missing or invalid");
         HttpURLConnection create = (HttpURLConnection) new URL(ENDPOINT).openConnection();
         URL uploadUrl;
         try {
@@ -289,14 +332,16 @@ public final class SimosnapUploader {
             create.setRequestProperty("Tus-Resumable", "1.0.0");
             create.setRequestProperty("Upload-Length", String.valueOf(file.size));
             String metadata = metadata("filename", file.name) + "," + metadata("filetype", file.mime);
-            if (token != null && !token.isEmpty())
-                metadata += "," + metadata("extjwt", token);
+            metadata += "," + metadata("extjwt", token);
             create.setRequestProperty("Upload-Metadata", metadata);
             create.setDoOutput(true);
             create.setFixedLengthStreamingMode(0);
             create.getOutputStream().close();
             control.checkCancelled();
             int status = create.getResponseCode();
+            if (status == 401 || status == 403)
+                throw new IOException("SimosNap: account authentication required (HTTP "
+                        + status + ")");
             if (status != 201)
                 throw new IOException("TUS create HTTP " + status);
             String location = create.getHeaderField("Location");
