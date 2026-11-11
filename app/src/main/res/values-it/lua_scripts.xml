@@ -24,4 +24,7 @@
     <string name="lua_scripts_error">Errore script Lua</string>
     <string name="lua_scripts_remove_all">Elimina tutti gli script Lua</string>
     <string name="lua_scripts_remove_all_confirm">Eliminare tutti i sorgenti Lua importati e revocare le autorizzazioni?</string>
+    <string name="lua_command_empty">Scrivi un comando dopo /lua (es. /lua ping).</string>
+    <string name="lua_command_unavailable">Nessuno script Lua disponibile su questa rete, oppure la coda Lua è occupata.</string>
+    <string name="lua_command_queued">Comando accodato per gli script Lua (risultati nei log).</string>
 </resources>
