@@ -21,7 +21,8 @@ endforeach()
 add_library(tiarca_lua_probe SHARED
     ${LUA_NATIVE_SOURCES}
     "${LUA_PROBE_DIR}/lua_sandbox.c"
-    "${LUA_PROBE_DIR}/lua_probe_jni.c")
+    "${LUA_PROBE_DIR}/lua_probe_jni.c"
+    "${CMAKE_CURRENT_LIST_DIR}/lua_script_runtime.c")
 target_include_directories(tiarca_lua_probe PRIVATE "${LUA_SOURCE_DIR}" "${LUA_PROBE_DIR}")
 target_link_libraries(tiarca_lua_probe PRIVATE m)
 target_compile_options(tiarca_lua_probe PRIVATE
