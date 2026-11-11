@@ -36,6 +36,7 @@ import io.mrarm.chatlib.irc.handlers.WhoisCommandHandler;
 import io.mrarm.irc.MainActivity;
 import io.mrarm.irc.R;
 import io.mrarm.irc.ServerConnectionInfo;
+import io.mrarm.irc.lua.LuaScriptDispatcher;
 import io.mrarm.irc.config.QuickCommandSettings;
 import io.mrarm.irc.config.SharingSettings;
 import io.mrarm.irc.dialog.UserBottomSheetDialog;
@@ -285,6 +286,27 @@ public class ChatFragmentSendMessageHelper implements SendMessageHelper.Callback
 
     public void sendMessage() {
         String text = mSendText.getText().toString().trim();
+        // Only the reserved /lua command enters the asynchronous script engine.
+        // All existing aliases, quick commands and plain messages remain unchanged.
+        if (text.regionMatches(true, 0, "/lua", 0, 4) &&
+                (text.length() == 4 || Character.isWhitespace(text.charAt(4)))) {
+            String command = text.substring(4).trim();
+            if (command.isEmpty()) {
+                onClientCommandError(mContext.getString(R.string.lua_command_empty));
+                return;
+            }
+            if (!LuaScriptDispatcher.get(mContext).onCommand(
+                    mFragment.getConnectionInfo(), mFragment.getCurrentChannel(), command)) {
+                onClientCommandError(mContext.getString(R.string.lua_command_unavailable));
+                return;
+            }
+            mFragment.getConnectionInfo().getChatUIData()
+                    .getOrCreateChannelData(mFragment.getCurrentChannel())
+                    .addHistoryMessage(text);
+            onMessageSent();
+            Toast.makeText(mContext, R.string.lua_command_queued, Toast.LENGTH_SHORT).show();
+            return;
+        }
         if (mFragment.getCurrentChannel() == null) {
             int separator = text.indexOf(' ');
             String target = separator > 0 ? text.substring(0, separator) : text;
