@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import io.mrarm.chatlib.dto.MessageInfo;
 import io.mrarm.chatlib.dto.MessageSenderInfo;
+import io.mrarm.chatlib.irc.ServerConnectionApi;
 import io.mrarm.irc.ServerConnectionInfo;
 import io.mrarm.irc.ServerConnectionManager;
 
@@ -288,6 +289,23 @@ public final class LuaScriptDispatcher {
             try {
                 if (remote == null) return;
                 List<LuaScriptStore.Script> eligible = store.enabledOn(server);
+                // Capture only names and cached counts from this approved IRC
+                // connection. Do not block the chat/UI threads with the snapshot.
+                LuaChannelSnapshot channels = LuaChannelSnapshot.empty();
+                if (!"disconnected".equals(event) && !eligible.isEmpty()) {
+                    try {
+                        ServerConnectionInfo conn = ServerConnectionManager.getInstance(context)
+                                .getConnection(UUID.fromString(server));
+                        if (conn != null && conn.isConnected()
+                                && conn.getApiInstance() instanceof ServerConnectionApi) {
+                            channels = LuaChannelSnapshot.capture(
+                                    ((ServerConnectionApi) conn.getApiInstance())
+                                            .getServerConnectionData());
+                        }
+                    } catch (RuntimeException ignored) {
+                        // Stale/disconnecting sessions provide an empty snapshot.
+                    }
+                }
                 for (LuaScriptStore.Script script : eligible) {
                     if (pendingEvents.incrementAndGet() > MAX_PENDING_EVENTS) {
                         pendingEvents.decrementAndGet();
@@ -303,6 +321,11 @@ public final class LuaScriptDispatcher {
                     data.putString(LuaDiagnosticService.EXTRA_TEXT, text);
                     data.putString(LuaDiagnosticService.EXTRA_MESSAGE_TYPE, messageType);
                     data.putLong(LuaDiagnosticService.EXTRA_TIME, time);
+                    data.putStringArrayList(LuaDiagnosticService.EXTRA_CHANNEL_NAMES,
+                            channels.names);
+                    data.putIntArray(LuaDiagnosticService.EXTRA_CHANNEL_COUNTS, channels.counts);
+                    data.putBoolean(LuaDiagnosticService.EXTRA_CHANNELS_TRUNCATED,
+                            channels.truncated);
                     request.setData(data);
                     sendMessage(request, new Pending(script.id, server, channel, event, true));
                 }

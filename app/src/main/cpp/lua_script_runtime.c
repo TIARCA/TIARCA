@@ -14,6 +14,7 @@
 #define MAX_SCRIPTS 8
 #define MAX_HANDLERS 8
 #define MAX_ACTIONS 12
+#define MAX_CHANNELS 32
 #define MAX_SOURCE 8192
 #define SCRIPT_MEMORY (2u * 1024u * 1024u)
 #define INSTRUCTION_LIMIT 200000ul
@@ -23,6 +24,11 @@ typedef struct {
     char target[97];
     char value[513];
 } ScriptAction;
+
+typedef struct {
+    char name[97];
+    int users;
+} ChannelSnapshot;
 
 typedef struct ScriptVm {
     char id[40];
@@ -34,6 +40,9 @@ typedef struct ScriptVm {
     int event_active;
     int action_count;
     ScriptAction actions[MAX_ACTIONS];
+    ChannelSnapshot channels[MAX_CHANNELS];
+    int channel_count;
+    int channels_truncated;
 } ScriptVm;
 
 static ScriptVm *g_scripts[MAX_SCRIPTS]; /* All calls arrive on one service HandlerThread. */
@@ -121,6 +130,25 @@ static int script_send(lua_State *L) {
     return 0;
 }
 
+/* No WHO request, socket or private-tab access; event-scoped cached data. */
+static int script_get_channels(lua_State *L) {
+    ScriptVm *s = context(L);
+    if (!s->event_active)
+        return luaL_error(L, "tiarca.get_channels: only available in a callback");
+    lua_createtable(L, s->channel_count, 1);
+    for (int i = 0; i < s->channel_count; i++) {
+        lua_createtable(L, 0, 2);
+        lua_pushstring(L, s->channels[i].name);
+        lua_setfield(L, -2, "name");
+        lua_pushinteger(L, s->channels[i].users);
+        lua_setfield(L, -2, "users");
+        lua_rawseti(L, -2, i + 1);
+    }
+    lua_pushboolean(L, s->channels_truncated);
+    lua_setfield(L, -2, "truncated");
+    return 1;
+}
+
 static void install_libraries(lua_State *L) {
     const struct { const char *name; lua_CFunction fn; } permitted[] = {
         {LUA_GNAME, luaopen_base}, {LUA_TABLIBNAME, luaopen_table},
@@ -149,6 +177,8 @@ static void install_libraries(lua_State *L) {
     lua_setfield(L, -2, "log");
     lua_pushcfunction(L, script_send);
     lua_setfield(L, -2, "send");
+    lua_pushcfunction(L, script_get_channels);
+    lua_setfield(L, -2, "get_channels");
     lua_setglobal(L, "tiarca");
 }
 
@@ -274,7 +304,8 @@ static void set_field(lua_State *L, const char *name, const char *value) {
 JNIEXPORT jobjectArray JNICALL
 Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatch(JNIEnv *env, jclass unused,
         jstring jid, jstring jevent, jbyteArray jserver, jbyteArray jchannel,
-        jbyteArray jnick, jbyteArray jtext, jbyteArray jtype, jlong timestamp) {
+        jbyteArray jnick, jbyteArray jtext, jbyteArray jtype, jlong timestamp,
+        jobjectArray jchannels, jintArray jcounts, jboolean jtruncated) {
     (void)unused;
     char server[64], channel[97], nick[97], text[2049], type[32];
     if (!jid || !jevent ||
@@ -297,6 +328,25 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatch(JNIEnv *env, jclass unused,
     (*env)->ReleaseStringUTFChars(env, jevent, event_name);
     if (slot < 0 || kind < 0) return NULL;
     ScriptVm *s = g_scripts[slot];
+    if (!jchannels || !jcounts) return NULL;
+    jsize count = (*env)->GetArrayLength(env, jchannels);
+    if (count < 0 || count > MAX_CHANNELS ||
+            count != (*env)->GetArrayLength(env, jcounts)) return NULL;
+    jint users[MAX_CHANNELS] = {0};
+    if (count > 0) (*env)->GetIntArrayRegion(env, jcounts, 0, count, users);
+    if ((*env)->ExceptionCheck(env)) return NULL;
+    s->channel_count = 0;
+    s->channels_truncated = jtruncated == JNI_TRUE;
+    for (jsize i = 0; i < count; i++) {
+        jbyteArray name = (jbyteArray)(*env)->GetObjectArrayElement(env, jchannels, i);
+        if (!name) return NULL;
+        int valid = copy_java_bytes(env, name, s->channels[i].name,
+                                    sizeof(s->channels[i].name));
+        (*env)->DeleteLocalRef(env, name);
+        if (!valid || s->channels[i].name[0] == 0 || users[i] < 0) return NULL;
+        s->channels[i].users = users[i];
+        s->channel_count++;
+    }
     lua_State *L = s->L;
     s->steps = 0;
     s->action_count = 0;

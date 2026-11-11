@@ -127,3 +127,20 @@ Four manually importable sources are included in the repository:
 
 Download the `.lua` file explicitly and select it in the Android document
 picker. These examples are **not** downloaded or executed automatically.
+
+## Additional read-only API: channel snapshots (phase C2)
+
+\`tiarca.get_channels()\` is available **inside** Lua event callbacks. It returns
+an array of \`{ name = "#channel", users = 12 }\` entries for joined IRC channels
+on the script's **one explicitly approved server**, plus a boolean
+\`result.truncated\` (true if more than 32 channels were joined).
+Private conversations are excluded. The entries are sorted by channel name.
+
+\`users\` is the number of members **currently cached locally**, not a fresh
+NAMES/WHO result: zero can mean the initial member list has not yet arrived.
+The snapshot is empty after disconnection or when the connection is unavailable.
+No IRC request is made, and no hostmask, ident, account or user roster is
+exposed. There is no send capability implicit in this API. It is suitable for
+scripts that summarize channels and their cached member counts, but **not**
+for mask matching; that requires a separate consented API with explicit
+unknown-data handling in a later milestone.

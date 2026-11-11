@@ -16,7 +16,9 @@ final class NativeLuaRuntime {
     static native byte[] load(String scriptId, byte[] source);
     static native byte[][] dispatch(String scriptId, String event, byte[] server,
                                     byte[] channel, byte[] nick, byte[] text,
-                                    byte[] messageType, long timestamp);
+                                    byte[] messageType, long timestamp,
+                                    byte[][] channelNames, int[] memberCounts,
+                                    boolean channelsTruncated);
     static native void unload(String scriptId);
     static native void clear();
 

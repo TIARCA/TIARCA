@@ -29,6 +29,9 @@ public final class LuaDiagnosticService extends Service {
     public static final String EXTRA_TEXT = "text";
     public static final String EXTRA_MESSAGE_TYPE = "message_type";
     public static final String EXTRA_TIME = "time";
+    public static final String EXTRA_CHANNEL_NAMES = "channel_names";
+    public static final String EXTRA_CHANNEL_COUNTS = "channel_counts";
+    public static final String EXTRA_CHANNELS_TRUNCATED = "channels_truncated";
     public static final String EXTRA_REQUEST_ID = "request_id";
     public static final String EXTRA_ACTIONS = "actions";
     public static final String EXTRA_STATUS = "status";
@@ -144,6 +147,9 @@ public final class LuaDiagnosticService extends Service {
                 String nick = request.getString(EXTRA_NICK, "");
                 String text = request.getString(EXTRA_TEXT, "");
                 String messageType = request.getString(EXTRA_MESSAGE_TYPE, "");
+                java.util.ArrayList<String> names =
+                        request.getStringArrayList(EXTRA_CHANNEL_NAMES);
+                int[] memberCounts = request.getIntArray(EXTRA_CHANNEL_COUNTS);
                 if (server.length() != 36 || channel.length() > 64 ||
                         nick.length() > 64 || text.length() > 1024 ||
                         channel.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 96 ||
@@ -152,20 +158,46 @@ public final class LuaDiagnosticService extends Service {
                         !("message".equals(event) || "connected".equals(event) ||
                                 "disconnected".equals(event) || "command".equals(event))) {
                     status = "ERROR: invalid event";
+                } else if (names == null || memberCounts == null ||
+                        names.size() != memberCounts.length ||
+                        names.size() > LuaChannelSnapshot.MAX_CHANNELS) {
+                    status = "ERROR: invalid channel snapshot";
                 } else {
-                    byte[][] nativeActions = NativeLuaRuntime.dispatch(scriptId, event,
-                            NativeLuaRuntime.utf8(server), NativeLuaRuntime.utf8(channel),
-                            NativeLuaRuntime.utf8(nick), NativeLuaRuntime.utf8(text),
-                            NativeLuaRuntime.utf8(messageType), request.getLong(EXTRA_TIME));
-                    if (nativeActions == null || nativeActions.length < 1 ||
-                            (nativeActions.length - 1) % 3 != 0 ||
-                            nativeActions.length > 37) {
-                        status = "ERROR: Lua script not loaded";
+                    byte[][] channels = new byte[names.size()][];
+                    boolean valid = true;
+                    for (int i = 0; i < names.size(); i++) {
+                        String name = names.get(i);
+                        if (name == null || name.isEmpty() || name.length() > 64 ||
+                                memberCounts[i] < 0 || name.indexOf('\0') >= 0 ||
+                                name.indexOf('\r') >= 0 || name.indexOf('\n') >= 0) {
+                            valid = false;
+                            break;
+                        }
+                        channels[i] = NativeLuaRuntime.utf8(name);
+                        if (channels[i].length > 96) {
+                            valid = false;
+                            break;
+                        }
+                    }
+                    if (!valid) {
+                        status = "ERROR: invalid channel snapshot";
                     } else {
-                        status = NativeLuaRuntime.decode(nativeActions[0]);
-                        if ("OK".equals(status))
-                            for (int i = 1; i < nativeActions.length; i++)
-                                actions.add(NativeLuaRuntime.decode(nativeActions[i]));
+                        byte[][] nativeActions = NativeLuaRuntime.dispatch(scriptId, event,
+                                NativeLuaRuntime.utf8(server), NativeLuaRuntime.utf8(channel),
+                                NativeLuaRuntime.utf8(nick), NativeLuaRuntime.utf8(text),
+                                NativeLuaRuntime.utf8(messageType), request.getLong(EXTRA_TIME),
+                                channels, memberCounts,
+                                request.getBoolean(EXTRA_CHANNELS_TRUNCATED, false));
+                        if (nativeActions == null || nativeActions.length < 1 ||
+                                (nativeActions.length - 1) % 3 != 0 ||
+                                nativeActions.length > 37) {
+                            status = "ERROR: Lua script not loaded";
+                        } else {
+                            status = NativeLuaRuntime.decode(nativeActions[0]);
+                            if ("OK".equals(status))
+                                for (int i = 1; i < nativeActions.length; i++)
+                                    actions.add(NativeLuaRuntime.decode(nativeActions[i]));
+                        }
                     }
                 }
             }
