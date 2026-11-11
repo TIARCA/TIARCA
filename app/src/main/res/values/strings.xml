@@ -194,6 +194,13 @@
     <string name="file_upload_action">Send file</string>
     <string name="file_upload_title">Send with SimosNap</string>
     <string name="file_upload_confirm">Upload %1$s (%2$s) and send the temporary link to %3$s?</string>
+
+    <string name="file_upload_choose_service">Choose upload service</string>
+    <string name="file_upload_insert_confirm">Upload %1$s (%2$s) and insert a link in the message draft?</string>
+    <string name="file_upload_service_disclosure">SimosNap requires an authenticated registered IRC account. TempSend is a separate, anonymous third-party service: its links expire after 7 days, and anyone with the link can download or delete the file.</string>
+    <string name="file_upload_simosnap_option">SimosNap (account)</string>
+    <string name="file_upload_tempsend_option">TempSend (anonymous)</string>
+    <string name="file_upload_auth_required">SimosNap upload requires a registered account authenticated on the SimosNap IRC network. You can choose TempSend instead for anonymous sharing.</string>
     <string name="file_upload_progress">Uploading temporary file…</string>
     <string name="file_upload_sent">File uploaded and link sent</string>
     <string name="file_upload_failed">Upload failed: %1$s</string>
