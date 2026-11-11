@@ -24,4 +24,7 @@
     <string name="lua_scripts_error">Lua script error</string>
     <string name="lua_scripts_remove_all">Remove all Lua scripts</string>
     <string name="lua_scripts_remove_all_confirm">Delete all imported Lua sources and revoke their permissions?</string>
+    <string name="lua_command_empty">Enter a command after /lua (for example /lua ping).</string>
+    <string name="lua_command_unavailable">No enabled Lua script is available on this network, or the Lua queue is busy.</string>
+    <string name="lua_command_queued">Command queued for Lua scripts (see script logs for results).</string>
 </resources>
