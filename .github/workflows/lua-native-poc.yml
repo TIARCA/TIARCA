@@ -6,6 +6,8 @@ on:
       - feature/lua-scripting-sandbox-poc
     paths:
       - 'tools/lua-native-poc/**'
+      - 'app/src/main/cpp/**'
+      - 'app/src/main/java/io/mrarm/irc/lua/NativeLuaRuntime.java'
       - '.github/workflows/lua-native-poc.yml'
   workflow_dispatch:
 
@@ -22,6 +24,11 @@ jobs:
       NDK_VERSION: "28.2.13676358"
     steps:
       - uses: actions/checkout@v5
+      - name: Set up Java 17 for host JNI tests
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
 
       - name: Download official Lua sources with pinned checksum
         shell: bash
@@ -43,6 +50,32 @@ jobs:
             -DLUA_SOURCE_DIR="$PWD/build/lua-source/lua-${LUA_VERSION}/src"
           cmake --build build/lua-host --parallel 2
           ctest --test-dir build/lua-host --output-on-failure
+
+      - name: Test persistent Lua callbacks through host JNI
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$PWD/build/lua-jni-host"
+          mkdir -p "$out"
+          files=(
+            lapi.c lcode.c lctype.c ldebug.c ldo.c ldump.c lfunc.c lgc.c
+            llex.c lmem.c lobject.c lopcodes.c lparser.c lstate.c lstring.c
+            ltable.c ltm.c lundump.c lvm.c lzio.c
+            lauxlib.c lbaselib.c lmathlib.c lstrlib.c ltablib.c lutf8lib.c
+          )
+          sources=()
+          for f in "${files[@]}"; do
+            cmp "third_party/lua-5.5.1/$f" "build/lua-source/lua-${LUA_VERSION}/src/$f"
+            sources+=("third_party/lua-5.5.1/$f")
+          done
+          gcc -O2 -fPIC -shared -std=c11 -Ithird_party/lua-5.5.1 \
+            -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/linux" \
+            "${sources[@]}" app/src/main/cpp/lua_script_runtime.c \
+            -lm -Wl,--build-id=none -o "$out/libtiarca_lua_probe.so"
+          javac -d "$out" \
+            app/src/main/java/io/mrarm/irc/lua/NativeLuaRuntime.java \
+            tools/lua-native-poc/HostLuaRuntimeTest.java
+          java -Djava.library.path="$out" -cp "$out" io.mrarm.irc.lua.HostLuaRuntimeTest
 
       - name: Install pinned Android NDK
         shell: bash
