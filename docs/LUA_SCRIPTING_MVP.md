@@ -46,7 +46,7 @@ tiarca.on("disconnected", function(event)
 end)
 \`\`\`
 
-Events: \`message\`, \`connected\`, \`disconnected\`. The callback receives
+Events: \`message\`, \`connected\`, \`disconnected\`, \`command\`. The callback receives
 a table with \`type\`, \`server\` (server configuration UUID), \`channel\`,
 \`nick\`, \`text\`, \`message_type\` (\`normal\`, \`notice\`, \`me\`),
 and \`timestamp\` (Unix seconds).
@@ -66,10 +66,18 @@ Registered Lua closures and their variables survive individual events while
 the isolated service lives. Reload/reconnect of the Lua service resets that
 state. There is no persistent \`tiarca.storage\` API in this milestone.
 
-\`command\` events, timers, WHOIS/hostmask access, persistent storage and
-plugin compatibility layers are **not yet available**; those belong to
-subsequent milestones. A script error disables that script; the
-normal IRC connection continues.
+The new \`command\` callback is available only for an explicit user-entered
+\`/lua <text>\` command in TIARCA's composer. It is local and asynchronous,
+never transmitted as an IRC command. \`event.text\` contains the text after
+\`/lua\`, and \`event.channel\` is the active conversation (empty on the server
+tab). \`tiarca.log\` updates the script's Last log. \`tiarca.send\` is still
+subject to per-script send consent, rate limits and the invoking conversation.
+An unavailable engine leaves the command in the input for retry.
+This is not a catch-all hook for IRC, aliases or quick commands.
+
+Timers, WHOIS/hostmask access, persistent storage and plugin compatibility
+layers are **not yet available**; those belong to subsequent milestones.
+A script error disables that script; normal IRC continues.
 
 ## Limits and security requirements
 
@@ -106,10 +114,12 @@ normal IRC connection continues.
 
 ## Example scripts
 
-Three manually importable sources are included in the repository:
+Four manually importable sources are included in the repository:
 - [Count messages](lua-examples/count_messages.lua), log-only.
 - [Same-conversation reply](lua-examples/auto_reply.lua), which requires the
   optional per-script `tiarca.send` permission.
+- [Local Lua commands](lua-examples/local_command.lua), `/lua ping` updates the
+  script log; `/lua saluta` sends to the current conversation only if approved.
 - [Private "ciao bello" reply](lua-examples/ciao_bello_pvt.lua), which responds
   "bello ciao" only to incoming private messages matching "ciao bello"
   (case-insensitive, ignoring outer whitespace). Requires send consent.
