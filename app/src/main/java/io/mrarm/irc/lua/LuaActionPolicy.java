@@ -14,7 +14,8 @@ final class LuaActionPolicy {
                                String channel, String event, String target, String text) {
         if (script == null || !script.enabled || !script.allowSend ||
                 server == null || !script.serverId.equals(server) ||
-                !"message".equals(event) || channel == null || channel.isEmpty() ||
+                (!"message".equals(event) && !"command".equals(event)) ||
+                channel == null || channel.isEmpty() ||
                 !channel.equals(target) || text == null || text.isEmpty() ||
                 text.length() > 400 ||
                 text.getBytes(StandardCharsets.UTF_8).length > 400)
