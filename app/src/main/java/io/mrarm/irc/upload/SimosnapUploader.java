@@ -390,7 +390,7 @@ public final class SimosnapUploader {
             throws IOException {
         String boundary = "tiarca-" + UUID.randomUUID();
         String safeName = file.name.replace("\\", "_").replace("\"", "_");
-        String safeMime = file.mime.matches("[A-Za-z0-9!#    private static void configureTimeouts(HttpURLConnection connection) {^_.+-]+/[A-Za-z0-9!#    private static void configureTimeouts(HttpURLConnection connection) {^_.+-]+")
+        String safeMime = file.mime.matches("[A-Za-z0-9._+-]+/[A-Za-z0-9._+-]+")
                 ? file.mime : "application/octet-stream";
         byte[] prefix = ("--" + boundary + "\r\n"
                 + "Content-Disposition: form-data; name=\"expire\"\r\n\r\n"
@@ -412,10 +412,11 @@ public final class SimosnapUploader {
             request.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
             request.setDoOutput(true);
             request.setFixedLengthStreamingMode(prefix.length + file.size + suffix.length);
-            try (InputStream input = new BufferedInputStream(resolver.openInputStream(uri));
+            InputStream source = resolver.openInputStream(uri);
+            if (source == null)
+                throw new IOException("File not readable");
+            try (InputStream input = new BufferedInputStream(source);
                  OutputStream out = request.getOutputStream()) {
-                if (input == null)
-                    throw new IOException("File not readable");
                 out.write(prefix);
                 long sent = 0;
                 byte[] chunk = new byte[CHUNK_SIZE];
