@@ -204,7 +204,7 @@ public final class LuaScriptStore {
         return out.toByteArray();
     }
 
-    private static String checkedSource(byte[] bytes) throws IOException {
+    static String checkedSource(byte[] bytes) throws IOException {
         if (bytes.length == 0 || bytes.length > MAX_SOURCE_BYTES)
             throw new IOException("Lua script must be between 1 and 8192 bytes");
         String source;

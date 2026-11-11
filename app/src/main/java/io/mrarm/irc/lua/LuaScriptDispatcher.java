@@ -302,19 +302,8 @@ public final class LuaScriptDispatcher {
     private void sendAuthorized(LuaScriptStore.Script snapshot, Pending request,
                                 String target, String text) {
         LuaScriptStore.Script current = store.find(snapshot.id);
-        if (current == null || !current.enabled || !current.allowSend ||
-                !current.serverId.equals(request.server) ||
-                !"message".equals(request.event) ||
-                request.channel.isEmpty() || !request.channel.equals(target) ||
-                text == null || text.isEmpty() || text.length() > 400 ||
-                text.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 400)
-            return;
-
-        for (int i = 0; i < text.length(); i++) {
-            char c = text.charAt(i);
-            if (c == '\r' || c == '\n' || c == '\0' || c == '\001')
-                return; // no raw IRC protocol injection / CTCP
-        }
+        if (!LuaActionPolicy.permitsSend(current, request.server, request.channel,
+                request.event, target, text)) return;
 
         long now = SystemClock.elapsedRealtime();
         if (now - lastScriptSend.getOrDefault(snapshot.id, -SEND_INTERVAL_MS) <
