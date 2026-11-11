@@ -157,9 +157,10 @@ public final class LuaScriptDispatcher {
         // Only disable scripts actually executing when an isolated service dies;
         // unrelated, idle scripts are safe to reload after reconnection.
         for (Pending request : pending.values()) {
-            if (request.isEvent)
-                store.fail(request.scriptId,
-                        "Lua process terminated while executing this script");
+            // Includes script initialization: a top-level infinite loop must
+            // also be disabled, rather than crashing repeatedly on reconnect.
+            store.fail(request.scriptId,
+                    "Lua process terminated while loading or executing this script");
         }
     }
 
