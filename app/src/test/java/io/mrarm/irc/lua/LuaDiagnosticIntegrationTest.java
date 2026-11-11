@@ -31,8 +31,9 @@ public class LuaDiagnosticIntegrationTest {
     }
 
     @Test public void sendConsentIsVisibleAndExplicitlyOptIn() throws Exception {
-        String activity = Files.readString(
-                Path.of("src/main/java/io/mrarm/irc/lua/LuaScriptsActivity.java"));
+        String activity = new String(Files.readAllBytes(
+                Path.of("src/main/java/io/mrarm/irc/lua/LuaScriptsActivity.java")),
+                StandardCharsets.UTF_8);
         // A message and a list in the same AlertDialog hid the send checkbox.
         // The dialog must contain both the explanatory text and a separate checkbox.
         assertTrue(activity.contains("new CheckBox(this)"));
