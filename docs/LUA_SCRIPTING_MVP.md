@@ -106,10 +106,14 @@ normal IRC connection continues.
 
 ## Example scripts
 
-Two manually importable sources are included in the repository:
+Three manually importable sources are included in the repository:
 - [Count messages](lua-examples/count_messages.lua), log-only.
 - [Same-conversation reply](lua-examples/auto_reply.lua), which requires the
   optional per-script `tiarca.send` permission.
+- [Mask Finder Lite](lua-examples/mask_finder_lite.lua), a nickname-only
+  demonstration. Edit the channel and nickname wildcard in the source before
+  import. It only sees users who send messages after activation, cannot search
+  ident/host masks, and has no interactive results list or /maskfind command.
 
 Download the `.lua` file explicitly and select it in the Android document
 picker. These examples are **not** downloaded or executed automatically.
