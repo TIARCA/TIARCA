@@ -10,7 +10,7 @@ import static org.junit.Assert.assertTrue;
 /** Source-level checks; IPC and process isolation still require on-device tests. */
 public class LuaDiagnosticIntegrationTest {
     @Test public void isolatedAndNonExportedService() throws Exception {
-        String manifest = Files.readString(Path.of("src/main/AndroidManifest.xml"),
+        String manifest = new String(Files.readAllBytes(Path.of("src/main/AndroidManifest.xml")),
                 StandardCharsets.UTF_8);
         assertTrue(manifest.contains("android:name=\".lua.LuaDiagnosticService\""));
         assertTrue(manifest.contains("android:isolatedProcess=\"true\""));
@@ -19,8 +19,8 @@ public class LuaDiagnosticIntegrationTest {
     }
 
     @Test public void probeHasNoFilesystemOrIrcAccess() throws Exception {
-        String code = Files.readString(
-                Path.of("src/main/java/io/mrarm/irc/lua/LuaDiagnosticService.java"),
+        String code = new String(Files.readAllBytes(
+                Path.of("src/main/java/io/mrarm/irc/lua/LuaDiagnosticService.java")),
                 StandardCharsets.UTF_8);
         assertTrue(code.contains("Process.isIsolated()"));
         assertFalse(code.contains("getFilesDir("));
@@ -31,7 +31,7 @@ public class LuaDiagnosticIntegrationTest {
     }
 
     @Test public void nativeBuildUsesVendoredSource() throws Exception {
-        String cmake = Files.readString(Path.of("src/main/cpp/CMakeLists.txt"),
+        String cmake = new String(Files.readAllBytes(Path.of("src/main/cpp/CMakeLists.txt")),
                 StandardCharsets.UTF_8);
         assertTrue(cmake.contains("third_party/lua-5.5.1"));
         assertFalse(cmake.contains("file(DOWNLOAD"));
