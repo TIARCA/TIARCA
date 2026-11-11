@@ -296,7 +296,7 @@ public final class LuaScriptStore {
         return script;
     }
 
-    public synchronized Script importFromUri(Uri uri) throws IOException {
+    public Script importFromUri(Uri uri) throws IOException {
         String display = null;
         try (Cursor cursor = context.getContentResolver().query(uri,
                 new String[]{OpenableColumns.DISPLAY_NAME}, null, null, null)) {
@@ -305,8 +305,14 @@ public final class LuaScriptStore {
             throw new IOException("Cannot inspect selected document", error);
         }
         if (display == null) throw new IOException("Lua document has no filename");
+        byte[] bytes;
         try (InputStream input = context.getContentResolver().openInputStream(uri)) {
-            return importData(display, readBounded(input, MAX_SOURCE_BYTES), null);
+            bytes = readBounded(input, MAX_SOURCE_BYTES);
+        }
+        // A remote SAF provider can stall. Never hold the shared script-store
+        // monitor (also used by live IRC listeners) while reading that stream.
+        synchronized (this) {
+            return importData(display, bytes, null);
         }
     }
 

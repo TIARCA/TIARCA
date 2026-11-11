@@ -132,7 +132,12 @@ public final class LuaScriptDispatcher {
         main.post(() -> {
             running = true; // Allow on-demand script validation from Settings.
             reconcileBinding();
-            if (remote != null) io.post(this::loadAll);
+            if (remote != null) {
+                // Discard replies from the old script generation. A reset may
+                // invalidate in-flight events but must not disable new scripts.
+                clearPending();
+                io.post(this::loadAll);
+            }
         });
     }
 
