@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.view.MenuItem;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -174,18 +175,29 @@ public final class LuaScriptsActivity extends ThemedActivity {
     }
 
     private void askPermission(LuaScriptStore.Script s, ServerConfigData server) {
-        final boolean[] send = {false};
+        // A message and setMultiChoiceItems cannot be shown together reliably by
+        // AlertDialog. Keep both the explanation and the optional send approval
+        // visible in one scrollable view, with sending unchecked by default.
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(padding, Math.round(8 * getResources().getDisplayMetrics().density),
+                padding, Math.round(8 * getResources().getDisplayMetrics().density));
+        content.addView(text(getString(R.string.lua_scripts_consent_body,
+                server.name == null ? server.uuid.toString() : server.name), 16));
+        CheckBox allowSend = new CheckBox(this);
+        allowSend.setText(R.string.lua_scripts_send_permission);
+        allowSend.setChecked(false);
+        content.addView(allowSend);
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(content);
+
         new AlertDialog.Builder(this)
                 .setTitle(R.string.lua_scripts_consent_title)
-                .setMessage(getString(R.string.lua_scripts_consent_body,
-                        server.name == null ? server.uuid.toString() : server.name))
-                .setMultiChoiceItems(new String[]{
-                        getString(R.string.lua_scripts_send_permission)}, new boolean[]{false},
-                        (dialog, position, checked) -> send[0] = checked)
+                .setView(scroll)
                 .setNegativeButton(android.R.string.cancel, null)
                 .setPositiveButton(R.string.lua_scripts_enable, (dialog, which) -> {
                     try {
-                        store.enable(s.id, server.uuid.toString(), send[0]);
+                        store.enable(s.id, server.uuid.toString(), allowSend.isChecked());
                         LuaScriptDispatcher.get(this).reload();
                         render();
                     } catch (IOException error) {
