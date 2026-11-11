@@ -48,7 +48,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          sdkmanager --install "ndk;${NDK_VERSION}"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;${NDK_VERSION}"
           test -f "$ANDROID_HOME/ndk/${NDK_VERSION}/build/cmake/android.toolchain.cmake"
 
       - name: Build Android ARM64 JNI twice and compare exact bytes
