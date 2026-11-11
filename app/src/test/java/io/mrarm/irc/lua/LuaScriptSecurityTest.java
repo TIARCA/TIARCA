@@ -31,6 +31,14 @@ public class LuaScriptSecurityTest {
         assertFalse(LuaActionPolicy.permitsSend(approved(true), SERVER_ID, "#chat",
                 "message", "#other", "Hello"));
         assertFalse(LuaActionPolicy.permitsSend(approved(true), SERVER_ID, "#chat",
+                "message", "#other", "Hello"));
+        // Even if the inbound target were malformed, it must not be used as
+        // a multi-recipient or CRLF-injected outgoing target.
+        assertFalse(LuaActionPolicy.permitsSend(approved(true), SERVER_ID, "#a,#b",
+                "message", "#a,#b", "Hello"));
+        assertFalse(LuaActionPolicy.permitsSend(approved(true), SERVER_ID, "#a\r\n",
+                "message", "#a\r\n", "Hello"));
+        assertFalse(LuaActionPolicy.permitsSend(approved(true), SERVER_ID, "#chat",
                 "connected", "#chat", "Hello"));
         assertFalse(LuaActionPolicy.permitsSend(approved(true), SERVER_ID, "",
                 "message", "", "Hello"));

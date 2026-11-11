@@ -19,6 +19,12 @@ final class LuaActionPolicy {
                 text.length() > 400 ||
                 text.getBytes(StandardCharsets.UTF_8).length > 400)
             return false;
+        // IRC target must be one conversation, never a comma-separated target
+        // list or an injected protocol delimiter from a malicious server.
+        for (int i = 0; i < target.length(); i++) {
+            char c = target.charAt(i);
+            if (c <= 0x20 || c == 0x7f || c == ',' || c == ':') return false;
+        }
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);
             if (c == '\r' || c == '\n' || c == '\0' || c == '\001') return false;
