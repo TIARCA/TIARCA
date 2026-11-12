@@ -91,6 +91,9 @@ public class LuaScriptBackupTest {
     @Test public void deviceTransferRevokesAllLuaConsentButKeepsStorage()
             throws Exception {
         Application app = ApplicationProvider.getApplicationContext();
+        // Robolectric can give each test a different Application sandbox while
+        // LuaScriptStore is a process singleton. Begin with this test's files dir.
+        ReflectionHelpers.setStaticField(LuaScriptStore.class, "instance", null);
         LuaScriptStore original = LuaScriptStore.get(app);
         original.clearAll();
         String id = "30f369c3-a99f-4ce1-bd2c-5b5d984b24ab";
@@ -141,6 +144,7 @@ public class LuaScriptBackupTest {
             assertTrue(marker.isFile());
         } finally {
             LuaScriptStore.get(app).clearAll();
+            ReflectionHelpers.setStaticField(LuaScriptStore.class, "instance", null);
         }
     }
 
