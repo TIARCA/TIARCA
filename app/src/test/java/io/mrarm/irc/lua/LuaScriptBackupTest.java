@@ -1,6 +1,7 @@
 package io.mrarm.irc.lua;
 
 import android.app.Application;
+import android.util.AtomicFile;
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -145,6 +146,73 @@ public class LuaScriptBackupTest {
         } finally {
             LuaScriptStore.get(app).clearAll();
             ReflectionHelpers.setStaticField(LuaScriptStore.class, "instance", null);
+        }
+    }
+
+    @Test public void removeAndResetRollbackWhenMetadataWriteFails() throws Exception {
+        Application app = ApplicationProvider.getApplicationContext();
+        ReflectionHelpers.setStaticField(LuaScriptStore.class, "instance", null);
+        LuaScriptStore store = LuaScriptStore.get(app);
+        store.clearAll();
+        String id = "ca1d439a-bfde-4cc4-b8c7-5bcbd0eddf8a";
+        byte[] source = "tiarca.on('message', function(e) end)"
+                .getBytes(StandardCharsets.UTF_8);
+        StringBuilder sha256 = new StringBuilder();
+        for (byte item : MessageDigest.getInstance("SHA-256").digest(source))
+            sha256.append(String.format(java.util.Locale.ROOT, "%02x", item & 0xff));
+        JSONObject entry = new JSONObject();
+        entry.put("id", id);
+        entry.put("name", "still-present.lua");
+        entry.put("sha256", sha256.toString());
+        entry.put("server", "");
+        entry.put("enabled", false);
+        entry.put("send", false);
+        entry.put("error", "");
+        File archive = File.createTempFile("lua-reset-", ".zip", app.getCacheDir());
+        File badParent = File.createTempFile("lua-index-not-directory-",
+                ".tmp", app.getCacheDir());
+        AtomicFile realIndex = null;
+        try {
+            try (ZipFile zip = new ZipFile(archive)) {
+                ZipParameters params = new ZipParameters();
+                params.setFileNameInZip("lua_scripts/" + id + ".lua");
+                zip.addStream(new ByteArrayInputStream(source), params);
+                params.setFileNameInZip("lua_scripts/index.json");
+                zip.addStream(new ByteArrayInputStream(
+                        new JSONArray().put(entry).toString()
+                                .getBytes(StandardCharsets.UTF_8)), params);
+            }
+            try (ZipFile zip = new ZipFile(archive)) {
+                store.restoreFromBackup(zip);
+            }
+            assertNotNull(store.find(id));
+            realIndex = ReflectionHelpers.getField(store, "index");
+            // AtomicFile cannot create its index below a *regular file*.
+            // This simulates failure to persist script removal/reset.
+            ReflectionHelpers.setField(store, "index",
+                    new AtomicFile(new File(badParent, "index.json")));
+
+            try {
+                store.remove(id);
+                fail("Script removal unexpectedly succeeded");
+            } catch (java.io.IOException expected) { }
+            assertNotNull("Script must remain in memory after failed removal",
+                    store.find(id));
+            assertArrayEquals(source, store.sourceBytes(store.find(id)));
+
+            try {
+                store.clearAll();
+                fail("Script reset unexpectedly succeeded");
+            } catch (java.io.IOException expected) { }
+            assertEquals("Reset must restore in-memory metadata on failure",
+                    1, store.list().size());
+            assertNotNull(store.find(id));
+        } finally {
+            if (realIndex != null) ReflectionHelpers.setField(store, "index", realIndex);
+            store.clearAll();
+            ReflectionHelpers.setStaticField(LuaScriptStore.class, "instance", null);
+            archive.delete();
+            badParent.delete();
         }
     }
 
