@@ -78,6 +78,20 @@ public final class HostLuaRuntimeTest {
         check(notInvoked.length == 1 && "OK".equals(notInvoked[0]),
                 "Incoming chat text must not be treated as a local command");
 
+        String maskScript = "tiarca.on('command', function(e) "
+                + "if e.text == 'mask pippo' then "
+                + "tiarca.maskfind(e.channel, 'pippo') end end)";
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes(maskScript)))),
+                "Mask Finder Lua action should load");
+        String[] maskResult = event(OTHER, "command", "#example", "self", "mask pippo");
+        check(maskResult.length == 4 && "OK".equals(maskResult[0]) &&
+                        "mask".equals(maskResult[1]) &&
+                        "#example".equals(maskResult[2]) &&
+                        "pippo".equals(maskResult[3]),
+                "Mask Finder native action should preserve command channel and query");
+        check(event(OTHER, "message", "#example", "stranger", "mask pippo").length == 1,
+                "Mask Finder script must ignore remote chat input");
+
         String channelsScript = "tiarca.on('command', function(e) "
                 + "local channels = tiarca.get_channels() "
                 + "if #channels == 0 then "
