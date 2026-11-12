@@ -55,6 +55,9 @@ public class MessageHandler {
             String paramsRaw = line.substring(commandEndI + 1);
             params = parseParams(paramsRaw);
         }
+        // A separately approved Mask Finder request may be collecting a
+        // full WHO/WHOX result; record it even when another handler owns 354.
+        connection.getWhoSnapshotCollector().noteNumeric(command, params);
         CommandHandler handler;
         try {
             handler = commandHandlerList.getHandlerFor(command);
