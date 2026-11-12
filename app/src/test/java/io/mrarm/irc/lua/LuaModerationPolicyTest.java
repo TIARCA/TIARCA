@@ -80,7 +80,7 @@ public class LuaModerationPolicyTest {
         assertFalse(LuaModerationPolicy.liveTargetAllowed(
                 true, true, true, true, "OtherNick"));
         assertFalse(LuaModerationPolicy.liveTargetAllowed(
-                true, true, true, false, "OtherNick\\r\\nMODE"));
+                true, true, true, false, "OtherNick\r\nMODE"));
     }
 
     @Test public void revokedPermissionDisablesExistingScriptActions() {
