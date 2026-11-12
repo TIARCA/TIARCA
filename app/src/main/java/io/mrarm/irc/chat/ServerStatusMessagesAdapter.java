@@ -197,27 +197,30 @@ public class ServerStatusMessagesAdapter extends RecyclerView.Adapter<RecyclerVi
     /** Mask Finder rows are linked using trusted metadata, not regexes over IRC text. */
     private CharSequence decorateMaskFinder(CharSequence built, MaskFinderStatusMessageInfo info) {
         SpannableStringBuilder text = new SpannableStringBuilder(built);
-        if (info.kind == MaskFinderStatusMessageInfo.Kind.USER && info.nick != null) {
-            String needle = info.nick + "!";
-            int index = text.toString().lastIndexOf(needle);
-            if (index >= 0) {
+        if (info.kind == MaskFinderStatusMessageInfo.Kind.BATCH) {
+            int from = 0;
+            for (int i = 0; i < info.nicks.size(); i++) {
+                String mask = info.masks.get(i);
+                final String nick = info.nicks.get(i);
+                int index = text.toString().indexOf(mask, from);
+                if (index < 0) continue;
                 text.setSpan(new LongClickableSpan() {
                     @Override public void onClick(@NonNull View widget) {
                         NicknameContextMenu.show(widget.getContext(), mConnection,
-                                info.nick, info.channel);
+                                nick, info.channel);
                     }
 
                     @Override public boolean onLongClick(@NonNull View widget) {
                         NicknameContextMenu.show(widget.getContext(), mConnection,
-                                info.nick, info.channel);
+                                nick, info.channel);
                         return true;
                     }
 
                     @Override public void updateDrawState(@NonNull TextPaint ds) {
                         ds.setUnderlineText(false);
                     }
-                }, index, index + info.nick.length(),
-                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }, index, index + nick.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                from = index + mask.length();
             }
         } else if (info.kind == MaskFinderStatusMessageInfo.Kind.CONTINUE) {
             int yes = text.toString().lastIndexOf("[SI]");
