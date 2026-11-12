@@ -55,12 +55,15 @@ public final class IrcIdentityCache {
         String user = valid(ident, 64);
         String hostname = valid(host, 192);
         String acct = valid(account, 64);
-        if ("0".equals(acct) || "*".equals(acct)) acct = null;
+        // IRCv3 WHOX uses "0" for logged-out users. An explicit logout
+        // must clear a formerly observed account, not preserve stale state.
+        boolean loggedOut = "0".equals(acct) || "*".equals(acct);
+        if (loggedOut) acct = null;
         Identity old = known.get(id);
         if (old != null) {
             if (user == null) user = old.ident;
             if (hostname == null) hostname = old.host;
-            if (acct == null) acct = old.account;
+            if (acct == null && !loggedOut) acct = old.account;
         }
         if (user != null || hostname != null || acct != null)
             known.put(id, new Identity(user, hostname, acct));
