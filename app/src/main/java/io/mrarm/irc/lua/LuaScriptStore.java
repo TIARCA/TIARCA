@@ -61,21 +61,38 @@ public final class LuaScriptStore {
         public final String serverId;
         public final boolean enabled;
         public final boolean allowSend;
+        public final boolean allowUserInfo;
+        public final boolean allowModeration;
         public final String error;
 
         Script(String id, String name, String hash, String serverId,
                boolean enabled, boolean allowSend, String error) {
+            this(id, name, hash, serverId, enabled, allowSend, false, false, error);
+        }
+
+        Script(String id, String name, String hash, String serverId,
+               boolean enabled, boolean allowSend, boolean allowUserInfo,
+               boolean allowModeration, String error) {
             this.id = id;
             this.name = name;
             this.sha256 = hash;
             this.serverId = serverId;
             this.enabled = enabled;
             this.allowSend = allowSend;
+            this.allowUserInfo = allowUserInfo;
+            this.allowModeration = allowModeration;
             this.error = error;
         }
 
         Script configured(String serverId, boolean enabled, boolean allowSend, String error) {
-            return new Script(id, name, sha256, serverId, enabled, allowSend, error);
+            return configured(serverId, enabled, allowSend,
+                    enabled && allowUserInfo, enabled && allowModeration, error);
+        }
+
+        Script configured(String serverId, boolean enabled, boolean allowSend,
+                          boolean allowUserInfo, boolean allowModeration, String error) {
+            return new Script(id, name, sha256, serverId, enabled, allowSend,
+                    enabled && allowUserInfo, enabled && allowModeration, error);
         }
     }
 
@@ -144,7 +161,8 @@ public final class LuaScriptStore {
         if (!server.isEmpty() && !validId(server))
             throw new JSONException("Invalid Lua server UUID");
         return new Script(id, name, hash, server, obj.optBoolean("enabled", false),
-                obj.optBoolean("send", false), obj.optString("error", ""));
+                obj.optBoolean("send", false), obj.optBoolean("users", false),
+                obj.optBoolean("moderation", false), obj.optString("error", ""));
     }
 
     private static JSONObject toJson(Script script) throws JSONException {
@@ -155,6 +173,8 @@ public final class LuaScriptStore {
         item.put("server", script.serverId);
         item.put("enabled", script.enabled);
         item.put("send", script.allowSend);
+        item.put("users", script.allowUserInfo);
+        item.put("moderation", script.allowModeration);
         item.put("error", script.error);
         return item;
     }
@@ -317,6 +337,11 @@ public final class LuaScriptStore {
     }
 
     public synchronized void enable(String id, String serverId, boolean send) throws IOException {
+        enable(id, serverId, send, false, false);
+    }
+
+    public synchronized void enable(String id, String serverId, boolean send,
+                                    boolean users, boolean moderation) throws IOException {
         if (!validId(serverId)) throw new IOException("Select one server for script consent");
         boolean exists = false;
         for (ServerConfigData server : ServerConfigManager.getInstance(context).getServers())
@@ -325,7 +350,7 @@ public final class LuaScriptStore {
         Script script = find(id);
         if (script == null) throw new IOException("Lua script not found");
         sourceBytes(script);
-        replace(script, script.configured(serverId, true, send, ""));
+        replace(script, script.configured(serverId, true, send, users, moderation, ""));
     }
 
     public synchronized void disable(String id) throws IOException {
