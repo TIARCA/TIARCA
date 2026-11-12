@@ -485,8 +485,16 @@ public final class LuaScriptStore {
     public synchronized void remove(String id) throws IOException {
         Script s = find(id);
         if (s == null) return;
-        scripts.remove(s);
-        save();
+        int position = scripts.indexOf(s);
+        scripts.remove(position);
+        try {
+            save();
+        } catch (IOException error) {
+            // Do not show a script as removed when an I/O failure leaves its
+            // previous (possibly enabled) approval intact on disk.
+            scripts.add(position, s);
+            throw error;
+        }
         sourceFile(id).delete();
         ephemeralLogs.remove(id);
         ephemeralOutputs.remove(id);
@@ -496,9 +504,16 @@ public final class LuaScriptStore {
     public synchronized void clearAll() throws IOException {
         List<Script> previous = new ArrayList<>(scripts);
         scripts.clear();
+        try {
+            save();
+        } catch (IOException error) {
+            // An interrupted reset must not disagree with the persisted index
+            // and silently re-enable old script permissions on next launch.
+            scripts.addAll(previous);
+            throw error;
+        }
         ephemeralLogs.clear();
         ephemeralOutputs.clear();
-        save();
         for (Script script : previous) storage.delete(script.id);
         File[] files = directory.listFiles();
         if (files != null)
