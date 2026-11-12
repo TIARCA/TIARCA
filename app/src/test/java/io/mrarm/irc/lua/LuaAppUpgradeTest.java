@@ -28,6 +28,8 @@ import static org.junit.Assert.*;
 @Config(sdk = 33, application = Application.class)
 public class LuaAppUpgradeTest {
     private static final String NETWORK = "2598f719-dfb6-4bad-a69c-ff78cecb9315";
+    private static final String SECOND_NETWORK = "22d1fa48-7d17-4cab-a34c-88d63cd9885a";
+    private static final String MULTI = "33f369c3-a99f-4ce1-bd2c-5b5d984b24ab";
     private static final String ON = "31f369c3-a99f-4ce1-bd2c-5b5d984b24ab";
     private static final String OFF = "32f369c3-a99f-4ce1-bd2c-5b5d984b24ab";
 
@@ -62,15 +64,21 @@ public class LuaAppUpgradeTest {
                 .getBytes(StandardCharsets.UTF_8);
         byte[] offSource = "tiarca.on('command', function(e) end)"
                 .getBytes(StandardCharsets.UTF_8);
+        byte[] multiSource = "tiarca.on('connected', function(e) end)"
+                .getBytes(StandardCharsets.UTF_8);
         try {
             assertTrue("Normal upgrade retains consent marker", marker.isFile());
             Files.write(new File(directory, ON + ".lua").toPath(), onSource);
             Files.write(new File(directory, OFF + ".lua").toPath(), offSource);
+            Files.write(new File(directory, MULTI + ".lua").toPath(), multiSource);
             Files.write(new File(directory, ON + ".state.json").toPath(),
                     "{\"counter\":\"42\"}".getBytes(StandardCharsets.UTF_8));
             JSONArray array = new JSONArray();
             array.put(script(ON, onSource, true));
             array.put(script(OFF, offSource, false));
+            JSONObject multi = script(MULTI, multiSource, true);
+            multi.put("servers", new JSONArray().put(NETWORK).put(SECOND_NETWORK));
+            array.put(multi);
             Files.write(new File(directory, "index.json").toPath(),
                     array.toString().getBytes(StandardCharsets.UTF_8));
 
@@ -80,16 +88,25 @@ public class LuaAppUpgradeTest {
             LuaScriptStore afterUpdate = LuaScriptStore.get(app);
             LuaScriptStore.Script active = afterUpdate.find(ON);
             LuaScriptStore.Script inactive = afterUpdate.find(OFF);
+            LuaScriptStore.Script multiActive = afterUpdate.find(MULTI);
             assertNotNull(active);
             assertNotNull(inactive);
+            assertNotNull(multiActive);
             assertTrue(active.enabled);
             assertEquals(NETWORK, active.serverId);
             assertFalse(inactive.enabled);
             assertFalse(inactive.allowStorage);
             assertArrayEquals(onSource, afterUpdate.sourceBytes(active));
+            assertEquals(java.util.Arrays.asList(NETWORK, SECOND_NETWORK),
+                    multiActive.serverIds);
+            assertTrue(multiActive.isEnabledOn(SECOND_NETWORK));
             assertEquals("42", afterUpdate.storageSnapshot(ON).get(1));
             assertTrue(afterUpdate.enabledOn(NETWORK).stream()
                     .anyMatch(s -> ON.equals(s.id)));
+            assertTrue(afterUpdate.enabledOn(SECOND_NETWORK).stream()
+                    .anyMatch(s -> MULTI.equals(s.id)));
+            assertFalse(afterUpdate.enabledOn(SECOND_NETWORK).stream()
+                    .anyMatch(s -> OFF.equals(s.id)));
             assertTrue(marker.isFile());
         } finally {
             LuaScriptStore.get(app).clearAll();
