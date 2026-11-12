@@ -1,18 +1,26 @@
--- TIARCA Mask Finder. Import and enable with "Channel members and identities".
+-- TIARCA Mask Finder. Enable "Channel members and identities" for this script.
 -- Usage inside a joined channel:
 --   /lua mask pippo
 --   /lua mask *!*@*.example.net
--- Matches nick!ident@host (not messages); prints only to the local Server tab.
--- The host provides a WHO/WHOX-backed snapshot and interactive 50-row chunks.
+-- The search reads a full channel WHO/WHOX and writes only to the Server tab.
 tiarca.on("command", function(event)
-  local query = event.text:match("^mask%s+(.+)$")
-  if not query then
-    if event.text == "mask" then
-      tiarca.show("Mask Finder", "Uso: /lua mask <testo o mask IRC>")
-    end
+  local keyword, query = event.text:match("^%s*(%S+)%s*(.-)%s*$")
+  if not keyword or keyword:lower() ~= "mask" then return end
+
+  if not query or query == "" then
+    tiarca.show("Mask Finder", "Uso: /lua mask <testo o mask IRC>")
     return
   end
-  -- This host action requires separate permission to read channel identities.
-  -- It can only act on the joined channel from which /lua was entered.
+  if not event.channel:match("^[#&+!]") then
+    tiarca.show("Mask Finder", "Esegui il comando da un canale IRC.")
+    return
+  end
+  if #query > 192 or query:find("[%c\\]") then
+    tiarca.show("Mask Finder", "Maschera troppo lunga o non valida.")
+    return
+  end
+
+  -- The host checks permission, connected network and exact source channel.
+  -- No outgoing IRC messages, operator privileges or auto-send are required.
   tiarca.maskfind(event.channel, query)
 end)
