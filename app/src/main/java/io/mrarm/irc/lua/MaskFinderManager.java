@@ -130,25 +130,29 @@ public final class MaskFinderManager {
             return;
         }
 
-        // One active search per network: stop an older WHO before starting a
-        // new one, but never invalidate already printed server-tab rows.
-        Session previous = sessions.remove(server);
-        if (previous != null && previous.waiting) {
-            previous.data.getWhoSnapshotCollector().cancel();
-            main.removeCallbacks(previous.timeout);
-        }
         Session session = new Session(server, scriptId, channel, query,
                 nextId++, count, data);
-        sessions.put(server, session);
-
         long now = SystemClock.elapsedRealtime();
         if (now - lastWho.getOrDefault(server, -MIN_WHO_INTERVAL_MS) <
                 MIN_WHO_INTERVAL_MS) {
+            // A rejected WHO request must not discard the pending continuation
+            // of the previous valid result set.
             notice(conn, MaskFinderStatusMessageInfo.Kind.INFO, session, null,
                     "Mask Finder: attendi qualche secondo prima di una nuova ricerca WHO.");
-            sessions.remove(server);
             return;
         }
+
+        // One active search per network: stop older WHO work and disable old
+        // continuation controls, preserving the rows already printed.
+        Session previous = sessions.remove(server);
+        if (previous != null) {
+            if (previous.prompt != null) previous.prompt.consumed = true;
+            if (previous.waiting) {
+                previous.data.getWhoSnapshotCollector().cancel();
+                main.removeCallbacks(previous.timeout);
+            }
+        }
+        sessions.put(server, session);
 
         boolean whox = data.getSupportList().isWhoxSupported();
         // Distinct from the C3 042 and WhoXAccountHandler's 700-999 tokens.
