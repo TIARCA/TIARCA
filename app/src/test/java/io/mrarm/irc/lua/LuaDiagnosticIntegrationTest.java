@@ -38,11 +38,30 @@ public class LuaDiagnosticIntegrationTest {
         // The dialog must contain both the explanatory text and a separate checkbox.
         assertTrue(activity.contains("new CheckBox(this)"));
         assertTrue(activity.contains("allowSend.setText(R.string.lua_scripts_send_permission)"));
-        assertTrue(activity.contains("allowSend.setChecked(false)"));
+        // New scripts begin with no send permission; reconfiguration can
+        // preselect permissions already granted on the original network.
+        assertTrue(activity.contains(
+                "allowSend.setChecked(script.enabled && script.allowSend)"));
         assertTrue(activity.contains("content.addView(allowSend)"));
         assertTrue(activity.contains(".setView(scroll)"));
         assertTrue(activity.contains("allowSend.isChecked()"));
-        assertFalse(activity.contains(".setMultiChoiceItems("));
+        // Network choices and permissions are two distinct dialogs; neither
+        // list selection nor checked permissions can silently enable a script.
+        assertTrue(activity.contains(".setMultiChoiceItems(labels, checked,"));
+        assertTrue(activity.contains("askPermission(script, selected)"));
+        assertTrue(activity.contains("store.enable(script.id, ids,"));
+    }
+
+    @Test public void diagnosticTestScreenIsNoLongerInOrdinarySettings()
+            throws Exception {
+        String settings = new String(Files.readAllBytes(Path.of(
+                "src/main/java/io/mrarm/irc/SettingsActivity.java")),
+                StandardCharsets.UTF_8);
+        String manifest = new String(Files.readAllBytes(Path.of(
+                "src/main/AndroidManifest.xml")), StandardCharsets.UTF_8);
+        assertFalse(settings.contains("LuaDiagnosticsActivity.class"));
+        assertFalse(manifest.contains("android:name=\".lua.LuaDiagnosticsActivity\""));
+        assertTrue(manifest.contains("android:name=\".lua.LuaDiagnosticService\""));
     }
 
     @Test public void localLuaCommandIsNotRawIrcOrRegularMessage() throws Exception {
