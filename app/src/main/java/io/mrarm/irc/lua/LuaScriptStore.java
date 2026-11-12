@@ -182,13 +182,29 @@ public final class LuaScriptStore {
         }
     }
 
+    // Script filenames also appear in local server-tab notices: never accept
+    // separators, control characters or Unicode line separators from SAF/ZIP.
+    static boolean validScriptName(String name) {
+        if (name == null || name.isEmpty() || name.length() > 80 ||
+                !name.toLowerCase(Locale.ROOT).endsWith(".lua") ||
+                name.contains("/") || name.contains("\\")) return false;
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+            int type = Character.getType(c);
+            if (Character.isISOControl(c) ||
+                    type == Character.LINE_SEPARATOR ||
+                    type == Character.PARAGRAPH_SEPARATOR) return false;
+        }
+        return true;
+    }
+
     private static Script fromJson(JSONObject obj) throws JSONException {
         String id = obj.getString("id");
         String hash = obj.getString("sha256");
         if (!validId(id) || !hash.matches("[a-f0-9]{64}"))
             throw new JSONException("Invalid Lua metadata");
         String name = obj.optString("name", "script.lua");
-        if (name.length() > 80 || !name.toLowerCase(Locale.ROOT).endsWith(".lua"))
+        if (!validScriptName(name))
             throw new JSONException("Invalid Lua filename");
         String server = obj.optString("server", "");
         if (!server.isEmpty() && !validId(server))
@@ -328,9 +344,7 @@ public final class LuaScriptStore {
     private Script importData(String displayName, byte[] data, String suppliedId)
             throws IOException {
         checkedSource(data);
-        String lower = displayName == null ? "" : displayName.toLowerCase(Locale.ROOT);
-        if (!lower.endsWith(".lua")) throw new IOException("Select a .lua source file");
-        if (displayName.length() > 80 || displayName.contains("/") || displayName.contains("\\"))
+        if (!validScriptName(displayName))
             throw new IOException("Invalid .lua filename");
         if (scripts.size() >= MAX_SCRIPTS) throw new IOException("Maximum 8 scripts");
         String digest = hash(data);

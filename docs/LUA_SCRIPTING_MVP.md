@@ -24,7 +24,7 @@ UTF-8 files but always restored disabled with read/send consent revoked.
 Android Auto Backup/transfer additionally uses a non-backed-up approval
 marker so a restored device never inherits an old approval.
 
-## API v1 implemented
+## Core API (C1–C2)
 
 \`\`\`lua
 local count = 0
@@ -46,15 +46,16 @@ tiarca.on("disconnected", function(event)
 end)
 \`\`\`
 
-Events: \`message\`, \`connected\`, \`disconnected\`, \`command\`. The callback receives
+The core events are \`message\`, \`connected\`, \`disconnected\`, and \`command\`; C4 also adds \`join\`, \`part\`, \`quit\`, \`nick\` and \`timer\`. The callback receives
 a table with \`type\`, \`server\` (server configuration UUID), \`channel\`,
 \`nick\`, \`text\`, \`message_type\` (\`normal\`, \`notice\`, \`me\`),
 and \`timestamp\` (Unix seconds).
 - Message events are post-storage, normalized events, **not protocol RAW**.
 - Only text NORMAL, NOTICE or ME with a sender are forwarded. The
   user's own messages, batch messages and STATUSMSG are excluded.
-- No user/ident/hostname, passwords, server configuration or network socket
-  is accessible from Lua.
+- User identities and hostnames require separate C3 approval, and only values
+  observed on the approved network are exposed. Passwords, server settings,
+  filesystem access and network sockets remain inaccessible.
 - \`tiarca.log(string)\`: last log value held only in main-process RAM.
 - \`tiarca.send(target, string)\`: queued request subject to host-side
   consent, server scope and *same incoming conversation* target equality.
@@ -64,7 +65,7 @@ and \`timestamp\` (Unix seconds).
 
 Registered Lua closures and their variables survive individual events while
 the isolated service lives. Reload/reconnect of the Lua service resets that
-state. There is no persistent \`tiarca.storage\` API in this milestone.
+state. C6 adds optional, explicitly approved persistent \`tiarca.storage\`; see below.
 
 The new \`command\` callback is available only for an explicit user-entered
 \`/lua <text>\` command in TIARCA's composer. It is local and asynchronous,
@@ -75,9 +76,9 @@ subject to per-script send consent, rate limits and the invoking conversation.
 An unavailable engine leaves the command in the input for retry.
 This is not a catch-all hook for IRC, aliases or quick commands.
 
-General-purpose WHOIS scripting, persistent storage and plugin compatibility
-layers are **not yet available**. The bounded C3 roster/WHO and C4 timer are
-documented below; they are not raw IRC or arbitrary network APIs.
+General-purpose WHOIS scripting and plugin compatibility layers are **not
+available**. The bounded C3 roster/WHO, C4 timer, C6 storage and C7 local
+results are documented below; none provides raw IRC or arbitrary network APIs.
 A script error disables that script; normal IRC continues.
 
 ## Limits and security requirements
@@ -293,3 +294,55 @@ test backup/restore and explicitly reapprove storage before running scripts.
 **On-device verification is required** for persisted writes, quota failure,
 backup and transfer consent, light/dark appearance, clipboard handling,
 foreground/background transitions and absence of unwanted IRC output.
+
+
+## Phase D — integration and release-readiness checklist (2026-11-12)
+
+Phase D is **consolidation**, not another Lua API surface or the earlier Gradle/AGP
+upgrade phase. Work remains on the stacked experimental branches PR #258
+(sandbox to main) and PR #260 (C1–C7 to sandbox); nothing is merged or tagged.
+
+### Verified automatically on the C6/C7 implementation commit
+
+- CI (Standard and F-Droid debug build and existing unit checks):
+  https://github.com/TIARCA/TIARCA/actions/runs/43173080044 — passed.
+- Native Lua POC tests: https://github.com/TIARCA/TIARCA/actions/runs/43173080097 — passed.
+- Standard/F-Droid APK reproducibility:
+  https://github.com/TIARCA/TIARCA/actions/runs/43173080013 — passed.
+- Source-based, pinned Lua 5.5.1, MIT license in `third_party/lua-5.5.1/LICENSE`,
+  no new Android permissions, `isolatedProcess` not exported, no raw IRC API.
+- User-reported manual tests: C6 write/read persists across TIARCA restart,
+  and C7 local list is visible/selectable and copies a nickname to clipboard.
+  These reports do not replace the tests below.
+
+### Required before merge/release
+
+- [ ] Verify manual ZIP backup/restore retains C6 data but revokes **all** Lua
+  approvals; explicitly re-enable a script to use the stored values.
+- [ ] Verify Android device-to-device transfer/Auto Backup with a second phone
+  or clean test profile. State must survive where supported, approvals must not.
+- [ ] Test multiple simultaneous IRC networks: no event, roster, storage or
+  outgoing action must cross the approved network scope.
+- [ ] Test operator privilege changes, unsupported extban dialects, disconnected
+  sessions and missing hostmask: no unintended kick/ban/mute/tban/mode.
+- [ ] Test reconnect, Android background/Doze, partial WHO/WHOX response,
+  interrupted Lua process and memory/instruction limits on an actual device.
+- [ ] Inspect local list/dialog contrast in light and dark theme and clipboard
+  feedback with TalkBack.
+- [ ] Review C6/C7 privacy expectations and Lua native code/security with an
+  independent reviewer before promoting the experimental API.
+- [ ] After all checks: reverify current main/branch HEAD and CI, rebase/merge
+  stacked PRs in order only by explicit authorization; version and release
+  remain unchanged until separately approved.
+
+### Phase D implementation notes
+
+- Filenames imported from Android SAF and read from ZIP metadata are now
+  validated consistently; control characters, Unicode line separators and
+  path separators cannot be inserted into Lua's local server-tab notices.
+- Automated regression tests simulate the absent no-backup approval marker
+  after an Android device transfer and assert persistent data survives while
+  script execution and each privileged capability stay disabled.
+- Automated green CI proves compilation and the tested paths, **not** device
+  behavior, the completeness of an independent security audit or F-Droid
+  publication approval.
