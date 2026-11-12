@@ -1,10 +1,12 @@
-# Lua scripting API — experimental branch
+# Lua scripting API — development on main
 
 Scope: https://github.com/TIARCA/TIARCA/issues/216
 
-This API is **experimental** and confined to
-\`feature/lua-command-hook-20261111\` (based on the sandbox branch). Do not merge or publish as an
-official TIARCA release without independent Android and security testing.
+The Lua API was integrated into `main` on 2026-11-12 through PR #260
+and PR #258, with final merge commit `c7edee0e`. It is a **development
+feature**, not part of the currently published stable `v0.9.10` APK.
+A future official release requires separate authorization, release checks,
+and remaining Android/security acceptance.
 
 ## Import and consent
 
@@ -299,10 +301,11 @@ foreground/background transitions and absence of unwanted IRC output.
 ## Phase D — integration and release-readiness checklist (2026-11-12)
 
 Phase D is **consolidation**, not another Lua API surface or the earlier Gradle/AGP
-upgrade phase. Work remains on the stacked experimental branches PR #258
-(sandbox to main) and PR #260 (C1–C7 to sandbox); nothing is merged or tagged.
+upgrade phase. The stacked PR #260 and PR #258 were merged in order into
+`main` (merge commits `41d1c586` and `c7edee0e`). No version, tag,
+or release was created.
 
-### Verified automatically on the C6/C7 implementation commit
+### Automated verification (including historical C6/C7 checks)
 
 - CI (Standard and F-Droid debug build and existing unit checks):
   https://github.com/TIARCA/TIARCA/actions/runs/43173080044 — passed.
@@ -313,27 +316,34 @@ upgrade phase. Work remains on the stacked experimental branches PR #258
   no new Android permissions, `isolatedProcess` not exported, no raw IRC API.
 - User-reported manual tests: C6 write/read persists across TIARCA restart,
   and C7 local list is visible/selectable and copies a nickname to clipboard.
-  These reports do not replace the tests below.
+- Final pre-merge source head `24be8b67`: [Standard/F-Droid CI](https://github.com/TIARCA/TIARCA/actions/runs/43245561031),
+  [native Lua](https://github.com/TIARCA/TIARCA/actions/runs/43245561174),
+  and [reproducible builds](https://github.com/TIARCA/TIARCA/actions/runs/43245561015)
+  all passed.
+- A write-failure regression test ensures that removing/resetting Lua scripts
+  does not desynchronize in-memory metadata from the persisted consent index.
 
-### Required before merge/release
+### Remaining acceptance before a stable Lua release
 
-- [ ] Verify manual ZIP backup/restore retains C6 data but revokes **all** Lua
-  approvals; explicitly re-enable a script to use the stored values.
+- [x] User-confirmed manual ZIP backup/restore retained C6 data and revoked
+  script approvals; re-enabling was required for access.
 - [ ] Verify Android device-to-device transfer/Auto Backup with a second phone
   or clean test profile. State must survive where supported, approvals must not.
-- [ ] Test multiple simultaneous IRC networks: no event, roster, storage or
-  outgoing action must cross the approved network scope.
-- [ ] Test operator privilege changes, unsupported extban dialects, disconnected
-  sessions and missing hostmask: no unintended kick/ban/mute/tban/mode.
+- [x] User-confirmed two-network probe: an event from the unapproved network
+  did not increment the approved network's Lua event counter. Java regression
+  tests also enforce separate roster/identity and action gates.
+- [x] User-confirmed operator privilege regression: voice `+v` worked with
+  OP and `-v` was blocked after losing OP.
+- [ ] Exhaustive unsupported extban dialects, disconnection races and missing
+  hostmasks still need additional on-device validation.
 - [ ] Test reconnect, Android background/Doze, partial WHO/WHOX response,
   interrupted Lua process and memory/instruction limits on an actual device.
 - [ ] Inspect local list/dialog contrast in light and dark theme and clipboard
   feedback with TalkBack.
 - [ ] Review C6/C7 privacy expectations and Lua native code/security with an
   independent reviewer before promoting the experimental API.
-- [ ] After all checks: reverify current main/branch HEAD and CI, rebase/merge
-  stacked PRs in order only by explicit authorization; version and release
-  remain unchanged until separately approved.
+- [x] Both stacked PRs were merged into `main` after explicit authorization.
+  Stable version and release remained unchanged.
 
 ### Phase D implementation notes
 
@@ -392,5 +402,6 @@ must be recorded separately from the automated policy tests.
 5. On a separate test network, try `mute`/`tban` only when supported by
    server-advertised EXTBAN/TBAN. Unsupported syntax must not be sent.
 
-These live checks remain **non verificato** until their actual results are
-reported; Java unit tests and a green APK build cannot substitute for them.
+The project owner confirmed the practical two-network and lost-OP tests on
+2026-11-12. The broader test matrix above remains **non verificato** where
+unchecked; Java unit tests and a green APK build cannot substitute for it.
