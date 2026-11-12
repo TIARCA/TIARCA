@@ -95,7 +95,7 @@ public final class HostLuaRuntimeTest {
         check(emptyChannels.length == 4 && "empty:false".equals(emptyChannels[3]),
                 "An empty event must not leak a previous channel snapshot");
         check(decode(NativeLuaRuntime.load(OTHER,
-                        bytes("tiarca.get_channels()"))).contains("outside event"),
+                        bytes("tiarca.get_channels()"))).contains("only available in a callback"),
                 "Channel data must not be accessible during script initialization");
 
         String noLibs = "tiarca.on('message', function(e) "
