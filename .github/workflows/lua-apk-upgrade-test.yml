@@ -91,7 +91,16 @@ jobs:
           nohup "$ANDROID_HOME/emulator/emulator" -avd tiarca-lua-update \
             -no-window -no-audio -no-snapshot -no-boot-anim \
             -gpu swiftshader_indirect > /tmp/tiarca-emulator.log 2>&1 &
-          adb wait-for-device
+          emulator_pid=$!
+          sleep 5
+          if ! kill -0 "$emulator_pid" 2>/dev/null; then
+            tail -100 /tmp/tiarca-emulator.log
+            exit 1
+          fi
+          if ! timeout 180 adb wait-for-device; then
+            tail -100 /tmp/tiarca-emulator.log
+            exit 1
+          fi
           for i in $(seq 1 120); do
             if [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1" ]; then
               break
