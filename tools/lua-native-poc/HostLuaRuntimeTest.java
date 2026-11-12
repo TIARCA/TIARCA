@@ -107,6 +107,8 @@ public final class HostLuaRuntimeTest {
                 + "tiarca.refresh_users(e.channel) "
                 + "tiarca.kick(e.channel, 'Target', 'Reason') "
                 + "tiarca.ban(e.channel, 'Target') "
+                + "tiarca.mute(e.channel, 'Target') "
+                + "tiarca.tban(e.channel, 'Target', '3h') "
                 + "tiarca.mode(e.channel, 'Target', '+v') end)";
         check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes(rosterScript)))),
                 "Advanced scripting callbacks should register");
@@ -116,13 +118,15 @@ public final class HostLuaRuntimeTest {
                 bytes("test-server"), bytes("#example"), bytes("self"), bytes("mod"),
                 bytes(""), 1794400000L, new byte[0][], new int[0], false,
                 userValues, false, true);
-        check(rosterActions != null && rosterActions.length == 16 &&
+        check(rosterActions != null && rosterActions.length == 22 &&
                         "OK".equals(decode(rosterActions[0])) &&
                         "Target:Target!ident@host.example:account".equals(decode(rosterActions[3])) &&
                         "who".equals(decode(rosterActions[4])) &&
                         "kick".equals(decode(rosterActions[7])) &&
                         "ban".equals(decode(rosterActions[10])) &&
-                        "mode".equals(decode(rosterActions[13])),
+                        "mute".equals(decode(rosterActions[13])) &&
+                        "tban".equals(decode(rosterActions[16])) &&
+                        "mode".equals(decode(rosterActions[19])),
                 "C3 roster and C5 structured actions should reach the JNI host");
         byte[][] noUsers = NativeLuaRuntime.dispatch(OTHER, "command",
                 bytes("test-server"), bytes("#example"), bytes("self"), bytes("mod"),
