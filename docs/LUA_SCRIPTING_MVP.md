@@ -202,7 +202,7 @@ is rate-limited (at most once every 12 seconds per script and a separate
 per-server interval). IRC servers can still reject an action; this API
 does not promise that a request succeeded, and moderation is intentionally
 *not* executed for disconnected or timer callbacks. No unrestricted
-extbans, timed bans, cross-channel actions or blanket mass bans.
+extbans, arbitrary timed-ban commands, cross-channel actions or blanket mass bans.
 
 ### Example of the new API
 
@@ -226,3 +226,5 @@ Android Doze and reconnect timing, operator status changes, removal of
 consent while actions are pending, attempt to moderate another network
 or PVT, empty/unknown hostmask, backup/restore revocation and device
 crash isolation. Never enable moderation for untrusted scripts.
+
+Additional C5 actions (only if separately approved, while operator and with an observed host): `tiarca.mute(channel, nick)` uses the existing network dialect's advertised acting-quiet extban (`m:` on known InspIRCd syntax, `~quiet:` on known UnrealIRCd syntax), and `tiarca.tban(channel, nick, "3h")` uses only the dialect's verified timed ban construction, restricted to 1–99 units of `m`, `h`, or `d`. Unsupported dialects reject the request without emitting any IRC command. These requests have the same rate limits and current-channel checks as `ban`.
