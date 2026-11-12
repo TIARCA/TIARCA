@@ -29,6 +29,7 @@ import io.mrarm.chatlib.dto.NickChangeMessageInfo;
 import io.mrarm.chatlib.irc.IrcIdentityCache;
 import io.mrarm.chatlib.irc.IRCConnection;
 import io.mrarm.irc.util.ChannelOperatorUtils;
+import io.mrarm.irc.dialog.OperatorCommandComposer;
 import io.mrarm.chatlib.dto.MessageSenderInfo;
 import io.mrarm.chatlib.irc.ServerConnectionApi;
 import io.mrarm.irc.ServerConnectionInfo;
@@ -433,7 +434,8 @@ public final class LuaScriptDispatcher {
             } else if ("send".equals(kind)) {
                 sendAuthorized(script, request, target, value);
             } else if ("who".equals(kind) || "kick".equals(kind) ||
-                    "ban".equals(kind) || "mode".equals(kind)) {
+                    "ban".equals(kind) || "mode".equals(kind) ||
+                    "mute".equals(kind) || "tban".equals(kind)) {
                 final String operation = kind;
                 io.post(() -> performIrcAction(script.id, request, operation, target, value));
             } else {
@@ -516,13 +518,13 @@ public final class LuaScriptDispatcher {
             String nick;
             String reason = "";
             String mode = "";
-            if ("kick".equals(kind) || "mode".equals(kind)) {
+            if ("kick".equals(kind) || "mode".equals(kind) || "tban".equals(kind)) {
                 int tab = value == null ? -1 : value.indexOf('\t');
                 if (tab <= 0) return;
                 nick = value.substring(0, tab);
                 if ("kick".equals(kind)) reason = value.substring(tab + 1);
                 else mode = value.substring(tab + 1);
-            } else if ("ban".equals(kind)) {
+            } else if ("ban".equals(kind) || "mute".equals(kind)) {
                 nick = value;
             } else return;
             if (!LuaModerationPolicy.validNick(nick) ||
@@ -542,8 +544,32 @@ public final class LuaScriptDispatcher {
                         api.getServerConnectionData().getIdentityCache().get(nick);
                 if (identity == null ||
                         !LuaModerationPolicy.validBanHost(identity.host)) return;
-                api.sendCommand("MODE", false,
-                        new String[]{channel, "+b", "*!*@" + identity.host}, null, null);
+                String baseMask = "*!*@" + identity.host;
+                OperatorCommandComposer.Dialect dialect =
+                        new OperatorCommandComposer.Dialect(
+                                api.getServerConnectionData().getSupportList().getExtban(),
+                                api.getServerConnectionData().getSupportList().getAccountExtban());
+                if ("mute".equals(kind)) {
+                    String token = dialect.acting('m');
+                    if (token == null) return; // Network has no known mute extban.
+                    api.sendCommand("MODE", false,
+                            new String[]{channel, "+b", token + baseMask}, null, null);
+                } else if ("tban".equals(kind)) {
+                    if (!mode.matches("(?i)[1-9][0-9]?[hmd]")) return;
+                    String timed = dialect.timedCommand(channel, mode, baseMask);
+                    if (timed == null) return; // Do not invent an unsupported syntax.
+                    if (dialect.isInspStyle()) {
+                        api.sendCommand("TBAN", false,
+                                new String[]{channel, mode, baseMask}, null, null);
+                    } else if (dialect.isUnrealStyle()) {
+                        String timedMask = timed.substring(timed.lastIndexOf(' ') + 1);
+                        api.sendCommand("MODE", false,
+                                new String[]{channel, "+b", timedMask}, null, null);
+                    } else return;
+                } else {
+                    api.sendCommand("MODE", false,
+                            new String[]{channel, "+b", baseMask}, null, null);
+                }
             }
             lastScriptModeration.put(script.id, now);
             lastServerModeration.put(request.server, now);
