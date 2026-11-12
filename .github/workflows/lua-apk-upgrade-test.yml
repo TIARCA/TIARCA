@@ -86,8 +86,13 @@ jobs:
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
             --install "platforms;android-35" \
             "system-images;android-35;google_apis;x86_64" "emulator" "platform-tools" || true
-          echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd \
-            --force -n tiarca-lua-update -k "system-images;android-35;google_apis;x86_64"
+          # Use a fixed hardware profile: an unanswered custom-device prompt
+          # can exit without writing an AVD, even with status 0.
+          printf 'no\n' | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd \
+            --force -n tiarca-lua-update -k "system-images;android-35;google_apis;x86_64" \
+            --device "pixel"
+          "$ANDROID_HOME/emulator/emulator" -list-avds | grep -Fx tiarca-lua-update
+          test -f "$HOME/.android/avd/tiarca-lua-update.ini"
           nohup "$ANDROID_HOME/emulator/emulator" -avd tiarca-lua-update \
             -no-window -no-audio -no-snapshot -no-boot-anim \
             -gpu swiftshader_indirect > /tmp/tiarca-emulator.log 2>&1 &
