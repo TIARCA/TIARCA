@@ -105,14 +105,16 @@ public final class IrcIdentityCache {
             note(params.get(1), params.get(2), params.get(3), null);
         } else if ("330".equals(command) && params.size() >= 3) {
             note(params.get(1), null, null, params.get(2));
-        } else if ("354".equals(command) && params.size() >= 6) {
+        } else if ("354".equals(command) && params.size() >= 7) {
             synchronized (this) {
                 if (System.currentTimeMillis() >= whoxExpiresAt ||
                         !WHOX_TOKEN.equals(params.get(1))) return;
             }
-            // WHO #channel %tnuhaf,042 => 354 <me> 042 <nick> <user>
-            // <host> <account> <flags>
-            note(params.get(2), params.get(3), params.get(4), params.get(5));
+            // IRCv3 WHOX replies always use canonical field order, regardless
+            // of the order in %tnuhaf: token, user, host, nick, flags, account.
+            // WHO #channel %tnuhaf,042 => 354 <me> 042 <user> <host>
+            // <nick> <flags> <account>
+            note(params.get(4), params.get(2), params.get(3), params.get(6));
         }
     }
 
