@@ -3,7 +3,7 @@
 Scope: https://github.com/TIARCA/TIARCA/issues/216
 
 This API is **experimental** and confined to
-\`feature/lua-scripting-sandbox-poc\`. Do not merge or publish as an
+\`feature/lua-command-hook-20261111\` (based on the sandbox branch). Do not merge or publish as an
 official TIARCA release without independent Android and security testing.
 
 ## Import and consent
@@ -75,8 +75,9 @@ subject to per-script send consent, rate limits and the invoking conversation.
 An unavailable engine leaves the command in the input for retry.
 This is not a catch-all hook for IRC, aliases or quick commands.
 
-Timers, WHOIS/hostmask access, persistent storage and plugin compatibility
-layers are **not yet available**; those belong to subsequent milestones.
+General-purpose WHOIS scripting, persistent storage and plugin compatibility
+layers are **not yet available**. The bounded C3 roster/WHO and C4 timer are
+documented below; they are not raw IRC or arbitrary network APIs.
 A script error disables that script; normal IRC continues.
 
 ## Limits and security requirements

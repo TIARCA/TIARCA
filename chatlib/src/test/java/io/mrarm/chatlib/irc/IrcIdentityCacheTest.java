@@ -21,6 +21,21 @@ public class IrcIdentityCacheTest {
         assertNull(cache.get("Alice2"));
     }
 
+    @Test public void standardWhoNumericsAreObservedWithoutHandlerCollision()
+            throws Exception {
+        ServerConnectionData connection = new ServerConnectionData();
+        MessageHandler handler = new MessageHandler(connection);
+        handler.handleLine(":irc.example 352 me #room ident cloak.host irc.example Alice H :0 Alice");
+        assertEquals("ident", connection.getIdentityCache().get("Alice").ident);
+        assertEquals("cloak.host", connection.getIdentityCache().get("Alice").host);
+        connection.getIdentityCache().expectWhox();
+        handler.handleLine(":irc.example 354 me 042 ident2 cloak2 Bob H account2");
+        assertEquals("ident2", connection.getIdentityCache().get("Bob").ident);
+        assertEquals("cloak2", connection.getIdentityCache().get("Bob").host);
+        assertEquals("account2", connection.getIdentityCache().get("Bob").account);
+        handler.handleLine(":irc.example 315 me #room :End of WHO");
+    }
+
     @Test public void unknownWhoxTokenMustNotPopulateData() {
         IrcIdentityCache cache = new IrcIdentityCache();
         cache.noteNumeric("354", Arrays.asList("me", "042", "ident", "host",

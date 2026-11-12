@@ -28,7 +28,7 @@
     <string name="lua_command_unavailable">Nessuno script Lua disponibile su questa rete, oppure la coda Lua è occupata.</string>
     <string name="lua_command_queued">Comando accodato per gli script Lua (risultati nei log).</string>
     <string name="lua_scripts_users_permission">Consenti anche l’accesso ai membri e alle identità note (nick, ident, host, account se disponibile), e richieste WHO esplicite</string>
-    <string name="lua_scripts_moderation_permission">Consenti anche comandi da operatore (kick, ban, op e voice) su questa rete. Attenzione: uno script automatico può espellere utenti o modificare i privilegi.</string>
+    <string name="lua_scripts_moderation_permission">Consenti anche comandi da operatore (kick, ban, mute, ban temporaneo, op e voice) su questa rete. Attenzione: uno script automatico può espellere utenti o modificare i privilegi.</string>
     <string name="lua_scripts_users_enabled">Permesso: membri e identità dei canali</string>
     <string name="lua_scripts_moderation_enabled">Permesso: moderazione attiva</string>
 </resources>

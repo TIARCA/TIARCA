@@ -28,7 +28,7 @@
     <string name="lua_command_unavailable">No enabled Lua script is available on this network, or the Lua queue is busy.</string>
     <string name="lua_command_queued">Command queued for Lua scripts (see script logs for results).</string>
     <string name="lua_scripts_users_permission">Also allow reading channel member list and known identities (nick, ident, host, account if available), and explicit WHO refresh requests</string>
-    <string name="lua_scripts_moderation_permission">Also allow operator commands (kick, ban, op and voice) on this network. Dangerous: an automated script can remove users or change privileges.</string>
+    <string name="lua_scripts_moderation_permission">Also allow operator commands (kick, ban, quiet/mute, timed ban, op and voice) on this network. Dangerous: an automated script can remove users or change privileges.</string>
     <string name="lua_scripts_users_enabled">Permission: channel members and identities enabled</string>
     <string name="lua_scripts_moderation_enabled">Permission: moderation enabled</string>
 </resources>
