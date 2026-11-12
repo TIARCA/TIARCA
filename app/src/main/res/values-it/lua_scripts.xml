@@ -24,4 +24,16 @@
     <string name="lua_scripts_error">Errore script Lua</string>
     <string name="lua_scripts_remove_all">Elimina tutti gli script Lua</string>
     <string name="lua_scripts_remove_all_confirm">Eliminare tutti i sorgenti Lua importati e revocare le autorizzazioni?</string>
+    <string name="lua_command_empty">Scrivi un comando dopo /lua (es. /lua ping).</string>
+    <string name="lua_command_unavailable">Nessuno script Lua disponibile su questa rete, oppure la coda Lua è occupata.</string>
+    <string name="lua_command_queued">Comando accodato per gli script Lua (risultati nei log).</string>
+    <string name="lua_scripts_users_permission">Consenti anche l’accesso ai membri e alle identità note (nick, ident, host, account se disponibile), e richieste WHO esplicite</string>
+    <string name="lua_scripts_moderation_permission">Consenti anche comandi da operatore (kick, ban, mute, ban temporaneo, op e voice) su questa rete. Attenzione: uno script automatico può espellere utenti o modificare i privilegi.</string>
+    <string name="lua_scripts_users_enabled">Permesso: membri e identità dei canali</string>
+    <string name="lua_scripts_moderation_enabled">Permesso: moderazione attiva</string>
+    <string name="lua_scripts_storage_permission">Consenti dati persistenti limitati (16 chiavi, 4 KiB), conservati nei backup. Gli script non accedono al filesystem.</string>
+    <string name="lua_scripts_storage_enabled">Permesso: dati persistenti dello script</string>
+    <string name="lua_scripts_view_output">Visualizza risultato script</string>
+    <string name="lua_scripts_copy_label">Risultato script Lua</string>
+    <string name="lua_scripts_copied">Elemento copiato</string>
 </resources>

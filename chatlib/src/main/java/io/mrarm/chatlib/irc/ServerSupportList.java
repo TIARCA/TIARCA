@@ -19,6 +19,10 @@ public class ServerSupportList {
     private String accountExtban;
     private int monitorLimit = -1;
     private int secureListWaitSeconds = -1;
+    private boolean whoxSupported;
+
+    public synchronized boolean isWhoxSupported() { return whoxSupported; }
+    public synchronized void setWhoxSupported(boolean supported) { whoxSupported = supported; }
     private IRCCaseMapping caseMapping = IRCCaseMapping.RFC1459;
 
     public synchronized String getExtban() { return extban; }

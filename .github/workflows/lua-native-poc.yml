@@ -9,6 +9,12 @@ on:
       - 'app/src/main/cpp/**'
       - 'app/src/main/java/io/mrarm/irc/lua/NativeLuaRuntime.java'
       - '.github/workflows/lua-native-poc.yml'
+  pull_request:
+    paths:
+      - 'tools/lua-native-poc/**'
+      - 'app/src/main/cpp/**'
+      - 'app/src/main/java/io/mrarm/irc/lua/NativeLuaRuntime.java'
+      - '.github/workflows/lua-native-poc.yml'
   workflow_dispatch:
 
 permissions:
@@ -35,7 +41,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p build/lua-source
-          curl -fLsS --retry 3 --connect-timeout 20 \
+          curl -fLsS --retry 8 --retry-all-errors --retry-delay 2 --connect-timeout 20 \
             "https://www.lua.org/ftp/lua-${LUA_VERSION}.tar.gz" \
             -o "build/lua-source/lua-${LUA_VERSION}.tar.gz"
           cd build/lua-source

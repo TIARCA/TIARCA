@@ -21,6 +21,7 @@ public class ISupportCommandHandler implements CommandHandler {
     public static final String PARAM_MONITOR = "MONITOR";
     public static final String PARAM_SECURELIST = "SECURELIST";
     public static final String PARAM_CASEMAPPING = "CASEMAPPING";
+    public static final String PARAM_WHOX = "WHOX";
 
     @Override
     public Object[] getHandledCommands() {
@@ -102,6 +103,8 @@ public class ISupportCommandHandler implements CommandHandler {
             } catch (NumberFormatException | NullPointerException ignored) {
                 supportList.setSecureListWaitSeconds(-1);
             }
+        } else if (param.equals(PARAM_WHOX)) {
+            supportList.setWhoxSupported(!remove);
         } else if (param.equals(PARAM_CASEMAPPING)) {
             supportList.setCaseMapping(remove ? IRCCaseMapping.RFC1459 :
                     IRCCaseMapping.fromISupportValue(value));

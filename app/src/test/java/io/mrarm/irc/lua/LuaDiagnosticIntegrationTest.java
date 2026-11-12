@@ -45,6 +45,35 @@ public class LuaDiagnosticIntegrationTest {
         assertFalse(activity.contains(".setMultiChoiceItems("));
     }
 
+    @Test public void localLuaCommandIsNotRawIrcOrRegularMessage() throws Exception {
+        String composer = new String(Files.readAllBytes(Path.of(
+                "src/main/java/io/mrarm/irc/chat/ChatFragmentSendMessageHelper.java")),
+                StandardCharsets.UTF_8);
+        String coordinator = new String(Files.readAllBytes(Path.of(
+                "src/main/java/io/mrarm/irc/lua/LuaScriptDispatcher.java")),
+                StandardCharsets.UTF_8);
+        String service = new String(Files.readAllBytes(Path.of(
+                "src/main/java/io/mrarm/irc/lua/LuaDiagnosticService.java")),
+                StandardCharsets.UTF_8);
+        assertTrue(composer.contains("LuaScriptDispatcher.get(mContext).onCommand("));
+        assertTrue(composer.contains("text.regionMatches(true, 0, \"/lua\""));
+        assertTrue(composer.contains("return;\n        }\n        if (mFragment.getCurrentChannel() == null)"));
+        assertTrue(coordinator.contains("public boolean onCommand("));
+        assertTrue(coordinator.contains("return enqueue(\"command\""));
+        assertTrue(service.contains("\"command\".equals(event)"));
+    }
+
+    @Test public void luaDocumentImportUsesModernResultContract() throws Exception {
+        String activity = new String(Files.readAllBytes(Path.of(
+                "src/main/java/io/mrarm/irc/lua/LuaScriptsActivity.java")),
+                StandardCharsets.UTF_8);
+        assertTrue(activity.contains("new ActivityResultContracts.OpenDocument()"));
+        assertTrue(activity.contains("luaPicker.launch(new String[]{\"*/*\"})"));
+        assertTrue(activity.contains("store.importFromUri(selected)"));
+        assertFalse(activity.contains("startActivityForResult("));
+        assertFalse(activity.contains("onActivityResult("));
+    }
+
     @Test public void nativeBuildUsesVendoredSource() throws Exception {
         String cmake = new String(Files.readAllBytes(Path.of("src/main/cpp/CMakeLists.txt")),
                 StandardCharsets.UTF_8);

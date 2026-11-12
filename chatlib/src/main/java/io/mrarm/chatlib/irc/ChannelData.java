@@ -111,6 +111,21 @@ public class ChannelData {
         }
     }
 
+    /** Thread-safe count of the currently cached IRC channel members. */
+    public int getMemberCount() {
+        synchronized (membersLock) {
+            return members.size();
+        }
+    }
+
+    /** Bounded copy for read-only scripting snapshots, never returns live list. */
+    public List<Member> getMemberSnapshot(int limit) {
+        synchronized (membersLock) {
+            return new ArrayList<>(members.subList(0, Math.min(
+                    members.size(), Math.max(0, limit))));
+        }
+    }
+
     public List<NickWithPrefix> getMembersAsNickPrefixList() {
         synchronized (membersLock) {
             List<NickWithPrefix> list = new ArrayList<>();

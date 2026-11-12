@@ -1,7 +1,9 @@
 package io.mrarm.irc.lua;
 
-import android.app.Activity;
-import android.content.Intent;
+import android.net.Uri;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.view.ViewGroup;
@@ -13,6 +15,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 
 import java.io.IOException;
 import java.util.List;
@@ -24,7 +28,12 @@ import io.mrarm.irc.config.ServerConfigManager;
 
 /** User-selected .lua imports and per-script/per-server permissions. */
 public final class LuaScriptsActivity extends ThemedActivity {
-    private static final int PICK_LUA = 1601;
+    // Register before the Activity reaches STARTED; Android restores pending
+    // document selections across an Activity recreation.
+    private final ActivityResultLauncher<String[]> luaPicker =
+            registerForActivityResult(new ActivityResultContracts.OpenDocument(), selected -> {
+                if (selected != null) importScript(selected);
+            });
     private LuaScriptStore store;
     private LinearLayout list;
     private int padding;
@@ -98,6 +107,12 @@ public final class LuaScriptsActivity extends ThemedActivity {
                         resolveServerName(s.serverId));
                 if (s.allowSend)
                     state += "\n" + getString(R.string.lua_scripts_sending_enabled);
+                if (s.allowUserInfo)
+                    state += "\n" + getString(R.string.lua_scripts_users_enabled);
+                if (s.allowModeration)
+                    state += "\n" + getString(R.string.lua_scripts_moderation_enabled);
+                if (s.allowStorage)
+                    state += "\n" + getString(R.string.lua_scripts_storage_enabled);
             }
             if (s.error != null && !s.error.isEmpty())
                 state += "\n" + getString(R.string.lua_scripts_last_error, s.error);
@@ -120,6 +135,10 @@ public final class LuaScriptsActivity extends ThemedActivity {
                             chooseServer(s);
                         }
                     }));
+            LuaScriptStore.Output output = store.latestOutput(s.id);
+            if (output != null)
+                list.addView(button(R.string.lua_scripts_view_output,
+                        () -> showOutput(output)));
             if (s.enabled) {
                 list.addView(button(R.string.lua_scripts_reload, () -> {
                     LuaScriptDispatcher.get(this).reload();
@@ -146,6 +165,30 @@ public final class LuaScriptsActivity extends ThemedActivity {
             separator.setAlpha(0.5f);
             list.addView(separator);
         }
+    }
+
+    private void showOutput(LuaScriptStore.Output output) {
+        AlertDialog.Builder dialog = new AlertDialog.Builder(this)
+                .setTitle(output.title)
+                .setNegativeButton(android.R.string.ok, null);
+        if (output.list) {
+            // Host-generated list controls only; a tap copies the selected
+            // value. Lua cannot create intents, activities or arbitrary views.
+            String[] items = output.body.split("\n", -1);
+            dialog.setItems(items, (d, index) -> {
+                ClipboardManager clipboard = (ClipboardManager)
+                        getSystemService(Context.CLIPBOARD_SERVICE);
+                if (clipboard != null) {
+                    clipboard.setPrimaryClip(ClipData.newPlainText(
+                            getString(R.string.lua_scripts_copy_label), items[index]));
+                    Toast.makeText(this, R.string.lua_scripts_copied,
+                            Toast.LENGTH_SHORT).show();
+                }
+            });
+        } else {
+            dialog.setMessage(output.body);
+        }
+        dialog.show();
     }
 
     private String resolveServerName(String id) {
@@ -188,6 +231,18 @@ public final class LuaScriptsActivity extends ThemedActivity {
         allowSend.setText(R.string.lua_scripts_send_permission);
         allowSend.setChecked(false);
         content.addView(allowSend);
+        CheckBox allowUsers = new CheckBox(this);
+        allowUsers.setText(R.string.lua_scripts_users_permission);
+        allowUsers.setChecked(false);
+        content.addView(allowUsers);
+        CheckBox allowModeration = new CheckBox(this);
+        allowModeration.setText(R.string.lua_scripts_moderation_permission);
+        allowModeration.setChecked(false);
+        content.addView(allowModeration);
+        CheckBox allowStorage = new CheckBox(this);
+        allowStorage.setText(R.string.lua_scripts_storage_permission);
+        allowStorage.setChecked(false);
+        content.addView(allowStorage);
         ScrollView scroll = new ScrollView(this);
         scroll.addView(content);
 
@@ -197,7 +252,9 @@ public final class LuaScriptsActivity extends ThemedActivity {
                 .setNegativeButton(android.R.string.cancel, null)
                 .setPositiveButton(R.string.lua_scripts_enable, (dialog, which) -> {
                     try {
-                        store.enable(s.id, server.uuid.toString(), allowSend.isChecked());
+                        store.enable(s.id, server.uuid.toString(), allowSend.isChecked(),
+                                allowUsers.isChecked(), allowModeration.isChecked(),
+                                allowStorage.isChecked());
                         LuaScriptDispatcher.get(this).reload();
                         render();
                     } catch (IOException error) {
@@ -207,17 +264,12 @@ public final class LuaScriptsActivity extends ThemedActivity {
     }
 
     private void openPicker() {
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("*/*");
-        startActivityForResult(intent, PICK_LUA);
+        // .lua has no consistently advertised MIME type across file providers.
+        // Keep the original "*/*" filter; importFromUri verifies name/content.
+        luaPicker.launch(new String[]{"*/*"});
     }
 
-    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode != PICK_LUA || resultCode != Activity.RESULT_OK ||
-                data == null || data.getData() == null) return;
-        final android.net.Uri selected = data.getData();
+    private void importScript(Uri selected) {
         // SAF providers may be remote/cloud backed. Do not block the UI thread
         // while reading the selected source document.
         new Thread(() -> {

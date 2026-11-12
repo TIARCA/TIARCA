@@ -1,6 +1,7 @@
 package io.mrarm.irc.lua;
 
 import android.app.Application;
+import android.util.AtomicFile;
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -13,9 +14,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
+import org.robolectric.util.ReflectionHelpers;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 
@@ -71,6 +74,145 @@ public class LuaScriptBackupTest {
         } finally {
             store.clearAll();
             archive.delete();
+        }
+    }
+
+    @Test public void scriptNamesCannotInjectFakeLocalNotices() {
+        assertTrue(LuaScriptStore.validScriptName("my-test.lua"));
+        assertTrue(LuaScriptStore.validScriptName("Prova_ù.lua"));
+        assertFalse(LuaScriptStore.validScriptName("../other.lua"));
+        assertFalse(LuaScriptStore.validScriptName("bad\\name.lua"));
+        assertFalse(LuaScriptStore.validScriptName("fake\nNOTICE.lua"));
+        assertFalse(LuaScriptStore.validScriptName("fake\rNOTICE.lua"));
+        assertFalse(LuaScriptStore.validScriptName("fake\u2028NOTICE.lua"));
+        assertFalse(LuaScriptStore.validScriptName("fake\u2029NOTICE.lua"));
+        assertFalse(LuaScriptStore.validScriptName("fake\u0000NOTICE.lua"));
+    }
+
+    @Test public void deviceTransferRevokesAllLuaConsentButKeepsStorage()
+            throws Exception {
+        Application app = ApplicationProvider.getApplicationContext();
+        // Robolectric can give each test a different Application sandbox while
+        // LuaScriptStore is a process singleton. Begin with this test's files dir.
+        ReflectionHelpers.setStaticField(LuaScriptStore.class, "instance", null);
+        LuaScriptStore original = LuaScriptStore.get(app);
+        original.clearAll();
+        String id = "30f369c3-a99f-4ce1-bd2c-5b5d984b24ab";
+        String serverId = "ad9dfd3d-9d7d-4aeb-b047-a8d3cc673267";
+        byte[] source = "tiarca.on('command', function(e) end)"
+                .getBytes(StandardCharsets.UTF_8);
+        byte[] digest = MessageDigest.getInstance("SHA-256").digest(source);
+        StringBuilder sha256 = new StringBuilder();
+        for (byte b : digest)
+            sha256.append(String.format(java.util.Locale.ROOT, "%02x", b & 0xff));
+        JSONObject config = new JSONObject();
+        config.put("id", id);
+        config.put("name", "transferred.lua");
+        config.put("sha256", sha256.toString());
+        config.put("server", serverId);
+        config.put("enabled", true);
+        config.put("send", true);
+        config.put("users", true);
+        config.put("moderation", true);
+        config.put("storage", true);
+        config.put("error", "");
+
+        File directory = new File(app.getFilesDir(), "lua_scripts");
+        File marker = new File(app.getNoBackupFilesDir(), "lua_approvals_v1");
+        try {
+            // Emulate Android restoring ordinary files but not the no-backup
+            // consent marker on a new device.
+            Files.write(new File(directory, id + ".lua").toPath(), source);
+            Files.write(new File(directory, id + ".state.json").toPath(),
+                    "{\"counter\":\"23\"}".getBytes(StandardCharsets.UTF_8));
+            Files.write(new File(directory, "index.json").toPath(),
+                    new JSONArray().put(config).toString()
+                            .getBytes(StandardCharsets.UTF_8));
+            assertTrue("Expected existing non-backed-up marker", marker.isFile());
+            assertTrue("Cannot simulate a new device", marker.delete());
+            ReflectionHelpers.setStaticField(LuaScriptStore.class, "instance", null);
+
+            LuaScriptStore restored = LuaScriptStore.get(app);
+            LuaScriptStore.Script script = restored.find(id);
+            assertNotNull(script);
+            assertFalse(script.enabled);
+            assertFalse(script.allowSend);
+            assertFalse(script.allowUserInfo);
+            assertFalse(script.allowModeration);
+            assertFalse(script.allowStorage);
+            assertEquals("", script.serverId);
+            assertEquals("23", restored.storageSnapshot(id).get(1));
+            assertTrue(marker.isFile());
+        } finally {
+            LuaScriptStore.get(app).clearAll();
+            ReflectionHelpers.setStaticField(LuaScriptStore.class, "instance", null);
+        }
+    }
+
+    @Test public void removeAndResetRollbackWhenMetadataWriteFails() throws Exception {
+        Application app = ApplicationProvider.getApplicationContext();
+        ReflectionHelpers.setStaticField(LuaScriptStore.class, "instance", null);
+        LuaScriptStore store = LuaScriptStore.get(app);
+        store.clearAll();
+        String id = "ca1d439a-bfde-4cc4-b8c7-5bcbd0eddf8a";
+        byte[] source = "tiarca.on('message', function(e) end)"
+                .getBytes(StandardCharsets.UTF_8);
+        StringBuilder sha256 = new StringBuilder();
+        for (byte item : MessageDigest.getInstance("SHA-256").digest(source))
+            sha256.append(String.format(java.util.Locale.ROOT, "%02x", item & 0xff));
+        JSONObject entry = new JSONObject();
+        entry.put("id", id);
+        entry.put("name", "still-present.lua");
+        entry.put("sha256", sha256.toString());
+        entry.put("server", "");
+        entry.put("enabled", false);
+        entry.put("send", false);
+        entry.put("error", "");
+        File archive = File.createTempFile("lua-reset-", ".zip", app.getCacheDir());
+        File badParent = File.createTempFile("lua-index-not-directory-",
+                ".tmp", app.getCacheDir());
+        AtomicFile realIndex = null;
+        try {
+            try (ZipFile zip = new ZipFile(archive)) {
+                ZipParameters params = new ZipParameters();
+                params.setFileNameInZip("lua_scripts/" + id + ".lua");
+                zip.addStream(new ByteArrayInputStream(source), params);
+                params.setFileNameInZip("lua_scripts/index.json");
+                zip.addStream(new ByteArrayInputStream(
+                        new JSONArray().put(entry).toString()
+                                .getBytes(StandardCharsets.UTF_8)), params);
+            }
+            try (ZipFile zip = new ZipFile(archive)) {
+                store.restoreFromBackup(zip);
+            }
+            assertNotNull(store.find(id));
+            realIndex = ReflectionHelpers.getField(store, "index");
+            // AtomicFile cannot create its index below a *regular file*.
+            // This simulates failure to persist script removal/reset.
+            ReflectionHelpers.setField(store, "index",
+                    new AtomicFile(new File(badParent, "index.json")));
+
+            try {
+                store.remove(id);
+                fail("Script removal unexpectedly succeeded");
+            } catch (java.io.IOException expected) { }
+            assertNotNull("Script must remain in memory after failed removal",
+                    store.find(id));
+            assertArrayEquals(source, store.sourceBytes(store.find(id)));
+
+            try {
+                store.clearAll();
+                fail("Script reset unexpectedly succeeded");
+            } catch (java.io.IOException expected) { }
+            assertEquals("Reset must restore in-memory metadata on failure",
+                    1, store.list().size());
+            assertNotNull(store.find(id));
+        } finally {
+            if (realIndex != null) ReflectionHelpers.setField(store, "index", realIndex);
+            store.clearAll();
+            ReflectionHelpers.setStaticField(LuaScriptStore.class, "instance", null);
+            archive.delete();
+            badParent.delete();
         }
     }
 

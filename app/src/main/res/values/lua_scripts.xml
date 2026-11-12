@@ -24,4 +24,16 @@
     <string name="lua_scripts_error">Lua script error</string>
     <string name="lua_scripts_remove_all">Remove all Lua scripts</string>
     <string name="lua_scripts_remove_all_confirm">Delete all imported Lua sources and revoke their permissions?</string>
+    <string name="lua_command_empty">Enter a command after /lua (for example /lua ping).</string>
+    <string name="lua_command_unavailable">No enabled Lua script is available on this network, or the Lua queue is busy.</string>
+    <string name="lua_command_queued">Command queued for Lua scripts (see script logs for results).</string>
+    <string name="lua_scripts_users_permission">Also allow reading channel member list and known identities (nick, ident, host, account if available), and explicit WHO refresh requests</string>
+    <string name="lua_scripts_moderation_permission">Also allow operator commands (kick, ban, quiet/mute, timed ban, op and voice) on this network. Dangerous: an automated script can remove users or change privileges.</string>
+    <string name="lua_scripts_users_enabled">Permission: channel members and identities enabled</string>
+    <string name="lua_scripts_moderation_enabled">Permission: moderation enabled</string>
+    <string name="lua_scripts_storage_permission">Allow bounded persistent script data (16 keys, 4 KiB), preserved in backups. Scripts still have no filesystem access.</string>
+    <string name="lua_scripts_storage_enabled">Permission: per-script storage enabled</string>
+    <string name="lua_scripts_view_output">View script result</string>
+    <string name="lua_scripts_copy_label">Lua script result</string>
+    <string name="lua_scripts_copied">Item copied</string>
 </resources>

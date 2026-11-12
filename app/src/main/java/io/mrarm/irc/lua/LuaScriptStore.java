@@ -61,21 +61,56 @@ public final class LuaScriptStore {
         public final String serverId;
         public final boolean enabled;
         public final boolean allowSend;
+        public final boolean allowUserInfo;
+        public final boolean allowModeration;
+        public final boolean allowStorage;
         public final String error;
 
         Script(String id, String name, String hash, String serverId,
                boolean enabled, boolean allowSend, String error) {
+            this(id, name, hash, serverId, enabled, allowSend, false, false, error);
+        }
+
+        Script(String id, String name, String hash, String serverId,
+               boolean enabled, boolean allowSend, boolean allowUserInfo,
+               boolean allowModeration, String error) {
+            this(id, name, hash, serverId, enabled, allowSend, allowUserInfo,
+                    allowModeration, false, error);
+        }
+
+        Script(String id, String name, String hash, String serverId,
+               boolean enabled, boolean allowSend, boolean allowUserInfo,
+               boolean allowModeration, boolean allowStorage, String error) {
             this.id = id;
             this.name = name;
             this.sha256 = hash;
             this.serverId = serverId;
             this.enabled = enabled;
             this.allowSend = allowSend;
+            this.allowUserInfo = allowUserInfo;
+            this.allowModeration = allowModeration;
+            this.allowStorage = allowStorage;
             this.error = error;
         }
 
         Script configured(String serverId, boolean enabled, boolean allowSend, String error) {
-            return new Script(id, name, sha256, serverId, enabled, allowSend, error);
+            return configured(serverId, enabled, allowSend,
+                    enabled && allowUserInfo, enabled && allowModeration,
+                    enabled && allowStorage, error);
+        }
+
+        Script configured(String serverId, boolean enabled, boolean allowSend,
+                          boolean allowUserInfo, boolean allowModeration, String error) {
+            return configured(serverId, enabled, allowSend, allowUserInfo,
+                    allowModeration, enabled && allowStorage, error);
+        }
+
+        Script configured(String serverId, boolean enabled, boolean allowSend,
+                          boolean allowUserInfo, boolean allowModeration,
+                          boolean allowStorage, String error) {
+            return new Script(id, name, sha256, serverId, enabled, allowSend,
+                    enabled && allowUserInfo, enabled && allowModeration,
+                    enabled && allowStorage, error);
         }
     }
 
@@ -83,8 +118,22 @@ public final class LuaScriptStore {
     private final File directory;
     private final File approvalMarker;
     private final AtomicFile index;
+    private final LuaScriptStorage storage;
     private final ArrayList<Script> scripts = new ArrayList<>();
     private final Map<String, String> ephemeralLogs = new HashMap<>();
+    private final Map<String, Output> ephemeralOutputs = new HashMap<>();
+
+    /** Local UI output; it is never an IRC message and is not restored from backup. */
+    public static final class Output {
+        public final String title;
+        public final String body;
+        public final boolean list;
+        Output(String title, String body, boolean list) {
+            this.title = title;
+            this.body = body;
+            this.list = list;
+        }
+    }
 
     private LuaScriptStore(Context context) {
         this.context = context;
@@ -92,6 +141,7 @@ public final class LuaScriptStore {
         if (!directory.isDirectory() && !directory.mkdirs())
             throw new IllegalStateException("Cannot create private Lua script directory");
         index = new AtomicFile(new File(directory, "index.json"));
+        storage = new LuaScriptStorage(directory);
         approvalMarker = new File(context.getNoBackupFilesDir(), "lua_approvals_v1");
         load();
         if (!approvalMarker.exists()) {
@@ -132,19 +182,37 @@ public final class LuaScriptStore {
         }
     }
 
+    // Script filenames also appear in local server-tab notices: never accept
+    // separators, control characters or Unicode line separators from SAF/ZIP.
+    static boolean validScriptName(String name) {
+        if (name == null || name.isEmpty() || name.length() > 80 ||
+                !name.toLowerCase(Locale.ROOT).endsWith(".lua") ||
+                name.contains("/") || name.contains("\\")) return false;
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+            int type = Character.getType(c);
+            if (Character.isISOControl(c) ||
+                    type == Character.LINE_SEPARATOR ||
+                    type == Character.PARAGRAPH_SEPARATOR) return false;
+        }
+        return true;
+    }
+
     private static Script fromJson(JSONObject obj) throws JSONException {
         String id = obj.getString("id");
         String hash = obj.getString("sha256");
         if (!validId(id) || !hash.matches("[a-f0-9]{64}"))
             throw new JSONException("Invalid Lua metadata");
         String name = obj.optString("name", "script.lua");
-        if (name.length() > 80 || !name.toLowerCase(Locale.ROOT).endsWith(".lua"))
+        if (!validScriptName(name))
             throw new JSONException("Invalid Lua filename");
         String server = obj.optString("server", "");
         if (!server.isEmpty() && !validId(server))
             throw new JSONException("Invalid Lua server UUID");
         return new Script(id, name, hash, server, obj.optBoolean("enabled", false),
-                obj.optBoolean("send", false), obj.optString("error", ""));
+                obj.optBoolean("send", false), obj.optBoolean("users", false),
+                obj.optBoolean("moderation", false), obj.optBoolean("storage", false),
+                obj.optString("error", ""));
     }
 
     private static JSONObject toJson(Script script) throws JSONException {
@@ -155,6 +223,9 @@ public final class LuaScriptStore {
         item.put("server", script.serverId);
         item.put("enabled", script.enabled);
         item.put("send", script.allowSend);
+        item.put("users", script.allowUserInfo);
+        item.put("moderation", script.allowModeration);
+        item.put("storage", script.allowStorage);
         item.put("error", script.error);
         return item;
     }
@@ -273,9 +344,7 @@ public final class LuaScriptStore {
     private Script importData(String displayName, byte[] data, String suppliedId)
             throws IOException {
         checkedSource(data);
-        String lower = displayName == null ? "" : displayName.toLowerCase(Locale.ROOT);
-        if (!lower.endsWith(".lua")) throw new IOException("Select a .lua source file");
-        if (displayName.length() > 80 || displayName.contains("/") || displayName.contains("\\"))
+        if (!validScriptName(displayName))
             throw new IOException("Invalid .lua filename");
         if (scripts.size() >= MAX_SCRIPTS) throw new IOException("Maximum 8 scripts");
         String digest = hash(data);
@@ -317,6 +386,17 @@ public final class LuaScriptStore {
     }
 
     public synchronized void enable(String id, String serverId, boolean send) throws IOException {
+        enable(id, serverId, send, false, false);
+    }
+
+    public synchronized void enable(String id, String serverId, boolean send,
+                                    boolean users, boolean moderation) throws IOException {
+        enable(id, serverId, send, users, moderation, false);
+    }
+
+    public synchronized void enable(String id, String serverId, boolean send,
+                                    boolean users, boolean moderation, boolean stored)
+            throws IOException {
         if (!validId(serverId)) throw new IOException("Select one server for script consent");
         boolean exists = false;
         for (ServerConfigData server : ServerConfigManager.getInstance(context).getServers())
@@ -325,7 +405,8 @@ public final class LuaScriptStore {
         Script script = find(id);
         if (script == null) throw new IOException("Lua script not found");
         sourceBytes(script);
-        replace(script, script.configured(serverId, true, send, ""));
+        replace(script, script.configured(serverId, true, send, users, moderation,
+                stored, ""));
     }
 
     public synchronized void disable(String id) throws IOException {
@@ -359,6 +440,39 @@ public final class LuaScriptStore {
         }
     }
 
+    /** Storage is read only in the main process and copied to each isolated dispatch. */
+    synchronized ArrayList<String> storageSnapshot(String id) throws IOException {
+        ArrayList<String> pairs = new ArrayList<>();
+        for (Map.Entry<String, String> entry : storage.read(id).entrySet()) {
+            pairs.add(entry.getKey());
+            pairs.add(entry.getValue());
+        }
+        return pairs;
+    }
+
+    synchronized void applyStorage(String id, String server, String operation,
+                                   String key, String value) throws IOException {
+        Script script = find(id);
+        if (script == null || !script.enabled || !script.allowStorage ||
+                !script.serverId.equals(server)) return;
+        storage.apply(id, operation, key, value);
+    }
+
+    public synchronized void recordOutput(String id, String title, String body,
+                                           boolean list) {
+        if (find(id) == null || title == null || body == null ||
+                title.isEmpty() || title.length() > 96 ||
+                body.length() > 512 ||
+                title.indexOf('\0') >= 0 || title.indexOf('\n') >= 0 ||
+                title.indexOf('\r') >= 0 || body.indexOf('\0') >= 0)
+            return;
+        ephemeralOutputs.put(id, new Output(title, body, list));
+    }
+
+    public synchronized Output latestOutput(String id) {
+        return ephemeralOutputs.get(id);
+    }
+
     public synchronized void recordLog(String id, String log) {
         if (find(id) != null)
             ephemeralLogs.put(id, log == null ? "" : log.substring(0, Math.min(400, log.length())));
@@ -371,20 +485,41 @@ public final class LuaScriptStore {
     public synchronized void remove(String id) throws IOException {
         Script s = find(id);
         if (s == null) return;
-        scripts.remove(s);
-        save();
+        int position = scripts.indexOf(s);
+        scripts.remove(position);
+        try {
+            save();
+        } catch (IOException error) {
+            // Do not show a script as removed when an I/O failure leaves its
+            // previous (possibly enabled) approval intact on disk.
+            scripts.add(position, s);
+            throw error;
+        }
         sourceFile(id).delete();
         ephemeralLogs.remove(id);
+        ephemeralOutputs.remove(id);
+        storage.delete(id);
     }
 
     public synchronized void clearAll() throws IOException {
+        List<Script> previous = new ArrayList<>(scripts);
         scripts.clear();
+        try {
+            save();
+        } catch (IOException error) {
+            // An interrupted reset must not disagree with the persisted index
+            // and silently re-enable old script permissions on next launch.
+            scripts.addAll(previous);
+            throw error;
+        }
         ephemeralLogs.clear();
-        save();
+        ephemeralOutputs.clear();
+        for (Script script : previous) storage.delete(script.id);
         File[] files = directory.listFiles();
         if (files != null)
             for (File f : files)
-                if (f.isFile() && f.getName().endsWith(".lua")) f.delete();
+                if (f.isFile() && (f.getName().endsWith(".lua") ||
+                        f.getName().endsWith(".state.json"))) f.delete();
     }
 
     public synchronized void exportToBackup(ZipFile zip, ZipParameters params)
@@ -397,6 +532,7 @@ public final class LuaScriptStore {
                 manifest.put(data);
                 params.setFileNameInZip("lua_scripts/" + s.id + ".lua");
                 zip.addStream(new ByteArrayInputStream(sourceBytes(s)), params);
+                storage.export(zip, params, s.id);
             }
             params.setFileNameInZip(BACKUP_INDEX);
             zip.addStream(new ByteArrayInputStream(
@@ -414,6 +550,7 @@ public final class LuaScriptStore {
         }
         List<Script> restored = new ArrayList<>();
         Map<String, byte[]> data = new HashMap<>();
+        Map<String, byte[]> stored = new HashMap<>();
         try (InputStream input = zip.getInputStream(header)) {
             JSONArray manifest = new JSONArray(new String(readBounded(input, 16384),
                     StandardCharsets.UTF_8));
@@ -431,6 +568,7 @@ public final class LuaScriptStore {
                 if (!hash(source).equals(entry.sha256))
                     throw new IOException("Lua backup integrity check failed");
                 data.put(entry.id, source);
+                stored.put(entry.id, storage.inspectBackup(zip, entry.id));
                 restored.add(entry.configured("", false, false, ""));
             }
         } catch (JSONException error) {
@@ -439,6 +577,7 @@ public final class LuaScriptStore {
         clearAll();
         for (Script item : restored) {
             writeSource(item.id, data.get(item.id));
+            storage.restoreValidated(item.id, stored.get(item.id));
             scripts.add(item);
         }
         save();
