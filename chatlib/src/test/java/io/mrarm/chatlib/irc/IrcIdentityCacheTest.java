@@ -33,6 +33,10 @@ public class IrcIdentityCacheTest {
         cache.noteNumeric("354", Arrays.asList("me", "042", "ident", "host",
                 "nick", "H", "account"));
         assertEquals("account", cache.get("nick").account);
+        cache.noteNumeric("354", Arrays.asList("me", "042", "ident", "host",
+                "nick", "H", "0"));
+        assertNull("Explicit WHOX logged-out state must clear old account",
+                cache.get("nick").account);
         cache.clear();
         assertNull(cache.get("nick"));
     }
