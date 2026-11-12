@@ -1,7 +1,6 @@
 package io.mrarm.irc.lua;
 
-import android.app.Activity;
-import android.content.Intent;
+import android.net.Uri;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -16,6 +15,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 
 import java.io.IOException;
 import java.util.List;
@@ -27,7 +28,12 @@ import io.mrarm.irc.config.ServerConfigManager;
 
 /** User-selected .lua imports and per-script/per-server permissions. */
 public final class LuaScriptsActivity extends ThemedActivity {
-    private static final int PICK_LUA = 1601;
+    // Register before the Activity reaches STARTED; Android restores pending
+    // document selections across an Activity recreation.
+    private final ActivityResultLauncher<String[]> luaPicker =
+            registerForActivityResult(new ActivityResultContracts.OpenDocument(), selected -> {
+                if (selected != null) importScript(selected);
+            });
     private LuaScriptStore store;
     private LinearLayout list;
     private int padding;
@@ -258,17 +264,12 @@ public final class LuaScriptsActivity extends ThemedActivity {
     }
 
     private void openPicker() {
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("*/*");
-        startActivityForResult(intent, PICK_LUA);
+        // .lua has no consistently advertised MIME type across file providers.
+        // Keep the original "*/*" filter; importFromUri verifies name/content.
+        luaPicker.launch(new String[]{"*/*"});
     }
 
-    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode != PICK_LUA || resultCode != Activity.RESULT_OK ||
-                data == null || data.getData() == null) return;
-        final android.net.Uri selected = data.getData();
+    private void importScript(Uri selected) {
         // SAF providers may be remote/cloud backed. Do not block the UI thread
         // while reading the selected source document.
         new Thread(() -> {

@@ -63,6 +63,17 @@ public class LuaDiagnosticIntegrationTest {
         assertTrue(service.contains("\"command\".equals(event)"));
     }
 
+    @Test public void luaDocumentImportUsesModernResultContract() throws Exception {
+        String activity = new String(Files.readAllBytes(Path.of(
+                "src/main/java/io/mrarm/irc/lua/LuaScriptsActivity.java")),
+                StandardCharsets.UTF_8);
+        assertTrue(activity.contains("new ActivityResultContracts.OpenDocument()"));
+        assertTrue(activity.contains("luaPicker.launch(new String[]{\"*/*\"})"));
+        assertTrue(activity.contains("store.importFromUri(selected)"));
+        assertFalse(activity.contains("startActivityForResult("));
+        assertFalse(activity.contains("onActivityResult("));
+    }
+
     @Test public void nativeBuildUsesVendoredSource() throws Exception {
         String cmake = new String(Files.readAllBytes(Path.of("src/main/cpp/CMakeLists.txt")),
                 StandardCharsets.UTF_8);
