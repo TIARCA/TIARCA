@@ -220,6 +220,29 @@ static int script_ban(lua_State *L) {
     return 0;
 }
 
+static int script_mute(lua_State *L) {
+    size_t n;
+    const char *nick = luaL_checklstring(L, 2, &n);
+    if (n == 0 || n > 64) return luaL_error(L, "tiarca.mute: invalid nick");
+    channel_action(L, "mute", nick, n);
+    return 0;
+}
+
+static int script_tban(lua_State *L) {
+    size_t n, duration_len;
+    const char *nick = luaL_checklstring(L, 2, &n);
+    const char *duration = luaL_checklstring(L, 3, &duration_len);
+    if (n == 0 || n > 64 || duration_len == 0 || duration_len > 4 ||
+            memchr(nick, '\t', n) || memchr(duration, '\t', duration_len))
+        return luaL_error(L, "tiarca.tban: invalid nick or duration");
+    char payload[72];
+    memcpy(payload, nick, n);
+    payload[n] = '\t';
+    memcpy(payload + n + 1, duration, duration_len);
+    channel_action(L, "tban", payload, n + 1 + duration_len);
+    return 0;
+}
+
 static int script_kick(lua_State *L) {
     size_t n, reason_len = 0;
     const char *nick = luaL_checklstring(L, 2, &n);
@@ -291,6 +314,10 @@ static void install_libraries(lua_State *L) {
     lua_setfield(L, -2, "kick");
     lua_pushcfunction(L, script_ban);
     lua_setfield(L, -2, "ban");
+    lua_pushcfunction(L, script_mute);
+    lua_setfield(L, -2, "mute");
+    lua_pushcfunction(L, script_tban);
+    lua_setfield(L, -2, "tban");
     lua_pushcfunction(L, script_mode);
     lua_setfield(L, -2, "mode");
     lua_setglobal(L, "tiarca");
