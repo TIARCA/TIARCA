@@ -425,7 +425,7 @@ public final class LuaScriptDispatcher {
         String id = data.getString(LuaDiagnosticService.EXTRA_SCRIPT_ID);
         if (!request.scriptId.equals(id)) return true;
         LuaScriptStore.Script script = store.find(id);
-        if (script == null || !script.enabled || !script.serverId.equals(request.server))
+        if (script == null || !script.isEnabledOn(request.server))
             return true;
         String status = data.getString(LuaDiagnosticService.EXTRA_STATUS, "");
         if (!"OK".equals(status)) {
@@ -502,7 +502,8 @@ public final class LuaScriptDispatcher {
                 request.event, target, text)) return;
 
         long now = SystemClock.elapsedRealtime();
-        if (now - lastScriptSend.getOrDefault(snapshot.id, -SEND_INTERVAL_MS) <
+        String scriptNetwork = snapshot.id + ":" + request.server;
+        if (now - lastScriptSend.getOrDefault(scriptNetwork, -SEND_INTERVAL_MS) <
                 SEND_INTERVAL_MS ||
                 now - lastServerSend.getOrDefault(request.server, -SERVER_INTERVAL_MS) <
                         SERVER_INTERVAL_MS) return;
@@ -513,7 +514,7 @@ public final class LuaScriptDispatcher {
             // No raw IRC commands and no arbitrary target: only reply to the
             // incoming channel/private conversation on this explicitly approved server.
             conn.getApiInstance().sendMessage(target, text, null, null);
-            lastScriptSend.put(snapshot.id, now);
+            lastScriptSend.put(scriptNetwork, now);
             lastServerSend.put(request.server, now);
         } catch (RuntimeException ignored) {
             // Scripts must never crash or block the client.
@@ -542,20 +543,23 @@ public final class LuaScriptDispatcher {
             }
 
             long now = SystemClock.elapsedRealtime();
+            // Keep per-script throttling independent between approved networks,
+            // while preserving the existing per-server flood limit.
+            String scriptNetwork = script.id + ":" + request.server;
             if (who) {
                 if (!"refresh".equals(value)) return;
-                if (now - lastWho.getOrDefault(script.id, -WHO_INTERVAL_MS)
+                if (now - lastWho.getOrDefault(scriptNetwork, -WHO_INTERVAL_MS)
                         < WHO_INTERVAL_MS) return;
                 boolean whox = api.getServerConnectionData().getSupportList().isWhoxSupported();
                 if (whox) api.getServerConnectionData().getIdentityCache().expectWhox();
                 api.sendCommand("WHO", false, whox ?
                         new String[]{channel, "%tnuhaf," + IrcIdentityCache.whoxToken()} :
                         new String[]{channel}, null, null);
-                lastWho.put(script.id, now);
+                lastWho.put(scriptNetwork, now);
                 return;
             }
 
-            if (now - lastScriptModeration.getOrDefault(script.id, -MOD_INTERVAL_MS)
+            if (now - lastScriptModeration.getOrDefault(scriptNetwork, -MOD_INTERVAL_MS)
                     < MOD_INTERVAL_MS ||
                     now - lastServerModeration.getOrDefault(request.server, -SERVER_INTERVAL_MS)
                             < SERVER_INTERVAL_MS) return;
@@ -620,7 +624,7 @@ public final class LuaScriptDispatcher {
                             new String[]{channel, "+b", baseMask}, null, null);
                 }
             }
-            lastScriptModeration.put(script.id, now);
+            lastScriptModeration.put(scriptNetwork, now);
             lastServerModeration.put(request.server, now);
         } catch (RuntimeException ignored) {
             // IRC callbacks, disconnects and partial rosters must never crash TIARCA.

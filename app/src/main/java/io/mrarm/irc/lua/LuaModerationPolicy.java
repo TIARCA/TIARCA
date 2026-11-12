@@ -13,7 +13,7 @@ final class LuaModerationPolicy {
 
     static boolean scoped(LuaScriptStore.Script script, String server, String sourceChannel,
                           String event, String targetChannel, boolean moderate) {
-        if (script == null || !script.enabled || !script.serverId.equals(server) ||
+        if (script == null || !script.isEnabledOn(server) ||
                 (moderate ? !script.allowModeration : !script.allowUserInfo) ||
                 sourceChannel == null || sourceChannel.isEmpty() ||
                 !sourceChannel.equals(targetChannel) ||
