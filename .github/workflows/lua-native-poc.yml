@@ -41,7 +41,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p build/lua-source
-          curl -fLsS --retry 3 --connect-timeout 20 \
+          curl -fLsS --retry 8 --retry-all-errors --retry-delay 2 --connect-timeout 20 \
             "https://www.lua.org/ftp/lua-${LUA_VERSION}.tar.gz" \
             -o "build/lua-source/lua-${LUA_VERSION}.tar.gz"
           cd build/lua-source
