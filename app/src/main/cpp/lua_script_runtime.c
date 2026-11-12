@@ -222,6 +222,17 @@ static int script_refresh_users(lua_State *L) {
     return 0;
 }
 
+/* Explicit, read-only channel WHO search, validated and run by the host. */
+static int script_maskfind(lua_State *L) {
+    size_t query_size;
+    const char *query = luaL_checklstring(L, 2, &query_size);
+    if (query_size == 0 || query_size > 256 ||
+            memchr(query, '\r', query_size) || memchr(query, '\n', query_size))
+        return luaL_error(L, "tiarca.maskfind: invalid search pattern");
+    channel_action(L, "mask", query, query_size);
+    return 0;
+}
+
 static int script_ban(lua_State *L) {
     size_t n;
     const char *nick = luaL_checklstring(L, 2, &n);
@@ -438,6 +449,8 @@ static void install_libraries(lua_State *L) {
     lua_setfield(L, -2, "get_users");
     lua_pushcfunction(L, script_refresh_users);
     lua_setfield(L, -2, "refresh_users");
+    lua_pushcfunction(L, script_maskfind);
+    lua_setfield(L, -2, "maskfind");
     lua_pushcfunction(L, script_kick);
     lua_setfield(L, -2, "kick");
     lua_pushcfunction(L, script_ban);
