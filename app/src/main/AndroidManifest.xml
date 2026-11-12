@@ -211,10 +211,6 @@
             android:name=".lua.LuaScriptsActivity"
             android:exported="false"
             android:label="@string/lua_scripts_title" />
-        <activity
-            android:name=".lua.LuaDiagnosticsActivity"
-            android:exported="false"
-            android:label="@string/lua_diag_title" />
 
         <service
             android:name=".IRCService"

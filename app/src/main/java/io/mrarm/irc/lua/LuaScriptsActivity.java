@@ -19,6 +19,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import io.mrarm.irc.R;
@@ -102,9 +103,13 @@ public final class LuaScriptsActivity extends ThemedActivity {
             list.addView(name);
             String state = s.enabled ? getString(R.string.lua_scripts_enabled) :
                     getString(R.string.lua_scripts_disabled);
-            if (s.enabled) {
+            if (!s.serverIds.isEmpty()) {
+                ArrayList<String> names = new ArrayList<>();
+                for (String server : s.serverIds) names.add(resolveServerName(server));
                 state += "\n" + getString(R.string.lua_scripts_server_label,
-                        resolveServerName(s.serverId));
+                        android.text.TextUtils.join(", ", names));
+            }
+            if (s.enabled) {
                 if (s.allowSend)
                     state += "\n" + getString(R.string.lua_scripts_sending_enabled);
                 if (s.allowUserInfo)
@@ -132,9 +137,12 @@ public final class LuaScriptsActivity extends ThemedActivity {
                                 failure(error);
                             }
                         } else {
-                            chooseServer(s);
+                            chooseServers(s);
                         }
                     }));
+            if (s.enabled)
+                list.addView(button(R.string.lua_scripts_configure,
+                        () -> chooseServers(s)));
             LuaScriptStore.Output output = store.latestOutput(s.id);
             if (output != null)
                 list.addView(button(R.string.lua_scripts_view_output,
@@ -198,7 +206,7 @@ public final class LuaScriptsActivity extends ThemedActivity {
         return id;
     }
 
-    private void chooseServer(LuaScriptStore.Script s) {
+    private void chooseServers(LuaScriptStore.Script script) {
         List<ServerConfigData> servers =
                 ServerConfigManager.getInstance(this).getServers();
         if (servers.isEmpty()) {
@@ -206,53 +214,77 @@ public final class LuaScriptsActivity extends ThemedActivity {
             return;
         }
         String[] labels = new String[servers.size()];
+        boolean[] checked = new boolean[servers.size()];
         for (int i = 0; i < servers.size(); i++) {
             ServerConfigData config = servers.get(i);
             labels[i] = config.name == null ? config.uuid.toString() : config.name;
+            checked[i] = script.serverIds.contains(config.uuid.toString());
         }
+        // Selecting networks never grants them access automatically. Every
+        // change goes through the explicit, shared capability-consent screen.
         new AlertDialog.Builder(this)
                 .setTitle(R.string.lua_scripts_choose_server)
-                .setItems(labels, (dialog, which) -> askPermission(s, servers.get(which)))
+                .setMultiChoiceItems(labels, checked,
+                        (dialog, which, isChecked) -> checked[which] = isChecked)
                 .setNegativeButton(android.R.string.cancel, null)
-                .show();
+                .setPositiveButton(R.string.lua_scripts_continue, (dialog, which) -> {
+                    ArrayList<ServerConfigData> selected = new ArrayList<>();
+                    for (int i = 0; i < servers.size(); i++)
+                        if (checked[i]) selected.add(servers.get(i));
+                    if (selected.isEmpty()) {
+                        Toast.makeText(this, R.string.lua_scripts_select_network,
+                                Toast.LENGTH_LONG).show();
+                    } else if (selected.size() > LuaScriptStore.MAX_NETWORKS_PER_SCRIPT) {
+                        Toast.makeText(this, R.string.lua_scripts_too_many_servers,
+                                Toast.LENGTH_LONG).show();
+                    } else {
+                        askPermission(script, selected);
+                    }
+                }).show();
     }
 
-    private void askPermission(LuaScriptStore.Script s, ServerConfigData server) {
-        // A message and setMultiChoiceItems cannot be shown together reliably by
-        // AlertDialog. Keep both the explanation and the optional send approval
-        // visible in one scrollable view, with sending unchecked by default.
+    private void askPermission(LuaScriptStore.Script script,
+                               List<ServerConfigData> selected) {
+        ArrayList<String> names = new ArrayList<>();
+        ArrayList<String> ids = new ArrayList<>();
+        for (ServerConfigData server : selected) {
+            names.add(server.name == null ? server.uuid.toString() : server.name);
+            ids.add(server.uuid.toString());
+        }
+        // One explicit set of capabilities applies to ALL checked networks.
+        // On an existing script, start from current approvals, but always
+        // require a fresh confirmation when the selection changes.
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(padding, Math.round(8 * getResources().getDisplayMetrics().density),
                 padding, Math.round(8 * getResources().getDisplayMetrics().density));
         content.addView(text(getString(R.string.lua_scripts_consent_body,
-                server.name == null ? server.uuid.toString() : server.name), 16));
+                android.text.TextUtils.join(", ", names)), 16));
         CheckBox allowSend = new CheckBox(this);
         allowSend.setText(R.string.lua_scripts_send_permission);
-        allowSend.setChecked(false);
+        allowSend.setChecked(script.enabled && script.allowSend);
         content.addView(allowSend);
         CheckBox allowUsers = new CheckBox(this);
         allowUsers.setText(R.string.lua_scripts_users_permission);
-        allowUsers.setChecked(false);
+        allowUsers.setChecked(script.enabled && script.allowUserInfo);
         content.addView(allowUsers);
         CheckBox allowModeration = new CheckBox(this);
         allowModeration.setText(R.string.lua_scripts_moderation_permission);
-        allowModeration.setChecked(false);
+        allowModeration.setChecked(script.enabled && script.allowModeration);
         content.addView(allowModeration);
         CheckBox allowStorage = new CheckBox(this);
         allowStorage.setText(R.string.lua_scripts_storage_permission);
-        allowStorage.setChecked(false);
+        allowStorage.setChecked(script.enabled && script.allowStorage);
         content.addView(allowStorage);
         ScrollView scroll = new ScrollView(this);
         scroll.addView(content);
-
         new AlertDialog.Builder(this)
                 .setTitle(R.string.lua_scripts_consent_title)
                 .setView(scroll)
                 .setNegativeButton(android.R.string.cancel, null)
                 .setPositiveButton(R.string.lua_scripts_enable, (dialog, which) -> {
                     try {
-                        store.enable(s.id, server.uuid.toString(), allowSend.isChecked(),
+                        store.enable(script.id, ids, allowSend.isChecked(),
                                 allowUsers.isChecked(), allowModeration.isChecked(),
                                 allowStorage.isChecked());
                         LuaScriptDispatcher.get(this).reload();
