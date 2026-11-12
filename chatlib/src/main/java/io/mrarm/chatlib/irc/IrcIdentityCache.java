@@ -13,7 +13,7 @@ import java.util.Map;
 public final class IrcIdentityCache {
     private static final int LIMIT = 512;
     private static final long WHOX_WINDOW_MS = 20_000L;
-    private static final String WHOX_TOKEN = "723";
+    private static final String WHOX_TOKEN = "042";
 
     public static final class Identity {
         public final String ident;
@@ -110,7 +110,7 @@ public final class IrcIdentityCache {
                 if (System.currentTimeMillis() >= whoxExpiresAt ||
                         !WHOX_TOKEN.equals(params.get(1))) return;
             }
-            // WHO #channel %tnuhaf,723 => 354 <me> 723 <nick> <user>
+            // WHO #channel %tnuhaf,042 => 354 <me> 042 <nick> <user>
             // <host> <account> <flags>
             note(params.get(2), params.get(3), params.get(4), params.get(5));
         }
