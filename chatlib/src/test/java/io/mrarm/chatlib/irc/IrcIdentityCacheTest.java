@@ -23,15 +23,15 @@ public class IrcIdentityCacheTest {
 
     @Test public void unknownWhoxTokenMustNotPopulateData() {
         IrcIdentityCache cache = new IrcIdentityCache();
-        cache.noteNumeric("354", Arrays.asList("me", "042", "nick", "ident",
-                "host", "account", "H"));
+        cache.noteNumeric("354", Arrays.asList("me", "042", "ident", "host",
+                "nick", "H", "account"));
         assertNull(cache.get("nick"));
         cache.expectWhox();
-        cache.noteNumeric("354", Arrays.asList("me", "other", "nick", "ident",
-                "host", "account", "H"));
+        cache.noteNumeric("354", Arrays.asList("me", "other", "ident", "host",
+                "nick", "H", "account"));
         assertNull(cache.get("nick"));
-        cache.noteNumeric("354", Arrays.asList("me", "042", "nick", "ident",
-                "host", "account", "H"));
+        cache.noteNumeric("354", Arrays.asList("me", "042", "ident", "host",
+                "nick", "H", "account"));
         assertEquals("account", cache.get("nick").account);
         cache.clear();
         assertNull(cache.get("nick"));
