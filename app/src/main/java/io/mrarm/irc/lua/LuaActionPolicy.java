@@ -14,8 +14,14 @@ final class LuaActionPolicy {
                                String channel, String event, String target, String text) {
         if (script == null || !script.enabled || !script.allowSend ||
                 server == null || !script.serverId.equals(server) ||
-                (!"message".equals(event) && !"command".equals(event)) ||
+                (!"message".equals(event) && !"command".equals(event) &&
+                        !"join".equals(event) && !"part".equals(event) &&
+                        !"quit".equals(event) && !"nick".equals(event)) ||
                 channel == null || channel.isEmpty() ||
+                // Presence hooks can only send to the actual IRC channel.
+                (("join".equals(event) || "part".equals(event) ||
+                        "quit".equals(event) || "nick".equals(event)) &&
+                        "#&+!".indexOf(channel.charAt(0)) < 0) ||
                 !channel.equals(target) || text == null || text.isEmpty() ||
                 text.length() > 400 ||
                 text.getBytes(StandardCharsets.UTF_8).length > 400)
