@@ -55,7 +55,30 @@ public class MessageHandler {
             String paramsRaw = line.substring(commandEndI + 1);
             params = parseParams(paramsRaw);
         }
-        commandHandlerList.getHandlerFor(command).handle(connection, prefix, command, params, tags);
+        CommandHandler handler;
+        try {
+            handler = commandHandlerList.getHandlerFor(command);
+        } catch (InvalidMessageException missing) {
+            // WHO 352, WHOX 354 and end-of-WHO 315 may not have a registered
+            // handler on this network. They are legitimate, passive numerics.
+            // Do not register a competing 354 handler: Simosnap already has one.
+            if ("352".equals(command) || "354".equals(command) || "315".equals(command)) {
+                connection.getIdentityCache().noteNumeric(command, params);
+                return;
+            }
+            throw missing;
+        }
+        handler.handle(connection, prefix, command, params, tags);
+        // Observe only server-processed data. No script runs here or on the IRC
+        // reader thread; identity disclosure is separately gated in the app.
+        IrcIdentityCache identities = connection.getIdentityCache();
+        identities.noteNumeric(command, params);
+        if (prefix != null && prefix.getUser() != null && prefix.getHost() != null)
+            identities.note(prefix.getNick(), prefix.getUser(), prefix.getHost(), null);
+        if ("NICK".equals(command) && prefix != null && !params.isEmpty())
+            identities.rename(prefix.getNick(), params.get(0));
+        if ("QUIT".equals(command) && prefix != null)
+            identities.forget(prefix.getNick());
     }
 
     private List<String> parseParams(String paramsRaw) {

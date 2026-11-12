@@ -26,6 +26,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -732,20 +736,42 @@ public final class OperatorActionsComposerDialog {
                 }));
         Window window = dialog.getWindow();
         if (window != null) {
-            // Reflow the dialog above the IME; without ADJUST_RESIZE the lower fields
-            // disappear behind the keyboard on several Android versions.
-            window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE |
-                    WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+            // The IME adjustment flag was deprecated in API 30. Keep the initial
+            // keyboard hidden and handle keyboard/system-bar insets in the dialog
+            // itself instead of relying on the framework to resize the window.
+            window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+            WindowCompat.setDecorFitsSystemWindows(window, false);
         }
         dialog.show();
         if (window != null) {
+            // Include the action buttons in the inset-aware content so they
+            // remain above the IME along with the scrollable fields.
+            View root = window.findViewById(android.R.id.content);
+            if (root != null) {
+                final int leftPadding = root.getPaddingLeft();
+                final int topPadding = root.getPaddingTop();
+                final int rightPadding = root.getPaddingRight();
+                final int bottomPadding = root.getPaddingBottom();
+                ViewCompat.setOnApplyWindowInsetsListener(root, (view, insets) -> {
+                    Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+                    Insets cutout = insets.getInsets(WindowInsetsCompat.Type.displayCutout());
+                    Insets keyboard = insets.getInsets(WindowInsetsCompat.Type.ime());
+                    view.setPadding(leftPadding + Math.max(bars.left, cutout.left),
+                            topPadding + Math.max(bars.top, cutout.top),
+                            rightPadding + Math.max(bars.right, cutout.right),
+                            bottomPadding + Math.max(Math.max(bars.bottom, cutout.bottom),
+                                    keyboard.bottom));
+                    return insets;
+                });
+                ViewCompat.requestApplyInsets(root);
+            }
             // WRAP_CONTENT rather than MATCH_PARENT is essential: the latter extends
             // under the status bar and keyboard on some Android/HyperOS versions.
             window.setLayout(context.getResources().getDisplayMetrics().widthPixels - dp(16),
                     ViewGroup.LayoutParams.WRAP_CONTENT);
         }
-        // When the IME reduces the visible area, ScrollView will remeasure. If the
-        // user was editing a field near the bottom, bring it back into view.
+        // When the IME limits the available content area, ScrollView remeasures.
+        // Bring the edited field back into view if it was near the bottom.
         scroll.addOnLayoutChangeListener((v, left, top, right, bottom,
                                           oldLeft, oldTop, oldRight, oldBottom) -> {
             if (bottom - top >= oldBottom - oldTop) return;

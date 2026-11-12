@@ -100,3 +100,9 @@
 -keep class * implements io.mrarm.chatlib.irc.CommandHandler { *; }
 -keep class * extends io.mrarm.chatlib.irc.cap.Capability { *; }
 -keep class * implements io.mrarm.chatlib.irc.MessageFilter { *; }
+
+# Native method symbol is linked by the JNI name, including in release builds.
+-keep class io.mrarm.irc.lua.NativeLuaProbe { *; }
+
+# JNI symbols use the declared package/class names; keep names for release R8.
+-keep class io.mrarm.irc.lua.NativeLuaRuntime { *; }

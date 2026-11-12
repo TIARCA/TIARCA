@@ -1,0 +1,15 @@
+<resources>
+    <string name="lua_diag_title">Lua diagnostics (experimental)</string>
+    <string name="lua_diag_description">Official Lua 5.5.1 test. Each button runs in an isolated Android process without access to your IRC connections. Only predefined probes are supported; user scripting is not enabled yet.</string>
+    <string name="lua_diag_arithmetic">Run interpreter (6 × 7)</string>
+    <string name="lua_diag_denied">Check forbidden libraries</string>
+    <string name="lua_diag_loop">Check infinite-loop limit</string>
+    <string name="lua_diag_memory">Check memory limit</string>
+    <string name="lua_diag_crash">Kill isolated engine process (test)</string>
+    <string name="lua_diag_ready">No diagnostic run yet.</string>
+    <string name="lua_diag_running">Running inside isolated process…</string>
+    <string name="lua_diag_unavailable">Lua isolated service unavailable. Test failed.</string>
+    <string name="lua_diag_crashed">The isolated Lua process stopped. TIARCA should continue working.</string>
+    <string name="lua_diag_result">Isolated: %1$b · PID: %2$d
+%3$s</string>
+</resources>

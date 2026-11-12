@@ -5,6 +5,7 @@ import io.mrarm.chatlib.dto.ModeList;
 import io.mrarm.chatlib.dto.NickWithPrefix;
 import io.mrarm.chatlib.irc.ChannelData;
 import io.mrarm.chatlib.irc.IRCConnection;
+import io.mrarm.chatlib.irc.IRCCaseMapping;
 import io.mrarm.irc.ServerConnectionInfo;
 
 /** Shared channel membership and privilege checks for operator-only UI. */
@@ -19,25 +20,29 @@ public final class ChannelOperatorUtils {
         IRCConnection irc = (IRCConnection) connection.getApiInstance();
         NickWithPrefix own = findMember(connection, channel,
                 irc.getServerConnectionData().getUserNick());
-        if (own == null || own.getNickPrefixes() == null)
+        if (own == null) return false;
+        return hasOperatorPrefix(own.getNickPrefixes(),
+                irc.getServerConnectionData().getSupportList().getSupportedNickPrefixes(),
+                irc.getServerConnectionData().getSupportList().getSupportedNickPrefixModes(),
+                includeHalfop);
+    }
+
+    /**
+     * Only server-advertised PREFIX->MODE mappings establish privileges.
+     * A custom IRCd may map '@' to a non-operator mode; never assume that
+     * the familiar glyph alone authorizes a moderation command.
+     */
+    static boolean hasOperatorPrefix(io.mrarm.chatlib.dto.NickPrefixList own,
+                                     ModeList advertisedPrefixes, ModeList advertisedModes,
+                                     boolean includeHalfop) {
+        if (own == null || advertisedPrefixes == null || advertisedModes == null)
             return false;
-        String prefixes = own.getNickPrefixes().toString();
-        ModeList supportedPrefixes = irc.getServerConnectionData().getSupportList()
-                .getSupportedNickPrefixes();
-        ModeList supportedModes = irc.getServerConnectionData().getSupportList()
-                .getSupportedNickPrefixModes();
-        for (int i = 0; i < prefixes.length(); i++) {
-            char prefix = prefixes.charAt(i);
-            int index = supportedPrefixes.find(prefix);
-            if (index >= 0 && index < supportedModes.length()) {
-                char mode = supportedModes.get(index);
-                if (mode == 'o' || mode == 'a' || mode == 'q' ||
-                        (includeHalfop && mode == 'h'))
-                    return true;
-            }
-            if (prefix == '@' || prefix == '&' || prefix == '~' ||
-                    (includeHalfop && prefix == '%'))
-                return true;
+        for (int i = 0; i < own.length(); i++) {
+            int index = advertisedPrefixes.find(own.get(i));
+            if (index < 0 || index >= advertisedModes.length()) continue;
+            char mode = advertisedModes.get(index);
+            if (mode == 'o' || mode == 'a' || mode == 'q' ||
+                    (includeHalfop && mode == 'h')) return true;
         }
         return false;
     }
@@ -78,8 +83,10 @@ public final class ChannelOperatorUtils {
         try {
             ChannelData data = ((IRCConnection) connection.getApiInstance())
                     .getServerConnectionData().getJoinedChannelData(channel);
+            IRCCaseMapping mapping = ((IRCConnection) connection.getApiInstance())
+                    .getServerConnectionData().getSupportList().getCaseMapping();
             for (NickWithPrefix member : data.getMembersAsNickPrefixList()) {
-                if (nick.equalsIgnoreCase(member.getNick()))
+                if (mapping != null && mapping.equals(nick, member.getNick()))
                     return member;
             }
         } catch (NoSuchChannelException | RuntimeException ignored) { }

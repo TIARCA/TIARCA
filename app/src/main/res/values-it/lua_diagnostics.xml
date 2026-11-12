@@ -1,0 +1,15 @@
+<resources>
+    <string name="lua_diag_title">Diagnostica Lua (sperimentale)</string>
+    <string name="lua_diag_description">Test Lua ufficiale 5.5.1. Ogni pulsante esegue una prova in un processo Android isolato senza accesso alle connessioni IRC. Sono ammessi solo test predefiniti: gli script utente non sono ancora attivi.</string>
+    <string name="lua_diag_arithmetic">Prova interprete (6 × 7)</string>
+    <string name="lua_diag_denied">Verifica librerie vietate</string>
+    <string name="lua_diag_loop">Verifica limite ciclo infinito</string>
+    <string name="lua_diag_memory">Verifica limite memoria</string>
+    <string name="lua_diag_crash">Termina processo Lua isolato (test)</string>
+    <string name="lua_diag_ready">Nessuna prova ancora eseguita.</string>
+    <string name="lua_diag_running">Esecuzione nel processo isolato…</string>
+    <string name="lua_diag_unavailable">Servizio Lua isolato non disponibile. Test fallito.</string>
+    <string name="lua_diag_crashed">Il processo Lua isolato si è arrestato. TIARCA dovrebbe continuare a funzionare.</string>
+    <string name="lua_diag_result">Isolato: %1$b · PID: %2$d
+%3$s</string>
+</resources>

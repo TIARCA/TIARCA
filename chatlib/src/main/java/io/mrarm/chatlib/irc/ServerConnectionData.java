@@ -21,6 +21,11 @@ public class ServerConnectionData {
     private String userUser;
     private String userHost;
     private final HashMap<String, ChannelData> joinedChannels = new HashMap<>();
+    private final IrcIdentityCache identityCache = new IrcIdentityCache();
+
+    public IrcIdentityCache getIdentityCache() {
+        return identityCache;
+    }
     private ServerStatusData serverStatusData = new ServerStatusData();
     private WritableUserInfoApi userInfoApi;
     private WritableMessageStorageApi messageStorageApi;
@@ -205,6 +210,8 @@ public class ServerConnectionData {
             registrationTimeMillis = 0L;
         }
         supportList.setSecureListWaitSeconds(-1);
+        supportList.setWhoxSupported(false);
+        identityCache.clear();
         getCapabilityManager().reset();
         try {
             getUserInfoApi().clearAllUsersChannelPresences(null, null).get();
