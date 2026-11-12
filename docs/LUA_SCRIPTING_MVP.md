@@ -355,3 +355,42 @@ upgrade phase. Work remains on the stacked experimental branches PR #258
 - Automated green CI proves compilation and the tested paths, **not** device
   behavior, the completeness of an independent security audit or F-Droid
   publication approval.
+
+
+### Phase D manual multi-network and operator tests
+
+Use a new Candidate built from the latest phase D commit. The following tests
+must be recorded separately from the automated policy tests.
+
+**Two networks (non-destructive):**
+1. Connect to two distinct configured IRC networks A and B at the same time.
+   Ideally join a channel of the same name on both, with different members.
+2. Import [phase D network probe](lua-examples/phase_d_network_probe.lua),
+   enable it **only for A**, without any additional send/moderation permissions.
+3. On A run `/lua d rete`: the local C7 result must show only A's UUID and
+   channel names/counts (not B's). Run `/lua d eventi` and record the count.
+4. With A quiet, have another user send a normal message on B; after processing,
+   run `/lua d eventi` on A again. The count must be unchanged.
+5. On B, the script must not execute or produce a local C7 result. If TIARCA
+   keeps the unhandled `/lua` text in the composer, clear it rather than
+   forwarding any command to IRC. Repeat after reconnecting B.
+6. On A, send an ordinary message from a second nickname and confirm the
+   counter changes **only for A**. Source and storage must not cross networks.
+
+**Operator permissions (test channel, consenting target only):**
+1. Grant the tester actual operator status on network A's test channel.
+   Enable an existing C5 script there with **moderation consent**.
+2. Request only a harmless `+v` against a consenting second nickname,
+   e.g. `/lua prova voce TestNick`. Confirm the IRC server applied it.
+3. Have another operator remove the tester's operator status. Attempt `-v`
+   on that same nickname using `/lua prova devoice TestNick`. It **must not**
+   be sent or applied. A Lua result saying a request was queued is not proof
+   that the IRC server accepted an action.
+4. Disconnect A, switch to another network or channel, and confirm that no
+   old request executes against a different server or a new session. Repeat
+   for a nickname that has left the channel and for the tester's own nickname.
+5. On a separate test network, try `mute`/`tban` only when supported by
+   server-advertised EXTBAN/TBAN. Unsupported syntax must not be sent.
+
+These live checks remain **non verificato** until their actual results are
+reported; Java unit tests and a green APK build cannot substitute for them.
