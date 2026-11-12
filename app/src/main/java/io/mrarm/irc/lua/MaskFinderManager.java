@@ -247,7 +247,15 @@ public final class MaskFinderManager {
 
     /** Triggered only by a tap on the matching server-tab continuation row. */
     public void advance(String server, long searchId, boolean yes) {
-        main.post(() -> {
+        // A nickname click already runs on the UI thread: consume the prompt
+        // synchronously so duplicate fast taps cannot enqueue two batches.
+        if (Looper.myLooper() == Looper.getMainLooper())
+            advanceOnMain(server, searchId, yes);
+        else
+            main.post(() -> advanceOnMain(server, searchId, yes));
+    }
+
+    private void advanceOnMain(String server, long searchId, boolean yes) {
             Session session = sessions.get(server);
             if (session == null || session.id != searchId ||
                     session.waiting || session.prompt == null ||
@@ -264,6 +272,5 @@ public final class MaskFinderManager {
                 return;
             }
             appendBatch(session, conn);
-        });
     }
 }
