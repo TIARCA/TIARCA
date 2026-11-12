@@ -32,6 +32,9 @@ public final class LuaDiagnosticService extends Service {
     public static final String EXTRA_CHANNEL_NAMES = "channel_names";
     public static final String EXTRA_CHANNEL_COUNTS = "channel_counts";
     public static final String EXTRA_CHANNELS_TRUNCATED = "channels_truncated";
+    public static final String EXTRA_USER_FIELDS = "user_fields";
+    public static final String EXTRA_USERS_TRUNCATED = "users_truncated";
+    public static final String EXTRA_CAN_READ_USERS = "can_read_users";
     public static final String EXTRA_REQUEST_ID = "request_id";
     public static final String EXTRA_ACTIONS = "actions";
     public static final String EXTRA_STATUS = "status";
@@ -150,17 +153,25 @@ public final class LuaDiagnosticService extends Service {
                 java.util.ArrayList<String> names =
                         request.getStringArrayList(EXTRA_CHANNEL_NAMES);
                 int[] memberCounts = request.getIntArray(EXTRA_CHANNEL_COUNTS);
+                java.util.ArrayList<String> members =
+                        request.getStringArrayList(EXTRA_USER_FIELDS);
                 if (server.length() != 36 || channel.length() > 64 ||
                         nick.length() > 64 || text.length() > 1024 ||
                         channel.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 96 ||
                         nick.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 96 ||
                         text.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 2048 ||
                         !("message".equals(event) || "connected".equals(event) ||
-                                "disconnected".equals(event) || "command".equals(event))) {
+                                "disconnected".equals(event) || "command".equals(event) ||
+                                "join".equals(event) || "part".equals(event) ||
+                                "quit".equals(event) || "nick".equals(event) ||
+                                "timer".equals(event))) {
                     status = "ERROR: invalid event";
                 } else if (names == null || memberCounts == null ||
                         names.size() != memberCounts.length ||
-                        names.size() > LuaChannelSnapshot.MAX_CHANNELS) {
+                        names.size() > LuaChannelSnapshot.MAX_CHANNELS ||
+                        members == null ||
+                        members.size() > LuaUserSnapshot.MAX_USERS * LuaUserSnapshot.FIELDS ||
+                        members.size() % LuaUserSnapshot.FIELDS != 0) {
                     status = "ERROR: invalid channel snapshot";
                 } else {
                     byte[][] channels = new byte[names.size()][];
@@ -182,12 +193,32 @@ public final class LuaDiagnosticService extends Service {
                     if (!valid) {
                         status = "ERROR: invalid channel snapshot";
                     } else {
-                        byte[][] nativeActions = NativeLuaRuntime.dispatch(scriptId, event,
-                                NativeLuaRuntime.utf8(server), NativeLuaRuntime.utf8(channel),
-                                NativeLuaRuntime.utf8(nick), NativeLuaRuntime.utf8(text),
-                                NativeLuaRuntime.utf8(messageType), request.getLong(EXTRA_TIME),
-                                channels, memberCounts,
-                                request.getBoolean(EXTRA_CHANNELS_TRUNCATED, false));
+                        byte[][] userFields = new byte[members.size()][];
+                        for (int i = 0; i < members.size(); i++) {
+                            String value = members.get(i);
+                            int field = i % LuaUserSnapshot.FIELDS;
+                            int limit = field == 3 ? 256 : field == 1 ? 32 : 96;
+                            if (value == null || value.indexOf('\0') >= 0 ||
+                                    value.indexOf('\r') >= 0 ||
+                                    value.indexOf('\n') >= 0 ||
+                                    NativeLuaRuntime.utf8(value).length >= limit ||
+                                    (field == 0 && value.isEmpty())) {
+                                valid = false;
+                                break;
+                            }
+                            userFields[i] = NativeLuaRuntime.utf8(value);
+                        }
+                        if (!valid) {
+                            status = "ERROR: invalid user snapshot";
+                        } else {
+                            byte[][] nativeActions = NativeLuaRuntime.dispatch(scriptId, event,
+                                    NativeLuaRuntime.utf8(server), NativeLuaRuntime.utf8(channel),
+                                    NativeLuaRuntime.utf8(nick), NativeLuaRuntime.utf8(text),
+                                    NativeLuaRuntime.utf8(messageType), request.getLong(EXTRA_TIME),
+                                    channels, memberCounts,
+                                    request.getBoolean(EXTRA_CHANNELS_TRUNCATED, false),
+                                    userFields, request.getBoolean(EXTRA_USERS_TRUNCATED, false),
+                                    request.getBoolean(EXTRA_CAN_READ_USERS, false));
                         if (nativeActions == null || nativeActions.length < 1 ||
                                 (nativeActions.length - 1) % 3 != 0 ||
                                 nativeActions.length > 37) {
@@ -197,6 +228,7 @@ public final class LuaDiagnosticService extends Service {
                             if ("OK".equals(status))
                                 for (int i = 1; i < nativeActions.length; i++)
                                     actions.add(NativeLuaRuntime.decode(nativeActions[i]));
+                        }
                         }
                     }
                 }

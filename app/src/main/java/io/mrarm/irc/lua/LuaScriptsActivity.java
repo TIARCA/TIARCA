@@ -98,6 +98,10 @@ public final class LuaScriptsActivity extends ThemedActivity {
                         resolveServerName(s.serverId));
                 if (s.allowSend)
                     state += "\n" + getString(R.string.lua_scripts_sending_enabled);
+                if (s.allowUserInfo)
+                    state += "\n" + getString(R.string.lua_scripts_users_enabled);
+                if (s.allowModeration)
+                    state += "\n" + getString(R.string.lua_scripts_moderation_enabled);
             }
             if (s.error != null && !s.error.isEmpty())
                 state += "\n" + getString(R.string.lua_scripts_last_error, s.error);
@@ -188,6 +192,14 @@ public final class LuaScriptsActivity extends ThemedActivity {
         allowSend.setText(R.string.lua_scripts_send_permission);
         allowSend.setChecked(false);
         content.addView(allowSend);
+        CheckBox allowUsers = new CheckBox(this);
+        allowUsers.setText(R.string.lua_scripts_users_permission);
+        allowUsers.setChecked(false);
+        content.addView(allowUsers);
+        CheckBox allowModeration = new CheckBox(this);
+        allowModeration.setText(R.string.lua_scripts_moderation_permission);
+        allowModeration.setChecked(false);
+        content.addView(allowModeration);
         ScrollView scroll = new ScrollView(this);
         scroll.addView(content);
 
@@ -197,7 +209,8 @@ public final class LuaScriptsActivity extends ThemedActivity {
                 .setNegativeButton(android.R.string.cancel, null)
                 .setPositiveButton(R.string.lua_scripts_enable, (dialog, which) -> {
                     try {
-                        store.enable(s.id, server.uuid.toString(), allowSend.isChecked());
+                        store.enable(s.id, server.uuid.toString(), allowSend.isChecked(),
+                                allowUsers.isChecked(), allowModeration.isChecked());
                         LuaScriptDispatcher.get(this).reload();
                         render();
                     } catch (IOException error) {

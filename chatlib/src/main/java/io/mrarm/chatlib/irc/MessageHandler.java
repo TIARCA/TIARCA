@@ -56,6 +56,16 @@ public class MessageHandler {
             params = parseParams(paramsRaw);
         }
         commandHandlerList.getHandlerFor(command).handle(connection, prefix, command, params, tags);
+        // Observe only server-processed data. No script runs here or on the IRC
+        // reader thread; identity disclosure is separately gated in the app.
+        IrcIdentityCache identities = connection.getIdentityCache();
+        identities.noteNumeric(command, params);
+        if (prefix != null && prefix.getUser() != null && prefix.getHost() != null)
+            identities.note(prefix.getNick(), prefix.getUser(), prefix.getHost(), null);
+        if ("NICK".equals(command) && prefix != null && !params.isEmpty())
+            identities.rename(prefix.getNick(), params.get(0));
+        if ("QUIT".equals(command) && prefix != null)
+            identities.forget(prefix.getNick());
     }
 
     private List<String> parseParams(String paramsRaw) {

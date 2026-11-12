@@ -23,7 +23,12 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.mrarm.chatlib.NoSuchChannelException;
 import io.mrarm.chatlib.dto.MessageInfo;
+import io.mrarm.chatlib.dto.NickChangeMessageInfo;
+import io.mrarm.chatlib.irc.IrcIdentityCache;
+import io.mrarm.chatlib.irc.IRCConnection;
+import io.mrarm.irc.util.ChannelOperatorUtils;
 import io.mrarm.chatlib.dto.MessageSenderInfo;
 import io.mrarm.chatlib.irc.ServerConnectionApi;
 import io.mrarm.irc.ServerConnectionInfo;
@@ -41,6 +46,9 @@ public final class LuaScriptDispatcher {
     private static final int MAX_PENDING_EVENTS = 32;
     private static final long SEND_INTERVAL_MS = 5000L;
     private static final long SERVER_INTERVAL_MS = 1500L;
+    private static final long MOD_INTERVAL_MS = 12000L;
+    private static final long WHO_INTERVAL_MS = 60000L;
+    private static final long TICK_INTERVAL_MS = 60000L;
 
     public static synchronized LuaScriptDispatcher get(Context context) {
         if (instance == null)
@@ -59,6 +67,22 @@ public final class LuaScriptDispatcher {
     private final Map<Integer, Pending> pending = new ConcurrentHashMap<>();
     private final Map<String, Long> lastScriptSend = new HashMap<>();
     private final Map<String, Long> lastServerSend = new HashMap<>();
+    // Accessed only on ioThread; Java owns throttling, never the script.
+    private final Map<String, Long> lastScriptModeration = new HashMap<>();
+    private final Map<String, Long> lastServerModeration = new HashMap<>();
+    private final Map<String, Long> lastWho = new HashMap<>();
+    private final Runnable timerTick = new Runnable() {
+        @Override public void run() {
+            if (!running) return;
+            for (ServerConnectionInfo conn :
+                    ServerConnectionManager.getInstance(context).getConnections()) {
+                if (conn.isConnected())
+                    enqueue("timer", conn.getUUID().toString(), "", "", "", "",
+                            System.currentTimeMillis() / 1000);
+            }
+            main.postDelayed(this, TICK_INTERVAL_MS);
+        }
+    };
     private volatile Messenger remote;
     private boolean bound; // main thread only
     private boolean running; // main thread only
@@ -118,12 +142,15 @@ public final class LuaScriptDispatcher {
         main.post(() -> {
             running = true;
             reconcileBinding();
+            main.removeCallbacks(timerTick);
+            main.postDelayed(timerTick, TICK_INTERVAL_MS);
         });
     }
 
     public void stop() {
         main.post(() -> {
             running = false;
+            main.removeCallbacks(timerTick);
             reconcileBinding();
         });
     }
@@ -133,6 +160,8 @@ public final class LuaScriptDispatcher {
         main.post(() -> {
             running = true; // Allow on-demand script validation from Settings.
             reconcileBinding();
+            main.removeCallbacks(timerTick);
+            main.postDelayed(timerTick, TICK_INTERVAL_MS);
             if (remote != null) {
                 // Discard replies from the old script generation. A reset may
                 // invalidate in-flight events but must not disable new scripts.
@@ -219,31 +248,45 @@ public final class LuaScriptDispatcher {
 
     public void onMessage(ServerConnectionInfo connection, String channel, MessageInfo info) {
         if (connection == null || info == null || info.getType() == null ||
-                channel == null || channel.isEmpty() || info.getMessage() == null ||
+                channel == null || channel.isEmpty() ||
                 info.isStatusMessage() || info.getBatch() != null) return;
         MessageInfo.MessageType type = info.getType();
-        if (type != MessageInfo.MessageType.NORMAL &&
-                type != MessageInfo.MessageType.NOTICE &&
-                type != MessageInfo.MessageType.ME) return;
+        boolean content = type == MessageInfo.MessageType.NORMAL ||
+                type == MessageInfo.MessageType.NOTICE ||
+                type == MessageInfo.MessageType.ME;
+        String event;
+        if (content) event = "message";
+        else if (type == MessageInfo.MessageType.JOIN) event = "join";
+        else if (type == MessageInfo.MessageType.PART) event = "part";
+        else if (type == MessageInfo.MessageType.QUIT) event = "quit";
+        else if (type == MessageInfo.MessageType.NICK_CHANGE &&
+                info instanceof NickChangeMessageInfo) event = "nick";
+        else return;
 
         MessageSenderInfo sender = info.getSender();
         if (sender == null || sender.getNick() == null) return;
-        // Avoid automatic reply loops from our own messages, including server echo.
-        try {
-            if (sender.getNick().equalsIgnoreCase(connection.getUserNick())) return;
-        } catch (RuntimeException ignored) {
-            return;
+        if (content) {
+            if (info.getMessage() == null) return;
+            // Avoid echo/reply loops; presence events are still observable.
+            try {
+                if (sender.getNick().equalsIgnoreCase(connection.getUserNick())) return;
+            } catch (RuntimeException ignored) {
+                return;
+            }
         }
-        String text = info.getMessage();
-        if (channel.length() > 64 || sender.getNick().length() > 64 || text.length() > 1024 ||
+        String value = "nick".equals(event) ?
+                ((NickChangeMessageInfo) info).getNewNick() : info.getMessage();
+        if (value == null) value = "";
+        if (channel.length() > 64 || sender.getNick().length() > 64 ||
+                value.length() > 1024 ||
                 channel.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 96 ||
                 sender.getNick().getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 96 ||
-                text.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 2048) return;
-        String serverId = connection.getUUID().toString();
-        String name = type.name().toLowerCase(java.util.Locale.ROOT);
+                value.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 2048) return;
+        String messageType = content ? type.name().toLowerCase(java.util.Locale.ROOT) : "";
         long timestamp = info.getDate() == null ?
                 System.currentTimeMillis()/1000 : info.getDate().getTime()/1000;
-        enqueue("message", serverId, channel, sender.getNick(), text, name, timestamp);
+        enqueue(event, connection.getUUID().toString(), channel, sender.getNick(),
+                value, messageType, timestamp);
     }
 
     /**
@@ -307,6 +350,20 @@ public final class LuaScriptDispatcher {
                     }
                 }
                 for (LuaScriptStore.Script script : eligible) {
+                    LuaUserSnapshot users = LuaUserSnapshot.capture(null, null);
+                    if (script.allowUserInfo && !"disconnected".equals(event)) {
+                        try {
+                            ServerConnectionInfo conn = ServerConnectionManager.getInstance(context)
+                                    .getConnection(UUID.fromString(server));
+                            if (conn != null && conn.isConnected() &&
+                                    conn.getApiInstance() instanceof ServerConnectionApi)
+                                users = LuaUserSnapshot.capture(
+                                        ((ServerConnectionApi) conn.getApiInstance())
+                                                .getServerConnectionData(), channel);
+                        } catch (RuntimeException ignored) {
+                            // A part/disconnect race returns an empty roster.
+                        }
+                    }
                     if (pendingEvents.incrementAndGet() > MAX_PENDING_EVENTS) {
                         pendingEvents.decrementAndGet();
                         return; // drop event; never block IRC threads
@@ -326,6 +383,12 @@ public final class LuaScriptDispatcher {
                     data.putIntArray(LuaDiagnosticService.EXTRA_CHANNEL_COUNTS, channels.counts);
                     data.putBoolean(LuaDiagnosticService.EXTRA_CHANNELS_TRUNCATED,
                             channels.truncated);
+                    data.putStringArrayList(LuaDiagnosticService.EXTRA_USER_FIELDS,
+                            users.fields);
+                    data.putBoolean(LuaDiagnosticService.EXTRA_USERS_TRUNCATED,
+                            users.truncated);
+                    data.putBoolean(LuaDiagnosticService.EXTRA_CAN_READ_USERS,
+                            script.allowUserInfo);
                     request.setData(data);
                     sendMessage(request, new Pending(script.id, server, channel, event, true));
                 }
@@ -369,6 +432,10 @@ public final class LuaScriptDispatcher {
                 store.recordLog(id, value);
             } else if ("send".equals(kind)) {
                 sendAuthorized(script, request, target, value);
+            } else if ("who".equals(kind) || "kick".equals(kind) ||
+                    "ban".equals(kind) || "mode".equals(kind)) {
+                final String operation = kind;
+                io.post(() -> performIrcAction(script.id, request, operation, target, value));
             } else {
                 store.fail(id, "Lua returned an unsupported action");
                 reload();
@@ -402,4 +469,87 @@ public final class LuaScriptDispatcher {
             // Scripts must never crash or block the client.
         }
     }
+
+    /** Runs off the UI and IRC reader threads and rechecks consent at execution. */
+    private void performIrcAction(String scriptId, Pending request, String kind,
+                                  String channel, String value) {
+        LuaScriptStore.Script script = store.find(scriptId);
+        boolean who = "who".equals(kind);
+        if (!LuaModerationPolicy.scoped(script, request.server, request.channel,
+                request.event, channel, !who)) return;
+        try {
+            ServerConnectionInfo connection = ServerConnectionManager.getInstance(context)
+                    .getConnection(UUID.fromString(request.server));
+            if (connection == null || !connection.isConnected() ||
+                    !(connection.getApiInstance() instanceof IRCConnection)) return;
+            IRCConnection api = (IRCConnection) connection.getApiInstance();
+            if (!api.getServerConnectionData().getSupportList()
+                    .getSupportedChannelTypes().contains(channel.charAt(0))) return;
+            try {
+                api.getServerConnectionData().getJoinedChannelData(channel);
+            } catch (NoSuchChannelException ignored) {
+                return;
+            }
+
+            long now = SystemClock.elapsedRealtime();
+            if (who) {
+                if (!"refresh".equals(value)) return;
+                if (now - lastWho.getOrDefault(script.id, -WHO_INTERVAL_MS)
+                        < WHO_INTERVAL_MS) return;
+                boolean whox = api.getServerConnectionData().getSupportList().isWhoxSupported();
+                if (whox) api.getServerConnectionData().getIdentityCache().expectWhox();
+                api.sendCommand("WHO", false, whox ?
+                        new String[]{channel, "%tnuhaf," + IrcIdentityCache.whoxToken()} :
+                        new String[]{channel}, null, null);
+                lastWho.put(script.id, now);
+                return;
+            }
+
+            // Never act without confirmed operator status in the requested channel.
+            if (!ChannelOperatorUtils.hasOperatorPrivileges(connection, channel, false))
+                return;
+            if (now - lastScriptModeration.getOrDefault(script.id, -MOD_INTERVAL_MS)
+                    < MOD_INTERVAL_MS ||
+                    now - lastServerModeration.getOrDefault(request.server, -SERVER_INTERVAL_MS)
+                            < SERVER_INTERVAL_MS) return;
+
+            String nick;
+            String reason = "";
+            String mode = "";
+            if ("kick".equals(kind) || "mode".equals(kind)) {
+                int tab = value == null ? -1 : value.indexOf('\t');
+                if (tab <= 0) return;
+                nick = value.substring(0, tab);
+                if ("kick".equals(kind)) reason = value.substring(tab + 1);
+                else mode = value.substring(tab + 1);
+            } else if ("ban".equals(kind)) {
+                nick = value;
+            } else return;
+            if (!LuaModerationPolicy.validNick(nick) ||
+                    nick.equalsIgnoreCase(connection.getUserNick()) ||
+                    !ChannelOperatorUtils.isNickPresent(connection, channel, nick))
+                return;
+            if ("kick".equals(kind)) {
+                if (!LuaModerationPolicy.validReason(reason)) return;
+                api.sendCommand("KICK", true, new String[]{channel, nick, reason},
+                        null, null);
+            } else if ("mode".equals(kind)) {
+                if (!LuaModerationPolicy.permittedMode(mode)) return;
+                api.sendCommand("MODE", false, new String[]{channel, mode, nick},
+                        null, null);
+            } else {
+                IrcIdentityCache.Identity identity =
+                        api.getServerConnectionData().getIdentityCache().get(nick);
+                if (identity == null ||
+                        !LuaModerationPolicy.validBanHost(identity.host)) return;
+                api.sendCommand("MODE", false,
+                        new String[]{channel, "+b", "*!*@" + identity.host}, null, null);
+            }
+            lastScriptModeration.put(script.id, now);
+            lastServerModeration.put(request.server, now);
+        } catch (RuntimeException ignored) {
+            // IRC callbacks, disconnects and partial rosters must never crash TIARCA.
+        }
+    }
+
 }

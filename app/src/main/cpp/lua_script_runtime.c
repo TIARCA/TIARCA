@@ -15,6 +15,8 @@
 #define MAX_HANDLERS 8
 #define MAX_ACTIONS 12
 #define MAX_CHANNELS 32
+#define MAX_USERS 128
+#define EVENT_KINDS 9
 #define MAX_SOURCE 8192
 #define SCRIPT_MEMORY (2u * 1024u * 1024u)
 #define INSTRUCTION_LIMIT 200000ul
@@ -30,19 +32,32 @@ typedef struct {
     int users;
 } ChannelSnapshot;
 
+typedef struct {
+    char nick[97];
+    char prefixes[33];
+    char ident[97];
+    char host[257];
+    char account[97];
+} UserSnapshot;
+
 typedef struct ScriptVm {
     char id[40];
     lua_State *L;
     size_t allocated;
     unsigned long steps;
-    int callbacks[4][MAX_HANDLERS];
-    int count[4];
+    int callbacks[EVENT_KINDS][MAX_HANDLERS];
+    int count[EVENT_KINDS];
     int event_active;
     int action_count;
     ScriptAction actions[MAX_ACTIONS];
     ChannelSnapshot channels[MAX_CHANNELS];
     int channel_count;
     int channels_truncated;
+    UserSnapshot users[MAX_USERS];
+    int user_count;
+    int users_truncated;
+    int can_read_users;
+    char event_channel[97];
 } ScriptVm;
 
 static ScriptVm *g_scripts[MAX_SCRIPTS]; /* All calls arrive on one service HandlerThread. */
@@ -80,6 +95,11 @@ static int event_kind(const char *name) {
     if (!strcmp(name, "connected")) return 1;
     if (!strcmp(name, "disconnected")) return 2;
     if (!strcmp(name, "command")) return 3;
+    if (!strcmp(name, "join")) return 4;
+    if (!strcmp(name, "part")) return 5;
+    if (!strcmp(name, "quit")) return 6;
+    if (!strcmp(name, "nick")) return 7;
+    if (!strcmp(name, "timer")) return 8;
     return -1;
 }
 
@@ -149,6 +169,90 @@ static int script_get_channels(lua_State *L) {
     return 1;
 }
 
+static void set_field(lua_State *L, const char *name, const char *value);
+
+/* Roster is limited to the event's joined channel and a separate user consent. */
+static int script_get_users(lua_State *L) {
+    ScriptVm *s = context(L);
+    const char *channel = luaL_checkstring(L, 1);
+    if (!s->event_active || !s->can_read_users ||
+            strcmp(channel, s->event_channel) != 0 || !channel[0])
+        return luaL_error(L, "tiarca.get_users: unavailable or not authorized");
+    lua_createtable(L, s->user_count, 1);
+    for (int i = 0; i < s->user_count; i++) {
+        const UserSnapshot *u = &s->users[i];
+        lua_createtable(L, 0, 6);
+        lua_pushstring(L, u->nick);
+        lua_setfield(L, -2, "nick");
+        lua_pushstring(L, u->prefixes);
+        lua_setfield(L, -2, "prefix");
+        if (u->ident[0]) set_field(L, "ident", u->ident);
+        if (u->host[0]) set_field(L, "host", u->host);
+        if (u->account[0]) set_field(L, "account", u->account);
+        if (u->ident[0] && u->host[0]) {
+            lua_pushfstring(L, "%s!%s@%s", u->nick, u->ident, u->host);
+            lua_setfield(L, -2, "mask");
+        }
+        lua_rawseti(L, -2, i + 1);
+    }
+    lua_pushboolean(L, s->users_truncated);
+    lua_setfield(L, -2, "truncated");
+    return 1;
+}
+
+static void channel_action(lua_State *L, const char *kind,
+                           const char *value, size_t value_size) {
+    size_t channel_size;
+    const char *channel = luaL_checklstring(L, 1, &channel_size);
+    add_action(L, kind, channel, channel_size, value, value_size);
+}
+
+static int script_refresh_users(lua_State *L) {
+    channel_action(L, "who", "refresh", 7);
+    return 0;
+}
+
+static int script_ban(lua_State *L) {
+    size_t n;
+    const char *nick = luaL_checklstring(L, 2, &n);
+    if (n == 0 || n > 64) return luaL_error(L, "tiarca.ban: invalid nick");
+    channel_action(L, "ban", nick, n);
+    return 0;
+}
+
+static int script_kick(lua_State *L) {
+    size_t n, reason_len = 0;
+    const char *nick = luaL_checklstring(L, 2, &n);
+    const char *reason = luaL_optlstring(L, 3, "Removed by operator script", &reason_len);
+    if (n == 0 || n > 64 || reason_len > 160 ||
+            memchr(nick, '\t', n) || memchr(reason, '\t', reason_len))
+        return luaL_error(L, "tiarca.kick: invalid nick or reason");
+    char payload[228];
+    memcpy(payload, nick, n);
+    payload[n] = '\t';
+    memcpy(payload + n + 1, reason, reason_len);
+    channel_action(L, "kick", payload, n + 1 + reason_len);
+    return 0;
+}
+
+/* Only standard user modes, never arbitrary /MODE or raw IRC. */
+static int script_mode(lua_State *L) {
+    size_t n, m;
+    const char *nick = luaL_checklstring(L, 2, &n);
+    const char *mode = luaL_checklstring(L, 3, &m);
+    if (n == 0 || n > 64 || m != 2 ||
+            !(mode[0] == '+' || mode[0] == '-') ||
+            !(mode[1] == 'o' || mode[1] == 'v') ||
+            memchr(nick, '\t', n))
+        return luaL_error(L, "tiarca.mode: only +o -o +v -v");
+    char payload[68];
+    memcpy(payload, nick, n);
+    payload[n] = '\t';
+    memcpy(payload + n + 1, mode, 2);
+    channel_action(L, "mode", payload, n + 3);
+    return 0;
+}
+
 static void install_libraries(lua_State *L) {
     const struct { const char *name; lua_CFunction fn; } permitted[] = {
         {LUA_GNAME, luaopen_base}, {LUA_TABLIBNAME, luaopen_table},
@@ -179,6 +283,16 @@ static void install_libraries(lua_State *L) {
     lua_setfield(L, -2, "send");
     lua_pushcfunction(L, script_get_channels);
     lua_setfield(L, -2, "get_channels");
+    lua_pushcfunction(L, script_get_users);
+    lua_setfield(L, -2, "get_users");
+    lua_pushcfunction(L, script_refresh_users);
+    lua_setfield(L, -2, "refresh_users");
+    lua_pushcfunction(L, script_kick);
+    lua_setfield(L, -2, "kick");
+    lua_pushcfunction(L, script_ban);
+    lua_setfield(L, -2, "ban");
+    lua_pushcfunction(L, script_mode);
+    lua_setfield(L, -2, "mode");
     lua_setglobal(L, "tiarca");
 }
 
@@ -305,7 +419,9 @@ JNIEXPORT jobjectArray JNICALL
 Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatch(JNIEnv *env, jclass unused,
         jstring jid, jstring jevent, jbyteArray jserver, jbyteArray jchannel,
         jbyteArray jnick, jbyteArray jtext, jbyteArray jtype, jlong timestamp,
-        jobjectArray jchannels, jintArray jcounts, jboolean jtruncated) {
+        jobjectArray jchannels, jintArray jcounts, jboolean jtruncated,
+        jobjectArray jroster, jboolean jrostertruncated,
+        jboolean jcanreadusers) {
     (void)unused;
     char server[64], channel[97], nick[97], text[2049], type[32];
     if (!jid || !jevent ||
@@ -347,6 +463,34 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatch(JNIEnv *env, jclass unused,
         s->channels[i].users = users[i];
         s->channel_count++;
     }
+    if (!jroster) return NULL;
+    jsize fields = (*env)->GetArrayLength(env, jroster);
+    if (fields < 0 || fields > MAX_USERS * 5 || fields % 5 != 0)
+        return NULL;
+    s->user_count = 0;
+    s->users_truncated = jrostertruncated == JNI_TRUE;
+    s->can_read_users = jcanreadusers == JNI_TRUE;
+    memcpy(s->event_channel, channel, sizeof(channel));
+    const size_t limits[5] = {sizeof(s->users[0].nick),
+                              sizeof(s->users[0].prefixes),
+                              sizeof(s->users[0].ident),
+                              sizeof(s->users[0].host),
+                              sizeof(s->users[0].account)};
+    for (jsize index = 0; index < fields; index++) {
+        jbyteArray field = (jbyteArray)(*env)->GetObjectArrayElement(env, jroster, index);
+        if (!field) return NULL;
+        UserSnapshot *entry = &s->users[index / 5];
+        char *destinations[] = {entry->nick, entry->prefixes, entry->ident,
+                                entry->host, entry->account};
+        int ok = copy_java_bytes(env, field, destinations[index % 5],
+                                 limits[index % 5]);
+        (*env)->DeleteLocalRef(env, field);
+        if (!ok) return NULL;
+        if (index % 5 == 0) {
+            if (!entry->nick[0]) return NULL;
+            s->user_count++;
+        }
+    }
     lua_State *L = s->L;
     s->steps = 0;
     s->action_count = 0;
@@ -362,7 +506,8 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatch(JNIEnv *env, jclass unused,
         set_field(L, "nick", nick);
         set_field(L, "text", text);
         set_field(L, "message_type", type);
-        const char *event_names[] = {"message", "connected", "disconnected", "command"};
+        const char *event_names[] = {"message", "connected", "disconnected", "command",
+                                    "join", "part", "quit", "nick", "timer"};
         set_field(L, "type", event_names[kind]);
         lua_pushinteger(L, (lua_Integer)timestamp);
         lua_setfield(L, -2, "timestamp");

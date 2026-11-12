@@ -30,7 +30,8 @@ public final class HostLuaRuntimeTest {
             boolean truncated) {
         byte[][] data = NativeLuaRuntime.dispatch(id, event, bytes("test-server"),
                 bytes(channel), bytes(nick), bytes(message), bytes("normal"), 1794400000L,
-                channelNames, memberCounts, truncated);
+                channelNames, memberCounts, truncated,
+                new byte[0][], false, false);
         check(data != null, "Expected script response");
         String[] values = new String[data.length];
         for (int i = 0; i < data.length; i++) values[i] = decode(data[i]);
@@ -98,6 +99,49 @@ public final class HostLuaRuntimeTest {
                         bytes("tiarca.get_channels()"))).contains("only available in a callback"),
                 "Channel data must not be accessible during script initialization");
 
+        String rosterScript = "tiarca.on('command', function(e) "
+                + "local users = tiarca.get_users(e.channel) "
+                + "if #users > 0 then tiarca.log(users[1].nick .. ':' "
+                + ".. tostring(users[1].mask) .. ':' .. users[1].account) "
+                + "else tiarca.log('empty:' .. tostring(users.truncated)) end "
+                + "tiarca.refresh_users(e.channel) "
+                + "tiarca.kick(e.channel, 'Target', 'Reason') "
+                + "tiarca.ban(e.channel, 'Target') "
+                + "tiarca.mode(e.channel, 'Target', '+v') end)";
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes(rosterScript)))),
+                "Advanced scripting callbacks should register");
+        byte[][] userValues = {bytes("Target"), bytes("@"), bytes("ident"),
+                bytes("host.example"), bytes("account")};
+        byte[][] rosterActions = NativeLuaRuntime.dispatch(OTHER, "command",
+                bytes("test-server"), bytes("#example"), bytes("self"), bytes("mod"),
+                bytes(""), 1794400000L, new byte[0][], new int[0], false,
+                userValues, false, true);
+        check(rosterActions != null && rosterActions.length == 16 &&
+                        "OK".equals(decode(rosterActions[0])) &&
+                        "Target:Target!ident@host.example:account".equals(decode(rosterActions[3])) &&
+                        "who".equals(decode(rosterActions[4])) &&
+                        "kick".equals(decode(rosterActions[7])) &&
+                        "ban".equals(decode(rosterActions[10])) &&
+                        "mode".equals(decode(rosterActions[13])),
+                "C3 roster and C5 structured actions should reach the JNI host");
+        byte[][] noUsers = NativeLuaRuntime.dispatch(OTHER, "command",
+                bytes("test-server"), bytes("#example"), bytes("self"), bytes("mod"),
+                bytes(""), 1794400001L, new byte[0][], new int[0], false,
+                new byte[0][], false, false);
+        check(noUsers != null && noUsers.length == 1 &&
+                        decode(noUsers[0]).contains("not authorized"),
+                "C3 must reject missing user-data permission");
+        String presence = "tiarca.on('join', function(e) tiarca.log('joined:'..e.nick) end) "
+                + "tiarca.on('timer', function(e) tiarca.log('tick:'..e.type) end)";
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes(presence)))),
+                "C4 join/timer callbacks should register");
+        String[] joinEvent = event(OTHER, "join", "#example", "alice", "");
+        check(joinEvent.length == 4 && "joined:alice".equals(joinEvent[3]),
+                "C4 join event should be dispatched");
+        String[] tickEvent = event(OTHER, "timer", "", "", "");
+        check(tickEvent.length == 4 && "tick:timer".equals(tickEvent[3]),
+                "C4 timer event should be dispatched");
+
         String noLibs = "tiarca.on('message', function(e) "
                 + "tiarca.log(type(io)..':'..type(os)..':'..type(package)..':'"
                 + "..type(debug)..':'..type(require)) end)";
@@ -126,7 +170,8 @@ public final class HostLuaRuntimeTest {
         NativeLuaRuntime.unload(ID);
         check(NativeLuaRuntime.dispatch(ID, "message", bytes("test-server"),
                 bytes("#x"), bytes("a"), bytes("b"), bytes("normal"), 0L,
-                new byte[0][], new int[0], false) == null,
+                new byte[0][], new int[0], false,
+                new byte[0][], false, false) == null,
                 "Unloaded script must disappear");
         NativeLuaRuntime.clear();
         System.out.println("Native Lua script JNI: commands, channel snapshots and sandbox acceptance passed.");

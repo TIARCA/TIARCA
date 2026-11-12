@@ -144,3 +144,85 @@ exposed. There is no send capability implicit in this API. It is suitable for
 scripts that summarize channels and their cached member counts, but **not**
 for mask matching; that requires a separate consented API with explicit
 unknown-data handling in a later milestone.
+
+
+## Phases C3–C5 (experimental; requires new per-script consent)
+
+**C3 — current-channel roster and identities.** After separately approving
+"channel members and identities" when enabling a script,
+\`tiarca.get_users(event.channel)\` provides a **bounded snapshot** of the current
+joined channel. Each entry contains \`nick\`, \`prefix\`, and optionally \`ident\`,
+\`host\`, \`account\`, \`mask\` when *observed from the server*. Missing properties
+are **nil**, not guesses. \`result.truncated\` indicates more than 128 cached
+members; no promise of complete results for very large channels. Only the
+**event's own joined channel** can be queried, not another network or PVT.
+The host may be a cloaked hostname, not the user's IP address.
+
+\`tiarca.refresh_users(event.channel)\` queues **one explicit WHO request**
+from a locally typed \`/lua\` command when that extra consent is enabled.
+It is rate-limited to one request per script per minute. When the server
+advertises WHOX in ISUPPORT 005, TIARCA uses a fixed-token WHOX request
+to populate nick, ident, host and account. Otherwise it uses standard WHO
+and the account may remain unknown. Results update a 512-entry per-network
+LRU cache in the IRC core, and arrive asynchronously: call \`get_users\`
+in a **later** Lua event, not immediately after requesting WHO.
+No script receives the raw protocol reply, password or Android object.
+The cache resets on connection reset; the list may be incomplete before
+NAMES finishes. The separate consent defaults to **off** and is never
+restored from backup.
+
+**C4 — passive events and bounded timers.** The available event names are
+\`message\`, \`connected\`, \`disconnected\`, \`command\`, \`join\`, \`part\`,
+\`quit\`, \`nick\` and \`timer\`. JOIN/PART/QUIT/NICK are post-storage,
+normalized IRC events (not raw protocol hooks); \`event.channel\` identifies
+the source channel, \`event.nick\` the prior nickname and for \`nick\`,
+\`event.text\` the new nickname. A QUIT or NICK affecting more than one
+joined channel may generate multiple per-channel callbacks.
+The common \`timer\` is sent about every 60 seconds **while the Android
+IRC service is running and the network is connected**. It may be delayed
+or skipped by Android power management, process restarts, queue overflow
+or disconnections. It cannot be used as an accurate alarm. Timer callbacks
+have no channel target and cannot send IRC messages.
+
+**C5 — restricted operator actions.** When enabling a script the user must
+explicitly opt in to a **separate moderation capability**, disabled by
+default. The sandbox offers:
+- \`tiarca.kick(event.channel, nick, reason)\`
+- \`tiarca.ban(event.channel, nick)\` (requires a known, safe host;
+  generates a host-based \`+b *!*@host\` mask)
+- \`tiarca.mode(event.channel, nick, "+o" | "-o" | "+v" | "-v")\`
+
+The main process verifies the script still has consent, the approved
+server is connected, the channel is joined and equals the incoming/current
+channel, the **local user currently has channel operator privileges**, and
+the target is a present member other than the local user. Only validated
+structured KICK and MODE commands can be sent: scripts cannot issue raw
+IRC, change the target network or use arbitrary ban masks. Moderation
+is rate-limited (at most once every 12 seconds per script and a separate
+per-server interval). IRC servers can still reject an action; this API
+does not promise that a request succeeded, and moderation is intentionally
+*not* executed for disconnected or timer callbacks. No unrestricted
+extbans, timed bans, cross-channel actions or blanket mass bans.
+
+### Example of the new API
+
+\`\`\`lua
+tiarca.on("command", function(event)
+  if event.text ~= "roster" or event.channel == "" then return end
+  local users = tiarca.get_users(event.channel)
+  local unknown = 0
+  for _, user in ipairs(users) do
+    if not user.host then unknown = unknown + 1 end
+  end
+  tiarca.log("Cached users: " .. #users .. "; unknown hosts: " .. unknown)
+  -- Optional, separately approved and rate-limited:
+  -- tiarca.refresh_users(event.channel)
+end)
+\`\`\`
+
+**Manual acceptance still required:** simultaneous networks, WHO/WHOX
+variations across IRCds, JOIN/PART/NICK/QUIT event replay/ordering,
+Android Doze and reconnect timing, operator status changes, removal of
+consent while actions are pending, attempt to moderate another network
+or PVT, empty/unknown hostmask, backup/restore revocation and device
+crash isolation. Never enable moderation for untrusted scripts.
