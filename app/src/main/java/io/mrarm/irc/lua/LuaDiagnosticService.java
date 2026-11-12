@@ -35,6 +35,8 @@ public final class LuaDiagnosticService extends Service {
     public static final String EXTRA_USER_FIELDS = "user_fields";
     public static final String EXTRA_USERS_TRUNCATED = "users_truncated";
     public static final String EXTRA_CAN_READ_USERS = "can_read_users";
+    public static final String EXTRA_STORAGE_PAIRS = "storage_pairs";
+    public static final String EXTRA_CAN_STORE = "can_store";
     public static final String EXTRA_REQUEST_ID = "request_id";
     public static final String EXTRA_ACTIONS = "actions";
     public static final String EXTRA_STATUS = "status";
@@ -155,6 +157,8 @@ public final class LuaDiagnosticService extends Service {
                 int[] memberCounts = request.getIntArray(EXTRA_CHANNEL_COUNTS);
                 java.util.ArrayList<String> members =
                         request.getStringArrayList(EXTRA_USER_FIELDS);
+                java.util.ArrayList<String> stored =
+                        request.getStringArrayList(EXTRA_STORAGE_PAIRS);
                 if (server.length() != 36 || channel.length() > 64 ||
                         nick.length() > 64 || text.length() > 1024 ||
                         channel.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 96 ||
@@ -171,7 +175,10 @@ public final class LuaDiagnosticService extends Service {
                         names.size() > LuaChannelSnapshot.MAX_CHANNELS ||
                         members == null ||
                         members.size() > LuaUserSnapshot.MAX_USERS * LuaUserSnapshot.FIELDS ||
-                        members.size() % LuaUserSnapshot.FIELDS != 0) {
+                        members.size() % LuaUserSnapshot.FIELDS != 0 ||
+                        stored == null || stored.size() > LuaScriptStorage.MAX_KEYS * 2 ||
+                        stored.size() % 2 != 0 ||
+                        (!request.getBoolean(EXTRA_CAN_STORE, false) && !stored.isEmpty())) {
                     status = "ERROR: invalid channel snapshot";
                 } else {
                     byte[][] channels = new byte[names.size()][];
@@ -211,14 +218,39 @@ public final class LuaDiagnosticService extends Service {
                         if (!valid) {
                             status = "ERROR: invalid user snapshot";
                         } else {
-                            byte[][] nativeActions = NativeLuaRuntime.dispatch(scriptId, event,
-                                    NativeLuaRuntime.utf8(server), NativeLuaRuntime.utf8(channel),
-                                    NativeLuaRuntime.utf8(nick), NativeLuaRuntime.utf8(text),
-                                    NativeLuaRuntime.utf8(messageType), request.getLong(EXTRA_TIME),
-                                    channels, memberCounts,
-                                    request.getBoolean(EXTRA_CHANNELS_TRUNCATED, false),
-                                    userFields, request.getBoolean(EXTRA_USERS_TRUNCATED, false),
-                                    request.getBoolean(EXTRA_CAN_READ_USERS, false));
+                            byte[][] storagePairs = new byte[stored.size()][];
+                            int total = 0;
+                            for (int i = 0; i < stored.size(); i += 2) {
+                                String key = stored.get(i), value = stored.get(i + 1);
+                                if (!LuaScriptStorage.validKey(key) ||
+                                        !LuaScriptStorage.validValue(value) ||
+                                        value.isEmpty()) {
+                                    valid = false;
+                                    break;
+                                }
+                                byte[] keyBytes = NativeLuaRuntime.utf8(key);
+                                byte[] valueBytes = NativeLuaRuntime.utf8(value);
+                                total += keyBytes.length + valueBytes.length;
+                                if (total > LuaScriptStorage.MAX_TOTAL_BYTES) {
+                                    valid = false;
+                                    break;
+                                }
+                                storagePairs[i] = keyBytes;
+                                storagePairs[i + 1] = valueBytes;
+                            }
+                            if (!valid) {
+                                status = "ERROR: invalid Lua storage snapshot";
+                            } else {
+                                byte[][] nativeActions = NativeLuaRuntime.dispatch(scriptId, event,
+                                        NativeLuaRuntime.utf8(server), NativeLuaRuntime.utf8(channel),
+                                        NativeLuaRuntime.utf8(nick), NativeLuaRuntime.utf8(text),
+                                        NativeLuaRuntime.utf8(messageType), request.getLong(EXTRA_TIME),
+                                        channels, memberCounts,
+                                        request.getBoolean(EXTRA_CHANNELS_TRUNCATED, false),
+                                        userFields,
+                                        request.getBoolean(EXTRA_USERS_TRUNCATED, false),
+                                        request.getBoolean(EXTRA_CAN_READ_USERS, false),
+                                        storagePairs, request.getBoolean(EXTRA_CAN_STORE, false));
                         if (nativeActions == null || nativeActions.length < 1 ||
                                 (nativeActions.length - 1) % 3 != 0 ||
                                 nativeActions.length > 37) {
@@ -228,6 +260,8 @@ public final class LuaDiagnosticService extends Service {
                             if ("OK".equals(status))
                                 for (int i = 1; i < nativeActions.length; i++)
                                     actions.add(NativeLuaRuntime.decode(nativeActions[i]));
+                        }
+                            }
                         }
                         }
                     }

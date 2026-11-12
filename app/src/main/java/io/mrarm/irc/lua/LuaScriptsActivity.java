@@ -2,6 +2,9 @@ package io.mrarm.irc.lua;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.view.ViewGroup;
@@ -102,6 +105,8 @@ public final class LuaScriptsActivity extends ThemedActivity {
                     state += "\n" + getString(R.string.lua_scripts_users_enabled);
                 if (s.allowModeration)
                     state += "\n" + getString(R.string.lua_scripts_moderation_enabled);
+                if (s.allowStorage)
+                    state += "\n" + getString(R.string.lua_scripts_storage_enabled);
             }
             if (s.error != null && !s.error.isEmpty())
                 state += "\n" + getString(R.string.lua_scripts_last_error, s.error);
@@ -124,6 +129,10 @@ public final class LuaScriptsActivity extends ThemedActivity {
                             chooseServer(s);
                         }
                     }));
+            LuaScriptStore.Output output = store.latestOutput(s.id);
+            if (output != null)
+                list.addView(button(R.string.lua_scripts_view_output,
+                        () -> showOutput(output)));
             if (s.enabled) {
                 list.addView(button(R.string.lua_scripts_reload, () -> {
                     LuaScriptDispatcher.get(this).reload();
@@ -150,6 +159,30 @@ public final class LuaScriptsActivity extends ThemedActivity {
             separator.setAlpha(0.5f);
             list.addView(separator);
         }
+    }
+
+    private void showOutput(LuaScriptStore.Output output) {
+        AlertDialog.Builder dialog = new AlertDialog.Builder(this)
+                .setTitle(output.title)
+                .setNegativeButton(android.R.string.ok, null);
+        if (output.list) {
+            // Host-generated list controls only; a tap copies the selected
+            // value. Lua cannot create intents, activities or arbitrary views.
+            String[] items = output.body.split("\n", -1);
+            dialog.setItems(items, (d, index) -> {
+                ClipboardManager clipboard = (ClipboardManager)
+                        getSystemService(Context.CLIPBOARD_SERVICE);
+                if (clipboard != null) {
+                    clipboard.setPrimaryClip(ClipData.newPlainText(
+                            getString(R.string.lua_scripts_copy_label), items[index]));
+                    Toast.makeText(this, R.string.lua_scripts_copied,
+                            Toast.LENGTH_SHORT).show();
+                }
+            });
+        } else {
+            dialog.setMessage(output.body);
+        }
+        dialog.show();
     }
 
     private String resolveServerName(String id) {
@@ -200,6 +233,10 @@ public final class LuaScriptsActivity extends ThemedActivity {
         allowModeration.setText(R.string.lua_scripts_moderation_permission);
         allowModeration.setChecked(false);
         content.addView(allowModeration);
+        CheckBox allowStorage = new CheckBox(this);
+        allowStorage.setText(R.string.lua_scripts_storage_permission);
+        allowStorage.setChecked(false);
+        content.addView(allowStorage);
         ScrollView scroll = new ScrollView(this);
         scroll.addView(content);
 
@@ -210,7 +247,8 @@ public final class LuaScriptsActivity extends ThemedActivity {
                 .setPositiveButton(R.string.lua_scripts_enable, (dialog, which) -> {
                     try {
                         store.enable(s.id, server.uuid.toString(), allowSend.isChecked(),
-                                allowUsers.isChecked(), allowModeration.isChecked());
+                                allowUsers.isChecked(), allowModeration.isChecked(),
+                                allowStorage.isChecked());
                         LuaScriptDispatcher.get(this).reload();
                         render();
                     } catch (IOException error) {

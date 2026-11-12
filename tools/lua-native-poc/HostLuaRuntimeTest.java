@@ -31,7 +31,7 @@ public final class HostLuaRuntimeTest {
         byte[][] data = NativeLuaRuntime.dispatch(id, event, bytes("test-server"),
                 bytes(channel), bytes(nick), bytes(message), bytes("normal"), 1794400000L,
                 channelNames, memberCounts, truncated,
-                new byte[0][], false, false);
+                new byte[0][], false, false, new byte[0][], false);
         check(data != null, "Expected script response");
         String[] values = new String[data.length];
         for (int i = 0; i < data.length; i++) values[i] = decode(data[i]);
@@ -117,7 +117,7 @@ public final class HostLuaRuntimeTest {
         byte[][] rosterActions = NativeLuaRuntime.dispatch(OTHER, "command",
                 bytes("test-server"), bytes("#example"), bytes("self"), bytes("mod"),
                 bytes(""), 1794400000L, new byte[0][], new int[0], false,
-                userValues, false, true);
+                userValues, false, true, new byte[0][], false);
         check(rosterActions != null && rosterActions.length == 22 &&
                         "OK".equals(decode(rosterActions[0])) &&
                         "Target:Target!ident@host.example:account".equals(decode(rosterActions[3])) &&
@@ -131,7 +131,7 @@ public final class HostLuaRuntimeTest {
         byte[][] noUsers = NativeLuaRuntime.dispatch(OTHER, "command",
                 bytes("test-server"), bytes("#example"), bytes("self"), bytes("mod"),
                 bytes(""), 1794400001L, new byte[0][], new int[0], false,
-                new byte[0][], false, false);
+                new byte[0][], false, false, new byte[0][], false);
         check(noUsers != null && noUsers.length == 1 &&
                         decode(noUsers[0]).contains("not authorized"),
                 "C3 must reject missing user-data permission");
@@ -145,6 +145,68 @@ public final class HostLuaRuntimeTest {
         String[] tickEvent = event(OTHER, "timer", "", "", "");
         check(tickEvent.length == 4 && "tick:timer".equals(tickEvent[3]),
                 "C4 timer event should be dispatched");
+
+        String newApis = "tiarca.on('command', function(e) "
+                + "if e.text == 'set' then "
+                + "tiarca.storage.set('counter','7') "
+                + "tiarca.log(tiarca.storage.get('counter')) "
+                + "tiarca.show('Counter','Saved value 7') "
+                + "elseif e.text == 'read' then "
+                + "tiarca.log(tiarca.storage.get('counter') or 'missing') "
+                + "elseif e.text == 'erase' then "
+                + "tiarca.storage.delete('counter') "
+                + "tiarca.show_list('Nicknames', {'Alice','Bob'}) "
+                + "end end)";
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes(newApis)))),
+                "C6/C7 callbacks should load");
+        byte[][] wrote = NativeLuaRuntime.dispatch(OTHER, "command", bytes("test-server"),
+                bytes("#room"), bytes("me"), bytes("set"), bytes(""), 1794400002L,
+                new byte[0][], new int[0], false, new byte[0][], false, false,
+                new byte[0][], true);
+        check(wrote != null && wrote.length == 10 &&
+                        "OK".equals(decode(wrote[0])) &&
+                        "store".equals(decode(wrote[1])) &&
+                        "counter".equals(decode(wrote[2])) &&
+                        "7".equals(decode(wrote[3])) &&
+                        "log".equals(decode(wrote[4])) &&
+                        "7".equals(decode(wrote[6])) &&
+                        "show".equals(decode(wrote[7])),
+                "C6 writes and C7 local output should be structured actions");
+        byte[][] withoutConsent = NativeLuaRuntime.dispatch(OTHER, "command",
+                bytes("test-server"), bytes("#room"), bytes("me"), bytes("read"),
+                bytes(""), 1794400002L, new byte[0][], new int[0], false,
+                new byte[0][], false, false, new byte[0][], false);
+        check(withoutConsent != null && withoutConsent.length == 1 &&
+                        decode(withoutConsent[0]).contains("not authorized"),
+                "C6 read without explicit consent must be rejected");
+        byte[][] persisted = NativeLuaRuntime.dispatch(OTHER, "command", bytes("test-server"),
+                bytes("#room"), bytes("me"), bytes("read"), bytes(""), 1794400003L,
+                new byte[0][], new int[0], false, new byte[0][], false, false,
+                new byte[][]{bytes("counter"), bytes("7")}, true);
+        check(persisted != null && persisted.length == 4 &&
+                        "7".equals(decode(persisted[3])),
+                "C6 values must be available from a fresh host snapshot");
+        byte[][] erased = NativeLuaRuntime.dispatch(OTHER, "command", bytes("test-server"),
+                bytes("#room"), bytes("me"), bytes("erase"), bytes(""), 1794400004L,
+                new byte[0][], new int[0], false, new byte[0][], false, false,
+                new byte[][]{bytes("counter"), bytes("7")}, true);
+        check(erased != null && erased.length == 7 &&
+                        "erase".equals(decode(erased[1])) &&
+                        "counter".equals(decode(erased[2])) &&
+                        "list".equals(decode(erased[4])) &&
+                        "Alice\nBob".equals(decode(erased[6])),
+                "C6 deletion and C7 bounded list should be structured actions");
+        String invalidKey = "tiarca.on('command', function(e) "
+                + "tiarca.storage.set('bad/key','oops') end)";
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes(invalidKey)))),
+                "Invalid key probe should load");
+        byte[][] rejected = NativeLuaRuntime.dispatch(OTHER, "command",
+                bytes("test-server"), bytes("#room"), bytes("me"), bytes("bad"),
+                bytes(""), 1794400005L, new byte[0][], new int[0], false,
+                new byte[0][], false, false, new byte[0][], true);
+        check(rejected != null && rejected.length == 1 &&
+                        decode(rejected[0]).contains("invalid key"),
+                "Path-like storage keys must be blocked in the sandbox");
 
         String noLibs = "tiarca.on('message', function(e) "
                 + "tiarca.log(type(io)..':'..type(os)..':'..type(package)..':'"
@@ -175,7 +237,7 @@ public final class HostLuaRuntimeTest {
         check(NativeLuaRuntime.dispatch(ID, "message", bytes("test-server"),
                 bytes("#x"), bytes("a"), bytes("b"), bytes("normal"), 0L,
                 new byte[0][], new int[0], false,
-                new byte[0][], false, false) == null,
+                new byte[0][], false, false, new byte[0][], false) == null,
                 "Unloaded script must disappear");
         NativeLuaRuntime.clear();
         System.out.println("Native Lua script JNI: commands, channel snapshots and sandbox acceptance passed.");

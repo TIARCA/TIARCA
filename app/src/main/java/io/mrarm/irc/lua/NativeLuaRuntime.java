@@ -19,7 +19,8 @@ final class NativeLuaRuntime {
                                     byte[] messageType, long timestamp,
                                     byte[][] channelNames, int[] memberCounts,
                                     boolean channelsTruncated, byte[][] userFields,
-                                    boolean usersTruncated, boolean canReadUsers);
+                                    boolean usersTruncated, boolean canReadUsers,
+                                    byte[][] storagePairs, boolean canUseStorage);
     static native void unload(String scriptId);
     static native void clear();
 

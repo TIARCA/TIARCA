@@ -25,6 +25,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import io.mrarm.chatlib.NoSuchChannelException;
 import io.mrarm.chatlib.dto.MessageInfo;
+import io.mrarm.chatlib.dto.StatusMessageInfo;
+import java.util.Date;
 import io.mrarm.chatlib.dto.NickChangeMessageInfo;
 import io.mrarm.chatlib.irc.IrcIdentityCache;
 import io.mrarm.chatlib.irc.IRCConnection;
@@ -390,6 +392,19 @@ public final class LuaScriptDispatcher {
                             users.truncated);
                     data.putBoolean(LuaDiagnosticService.EXTRA_CAN_READ_USERS,
                             script.allowUserInfo);
+                    ArrayList<String> stored = new ArrayList<>();
+                    if (script.allowStorage) {
+                        try {
+                            stored = store.storageSnapshot(script.id);
+                        } catch (IOException error) {
+                            store.fail(script.id, "Lua persistent data unavailable");
+                            main.post(this::reload);
+                            pendingEvents.decrementAndGet();
+                            continue;
+                        }
+                    }
+                    data.putStringArrayList(LuaDiagnosticService.EXTRA_STORAGE_PAIRS, stored);
+                    data.putBoolean(LuaDiagnosticService.EXTRA_CAN_STORE, script.allowStorage);
                     request.setData(data);
                     sendMessage(request, new Pending(script.id, server, channel, event, true));
                 }
@@ -433,6 +448,38 @@ public final class LuaScriptDispatcher {
                 store.recordLog(id, value);
             } else if ("send".equals(kind)) {
                 sendAuthorized(script, request, target, value);
+            } else if ("store".equals(kind) || "erase".equals(kind)) {
+                String operation = kind;
+                io.post(() -> {
+                    try {
+                        store.applyStorage(script.id, request.server,
+                                operation, target, value);
+                    } catch (IOException error) {
+                        store.fail(script.id, "Lua persistent data write failed");
+                        main.post(this::reload);
+                    }
+                });
+            } else if ("show".equals(kind) || "list".equals(kind)) {
+                store.recordOutput(id, target, value, "list".equals(kind));
+                if ("command".equals(request.event)) {
+                    try {
+                        ServerConnectionInfo conn = ServerConnectionManager.getInstance(context)
+                                .getConnection(UUID.fromString(request.server));
+                        if (conn != null && conn.isConnected() &&
+                                conn.getApiInstance() instanceof ServerConnectionApi) {
+                            String localText = "[Lua: " + script.name + "] " +
+                                    target + ": " + ("list".equals(kind) ?
+                                    value.replace('\n', ' ').substring(
+                                            0, Math.min(180, value.length())) : value);
+                            ((ServerConnectionApi) conn.getApiInstance())
+                                    .getServerConnectionData().getServerStatusData()
+                                    .addMessage(new StatusMessageInfo(null, new Date(),
+                                            StatusMessageInfo.MessageType.NOTICE, localText));
+                        }
+                    } catch (RuntimeException ignored) {
+                        // UI output is local only; disconnect must not interrupt scripts.
+                    }
+                }
             } else if ("who".equals(kind) || "kick".equals(kind) ||
                     "ban".equals(kind) || "mode".equals(kind) ||
                     "mute".equals(kind) || "tban".equals(kind)) {

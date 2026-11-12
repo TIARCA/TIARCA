@@ -16,6 +16,8 @@
 #define MAX_ACTIONS 12
 #define MAX_CHANNELS 32
 #define MAX_USERS 128
+#define MAX_STORAGE 16
+#define MAX_STORAGE_BYTES 4096
 #define EVENT_KINDS 9
 #define MAX_SOURCE 8192
 #define SCRIPT_MEMORY (2u * 1024u * 1024u)
@@ -40,6 +42,11 @@ typedef struct {
     char account[97];
 } UserSnapshot;
 
+typedef struct {
+    char key[49];
+    char value[385];
+} StorageItem;
+
 typedef struct ScriptVm {
     char id[40];
     lua_State *L;
@@ -58,6 +65,9 @@ typedef struct ScriptVm {
     int users_truncated;
     int can_read_users;
     char event_channel[97];
+    StorageItem stored[MAX_STORAGE];
+    int stored_count;
+    int can_store;
 } ScriptVm;
 
 static ScriptVm *g_scripts[MAX_SCRIPTS]; /* All calls arrive on one service HandlerThread. */
@@ -276,6 +286,124 @@ static int script_mode(lua_State *L) {
     return 0;
 }
 
+static int valid_storage_key(const char *key, size_t n) {
+    if (n == 0 || n > 48) return 0;
+    for (size_t i = 0; i < n; i++) {
+        unsigned char c = (unsigned char)key[i];
+        if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+              (c >= '0' && c <= '9') || c == '.' || c == '-' || c == '_'))
+            return 0;
+    }
+    return 1;
+}
+
+static int storage_index(ScriptVm *s, const char *key) {
+    for (int i = 0; i < s->stored_count; i++)
+        if (!strcmp(s->stored[i].key, key)) return i;
+    return -1;
+}
+
+static void require_storage(lua_State *L) {
+    ScriptVm *s = context(L);
+    if (!s->event_active || !s->can_store)
+        luaL_error(L, "tiarca.storage: unavailable or not authorized");
+}
+
+static int script_storage_get(lua_State *L) {
+    require_storage(L);
+    size_t n;
+    const char *key = luaL_checklstring(L, 1, &n);
+    if (!valid_storage_key(key, n))
+        return luaL_error(L, "tiarca.storage.get: invalid key");
+    int i = storage_index(context(L), key);
+    if (i < 0) lua_pushnil(L);
+    else lua_pushstring(L, context(L)->stored[i].value);
+    return 1;
+}
+
+static int script_storage_set(lua_State *L) {
+    require_storage(L);
+    size_t kn, vn;
+    const char *key = luaL_checklstring(L, 1, &kn);
+    const char *value = luaL_checklstring(L, 2, &vn);
+    if (!valid_storage_key(key, kn) || vn == 0 || vn > 384 ||
+            memchr(value, 0, vn))
+        return luaL_error(L, "tiarca.storage.set: invalid key/value");
+    ScriptVm *s = context(L);
+    int index = storage_index(s, key);
+    if (index < 0 && s->stored_count >= MAX_STORAGE)
+        return luaL_error(L, "tiarca.storage: key limit");
+    size_t total = 0;
+    for (int i = 0; i < s->stored_count; i++)
+        if (i != index) total += strlen(s->stored[i].key) +
+                              strlen(s->stored[i].value);
+    if (total + kn + vn > MAX_STORAGE_BYTES)
+        return luaL_error(L, "tiarca.storage: quota exceeded");
+    add_action(L, "store", key, kn, value, vn);
+    if (index < 0) index = s->stored_count++;
+    memcpy(s->stored[index].key, key, kn);
+    s->stored[index].key[kn] = 0;
+    memcpy(s->stored[index].value, value, vn);
+    s->stored[index].value[vn] = 0;
+    return 0;
+}
+
+static int script_storage_delete(lua_State *L) {
+    require_storage(L);
+    size_t n;
+    const char *key = luaL_checklstring(L, 1, &n);
+    if (!valid_storage_key(key, n))
+        return luaL_error(L, "tiarca.storage.delete: invalid key");
+    add_action(L, "erase", key, n, "1", 1);
+    ScriptVm *s = context(L);
+    int index = storage_index(s, key);
+    if (index >= 0) {
+        for (int i = index; i < s->stored_count - 1; i++)
+            s->stored[i] = s->stored[i + 1];
+        s->stored_count--;
+    }
+    return 0;
+}
+
+/* C7: bounded local presentation only, never an IRC command or notification. */
+static int script_show(lua_State *L) {
+    size_t tn, vn;
+    const char *title = luaL_checklstring(L, 1, &tn);
+    const char *body = luaL_checklstring(L, 2, &vn);
+    if (tn == 0 || tn > 96 || vn == 0 || vn > 512 ||
+            memchr(title, '\r', tn) || memchr(title, '\n', tn))
+        return luaL_error(L, "tiarca.show: invalid title or body");
+    add_action(L, "show", title, tn, body, vn);
+    return 0;
+}
+
+static int script_show_list(lua_State *L) {
+    size_t tn;
+    const char *title = luaL_checklstring(L, 1, &tn);
+    luaL_checktype(L, 2, LUA_TTABLE);
+    size_t count = lua_rawlen(L, 2);
+    if (tn == 0 || tn > 96 || count == 0 || count > 16 ||
+            memchr(title, '\r', tn) || memchr(title, '\n', tn))
+        return luaL_error(L, "tiarca.show_list: invalid title or count");
+    char output[513];
+    size_t used = 0;
+    for (size_t i = 1; i <= count; i++) {
+        lua_rawgeti(L, 2, (lua_Integer)i);
+        size_t n;
+        const char *item = luaL_checklstring(L, -1, &n);
+        if (n == 0 || n > 160 || used + n + (i > 1) > 512 ||
+                memchr(item, '\0', n) || memchr(item, '\r', n) ||
+                memchr(item, '\n', n))
+            return luaL_error(L, "tiarca.show_list: invalid item");
+        if (i > 1) output[used++] = '\n';
+        memcpy(output + used, item, n);
+        used += n;
+        lua_pop(L, 1);
+    }
+    add_action(L, "list", title, tn, output, used);
+    return 0;
+}
+
 static void install_libraries(lua_State *L) {
     const struct { const char *name; lua_CFunction fn; } permitted[] = {
         {LUA_GNAME, luaopen_base}, {LUA_TABLIBNAME, luaopen_table},
@@ -320,6 +448,18 @@ static void install_libraries(lua_State *L) {
     lua_setfield(L, -2, "tban");
     lua_pushcfunction(L, script_mode);
     lua_setfield(L, -2, "mode");
+    lua_pushcfunction(L, script_show);
+    lua_setfield(L, -2, "show");
+    lua_pushcfunction(L, script_show_list);
+    lua_setfield(L, -2, "show_list");
+    lua_newtable(L);
+    lua_pushcfunction(L, script_storage_get);
+    lua_setfield(L, -2, "get");
+    lua_pushcfunction(L, script_storage_set);
+    lua_setfield(L, -2, "set");
+    lua_pushcfunction(L, script_storage_delete);
+    lua_setfield(L, -2, "delete");
+    lua_setfield(L, -2, "storage");
     lua_setglobal(L, "tiarca");
 }
 
@@ -448,7 +588,7 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatch(JNIEnv *env, jclass unused,
         jbyteArray jnick, jbyteArray jtext, jbyteArray jtype, jlong timestamp,
         jobjectArray jchannels, jintArray jcounts, jboolean jtruncated,
         jobjectArray jroster, jboolean jrostertruncated,
-        jboolean jcanreadusers) {
+        jboolean jcanreadusers, jobjectArray jstorage, jboolean jcanstore) {
     (void)unused;
     char server[64], channel[97], nick[97], text[2049], type[32];
     if (!jid || !jevent ||
@@ -517,6 +657,32 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatch(JNIEnv *env, jclass unused,
             if (!entry->nick[0]) return NULL;
             s->user_count++;
         }
+    }
+    if (!jstorage) return NULL;
+    jsize pair_fields = (*env)->GetArrayLength(env, jstorage);
+    if (pair_fields < 0 || pair_fields > MAX_STORAGE * 2 ||
+            (pair_fields % 2) != 0 ||
+            (jcanstore != JNI_TRUE && pair_fields != 0)) return NULL;
+    s->stored_count = 0;
+    s->can_store = jcanstore == JNI_TRUE;
+    size_t stored_bytes = 0;
+    for (jsize i = 0; i < pair_fields; i += 2) {
+        jbyteArray jkey = (jbyteArray)(*env)->GetObjectArrayElement(env, jstorage, i);
+        jbyteArray jvalue = (jbyteArray)(*env)->GetObjectArrayElement(env, jstorage, i + 1);
+        if (!jkey || !jvalue) return NULL;
+        StorageItem *entry = &s->stored[s->stored_count];
+        jsize key_bytes = (*env)->GetArrayLength(env, jkey);
+        jsize value_bytes = (*env)->GetArrayLength(env, jvalue);
+        int valid = copy_java_bytes(env, jkey, entry->key, sizeof(entry->key)) &&
+                    copy_java_bytes(env, jvalue, entry->value, sizeof(entry->value)) &&
+                    valid_storage_key(entry->key, (size_t)key_bytes) &&
+                    value_bytes > 0 && value_bytes <= 384;
+        (*env)->DeleteLocalRef(env, jkey);
+        (*env)->DeleteLocalRef(env, jvalue);
+        if (!valid || storage_index(s, entry->key) >= 0) return NULL;
+        stored_bytes += (size_t)key_bytes + (size_t)value_bytes;
+        if (stored_bytes > MAX_STORAGE_BYTES) return NULL;
+        s->stored_count++;
     }
     lua_State *L = s->L;
     s->steps = 0;

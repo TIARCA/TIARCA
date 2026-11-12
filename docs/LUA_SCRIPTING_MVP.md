@@ -229,3 +229,67 @@ or PVT, empty/unknown hostmask, backup/restore revocation and device
 crash isolation. Never enable moderation for untrusted scripts.
 
 Additional C5 actions (only if separately approved, while operator and with an observed host): `tiarca.mute(channel, nick)` uses the existing network dialect's advertised acting-quiet extban (`m:` on known InspIRCd syntax, `~quiet:` on known UnrealIRCd syntax), and `tiarca.tban(channel, nick, "3h")` uses only the dialect's verified timed ban construction, restricted to 1–99 units of `m`, `h`, or `d`. Unsupported dialects reject the request without emitting any IRC command. These requests have the same rate limits and current-channel checks as `ban`.
+
+
+## C6 — per-script persistent text storage (experimental)
+
+The user must separately approve **Persistent script data** on the chosen
+network when enabling each source. Permission is off on import, re-enable,
+backup restore and Android device transfer. The script never receives
+filesystem access, Java objects or a database connection.
+
+Inside an event callback, use:
+
+\`\`\`lua
+local before = tiarca.storage.get("counter")  -- string or nil
+tiarca.storage.set("counter", tostring(tonumber(before or "0") + 1))
+tiarca.storage.delete("counter")
+\`\`\`
+
+Keys: 1–48 ASCII letters/digits/underscore/dot/hyphen, never a path.
+Values: UTF-8 strings of 1–384 bytes. Up to 16 keys and 4096 bytes
+of key/value data per script. The main process stores each script's
+data in a private atomic JSON file. Lua receives only a checked,
+bounded copy with each event; setting or deleting emits a main-process
+action. Read-after-write in one callback is supported, while
+subsequent callbacks may briefly observe an earlier snapshot if IPC
+events overlap. The data survives app restarts and script reloads;
+deleting a script or removing all scripts removes its state.
+
+Manual ZIP backups include bounded state files; source scripts and state
+are restored, but every script is **disabled with all consent revoked**.
+Old backups without state remain compatible. Android Auto Backup
+may transfer state files, but the no-backup approval marker revokes
+execution permissions on a new device.
+
+## C7 — local output and selectable lists (experimental)
+
+Within an event callback:
+
+\`\`\`lua
+tiarca.show("Result", "3 users found")
+tiarca.show_list("Matching nicks", {"Alice", "Bob", "Charlie"})
+\`\`\`
+
+\`show\` accepts a nonempty title (up to 96 UTF-8 bytes) and text
+(1–512 UTF-8 bytes); \`show_list\` accepts 1–16 plain-text
+items, max 160 bytes each, with total serialized content capped at 512 bytes.
+The app keeps **only the most recent result per script in memory**.
+In **Settings → Lua scripts → View script result**, a message opens in
+an Android dialog and a list opens as selectable rows. Tapping one row
+copies the exact text to the clipboard. A \`/lua\` command's show/list
+result also creates a **local-only notice on the server tab**; it is never
+sent to IRC and must not be mistaken for a remote message. It does not
+inject results into a channel or PVT transcript in this milestone.
+Lua cannot open arbitrary activities, load web pages or define raw
+Android widgets. Limits and isolation from earlier phases still apply.
+
+A sample for manual import is included in
+[Persistent storage and UI results](lua-examples/persistent_results.lua).
+Test \`/lua c6 set\`, \`/lua c6 read\`, \`/lua c7 list\` and \`/lua c6 clear\`.
+Repeat \`/lua c6 read\` after terminating/restarting TIARCA, then
+test backup/restore and explicitly reapprove storage before running scripts.
+
+**On-device verification is required** for persisted writes, quota failure,
+backup and transfer consent, light/dark appearance, clipboard handling,
+foreground/background transitions and absence of unwanted IRC output.

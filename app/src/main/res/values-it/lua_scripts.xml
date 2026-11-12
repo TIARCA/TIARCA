@@ -31,4 +31,9 @@
     <string name="lua_scripts_moderation_permission">Consenti anche comandi da operatore (kick, ban, mute, ban temporaneo, op e voice) su questa rete. Attenzione: uno script automatico può espellere utenti o modificare i privilegi.</string>
     <string name="lua_scripts_users_enabled">Permesso: membri e identità dei canali</string>
     <string name="lua_scripts_moderation_enabled">Permesso: moderazione attiva</string>
+    <string name="lua_scripts_storage_permission">Consenti dati persistenti limitati (16 chiavi, 4 KiB), conservati nei backup. Gli script non accedono al filesystem.</string>
+    <string name="lua_scripts_storage_enabled">Permesso: dati persistenti dello script</string>
+    <string name="lua_scripts_view_output">Visualizza risultato script</string>
+    <string name="lua_scripts_copy_label">Risultato script Lua</string>
+    <string name="lua_scripts_copied">Elemento copiato</string>
 </resources>
