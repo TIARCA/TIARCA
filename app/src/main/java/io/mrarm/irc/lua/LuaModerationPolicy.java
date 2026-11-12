@@ -1,6 +1,7 @@
 package io.mrarm.irc.lua;
 
 import java.nio.charset.StandardCharsets;
+import io.mrarm.chatlib.irc.IRCCaseMapping;
 
 /**
  * Pure-Java validation: Lua only requests named operator actions, never raw
@@ -70,6 +71,19 @@ final class LuaModerationPolicy {
                 return false;
         }
         return true;
+    }
+
+    static boolean isSelf(IRCCaseMapping mapping, String targetNick, String ownNick) {
+        if (targetNick == null || ownNick == null) return false;
+        return (mapping == null ? IRCCaseMapping.RFC1459 : mapping)
+                .equals(targetNick, ownNick);
+    }
+
+    /** All live gates must still be satisfied at execution, not at callback time. */
+    static boolean liveTargetAllowed(boolean connected, boolean operator,
+                                     boolean targetPresent, boolean self,
+                                     String nick) {
+        return connected && operator && targetPresent && !self && validNick(nick);
     }
 
     static boolean permittedMode(String mode) {

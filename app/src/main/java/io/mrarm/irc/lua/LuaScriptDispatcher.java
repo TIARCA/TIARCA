@@ -555,9 +555,6 @@ public final class LuaScriptDispatcher {
                 return;
             }
 
-            // Never act without confirmed operator status in the requested channel.
-            if (!ChannelOperatorUtils.hasOperatorPrivileges(connection, channel, false))
-                return;
             if (now - lastScriptModeration.getOrDefault(script.id, -MOD_INTERVAL_MS)
                     < MOD_INTERVAL_MS ||
                     now - lastServerModeration.getOrDefault(request.server, -SERVER_INTERVAL_MS)
@@ -575,10 +572,14 @@ public final class LuaScriptDispatcher {
             } else if ("ban".equals(kind) || "mute".equals(kind)) {
                 nick = value;
             } else return;
-            if (!LuaModerationPolicy.validNick(nick) ||
-                    nick.equalsIgnoreCase(connection.getUserNick()) ||
-                    !ChannelOperatorUtils.isNickPresent(connection, channel, nick))
-                return;
+            if (!LuaModerationPolicy.liveTargetAllowed(
+                    connection.isConnected(),
+                    ChannelOperatorUtils.hasOperatorPrivileges(connection, channel, false),
+                    ChannelOperatorUtils.isNickPresent(connection, channel, nick),
+                    LuaModerationPolicy.isSelf(
+                            api.getServerConnectionData().getSupportList().getCaseMapping(),
+                            nick, connection.getUserNick()),
+                    nick)) return;
             if ("kick".equals(kind)) {
                 if (!LuaModerationPolicy.validReason(reason)) return;
                 api.sendCommand("KICK", true, new String[]{channel, nick, reason},

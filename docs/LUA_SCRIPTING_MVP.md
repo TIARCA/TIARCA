@@ -337,6 +337,15 @@ upgrade phase. Work remains on the stacked experimental branches PR #258
 
 ### Phase D implementation notes
 
+- The live operator check uses the server's advertised PREFIX-to-mode
+  mapping (no assumption that an '@' glyph always means operator), and
+  nickname membership/self-protection uses ISUPPORT CASEMAPPING (RFC1459,
+  strict RFC1459, or ASCII). This prevents unsafe operator actions where
+  nicknames such as `Operator[` and `Operator{` denote the same user.
+- Regression tests check lost operator status, disconnected sessions,
+  absent targets, invalid IRC tokens, and network-specific policy scope.
+
+
 - Filenames imported from Android SAF and read from ZIP metadata are now
   validated consistently; control characters, Unicode line separators and
   path separators cannot be inserted into Lua's local server-tab notices.

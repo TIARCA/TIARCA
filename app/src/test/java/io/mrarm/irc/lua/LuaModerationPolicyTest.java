@@ -1,6 +1,7 @@
 package io.mrarm.irc.lua;
 
 import org.junit.Test;
+import io.mrarm.chatlib.irc.IRCCaseMapping;
 import static org.junit.Assert.*;
 
 public class LuaModerationPolicyTest {
@@ -50,6 +51,36 @@ public class LuaModerationPolicyTest {
         assertFalse(LuaModerationPolicy.permittedMode("+q"));
         assertTrue(LuaModerationPolicy.permittedMode("+o"));
         assertTrue(LuaModerationPolicy.permittedMode("-v"));
+    }
+
+    @Test public void ircCaseMappingPreventsSelfModerationUnderRfc1459() {
+        assertTrue(LuaModerationPolicy.isSelf(IRCCaseMapping.RFC1459,
+                "Operator{", "Operator["));
+        assertTrue(LuaModerationPolicy.isSelf(IRCCaseMapping.RFC1459,
+                "Operator|", "Operator\\"));
+        assertTrue(LuaModerationPolicy.isSelf(IRCCaseMapping.RFC1459,
+                "Operator~", "Operator^"));
+        assertFalse(LuaModerationPolicy.isSelf(IRCCaseMapping.STRICT_RFC1459,
+                "Operator~", "Operator^"));
+        assertFalse(LuaModerationPolicy.isSelf(IRCCaseMapping.ASCII,
+                "Operator{", "Operator["));
+        assertTrue(LuaModerationPolicy.isSelf(IRCCaseMapping.ASCII,
+                "operator", "OPERATOR"));
+    }
+
+    @Test public void liveModerationGateRejectsLostOperatorOrTarget() {
+        assertTrue(LuaModerationPolicy.liveTargetAllowed(
+                true, true, true, false, "OtherNick"));
+        assertFalse(LuaModerationPolicy.liveTargetAllowed(
+                false, true, true, false, "OtherNick"));
+        assertFalse(LuaModerationPolicy.liveTargetAllowed(
+                true, false, true, false, "OtherNick"));
+        assertFalse(LuaModerationPolicy.liveTargetAllowed(
+                true, true, false, false, "OtherNick"));
+        assertFalse(LuaModerationPolicy.liveTargetAllowed(
+                true, true, true, true, "OtherNick"));
+        assertFalse(LuaModerationPolicy.liveTargetAllowed(
+                true, true, true, false, "OtherNick\\r\\nMODE"));
     }
 
     @Test public void revokedPermissionDisablesExistingScriptActions() {
