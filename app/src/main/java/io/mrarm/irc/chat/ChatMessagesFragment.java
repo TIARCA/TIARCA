@@ -51,6 +51,7 @@ import io.mrarm.irc.NotificationManager;
 import io.mrarm.irc.R;
 import io.mrarm.irc.ServerConnectionInfo;
 import io.mrarm.irc.ServerConnectionManager;
+import io.mrarm.irc.lua.MaskFinderStatusMessageInfo;
 import io.mrarm.irc.config.ChatSettings;
 import io.mrarm.irc.config.MessageFormatSettings;
 import io.mrarm.irc.config.UiSettingChangeCallback;
@@ -780,8 +781,19 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
             } else {
                 mStatusAdapter.notifyItemInserted(mStatusMessages.size() - 1);
             }
-            if (mRecyclerView != null)
+            if (statusMessageInfo instanceof MaskFinderStatusMessageInfo) {
+                MaskFinderStatusMessageInfo maskRow =
+                        (MaskFinderStatusMessageInfo) statusMessageInfo;
+                // A 50-line batch is taller than the viewport. Start on its
+                // first user; do not immediately jump to the following prompt.
+                if (maskRow.kind == MaskFinderStatusMessageInfo.Kind.BATCH)
+                    mLayoutManager.scrollToPositionWithOffset(
+                            mStatusMessages.size() - 1, 0);
+                else if (maskRow.kind != MaskFinderStatusMessageInfo.Kind.CONTINUE)
+                    scrollToBottom();
+            } else {
                 scrollToBottom();
+            }
         });
     }
 
