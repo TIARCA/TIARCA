@@ -21,8 +21,16 @@ public final class HostLuaRuntimeTest {
 
     private static String[] event(String id, String event, String channel,
                                    String nick, String message) {
+        return eventWithChannels(id, event, channel, nick, message,
+                new byte[0][], new int[0], false);
+    }
+
+    private static String[] eventWithChannels(String id, String event, String channel,
+            String nick, String message, byte[][] channelNames, int[] memberCounts,
+            boolean truncated) {
         byte[][] data = NativeLuaRuntime.dispatch(id, event, bytes("test-server"),
-                bytes(channel), bytes(nick), bytes(message), bytes("normal"), 1794400000L);
+                bytes(channel), bytes(nick), bytes(message), bytes("normal"), 1794400000L,
+                channelNames, memberCounts, truncated);
         check(data != null, "Expected script response");
         String[] values = new String[data.length];
         for (int i = 0; i < data.length; i++) values[i] = decode(data[i]);
@@ -69,6 +77,27 @@ public final class HostLuaRuntimeTest {
         check(notInvoked.length == 1 && "OK".equals(notInvoked[0]),
                 "Incoming chat text must not be treated as a local command");
 
+        String channelsScript = "tiarca.on('command', function(e) "
+                + "local channels = tiarca.get_channels() "
+                + "if #channels == 0 then "
+                + "tiarca.log('empty:' .. tostring(channels.truncated)) "
+                + "else tiarca.log(#channels .. ':' .. channels[1].name .. ':' "
+                + ".. channels[1].users .. ':' .. tostring(channels.truncated)) end end)";
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes(channelsScript)))),
+                "Channel snapshot callback should register");
+        String[] withChannels = eventWithChannels(OTHER, "command", "#example", "myNick",
+                "channels", new byte[][]{bytes("#alpha"), bytes("#beta")},
+                new int[]{4, 8}, true);
+        check(withChannels.length == 4 && "OK".equals(withChannels[0]) &&
+                        "2:#alpha:4:true".equals(withChannels[3]),
+                "Bounded channel snapshot should reach the native Lua callback");
+        String[] emptyChannels = event(OTHER, "command", "#example", "myNick", "channels");
+        check(emptyChannels.length == 4 && "empty:false".equals(emptyChannels[3]),
+                "An empty event must not leak a previous channel snapshot");
+        check(decode(NativeLuaRuntime.load(OTHER,
+                        bytes("tiarca.get_channels()"))).contains("outside event"),
+                "Channel data must not be accessible during script initialization");
+
         String noLibs = "tiarca.on('message', function(e) "
                 + "tiarca.log(type(io)..':'..type(os)..':'..type(package)..':'"
                 + "..type(debug)..':'..type(require)) end)";
@@ -96,9 +125,10 @@ public final class HostLuaRuntimeTest {
 
         NativeLuaRuntime.unload(ID);
         check(NativeLuaRuntime.dispatch(ID, "message", bytes("test-server"),
-                bytes("#x"), bytes("a"), bytes("b"), bytes("normal"), 0L) == null,
+                bytes("#x"), bytes("a"), bytes("b"), bytes("normal"), 0L,
+                new byte[0][], new int[0], false) == null,
                 "Unloaded script must disappear");
         NativeLuaRuntime.clear();
-        System.out.println("Native Lua script JNI: command and sandbox acceptance passed.");
+        System.out.println("Native Lua script JNI: commands, channel snapshots and sandbox acceptance passed.");
     }
 }
