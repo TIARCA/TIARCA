@@ -266,7 +266,6 @@ public final class LuaDiagnosticService extends Service {
                         }
                     }
                 }
-            }
         } catch (RuntimeException error) {
             status = "ERROR: Lua runtime exception";
         }
