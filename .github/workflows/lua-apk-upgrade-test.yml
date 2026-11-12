@@ -1,0 +1,150 @@
+name: Lua APK upgrade (experimental)
+
+on:
+  push:
+    branches:
+      - feature/lua-multiserver-upgrade-state-20261112
+    paths:
+      - '.github/workflows/lua-apk-upgrade-test.yml'
+      - 'app/src/androidTest/java/io/mrarm/irc/lua/LuaInstalledUpgradeInstrumentedTest.java'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  in-place-update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Checkout older Lua-enabled APK baseline
+        uses: actions/checkout@v5
+        with:
+          ref: 614ca06ba369595dfa3dcc5cb8d142f01b40352f
+          path: previous
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+
+      - name: Install SHA-256 verified Gradle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash tools/install_pinned_gradle.sh
+
+      - name: Build old and new debug APKs using the same debug signing key
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle -p previous :app:assembleStandardDebug
+          gradle :app:assembleStandardDebug :app:assembleStandardDebugAndroidTest
+
+      - name: Create realistic Lua app-private state from an earlier Candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, pathlib
+          fixture = pathlib.Path('build/lua-upgrade-fixture')
+          fixture.mkdir(parents=True, exist_ok=True)
+          network = '2598f719-dfb6-4bad-a69c-ff78cecb9315'
+          scripts = []
+          for sid, name, source, enabled in [
+              ('31f369c3-a99f-4ce1-bd2c-5b5d984b24ab',
+               'active.lua', "tiarca.on('message', function(e) end)", True),
+              ('32f369c3-a99f-4ce1-bd2c-5b5d984b24ab',
+               'inactive.lua', "tiarca.on('command', function(e) end)", False),
+          ]:
+              raw = source.encode('utf-8')
+              (fixture / (sid + '.lua')).write_bytes(raw)
+              scripts.append(dict(id=sid, name=name,
+                                  sha256=hashlib.sha256(raw).hexdigest(),
+                                  server=network if enabled else '',
+                                  enabled=enabled, send=False, users=False,
+                                  moderation=False, storage=enabled, error=''))
+          (fixture / 'index.json').write_text(
+              json.dumps(scripts, separators=(',', ':')), encoding='utf-8')
+          (fixture / '31f369c3-a99f-4ce1-bd2c-5b5d984b24ab.state.json'
+          ).write_text('{"counter":"42"}', encoding='utf-8')
+          PY
+
+      - name: Start an Android 15 emulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo chmod 666 /dev/kvm
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            --install "platforms;android-35" \
+            "system-images;android-35;google_apis;x86_64" "emulator" "platform-tools" || true
+          echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd \
+            --force -n tiarca-lua-update -k "system-images;android-35;google_apis;x86_64"
+          nohup "$ANDROID_HOME/emulator/emulator" -avd tiarca-lua-update \
+            -no-window -no-audio -no-snapshot -no-boot-anim \
+            -gpu swiftshader_indirect > /tmp/tiarca-emulator.log 2>&1 &
+          adb wait-for-device
+          for i in $(seq 1 120); do
+            if [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1" ]; then
+              break
+            fi
+            sleep 3
+          done
+          test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1"
+          adb shell input keyevent 82
+
+      - name: Install older APK, seed active and disabled scripts, keep app open
+        shell: bash
+        run: |
+          set -euo pipefail
+          pkg=io.tiarca.irc
+          old=previous/app/build/outputs/apk/standard/debug/app-standard-debug.apk
+          new=app/build/outputs/apk/standard/debug/app-standard-debug.apk
+          test -f "$old" && test -f "$new"
+          adb install -r "$old"
+          adb shell run-as "$pkg" mkdir -p files/lua_scripts no_backup
+          for file in build/lua-upgrade-fixture/*; do
+            name=$(basename "$file")
+            cat "$file" | adb shell run-as "$pkg" sh -c "cat > files/lua_scripts/$name"
+          done
+          adb shell run-as "$pkg" sh -c "touch no_backup/lua_approvals_v1"
+          adb shell monkey -p "$pkg" -c android.intent.category.LAUNCHER 1
+          sleep 4
+          adb shell pidof "$pkg" | tee /tmp/lua-previous-pid.txt
+          test -s /tmp/lua-previous-pid.txt
+
+          # Same package and signing cert, no uninstall and no clearing data.
+          adb install -r "$new"
+          adb shell run-as "$pkg" cat files/lua_scripts/index.json > /tmp/lua-index-after.json
+          adb shell run-as "$pkg" cat files/lua_scripts/31f369c3-a99f-4ce1-bd2c-5b5d984b24ab.state.json > /tmp/lua-state-after.json
+          grep -q '"enabled":true' /tmp/lua-index-after.json
+          grep -q '"enabled":false' /tmp/lua-index-after.json
+          grep -q '"counter":"42"' /tmp/lua-state-after.json
+
+      - name: Verify persisted state with updated app code on emulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk=$(find app/build/outputs/apk/androidTest -type f -name '*.apk' -print -quit)
+          test -n "$apk"
+          adb install -r "$apk"
+          adb shell am instrument -w \
+            -e class io.mrarm.irc.lua.LuaInstalledUpgradeInstrumentedTest \
+            io.tiarca.irc.test/androidx.test.runner.AndroidJUnitRunner \
+            | tee /tmp/lua-upgrade-instrumentation.txt
+          grep -q 'OK (1 test)' /tmp/lua-upgrade-instrumentation.txt
+
+      - name: Upload emulator diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: lua-apk-upgrade-emulator-diagnostics
+          path: |
+            /tmp/tiarca-emulator.log
+            /tmp/lua-upgrade-instrumentation.txt
+          retention-days: 5
