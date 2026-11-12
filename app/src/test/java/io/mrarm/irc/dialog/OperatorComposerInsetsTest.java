@@ -11,8 +11,8 @@ import static org.junit.Assert.*;
 /** Source-level guard; keyboard placement still requires Candidate device checks. */
 public class OperatorComposerInsetsTest {
     @Test public void dialogUsesImeAndSystemBarInsetsInsteadOfDeprecatedResize() throws Exception {
-        String source = Files.readString(Path.of(
-                "src/main/java/io/mrarm/irc/dialog/OperatorActionsComposerDialog.java"),
+        String source = new String(Files.readAllBytes(Path.of(
+                "src/main/java/io/mrarm/irc/dialog/OperatorActionsComposerDialog.java")),
                 StandardCharsets.UTF_8);
         assertTrue(source.contains("WindowCompat.setDecorFitsSystemWindows(window, false)"));
         assertTrue(source.contains("ViewCompat.setOnApplyWindowInsetsListener(root,"));
