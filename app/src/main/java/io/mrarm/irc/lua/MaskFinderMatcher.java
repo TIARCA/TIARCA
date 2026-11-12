@@ -1,7 +1,6 @@
 package io.mrarm.irc.lua;
 
 import java.util.Locale;
-import java.util.regex.Pattern;
 
 /** Pure, bounded full-mask matching for the explicit /lua mask command. */
 public final class MaskFinderMatcher {
@@ -25,15 +24,28 @@ public final class MaskFinderMatcher {
         boolean full = q.indexOf('!') >= 0 || q.indexOf('@') >= 0;
         if (!full && q.indexOf('*') < 0 && q.indexOf('?') < 0)
             return mask.contains(q);
-        StringBuilder regex = new StringBuilder();
-        if (!full) regex.append(".*");
-        for (int i = 0; i < q.length(); i++) {
-            char c = q.charAt(i);
-            if (c == '*') regex.append(".*");
-            else if (c == '?') regex.append('.');
-            else regex.append(Pattern.quote(String.valueOf(c)));
+        return globMatches(full ? q : "*" + q + "*", mask);
+    }
+
+    /** Linear wildcard matching: no regex backtracking on hostile wide masks. */
+    private static boolean globMatches(String pattern, String value) {
+        int p = 0, v = 0, star = -1, following = 0;
+        while (v < value.length()) {
+            if (p < pattern.length() &&
+                    (pattern.charAt(p) == '?' || pattern.charAt(p) == value.charAt(v))) {
+                p++;
+                v++;
+            } else if (p < pattern.length() && pattern.charAt(p) == '*') {
+                star = p++;
+                following = v;
+            } else if (star >= 0) {
+                p = star + 1;
+                v = ++following;
+            } else {
+                return false;
+            }
         }
-        if (!full) regex.append(".*");
-        return Pattern.compile(regex.toString(), Pattern.DOTALL).matcher(mask).matches();
+        while (p < pattern.length() && pattern.charAt(p) == '*') p++;
+        return p == pattern.length();
     }
 }
