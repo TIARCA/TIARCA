@@ -298,6 +298,56 @@ backup and transfer consent, light/dark appearance, clipboard handling,
 foreground/background transitions and absence of unwanted IRC output.
 
 
+## Experimental Mask Finder (branch: feature/lua-mask-finder-20261112)
+
+Import [mask_finder.lua](lua-examples/mask_finder.lua) through Settings → Lua
+scripts; explicitly enable **Channel members and identities** for the selected
+IRC network. The script needs neither send nor moderation permission.
+
+While viewing a **joined channel**, enter:
+
+```
+/lua mask pippo
+/lua mask *!*@*.example.net
+```
+
+A plain term matches anywhere within the complete `nick!ident@host` without
+case sensitivity. Full IRC-style masks containing `!` or `@` use anchored
+`*` (zero or more characters) and `?` (exactly one) wildcards; a short query
+with wildcards searches anywhere in the full mask.
+
+The command delegates to the host-only `tiarca.maskfind(channel, pattern)`
+action. The host verifies the explicit local command, enabled script, separately
+approved identity scope, same joined channel and matching server before sending
+a single WHO/WHOX. The ordinary C3 128-user snapshot and the network's 512-entry
+identity LRU **are not** the search limit: WHO replies are collected separately
+(up to 16,384 users per request, then marked incomplete rather than silently
+claiming a complete search). The search is read-only; it never sends a message
+to the channel or privately to its users.
+
+Once the server sends numeric **315 (end of WHO)**, the host shows the match
+count in the **Server tab** and writes the first 50 matching
+`nick!ident@host` rows. Nicknames open the standard nickname context menu,
+retaining the original channel as the context. For larger result sets, the
+last row is followed by `Continua? [SI] [NO]`; SI adds the next 50 rows,
+while NO keeps those already displayed and stops. No initial confirmation,
+no paging, and no separate results window. Partial WHO rosters are explicitly
+labelled **RICERCA INCOMPLETA** (including when a server returns fewer
+identities than the locally known member count). Missing completion triggers
+a timeout notice; it is never reported as zero matches.
+
+The search runs only from a user-typed `/lua mask` command, not automatically
+on incoming messages. Only one search per network is kept active at a time.
+The host permits at least 5 seconds between WHO requests to reduce flood risk.
+Result rows and continuation state are ephemeral, not backed up.
+
+**Acceptance not yet verified manually:** real large-channel WHO/WHOX (854+
+users), simultaneous external WHO operations, disconnected/reconnected IRC
+sessions, case mapping of exotic nicknames, UI tap/long-press in light and dark
+themes, Android backgrounding, and device memory/performance. Standard/F-Droid
+CI and reproducibility need to pass on this branch before merge. There is
+no version or release change.
+
 ## Phase D — integration and release-readiness checklist (2026-11-12)
 
 Phase D is **consolidation**, not another Lua API surface or the earlier Gradle/AGP
