@@ -164,13 +164,18 @@ final class LuaScriptStorage {
         zip.addStream(new ByteArrayInputStream(bytes), params);
     }
 
-    synchronized void restore(ZipFile zip, String id) throws IOException {
+    /** Prevalidate all state BEFORE the app clears existing scripts on restore. */
+    synchronized byte[] inspectBackup(ZipFile zip, String id) throws IOException {
         FileHeader header = zip.getFileHeader(PREFIX + id + ".state.json");
-        if (header == null) return; // Compatible with pre-C6 backups.
+        if (header == null) return null; // Compatible with pre-C6 backups.
         final byte[] data;
         try (InputStream in = zip.getInputStream(header)) {
             data = LuaScriptStore.readBounded(in, MAX_FILE_BYTES);
         }
-        write(id, encode(decode(data)));
+        return encode(decode(data));
+    }
+
+    synchronized void restoreValidated(String id, byte[] encoded) throws IOException {
+        if (encoded != null) write(id, encoded);
     }
 }

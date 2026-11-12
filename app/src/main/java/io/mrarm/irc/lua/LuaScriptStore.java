@@ -480,10 +480,12 @@ public final class LuaScriptStore {
     }
 
     public synchronized void clearAll() throws IOException {
+        List<Script> previous = new ArrayList<>(scripts);
         scripts.clear();
         ephemeralLogs.clear();
         ephemeralOutputs.clear();
         save();
+        for (Script script : previous) storage.delete(script.id);
         File[] files = directory.listFiles();
         if (files != null)
             for (File f : files)
@@ -519,6 +521,7 @@ public final class LuaScriptStore {
         }
         List<Script> restored = new ArrayList<>();
         Map<String, byte[]> data = new HashMap<>();
+        Map<String, byte[]> stored = new HashMap<>();
         try (InputStream input = zip.getInputStream(header)) {
             JSONArray manifest = new JSONArray(new String(readBounded(input, 16384),
                     StandardCharsets.UTF_8));
@@ -536,6 +539,7 @@ public final class LuaScriptStore {
                 if (!hash(source).equals(entry.sha256))
                     throw new IOException("Lua backup integrity check failed");
                 data.put(entry.id, source);
+                stored.put(entry.id, storage.inspectBackup(zip, entry.id));
                 restored.add(entry.configured("", false, false, ""));
             }
         } catch (JSONException error) {
@@ -544,7 +548,7 @@ public final class LuaScriptStore {
         clearAll();
         for (Script item : restored) {
             writeSource(item.id, data.get(item.id));
-            storage.restore(zip, item.id);
+            storage.restoreValidated(item.id, stored.get(item.id));
             scripts.add(item);
         }
         save();

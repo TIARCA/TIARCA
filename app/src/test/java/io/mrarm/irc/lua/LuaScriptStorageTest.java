@@ -91,6 +91,7 @@ public class LuaScriptStorageTest {
         JSONArray index = new JSONArray().put(json);
         File file = File.createTempFile("lua-storage-", ".zip", app.getCacheDir());
         File roundTrip = File.createTempFile("lua-roundtrip-", ".zip", app.getCacheDir());
+        File corrupt = File.createTempFile("lua-corrupt-", ".zip", app.getCacheDir());
         try {
             try (ZipFile zip = new ZipFile(file)) {
                 ZipParameters p = new ZipParameters();
@@ -115,6 +116,25 @@ public class LuaScriptStorageTest {
             assertFalse(script.allowModeration);
             assertEquals("", script.serverId);
             assertEquals("17", store.storageSnapshot(ID).get(1));
+            // A malformed state in an archive must not erase valid scripts
+            // before its integrity has been checked.
+            try (ZipFile zip = new ZipFile(corrupt)) {
+                ZipParameters p = new ZipParameters();
+                p.setFileNameInZip("lua_scripts/" + ID + ".lua");
+                zip.addStream(new ByteArrayInputStream(bytes), p);
+                p.setFileNameInZip("lua_scripts/" + ID + ".state.json");
+                zip.addStream(new ByteArrayInputStream(
+                        "{\"bad/key\":\"x\"}".getBytes(StandardCharsets.UTF_8)), p);
+                p.setFileNameInZip("lua_scripts/index.json");
+                zip.addStream(new ByteArrayInputStream(
+                        index.toString().getBytes(StandardCharsets.UTF_8)), p);
+            }
+            try (ZipFile zip = new ZipFile(corrupt)) {
+                store.restoreFromBackup(zip);
+                fail("Invalid storage should reject entire restore");
+            } catch (IOException expected) { }
+            assertNotNull("Existing source must survive a bad backup", store.find(ID));
+            assertEquals("17", store.storageSnapshot(ID).get(1));
 
             try (ZipFile zip = new ZipFile(roundTrip)) {
                 store.exportToBackup(zip, new ZipParameters());
@@ -131,6 +151,7 @@ public class LuaScriptStorageTest {
             store.clearAll();
             file.delete();
             roundTrip.delete();
+            corrupt.delete();
         }
     }
 

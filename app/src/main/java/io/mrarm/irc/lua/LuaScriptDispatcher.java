@@ -469,8 +469,9 @@ public final class LuaScriptDispatcher {
                                 conn.getApiInstance() instanceof ServerConnectionApi) {
                             String localText = "[Lua: " + script.name + "] " +
                                     target + ": " + ("list".equals(kind) ?
-                                    value.replace('\n', ' ').substring(
-                                            0, Math.min(180, value.length())) : value);
+                                    value.replace('\n', ' ').replace('\r', ' ').substring(
+                                            0, Math.min(180, value.length())) :
+                                    value.replace('\n', ' ').replace('\r', ' '));
                             ((ServerConnectionApi) conn.getApiInstance())
                                     .getServerConnectionData().getServerStatusData()
                                     .addMessage(new StatusMessageInfo(null, new Date(),
