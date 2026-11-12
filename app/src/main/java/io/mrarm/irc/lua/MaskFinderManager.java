@@ -225,11 +225,19 @@ public final class MaskFinderManager {
 
     private void appendBatch(Session session, ServerConnectionInfo conn) {
         int end = Math.min(session.cursor + BATCH_SIZE, session.matches.size());
+        ArrayList<String> nicks = new ArrayList<>();
+        ArrayList<String> masks = new ArrayList<>();
         for (int i = session.cursor; i < end; i++) {
             WhoSnapshotCollector.User user = session.matches.get(i);
-            notice(conn, MaskFinderStatusMessageInfo.Kind.USER, session,
-                    user.nick, user.mask());
+            nicks.add(user.nick);
+            masks.add(user.mask());
         }
+        // One multiline local message per 50 matches prevents ordinary
+        // server-status history trimming from discarding hundreds of rows.
+        ((IRCConnection) conn.getApiInstance()).getServerConnectionData()
+                .getServerStatusData().addMessage(
+                        MaskFinderStatusMessageInfo.batch(
+                                session.channel, session.id, nicks, masks));
         session.cursor = end;
         if (end == session.matches.size()) {
             notice(conn, MaskFinderStatusMessageInfo.Kind.INFO, session, null,
