@@ -248,6 +248,37 @@ public final class HostLuaRuntimeTest {
                         (exhausted[0].contains("memory") || exhausted[0].contains("allocation")),
                 "Memory budget must stop script");
 
+        // A network restart loads a new VM identity for that network only.
+        String isolatedCounter = "local n=0;tiarca.on('message',function(e) "
+                + "n=n+1;tiarca.log(tostring(n)) end)";
+        check("OK".equals(decode(NativeLuaRuntime.load(ID, bytes(isolatedCounter)))),
+                "Initial script VM should load");
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes(isolatedCounter)))),
+                "Scoped network VM should load");
+        check("1".equals(event(ID, "message", "#x", "a", "one")[3]),
+                "Original VM counter starts at one");
+        check("1".equals(event(OTHER, "message", "#x", "a", "one")[3]),
+                "Scoped VM independently starts at one");
+        check("2".equals(event(ID, "message", "#x", "a", "two")[3]),
+                "Original VM retains its state");
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes(isolatedCounter)))),
+                "Reinitialize scoped network VM");
+        check("1".equals(event(OTHER, "message", "#x", "a", "again")[3]),
+                "Scoped network state cleared");
+        check("3".equals(event(ID, "message", "#x", "a", "three")[3]),
+                "Other network state remains intact");
+
+        // Import the actual user-facing AutoMod source. Also check size.
+        byte[] automod = Files.readAllBytes(
+                Path.of("docs/lua-examples/automod_antiripetizione.lua"));
+        check(automod.length <= 8192, "AutoMod fits the importer source limit");
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, automod))),
+                "AutoMod loads into official Lua native sandbox");
+        String[] help = event(OTHER, "command", "#room", "me", "mod help");
+        check(help.length == 4 && "show".equals(help[1]) &&
+                        help[3].contains("/lua restart"),
+                "AutoMod help explains runtime restart");
+
         NativeLuaRuntime.unload(ID);
         check(NativeLuaRuntime.dispatch(ID, "message", bytes("test-server"),
                 bytes("#x"), bytes("a"), bytes("b"), bytes("normal"), 0L,

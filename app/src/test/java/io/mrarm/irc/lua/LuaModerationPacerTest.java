@@ -47,6 +47,15 @@ public class LuaModerationPacerTest {
         assertEquals(1300L, second.delayMs);
     }
 
+    @Test public void pendingCountReportsOnlyThatNetwork() {
+        LuaModerationPacer p = new LuaModerationPacer();
+        LuaModerationPacer.Slot one = p.reserve("A", "automod", 1000L);
+        assertEquals(1, p.pendingCount("A"));
+        assertEquals(0, p.pendingCount("B"));
+        p.complete(one);
+        assertEquals(0, p.pendingCount("A"));
+    }
+
     @Test public void delayedExecutionExpiresInsteadOfPunishingLate() {
         LuaModerationPacer p = new LuaModerationPacer();
         LuaModerationPacer.Slot slot = p.reserve("A", "script", 100L);
