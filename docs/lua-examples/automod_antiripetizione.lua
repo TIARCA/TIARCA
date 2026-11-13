@@ -119,7 +119,7 @@ local function soggetto(e,c)
          (p:find("@",1,true) and c.categorie.op) or
          (p:find("&",1,true) and c.categorie.admin) or
          (p:find("~",1,true) and c.categorie.owner) then return false end
-      return true,false,account
+      return true,p~="",account
     end
   end
   return false
@@ -140,7 +140,7 @@ local function azione(e,c,livello,override,account)
     elseif c.avviso=="notice" then tiarca.notice(e.nick,text)
     else tiarca.send(e.channel,e.nick..": "..text) end
   elseif override then
-    tiarca.blacklist_action(e.channel,e.nick,account,scelta,c.durata)
+    tiarca.override_action(e.channel,e.nick,account,scelta,c.durata)
   elseif scelta=="kick" then tiarca.kick(e.channel,e.nick,"non ripetere")
   elseif scelta=="ban" then tiarca.ban(e.channel,e.nick)
   elseif scelta=="mute" then tiarca.mute(e.channel,e.nick)
