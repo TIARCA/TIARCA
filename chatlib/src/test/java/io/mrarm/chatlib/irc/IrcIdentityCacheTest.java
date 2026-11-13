@@ -36,6 +36,35 @@ public class IrcIdentityCacheTest {
         handler.handleLine(":irc.example 315 me #room :End of WHO");
     }
 
+    @Test public void ircv3AccountEvidenceAndExplicitLogout() throws Exception {
+        ServerConnectionData data = new ServerConnectionData();
+        assertNotNull(data.getCapabilityManager().getCapability(
+                io.mrarm.chatlib.irc.cap.AccountTagCapability.class));
+        assertNotNull(data.getCapabilityManager().getCapability(
+                io.mrarm.chatlib.irc.cap.ExtendedJoinCapability.class));
+        assertNotNull(data.getCapabilityManager().getCapability(
+                io.mrarm.chatlib.irc.cap.AccountNotifyCapability.class));
+        data.setUserInfoApi(new io.mrarm.chatlib.user.SimpleUserInfoApi());
+        data.setMessageStorageApi(new io.mrarm.chatlib.message.SimpleMessageStorageApi());
+        data.onChannelJoined("#room");
+        MessageHandler handler = new MessageHandler(data);
+        handler.handleLine("@account=registered :Alice!ident@host PRIVMSG #room :hello");
+        assertEquals("registered", data.getIdentityCache().get("Alice").account);
+        handler.handleLine("@account=* :Alice!ident@host PRIVMSG #room :bye");
+        assertTrue(data.getIdentityCache().get("Alice").accountKnown);
+        assertNull(data.getIdentityCache().get("Alice").account);
+        handler.handleLine(":Bob!ident@host JOIN #room accountBob :Real Name");
+        assertEquals("accountBob", data.getIdentityCache().get("Bob").account);
+        new io.mrarm.chatlib.irc.cap.AccountNotifyCapability().handle(data,
+                new MessagePrefix("Bob!ident@host"), "ACCOUNT",
+                Arrays.asList("*"), java.util.Collections.emptyMap());
+        assertTrue(data.getIdentityCache().get("Bob").accountKnown);
+        assertNull(data.getIdentityCache().get("Bob").account);
+        handler.handleLine(":Unknown!ident@host PRIVMSG #room :hello");
+        assertFalse("Unknown account must never imply logged-out",
+                data.getIdentityCache().get("Unknown").accountKnown);
+    }
+
     @Test public void unknownWhoxTokenMustNotPopulateData() {
         IrcIdentityCache cache = new IrcIdentityCache();
         cache.noteNumeric("354", Arrays.asList("me", "042", "ident", "host",
