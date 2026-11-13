@@ -584,7 +584,7 @@ public final class LuaScriptDispatcher {
                                     conn.getApiInstance() instanceof ServerConnectionApi)
                                 users = LuaUserSnapshot.capture(
                                         ((ServerConnectionApi) conn.getApiInstance())
-                                                .getServerConnectionData(), channel);
+                                                .getServerConnectionData(), channel, nick);
                         } catch (RuntimeException ignored) {
                             // A part/disconnect race returns an empty roster.
                         }
