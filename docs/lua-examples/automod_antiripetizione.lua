@@ -1,21 +1,102 @@
 -- TIARCA AutoMod: /lua mod help
--- Lists and settings are private to the current network and live only in RAM.
+-- Network settings persist with opt-in TIARCA storage; recent message history remains volatile.
 local MAX_UTENTI, MAX_MESSAGGI = 1000, 2400
 local MAX_TESTO, MAX_PAROLE = 160, 32
 local LIMIT_LISTA = 32
 local config, cronologie = {}, {}
 local utenti, messaggi = 0, 0
 
+local categorie={"registrati","voice","halfop","op","admin","owner"}
+local azioni={monitor=true,avviso=true,kick=true,ban=true,mute=true,
+tban=true,bankick=true,tbankick=true,escalation=true}
+local avvisi={pubblico=true,pvt=true,notice=true}
+local function validAccount(v)
+return v and #v>0 and #v<=64 and v:match("^[%w_.%-]+$") and v~="*" and v~="0"
+end
+local function validChannel(v)
+return v and #v<=64 and v:match("^[#&+!][^,%s:%c]+$")
+end
+local function defaults()
+return {on=true,canali={},whitelist={},blacklist={},
+categorie={registrati=true,voice=true,halfop=true,op=true,admin=true,owner=true},
+soglia=80,ultimi=3,minuti=30,minparole=5,pausa=10,
+durata="10m",azione="monitor",avviso="pubblico"}
+end
+local function ordinati(t)
+local a={}
+for k in pairs(t) do a[#a+1]=k end
+table.sort(a)
+return a
+end
+local function serializza(c)
+local flags=""
+for _,k in ipairs(categorie) do flags=flags..(c.categorie[k] and "1" or "0") end
+local lines={table.concat({"v1",c.on and 1 or 0,c.soglia,c.ultimi,
+c.minuti,c.minparole,c.pausa,c.durata,c.azione,c.avviso,flags},";")}
+for _,entry in ipairs({{"C",c.canali},{"W",c.whitelist},{"B",c.blacklist}}) do
+for _,v in ipairs(ordinati(entry[2])) do lines[#lines+1]=entry[1]..v end
+end
+return table.concat(lines,"\n")
+end
+local function numero(v,lo,hi)
+local n=tonumber(v)
+return n and n==math.floor(n) and n>=lo and n<=hi
+end
+local function deserializza(raw)
+if type(raw)~="string" or #raw>8192 then return nil end
+local rows={}
+for line in (raw.."\n"):gmatch("(.-)\n") do
+if line=="" then return nil end
+rows[#rows+1]=line
+end
+local a,b,d,f,g,h,i,j,k,l=rows[1]:match(
+"^v1;([01]);(%d+);(%d+);(%d+);(%d+);(%d+);([1-9]%d?[mhd]);([%a]+);([%a]+);([01]+)$")
+if not a or #l~=6 or not numero(b,60,100) or not numero(d,1,10)
+or not numero(f,1,120) or not numero(g,3,15)
+or not numero(h,0,120) or not azioni[j] or not avvisi[k] then return nil end
+local c=defaults()
+c.on=a=="1";c.soglia=tonumber(b);c.ultimi=tonumber(d)
+c.minuti=tonumber(f);c.minparole=tonumber(g);c.pausa=tonumber(h)
+c.durata=i;c.azione=j;c.avviso=k
+for index,name in ipairs(categorie) do c.categorie[name]=l:sub(index,index)=="1" end
+for index=2,#rows do
+local row=rows[index]
+local tag,v=row:sub(1,1),row:sub(2)
+local group,limit,valid
+if tag=="C" then group,limit,valid=c.canali,16,validChannel
+elseif tag=="W" then group,limit,valid=c.whitelist,32,validAccount
+elseif tag=="B" then group,limit,valid=c.blacklist,32,validAccount
+else return nil end
+if not valid(v) or v~=v:lower() or group[v] then return nil end
+group[v]=true
+local n=0
+for _ in pairs(group) do n=n+1 end
+if n>limit then return nil end
+end
+return c
+end
 local function impostazioni(server)
-  if not config[server] then
-    config[server] = {
-      on=true, canali={}, whitelist={}, blacklist={},
-      categorie={registrati=true,voice=true,halfop=true,op=true,admin=true,owner=true},
-      soglia=80, ultimi=3, minuti=30, minparole=5, pausa=10,
-      durata="10m", azione="monitor", avviso="pubblico"
-    }
-  end
-  return config[server]
+if config[server] then return config[server] end
+local ok,raw=pcall(tiarca.storage.get,"automod."..server)
+if not ok then return nil end
+local c=raw and deserializza(raw) or defaults()
+if c then config[server]=c end
+return c
+end
+local function copia(c)
+local out={}
+for k,v in pairs(c) do
+if type(v)=="table" then
+local t={}
+for name,enabled in pairs(v) do t[name]=enabled end
+out[k]=t
+else out[k]=v end
+end
+return out
+end
+local function salva(server,c)
+local value=serializza(c)
+return #value<=8192 and pcall(tiarca.storage.set,"automod."..server,value)
 end
 
 local function chiave(e)
@@ -230,13 +311,6 @@ local function showmap(title,map)
     line=line=="" and item or line.."; "..item
   end
   if line~="" then show(title,line) end
-end
-local function validAccount(value)
-  return value and #value>0 and #value<=64 and
-         value:match("^[%w_.%-]+$") and value~="*" and value~="0"
-end
-local function validChannel(value)
-  return value and #value<=64 and value:match("^[#&+!][^,%s:%c]+$")
 end
 local function editList(map,operation,value)
   if not validAccount(value) then return "Account non valido" end
