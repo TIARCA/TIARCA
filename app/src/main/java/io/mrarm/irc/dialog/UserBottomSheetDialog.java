@@ -44,6 +44,8 @@ import io.mrarm.chatlib.dto.ModeList;
 import io.mrarm.chatlib.NoSuchChannelException;
 import io.mrarm.chatlib.irc.ChannelData;
 import io.mrarm.chatlib.irc.IRCConnection;
+import io.mrarm.chatlib.irc.NumericReplyException;
+import io.mrarm.chatlib.irc.handlers.WhoisCommandHandler;
 import io.mrarm.chatlib.irc.ServerConnectionData;
 import io.mrarm.chatlib.user.UserInfo;
 import io.mrarm.irc.MainActivity;
@@ -79,6 +81,8 @@ public class UserBottomSheetDialog {
     private List<String> mPendingChannelChoices;
     private boolean mAway;
     private boolean mShowOperatorActionsAfterData;
+    private boolean mWhoisRetryAvailable;
+    private int mWhoisRequestSequence;
     private List<Pair<String, String>> mEntries = new ArrayList<>();
 
     private HeaderHelper mHeader;
@@ -102,20 +106,53 @@ public class UserBottomSheetDialog {
     }
 
     public void requestData(String nick, ChatApi connection) {
+        final int requestSequence = ++mWhoisRequestSequence;
+        mWhoisRetryAvailable = false;
+        mEntries.clear();
+        mEntries.add(new Pair<>(mContext.getString(R.string.action_whois),
+                mContext.getString(R.string.whois_lookup_loading)));
+        if (mAdapter != null)
+            mAdapter.notifyDataSetChanged();
         mHost = null;
         mAuthenticatedAccount = null;
         mCountryCode = null;
         mAccount = SimosnapAvatarManager.resolveAccount(mConnection, nick, null);
         setUser(nick, null, null, false);
-        connection.sendWhois(nick, (WhoisInfo info) -> {
-            if (mRecyclerView != null)
-                mRecyclerView.post(() -> setData(info));
-            else
-                setData(info);
-        }, error -> requestWhowas(nick));
+        connection.sendWhois(nick, info ->
+                dispatchWhoisUpdate(requestSequence, () -> setData(info)), error -> {
+            if (error instanceof NumericReplyException &&
+                    ((NumericReplyException) error).getErrorCommandId() == WhoisCommandHandler.ERR_NOSUCHNICK) {
+                dispatchWhoisUpdate(requestSequence, () -> requestWhowas(nick, requestSequence));
+            } else {
+                dispatchWhoisUpdate(requestSequence, this::showWhoisFailed);
+            }
+        });
+    }
+
+    private void dispatchWhoisUpdate(int requestSequence, Runnable update) {
+        Runnable currentUpdate = () -> {
+            if (requestSequence == mWhoisRequestSequence)
+                update.run();
+        };
+        if (mRecyclerView != null)
+            mRecyclerView.post(currentUpdate);
+        else if (mContext instanceof Activity)
+            ((Activity) mContext).runOnUiThread(currentUpdate);
+        else
+            currentUpdate.run();
+    }
+
+    private void showWhoisFailed() {
+        mWhoisRetryAvailable = true;
+        mEntries.clear();
+        mEntries.add(new Pair<>(mContext.getString(R.string.action_whois),
+                mContext.getString(R.string.whois_lookup_failed_retry)));
+        if (mAdapter != null)
+            mAdapter.notifyDataSetChanged();
     }
 
     public void setData(WhoisInfo info) {
+        mWhoisRetryAvailable = false;
         mEntries.clear();
         mHistoricalData = false;
         mHost = info.getHost();
@@ -166,31 +203,32 @@ public class UserBottomSheetDialog {
         showOperatorActionsWhenReady();
     }
 
-    private void requestWhowas(String nick) {
-        if (mConnection == null || !(mConnection.getApiInstance() instanceof IRCConnection))
+    private void requestWhowas(String nick, int requestSequence) {
+        if (mConnection == null || !(mConnection.getApiInstance() instanceof IRCConnection)) {
+            showWhoisFailed();
             return;
+        }
         IRCConnection connection = (IRCConnection) mConnection.getApiInstance();
         WhowasCommandHandler handler = WhowasCommandHandler.getOrInstall(
                 connection.getServerConnectionData());
         handler.request(nick, new WhowasCommandHandler.Callback() {
             @Override public void onResult(List<WhowasCommandHandler.Result> results) {
-                if (results.isEmpty())
+                if (results.isEmpty()) {
+                    dispatchWhoisUpdate(requestSequence, UserBottomSheetDialog.this::showWhoisFailed);
                     return;
+                }
                 WhowasCommandHandler.Result result = results.get(0);
-                if (mRecyclerView != null)
-                    mRecyclerView.post(() -> setHistoricalData(result));
-                else
-                    setHistoricalData(result);
+                dispatchWhoisUpdate(requestSequence, () -> setHistoricalData(result));
             }
             @Override public void onError(String message) {
-                if (mRecyclerView != null)
-                    mRecyclerView.post(() -> Toast.makeText(mContext, message, Toast.LENGTH_LONG).show());
+                dispatchWhoisUpdate(requestSequence, UserBottomSheetDialog.this::showWhoisFailed);
             }
         });
         connection.sendCommandRaw("WHOWAS " + nick, null, null);
     }
 
     private void setHistoricalData(WhowasCommandHandler.Result result) {
+        mWhoisRetryAvailable = false;
         mEntries.clear();
         mHistoricalData = true;
         mHost = result.host;
@@ -834,6 +872,11 @@ public class UserBottomSheetDialog {
                 itemView.setOnLongClickListener((View v) -> {
                     copyValueToClipboard(v.getContext(), mTitle.getText(), mValue.getText());
                     return true;
+                });
+                itemView.setOnClickListener(v -> {
+                    if (mWhoisRetryAvailable && getBindingAdapterPosition() == 0 &&
+                            mNick != null && mConnection != null && mConnection.getApiInstance() != null)
+                        requestData(mNick, mConnection.getApiInstance());
                 });
             }
 

@@ -864,6 +864,8 @@
     <!-- Channel moderation, media sharing and local search -->
     <string name="action_apply">Aplicați</string>
     <string name="action_whois">WHOIS</string>
+    <string name="whois_lookup_loading">Se încarcă informațiile WHOIS…</string>
+    <string name="whois_lookup_failed_retry">WHOIS nu s-a finalizat. Atinge pentru a reîncerca.</string>
 
     <string name="channel_modes_menu">Moduri de canal</string>
     <string name="action_list_channels">Listează canale</string>

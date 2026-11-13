@@ -844,6 +844,8 @@
     <!-- Channel moderation, media sharing and local search -->
     <string name="action_apply">Appliquer</string>
     <string name="action_whois">WHOIS</string>
+    <string name="whois_lookup_loading">Chargement des informations WHOIS…</string>
+    <string name="whois_lookup_failed_retry">WHOIS n’a pas abouti. Touchez pour réessayer.</string>
 
     <string name="channel_modes_menu">Clé</string>
     <string name="action_list_channels">Liste des chaînes</string>

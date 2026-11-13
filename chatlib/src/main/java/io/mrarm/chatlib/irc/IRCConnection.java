@@ -257,6 +257,10 @@ public class IRCConnection extends ServerConnectionApi {
     public Future<WhoisInfo> sendWhois(String nick, ResponseCallback<WhoisInfo> callback, ResponseErrorCallback errorCallback) {
         SettableFuture<WhoisInfo> ret = new SettableFuture<>();
         executor.queue(ret, () -> {
+            // Before numeric 001, a server may reject WHOIS without completing the
+            // normal 311/318 reply. Let the UI offer an immediate retry instead.
+            if (getServerConnectionData().getRegistrationTimeMillis() == 0L)
+                throw new ChatApiException("WHOIS unavailable before server registration");
             if (getServerConnectionData().getCommandHandlerList().getHandler(WhoisCommandHandler.class).onRequested(
                     nick, (WhoisInfo info) -> {
                         executor.queue(() -> {

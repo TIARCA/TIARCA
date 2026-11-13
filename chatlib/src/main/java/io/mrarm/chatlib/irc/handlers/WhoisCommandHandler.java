@@ -6,10 +6,15 @@ import io.mrarm.chatlib.dto.WhoisStatusMessageInfo;
 import io.mrarm.chatlib.irc.*;
 
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 public class WhoisCommandHandler extends RequestResponseCommandHandler<String, WhoisInfo> {
 
@@ -27,19 +32,39 @@ public class WhoisCommandHandler extends RequestResponseCommandHandler<String, W
 
     public static final int ERR_NOSUCHNICK = 401;
 
+    private static final long WHOIS_TIMEOUT_MILLIS = 15000L;
+    private static final ScheduledExecutorService TIMEOUT_EXECUTOR =
+            Executors.newSingleThreadScheduledExecutor(task -> {
+                Thread thread = new Thread(task, "IRC WHOIS timeout");
+                thread.setDaemon(true);
+                return thread;
+            });
+
     public interface OrphanServerReplyListener {
         void onOrphanServerReply(List<String> params);
     }
 
-    private final Map<String, WhoisInfo.Builder> currentReply = new HashMap<>();
+    private final Map<String, WhoisInfo.Builder> currentReply = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, TimeoutRequest> pendingTimeouts = new ConcurrentHashMap<>();
+    private final long timeoutMillis;
     private volatile OrphanServerReplyListener orphanServerReplyListener;
+
+    private static final class TimeoutRequest {
+        volatile ScheduledFuture<?> future;
+    }
 
     public void setOrphanServerReplyListener(OrphanServerReplyListener listener) {
         orphanServerReplyListener = listener;
     }
 
     public WhoisCommandHandler(ErrorCommandHandler handler) {
+        this(handler, WHOIS_TIMEOUT_MILLIS);
+    }
+
+    // Package-private timeout override allows fast, deterministic regression tests.
+    WhoisCommandHandler(ErrorCommandHandler handler, long timeoutMillis) {
         super(handler, true);
+        this.timeoutMillis = timeoutMillis;
     }
 
     @Override
@@ -109,6 +134,7 @@ public class WhoisCommandHandler extends RequestResponseCommandHandler<String, W
         } else if (numeric == RPL_WHOISSECURE) {
             builder.setSecure(true);
         } else if (numeric == RPL_ENDOFWHOIS) {
+            cancelTimeout(nick);
             currentReply.remove(nick);
             WhoisInfo whoisInfo = builder.build();
             // A completed WHOIS is the freshest server-confirmed away state. Clear stale
@@ -125,12 +151,19 @@ public class WhoisCommandHandler extends RequestResponseCommandHandler<String, W
     public boolean onError(int commandId, List<String> params) {
         if (commandId == NickCommandHandler.ERR_NONICKNAMEGIVEN)
             return onError(null, commandId, CommandHandler.getParamOrNull(params, 1), false);
-        return params.size() > 1 && onError(params.get(1).toLowerCase(), commandId,
-                CommandHandler.getParamOrNull(params, 2), false);
+        if (params.size() <= 1)
+            return false;
+        String nick = params.get(1).toLowerCase(Locale.ROOT);
+        boolean handled = onError(nick, commandId, CommandHandler.getParamOrNull(params, 2), false);
+        if (handled)
+            clearRequestState(nick);
+        return handled;
     }
 
     @Override
     public void onDisconnected() {
+        for (String nick : pendingTimeouts.keySet())
+            cancelTimeout(nick);
         super.onDisconnected();
         currentReply.clear();
     }
@@ -138,7 +171,34 @@ public class WhoisCommandHandler extends RequestResponseCommandHandler<String, W
     @Override
     public boolean onRequested(String i, Callback<WhoisInfo> callback,
                                ErrorCallback<String> errorCallback) {
-        return super.onRequested(i.toLowerCase(Locale.ROOT), callback, errorCallback);
+        String nick = i.toLowerCase(Locale.ROOT);
+        boolean shouldSend = super.onRequested(nick, callback, errorCallback);
+        if (shouldSend) {
+            TimeoutRequest timeout = new TimeoutRequest();
+            pendingTimeouts.put(nick, timeout);
+            timeout.future = TIMEOUT_EXECUTOR.schedule(
+                    () -> onWhoisTimeout(nick, timeout), timeoutMillis, TimeUnit.MILLISECONDS);
+        }
+        return shouldSend;
+    }
+
+    private void onWhoisTimeout(String nick, TimeoutRequest timeout) {
+        // A delayed timeout must never cancel a newer WHOIS for the same nickname.
+        if (!pendingTimeouts.remove(nick, timeout))
+            return;
+        currentReply.remove(nick);
+        onError(nick, -1, "WHOIS timed out", true);
+    }
+
+    private void clearRequestState(String nick) {
+        cancelTimeout(nick);
+        currentReply.remove(nick);
+    }
+
+    private void cancelTimeout(String nick) {
+        TimeoutRequest timeout = pendingTimeouts.remove(nick);
+        if (timeout != null && timeout.future != null)
+            timeout.future.cancel(false);
     }
 
     public void onAwayMessage(String nick, String message) {
