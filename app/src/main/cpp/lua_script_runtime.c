@@ -798,7 +798,7 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatch(JNIEnv *env, jclass unused,
         int valid = copy_java_bytes(env, jkey, entry->key, sizeof(entry->key)) &&
                     copy_java_bytes(env, jvalue, entry->value, sizeof(entry->value)) &&
                     valid_storage_key(entry->key, (size_t)key_bytes) &&
-                    value_bytes > 0 && value_bytes <= 384;
+                    value_bytes > 0 && value_bytes <= 8192;
         (*env)->DeleteLocalRef(env, jkey);
         (*env)->DeleteLocalRef(env, jvalue);
         if (!valid || storage_index(s, entry->key) >= 0) return NULL;
