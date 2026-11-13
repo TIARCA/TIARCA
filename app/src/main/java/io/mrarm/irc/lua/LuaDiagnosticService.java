@@ -135,8 +135,26 @@ public final class LuaDiagnosticService extends Service {
         // instruction hooks. Only this isolated process is terminated.
         final int generation = activeCall.incrementAndGet();
         Runnable timeout = () -> {
-            if (activeCall.get() == generation)
+            if (activeCall.get() != generation) return;
+            // A watchdog timeout is not an arbitrary Android process death.
+            // Best-effort return the precise failure before terminating the
+            // isolated worker; a stalled native call cannot be interrupted.
+            Message response = Message.obtain(null, RESPONSE_SCRIPT);
+            Bundle payload = new Bundle();
+            payload.putString(EXTRA_SCRIPT_ID,
+                    message.getData().getString(EXTRA_SCRIPT_ID));
+            payload.putInt(EXTRA_REQUEST_ID,
+                    message.getData().getInt(EXTRA_REQUEST_ID));
+            payload.putString(EXTRA_STATUS, "ERROR: Lua execution exceeded 3-second watchdog");
+            payload.putStringArrayList(EXTRA_ACTIONS, new java.util.ArrayList<>());
+            response.setData(payload);
+            try {
+                message.replyTo.send(response);
+            } catch (RemoteException ignored) {
+                // Client went away; process isolation still applies.
+            } finally {
                 Process.killProcess(Process.myPid());
+            }
         };
         watchdog.postDelayed(timeout, SCRIPT_TIMEOUT_MS);
         try {
