@@ -120,8 +120,9 @@ final class LuaModerationPolicy {
                 account.equals("0") || account.length() > 64) return false;
         for (int i = 0; i < account.length(); i++) {
             char c = account.charAt(i);
-            if (c <= 0x20 || c >= 0x7f || c == ':' || c == ',' ||
-                    c == '\t' || c == '\r' || c == '\n') return false;
+            if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                    (c >= '0' && c <= '9') || c == '_' || c == '.' ||
+                    c == '-')) return false;
         }
         return true;
     }
