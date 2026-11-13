@@ -294,6 +294,38 @@ static int script_tban(lua_State *L) {
 }
 
 /* Atomic kick-then-ban request; host validates all conditions before KICK. */
+/* Blacklist override: Android must independently verify the observed
+ * sender account and all ordinary moderation permissions. */
+static int script_blacklist_action(lua_State *L) {
+    size_t nick_len, account_len, action_len, duration_len;
+    const char *nick = luaL_checklstring(L, 2, &nick_len);
+    const char *account = luaL_checklstring(L, 3, &account_len);
+    const char *action = luaL_checklstring(L, 4, &action_len);
+    const char *duration = luaL_optlstring(L, 5, "10m", &duration_len);
+    if (nick_len == 0 || nick_len > 64 || account_len == 0 ||
+            account_len > 64 || action_len == 0 || action_len > 12 ||
+            duration_len == 0 || duration_len > 4 ||
+            memchr(nick, '\t', nick_len) || memchr(account, '\t', account_len) ||
+            memchr(action, '\t', action_len) ||
+            memchr(duration, '\t', duration_len))
+        return luaL_error(L, "tiarca.blacklist_action: invalid arguments");
+    if (strcmp(action, "kick") && strcmp(action, "ban") &&
+            strcmp(action, "mute") && strcmp(action, "tban") &&
+            strcmp(action, "bankick") && strcmp(action, "tbankick"))
+        return luaL_error(L, "tiarca.blacklist_action: unsupported action");
+    char payload[160];
+    size_t offset = 0;
+    memcpy(payload + offset, nick, nick_len); offset += nick_len;
+    payload[offset++] = '\t';
+    memcpy(payload + offset, account, account_len); offset += account_len;
+    payload[offset++] = '\t';
+    memcpy(payload + offset, action, action_len); offset += action_len;
+    payload[offset++] = '\t';
+    memcpy(payload + offset, duration, duration_len); offset += duration_len;
+    channel_action(L, "blkmod", payload, offset);
+    return 0;
+}
+
 static int script_kickban(lua_State *L) {
     size_t n, rl;
     const char *nick = luaL_checklstring(L, 2, &n);
@@ -523,6 +555,8 @@ static void install_libraries(lua_State *L) {
     lua_setfield(L, -2, "kick");
     lua_pushcfunction(L, script_kickban);
     lua_setfield(L, -2, "kickban");
+    lua_pushcfunction(L, script_blacklist_action);
+    lua_setfield(L, -2, "blacklist_action");
     lua_pushcfunction(L, script_kicktban);
     lua_setfield(L, -2, "kicktban");
     lua_pushcfunction(L, script_ban);
