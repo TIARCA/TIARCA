@@ -49,6 +49,7 @@ for line in (raw.."\n"):gmatch("(.-)\n") do
 if line=="" then return nil end
 rows[#rows+1]=line
 end
+if #rows==0 then return nil end
 local a,b,d,f,g,h,i,j,k,l=rows[1]:match(
 "^v1;([01]);(%d+);(%d+);(%d+);(%d+);(%d+);([1-9]%d?[mhd]);([%a]+);([%a]+);([01]+)$")
 if not a or #l~=6 or not numero(b,60,100) or not numero(d,1,10)
@@ -352,13 +353,15 @@ if topic=="" or topic=="parametri" then
   show("AutoMod: parametri",
     "/lua mod soglia 80; ultimi 3; minuti 30; minparole 5; pausa 10; durata 10m")
   show("AutoMod: sicurezza",
-    "Richiede permessi lettura utenti e moderazione. Identita' account sconosciuta: nessun intervento. /lua restart conserva le impostazioni.")
+    "Consensi: Dati persistenti obbligatori; Lettura utenti; Moderazione. /lua restart conserva tutto, eccetto lo storico.")
 end
 end
 
 tiarca.on("command",function(e)
 local cmd=(e.text or ""):lower():match("^%s*(.-)%s*$")
 if cmd~="mod" and not cmd:match("^mod%s+") then return end
+local key,val=cmd:match("^mod%s+(%S+)%s*(.-)%s*$")
+if cmd=="mod" or key=="help" then help(val or "");return end
 local old=impostazioni(e.server)
 if not old then
   show("AutoMod","Abilita Dati persistenti o verifica lo storage: AutoMod sospeso.")
@@ -366,8 +369,6 @@ if not old then
 end
 local c=copia(old)
 local changed,clear=false,nil
-local key,val=cmd:match("^mod%s+(%S+)%s*(.-)%s*$")
-if cmd=="mod" or key=="help" then help(val or "");return end
 local msg
 if key=="stato" then
   msg=string.format("%s; %s/%s; canali %d; white %d; black %d; %d%%; ultimi %d; minuti %d; parole %d; pausa %ds; durata %s; utenti %d; messaggi %d",
