@@ -444,8 +444,10 @@ public final class HostLuaRuntimeTest {
         String[] voiceUnprotected = eventAs(OTHER, "message", "#room",
                 "VoiceOther", repeat, 1794400129L, "+", "*");
         check(voiceUnprotected.length == 7 &&
-                        "kick".equals(voiceUnprotected[4]),
-                "Voice category toggle changes Lua matching (host still guards kick)");
+                        "blkmod".equals(voiceUnprotected[4]) &&
+                        ("VoiceOther" + (char)9 + "*" + (char)9 +
+                                "kick" + (char)9 + "10m").equals(voiceUnprotected[6]),
+                "Voice category toggle requests verified logged-out override");
 
         NativeLuaRuntime.unload(ID);
         check(NativeLuaRuntime.dispatch(ID, "message", bytes("test-server"),
