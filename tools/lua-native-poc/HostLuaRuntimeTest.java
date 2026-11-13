@@ -380,8 +380,10 @@ public final class HostLuaRuntimeTest {
                 1794400001L).length == 1, "First message not a violation");
         String[] warning = eventAt(OTHER, "message", "#room", "Target", repeat,
                 1794400002L);
-        check(warning.length == 7 && "send".equals(warning[4]),
-                "First repetition yields a warning");
+        check(warning.length == 7 && "send".equals(warning[4]) &&
+                        "#room".equals(warning[5]) &&
+                        "Target: Evita di ripetere messaggi simili.".equals(warning[6]),
+                "Public warning must not identify the AutoMod scripting system");
         String[] kick = eventAt(OTHER, "message", "#room", "Target", repeat,
                 1794400014L);
         check(kick.length == 7 && "kick".equals(kick[4]) &&
@@ -561,6 +563,26 @@ public final class HostLuaRuntimeTest {
                         fullState[3].contains("white 32") &&
                         fullState[3].contains("black 32"),
                 "All maximum-size channel and account exception lists must restore");
+
+        // IRC-facing warnings may not disclose the internal script name,
+        // regardless of whether sent publicly, via PM, or via NOTICE.
+        eventAt(OTHER, "command", "#room", "me",
+                "mod azione avviso", 1794400260L);
+        for (String method : new String[]{"pvt", "notice"}) {
+            String nick = method.equals("pvt") ? "TestPrivate" : "TestNotice";
+            eventAt(OTHER, "command", "#room", "me",
+                    "mod avviso " + method, 1794400270L);
+            check(eventAs(OTHER, "message", "#room", nick, repeat,
+                    1794400271L, "", "*").length == 1,
+                    "First " + method + " message initializes history");
+            String[] response = eventAs(OTHER, "message", "#room", nick, repeat,
+                    1794400272L, "", "*");
+            check(response.length == 7 &&
+                            method.equals(response[4]) &&
+                            nick.equals(response[5]) &&
+                            "Evita di ripetere messaggi simili.".equals(response[6]),
+                    "The " + method + " warning must not disclose the script name");
+        }
 
         NativeLuaRuntime.unload(ID);
         check(NativeLuaRuntime.dispatch(ID, "message", bytes("test-server"),
