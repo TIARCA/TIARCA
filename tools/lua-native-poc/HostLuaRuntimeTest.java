@@ -293,11 +293,41 @@ public final class HostLuaRuntimeTest {
 
         // Actual AutoMod escalation: warning, kick, temporary kick+ban,
         // permanent kick+ban. A kick/rejoin must not erase infraction level.
+        String repeat = "io maschio cerco ragazza per divertimento";
+        check(eventAt(OTHER, "message", "#room", "Target", repeat,
+                1794399980L).length == 1,
+                "Default with no channels must not monitor messages");
+        String[] emptyList = eventAt(OTHER, "command", "#room", "me",
+                "mod canali", 1794399981L);
+        check(emptyList.length == 4 && emptyList[3].contains("Nessun canale"),
+                "Channel list starts empty");
+        String[] invalid = eventAt(OTHER, "command", "#room", "me",
+                "mod canali add nonsensical", 1794399982L);
+        check(invalid.length == 4 && invalid[3].contains("Uso:"),
+                "Commands reject invalid channel targets");
+        String[] added = eventAt(OTHER, "command", "#room", "me",
+                "mod canali add #ROOM", 1794399983L);
+        check(added.length == 4 && added[3].contains("#room"),
+                "Channel add accepts a channel and normalizes case");
+        String[] channelList = eventAt(OTHER, "command", "#room", "me",
+                "mod canali", 1794399984L);
+        check(channelList.length == 4 && channelList[3].contains("#room"),
+                "Channel list shows only explicitly added channels");
+        check(eventAt(OTHER, "message", "#unlisted", "Target", repeat,
+                1794399985L).length == 1,
+                "Unlisted channels must remain inactive");
+        byte[][] otherNetwork = NativeLuaRuntime.dispatch(OTHER, "message",
+                bytes("second-server"), bytes("#room"), bytes("Target"),
+                bytes(repeat), bytes("normal"), 1794399986L,
+                new byte[0][], new int[0], false, new byte[0][], false,
+                false, new byte[0][], false);
+        check(otherNetwork != null && otherNetwork.length == 1 &&
+                        "OK".equals(decode(otherNetwork[0])),
+                "Adding on one network must not monitor on another");
         String[] configured = eventAt(OTHER, "command", "#room", "me",
                 "mod azione escalation", 1794400000L);
         check(configured.length == 4 && "show".equals(configured[1]),
                 "AutoMod escalation selected");
-        String repeat = "io maschio cerco ragazza per divertimento";
         check(eventAt(OTHER, "message", "#room", "Target", repeat,
                 1794400001L).length == 1, "First message not a violation");
         String[] warning = eventAt(OTHER, "message", "#room", "Target", repeat,
@@ -334,6 +364,18 @@ public final class HostLuaRuntimeTest {
                 1794400082L);
         check(renamed.length == 7 && "kban".equals(renamed[4]),
                 "Nick change preserves the escalation counter");
+        String[] dropped = eventAt(OTHER, "command", "#room", "me",
+                "mod canali drop #room", 1794400083L);
+        check(dropped.length == 4 && dropped[3].contains("Rimosso: #room"),
+                "Channel drop is acknowledged");
+        check(eventAt(OTHER, "message", "#room", "NewNick", repeat,
+                1794400095L).length == 1,
+                "Dropped channel must ignore repeated messages");
+        eventAt(OTHER, "command", "#room", "me",
+                "mod canali add #room", 1794400100L);
+        check(eventAt(OTHER, "message", "#room", "NewNick", repeat,
+                1794400102L).length == 1,
+                "Readding dropped channel starts with clean message history");
 
         NativeLuaRuntime.unload(ID);
         check(NativeLuaRuntime.dispatch(ID, "message", bytes("test-server"),
