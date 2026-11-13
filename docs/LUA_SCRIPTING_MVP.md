@@ -614,3 +614,35 @@ viene considerato riuscito.
 AutoMod: `/lua mod help` descrive anche `/lua restart`, che
 reinizializza configurazione temporanea e storico della rete. Invece
 `/lua mod reset` cancella solo lo storico di AutoMod.
+
+ 
+## AutoMod: progressione ed espulsione prima del ban
+
+Le sanzioni di AutoMod in modalità `escalation` sono:
+1. avvertimento (pubblico, PVT o NOTICE, secondo la configurazione);
+2. KICK con motivazione **`non ripetere`**;
+3. KICK con motivazione **`non ripetere`**, poi ban temporaneo (default 10m);
+4. KICK con motivazione **`non ripetere`**, poi ban permanente.
+
+L'infrazione resta valida dopo JOIN/PART/QUIT e segue il cambio nick
+quando la nuova chiave non è già occupata. Lo storico dei testi viene
+invece eliminato quando un utente esce dal canale. Il contatore decade
+alla scadenza della finestra configurata (30 minuti per default).
+Disconnessione, reset dello script o `/lua mod reset` lo azzerano.
+
+**Nota importante sull'API:** fare prima `tiarca.kick()` e poi
+`tiarca.ban()` come richieste separate non è affidabile, perché il
+secondo comando potrebbe trovare il nick già uscito dal canale.
+Ora sono disponibili `tiarca.kickban(channel,nick,reason)` e
+`tiarca.kicktban(channel,nick,duration,reason)`: ognuna produce una
+sola richiesta strutturata, verificata lato Android (rete e canale,
+operatore, presenza, prefissi, host osservato, dialetto IRC).
+Il codice convalida l'intero intervento **prima** di inviare il
+KICK e poi il comando MODE/TBAN, conservando la maschera già rilevata.
+Se manca la mask o il server non supporta il ban temporaneo,
+la richiesta viene respinta senza inviare neppure il KICK.
+Questa verifica non costituisce conferma di esecuzione da parte
+del server IRC, che può comunque rifiutare comandi.
+
+Queste due API sono ristrette alla moderazione, richiedono il consenso
+esplicito e non consentono accesso a comandi IRC arbitrari.
