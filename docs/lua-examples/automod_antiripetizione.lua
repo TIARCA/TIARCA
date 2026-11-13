@@ -178,7 +178,7 @@ tiarca.on("command", function(e)
     "Config: soglia 80, ultimi 3, minuti 30, minparole 5, pausa 10\n" ..
     "Avvisi: /lua mod avviso pubblico|pvt|notice\n" ..
     "Azione: /lua mod azione monitor|avviso|kick|ban|mute|tban|bankick|escalation\n" ..
-    "Ban temporaneo: /lua mod durata 10m"
+    "Ban: /lua mod durata 10m; /lua restart azzera cronologia e opzioni"
   elseif key == "stato" then
   msg = string.format("%s | %s | soglia %d%% | ultimi %d | minuti %d | minparole %d | pausa %ds | durata %s | utenti %d, messaggi %d (globali)",
     c.on and "ON" or "OFF", c.azione .. "/" .. c.avviso, c.soglia, c.ultimi,

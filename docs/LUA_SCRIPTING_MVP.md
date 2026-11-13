@@ -586,3 +586,31 @@ scartati, non accodati. Testo massimo 400 byte UTF-8, senza CTCP/CRLF.
 AutoMod: `/lua mod avviso pubblico|pvt|notice`; predefinito pubblico.
 Le impostazioni cambiate via comando non sono persistenti. Le funzioni
 sono disponibili nel branch di sviluppo, non nella release 0.9.10.
+
+ 
+## Console generale Lua (per rete)
+
+I comandi di TIARCA sono disponibili anche con zero script abilitati:
+- `/lua help`: guida ai comandi generali
+- `/lua list`: elenco sintetico degli script abilitati sulla rete corrente
+- `/lua status`: motore, script abilitati o disabilitati, errori e azioni di moderazione in attesa; la memoria effettiva è indicata come non disponibile
+- `/lua log`: ultime 16 righe di log Lua per la rete, con nome dello script
+- `/lua stop`: sospende eventi e azioni Lua per questa rete, senza modificare i permessi o lo stato RAM; annulla eventi già in corso e interventi di moderazione in coda
+- `/lua start`: riattiva gli script sospesi, conservando il loro stato temporaneo
+- `/lua restart`: sospende, ricrea le VM di questa sola rete usando i sorgenti già autorizzati e riprende solo se tutti i caricamenti riescono; cronologie e variabili temporanee si azzerano, mentre le altre reti non vengono toccate
+
+I comandi sono locali e non trasmessi al server IRC. Lo stop e il restart
+non modificano le autorizzazioni persistenti. Dopo un errore di
+restart la rete rimane sospesa e gli errori sono riportati nel log.
+Una modifica nelle Impostazioni può continuare a provocare un reload
+globale, come avveniva in precedenza.
+
+Per minimizzare l'uso di RAM, le VM supplementari sono create solo al primo
+restart della rete, non durante la connessione ordinaria. Ogni VM è
+limitata a 2 MiB, con un limite complessivo di 32 MiB nel processo
+isolato. Quando non è possibile allocare una nuova VM il restart non
+viene considerato riuscito.
+
+AutoMod: `/lua mod help` descrive anche `/lua restart`, che
+reinizializza configurazione temporanea e storico della rete. Invece
+`/lua mod reset` cancella solo lo storico di AutoMod.
