@@ -513,7 +513,9 @@ unchecked; Java unit tests and a green APK build cannot substitute for it.
 
 Importa [automod_antiripetizione.lua](lua-examples/automod_antiripetizione.lua)
 con **Impostazioni → Script Lua**. All'importazione è disabilitato; dopo
-l'attivazione per una o più reti IRC, opera **solo in monitoraggio**. Usa
+l'attivazione su una o più reti IRC non controlla **nessun canale**:
+serve `/lua mod canali add #nome` sulla rete desiderata. Anche dopo aver
+scelto i canali, opera inizialmente **solo in monitoraggio**. Usa
 `/lua mod stato` per leggere le impostazioni. I comandi si digitano in una
 scheda della rete autorizzata e modificano le preferenze **di quella rete**:
 
@@ -526,11 +528,19 @@ scheda della rete autorizzata e modificano le preferenze **di quella rete**:
   (0–120 secondi); `/lua mod durata 10m`: durata ban temporaneo
   (1–99 m/h/d, solo server compatibili).
 - `/lua mod azione monitor|avviso|kick|ban|mute|tban|bankick|escalation`:
-  seleziona la risposta. `bankick` richiede prima il ban e poi il kick.
-  Escalation entro la finestra temporale: avviso → kick → ban temporaneo +
-  kick → ban + kick. Le azioni sono richieste, non conferme di successo remoto.
+  seleziona la risposta. `bankick` richiede prima il kick e poi il ban.
+  Escalation entro la finestra temporale: avviso → kick → kick + ban
+  temporaneo → kick + ban permanente. Le azioni sono richieste, non conferme di successo remoto.
+- `/lua mod canali`: elenca i canali attualmente controllati sulla rete.
+  `/lua mod canali add #nome` aggiunge il canale e
+  `/lua mod canali drop #nome` lo rimuove, cancellandone le cronologie.
+  La lista parte vuota su **ogni rete** e ammette fino a 16 canali per rete;
+  il confronto dei nomi è insensibile alle maiuscole/minuscole mediante
+  conversione `lower()` di Lua (non è un casemapping IRC completo).
+  I canali si possono configurare anche prima di entrarvi.
 - `/lua mod on`, `/lua mod off`, `/lua mod reset`: abilita/disabilita il
-  monitoraggio o cancella lo storico della sola rete corrente.
+  monitoraggio o cancella lo storico della sola rete corrente. Anche con
+  `on`, non si monitorano canali che non siano stati aggiunti.
 
 I rilevamenti si leggono dall'ultimo log dello script. Gli avvisi richiedono
 permesso **Invio messaggi**, i kick/ban/mute richiedono permesso **Moderazione**
@@ -547,10 +557,13 @@ conteggiati nella finestra numerica ma non vengono confrontati (per evitare
 falsi positivi da troncamento). I limiti complessivi sono **1000 nickname
 attivi** e **2400 impronte** tra tutte le reti; se raggiunti vengono
 eliminate le cronologie meno recenti, quindi in canali molto attivi il numero
-effettivo di confronti può essere inferiore al limite scelto. L'inizio di
-una nuova sessione, la disconnessione o la modifica del nickname cancellano
-lo storico associato. Per limitare i canali modifica `CANALI` all'inizio
-sorgente prima dell'importazione.
+effettivo di confronti può essere inferiore al limite scelto. Un'uscita dal canale cancella i messaggi recenti, ma non il contatore
+infrazioni, finché la finestra di recidiva è valida. La disconnessione o
+`/lua mod reset` cancella le cronologie. Non serve modificare il sorgente:
+`/lua mod canali add|drop #nome` gestisce i canali della rete corrente.
+L'elenco non è persistente: reload, restart Lua o riavvio dell'app lo
+riportano a **nessun canale**; le autorizzazioni dello script restano
+quelle configurate nelle Impostazioni.
 
 Da testare manualmente su una **Candidate**: somiglianza e falsi positivi in
 canali reali, 1000 utenti, spegnimento/riavvio, privilegi e differenze IRCd,
