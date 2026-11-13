@@ -175,7 +175,7 @@ public final class LuaScriptDispatcher {
             running = false;
             main.removeCallbacks(timerTick);
             io.post(moderationPacer::clear);
-            restarts.clear();
+            abortRestarts();
             reconcileBinding();
         });
     }
@@ -185,7 +185,7 @@ public final class LuaScriptDispatcher {
         main.post(() -> {
             running = true; // Allow on-demand script validation from Settings.
             io.post(moderationPacer::clear); // Invalidate queued actions on permission/script changes.
-            restarts.clear();
+            abortRestarts();
             reconcileBinding();
             main.removeCallbacks(timerTick);
             main.postDelayed(timerTick, TICK_INTERVAL_MS);
@@ -226,10 +226,16 @@ public final class LuaScriptDispatcher {
         }
     }
 
+    private void abortRestarts() {
+        for (Map.Entry<String, RestartBatch> entry : restarts.entrySet())
+            console.failRestart(entry.getKey(), entry.getValue().generation);
+        restarts.clear();
+    }
+
     private void clearPending() {
         pending.clear();
         pendingEvents.set(0);
-        restarts.clear();
+        abortRestarts();
     }
 
     private void discardPendingForNetwork(String server) {
@@ -360,7 +366,10 @@ public final class LuaScriptDispatcher {
             return true;
         }
         if ("start".equals(builtin)) {
-            console.start(server);
+            if (console.start(server) < 0) {
+                emitConsole(connection, "[Lua] Riavvio in corso; /lua status per dettagli.");
+                return true;
+            }
             main.post(() -> {
                 discardPendingForNetwork(server);
                 restarts.remove(server);
@@ -370,6 +379,10 @@ public final class LuaScriptDispatcher {
         }
         if ("restart".equals(builtin)) {
             long generation = console.beginRestart(server);
+            if (generation < 0) {
+                emitConsole(connection, "[Lua] Riavvio gia' in corso.");
+                return true;
+            }
             main.post(() -> restartNetwork(connection, server, generation));
             return true;
         }
@@ -413,7 +426,9 @@ public final class LuaScriptDispatcher {
         } else if ("list".equals(builtin)) {
             List<LuaScriptStore.Script> scripts = store.enabledOn(server);
             lines.add("[Lua] " + connection.getName() + " - script abilitati: " +
-                    scripts.size() + (console.isPaused(server) ? " (sospesi)" : ""));
+                    scripts.size() + (console.isRestarting(server) ?
+                            " (riavvio in corso)" :
+                            console.isPaused(server) ? " (sospesi)" : ""));
             for (LuaScriptStore.Script script : scripts)
                 lines.add("[Lua] " + script.name);
         } else if ("log".equals(builtin)) {
@@ -438,7 +453,9 @@ public final class LuaScriptDispatcher {
         List<LuaScriptStore.Script> active = store.enabledOn(server);
         boolean paused = console.isPaused(server);
         emitConsole(connection, "[Lua] Stato - " + connection.getName() + ": " +
-                (paused ? "SOSPESO" : remote == null ? "MOTORE NON DISPONIBILE" : "ATTIVO"));
+                (console.isRestarting(server) ? "RIAVVIO IN CORSO" :
+                        paused ? "SOSPESO" :
+                        remote == null ? "MOTORE NON DISPONIBILE" : "ATTIVO"));
         emitConsole(connection, "[Lua] Script sulla rete: " + active.size() +
                 "; moderazioni in coda: " + queued);
         for (LuaScriptStore.Script script : installed) {
@@ -464,6 +481,7 @@ public final class LuaScriptDispatcher {
             return;
         }
         if (remote == null) {
+            console.failRestart(server, generation);
             emitConsole(connection, "[Lua] Motore non disponibile; riavvio non eseguito.");
             return; // Remain paused until explicit /lua start or retry.
         }
@@ -506,6 +524,7 @@ public final class LuaScriptDispatcher {
                     (store.enabledOn(server).size()) + " script sulla rete " +
                     connection.getName() + ". Memoria temporanea azzerata.");
         } else if (batch.failures > 0) {
+            console.failRestart(server, generation);
             emitConsole(connection, "[Lua] Riavvio incompleto (" + batch.failures +
                     " errori). Script sospesi: /lua log per i dettagli.");
         }
@@ -648,6 +667,7 @@ public final class LuaScriptDispatcher {
         if (script == null || !script.isEnabledOn(request.server))
             return true;
         if (!"OK".equals(status)) {
+            console.log(request.server, script.name, status);
             store.fail(id, status);
             reload();
             return true;
