@@ -557,6 +557,8 @@ static void install_libraries(lua_State *L) {
     lua_setfield(L, -2, "kickban");
     lua_pushcfunction(L, script_blacklist_action);
     lua_setfield(L, -2, "blacklist_action");
+    lua_pushcfunction(L, script_blacklist_action);
+    lua_setfield(L, -2, "override_action");
     lua_pushcfunction(L, script_kicktban);
     lua_setfield(L, -2, "kicktban");
     lua_pushcfunction(L, script_ban);
