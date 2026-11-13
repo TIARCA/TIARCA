@@ -578,7 +578,7 @@ public final class HostLuaRuntimeTest {
             String[] response = eventAs(OTHER, "message", "#room", nick, repeat,
                     1794400272L, "", "*");
             check(response.length == 7 &&
-                            method.equals(response[4]) &&
+                            (method.equals("pvt") ? "pm" : "notice").equals(response[4]) &&
                             nick.equals(response[5]) &&
                             "Evita di ripetere messaggi simili.".equals(response[6]),
                     "The " + method + " warning must not disclose the script name");
