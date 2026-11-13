@@ -25,6 +25,7 @@ final class LuaConsoleState {
 
     private static final class NetworkState {
         boolean paused;
+        boolean restarting;
         long generation;
         final ArrayDeque<LogLine> recent = new ArrayDeque<>();
     }
@@ -45,6 +46,11 @@ final class LuaConsoleState {
         return state != null && state.paused;
     }
 
+    synchronized boolean isRestarting(String server) {
+        NetworkState state = networks.get(server);
+        return state != null && state.restarting;
+    }
+
     synchronized long generation(String server) {
         NetworkState state = networks.get(server);
         return state == null ? 0 : state.generation;
@@ -53,25 +59,40 @@ final class LuaConsoleState {
     synchronized long stop(String server) {
         NetworkState state = get(server);
         state.paused = true;
+        state.restarting = false;
         return ++state.generation;
     }
 
+    /** Returns -1 if a network-local restart is still in progress. */
     synchronized long start(String server) {
         NetworkState state = get(server);
+        if (state.restarting) return -1;
         state.paused = false;
         return ++state.generation;
     }
 
     synchronized long beginRestart(String server) {
-        return stop(server);
+        NetworkState state = get(server);
+        if (state.restarting) return -1;
+        state.paused = true;
+        state.restarting = true;
+        return ++state.generation;
     }
 
     synchronized boolean completeRestart(String server, long generation) {
         NetworkState state = get(server);
-        if (state.generation != generation || !state.paused) return false;
+        if (state.generation != generation || !state.paused ||
+                !state.restarting) return false;
+        state.restarting = false;
         state.paused = false;
         ++state.generation;
         return true;
+    }
+
+    synchronized void failRestart(String server, long generation) {
+        NetworkState state = get(server);
+        if (state.generation == generation && state.restarting)
+            state.restarting = false; // Leave paused for explicit retry/start.
     }
 
     synchronized void log(String server, String script, String text) {

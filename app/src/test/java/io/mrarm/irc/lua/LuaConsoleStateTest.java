@@ -16,6 +16,18 @@ public class LuaConsoleStateTest {
         assertEquals(0L, state.generation("B"));
     }
 
+    @Test public void overlappingRestartsAndStartAreRejected() {
+        LuaConsoleState state = new LuaConsoleState();
+        long generation = state.beginRestart("A");
+        assertTrue(state.isRestarting("A"));
+        assertEquals(-1L, state.start("A"));
+        assertEquals(-1L, state.beginRestart("A"));
+        state.failRestart("A", generation);
+        assertTrue(state.isPaused("A"));
+        assertFalse(state.isRestarting("A"));
+        assertTrue(state.start("A") > generation);
+    }
+
     @Test public void staleRestartCannotResumeManuallyStoppedNetwork() {
         LuaConsoleState state = new LuaConsoleState();
         long old = state.beginRestart("A");
