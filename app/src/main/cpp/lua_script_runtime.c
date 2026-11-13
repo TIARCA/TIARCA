@@ -11,7 +11,10 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-#define MAX_SCRIPTS 8
+/* Up to 8 base VMs + 8 scripts times 16 restart-isolated networks.
+ * Clones are created only on demand, not when networks connect. */
+#define MAX_SCRIPTS 136
+#define GLOBAL_SCRIPT_MEMORY (32u * 1024u * 1024u)
 #define MAX_HANDLERS 8
 #define MAX_ACTIONS 12
 #define MAX_CHANNELS 32
@@ -70,7 +73,8 @@ typedef struct ScriptVm {
     int can_store;
 } ScriptVm;
 
-static ScriptVm *g_scripts[MAX_SCRIPTS]; /* All calls arrive on one service HandlerThread. */
+static ScriptVm *g_scripts[MAX_SCRIPTS]; /* Single isolated worker thread. */
+static size_t g_allocated; /* Hard overall cap, including restart-created VMs. */
 
 static ScriptVm *context(lua_State *L) {
     return *(ScriptVm **) lua_getextraspace(L);
@@ -81,14 +85,22 @@ static void *bounded_alloc(void *ud, void *ptr, size_t old, size_t new_size) {
     size_t old_size = ptr == NULL ? 0 : old;
     if (new_size == 0) {
         free(ptr);
-        s->allocated -= old_size <= s->allocated ? old_size : s->allocated;
+        size_t freed = old_size <= s->allocated ? old_size : s->allocated;
+        s->allocated -= freed;
+        g_allocated -= freed <= g_allocated ? freed : g_allocated;
         return NULL;
     }
-    if (old_size > s->allocated) return NULL;
-    if (new_size > old_size && new_size - old_size > SCRIPT_MEMORY - s->allocated)
-        return NULL;
+    if (old_size > s->allocated || old_size > g_allocated) return NULL;
+    if (new_size > old_size) {
+        size_t grow = new_size - old_size;
+        if (grow > SCRIPT_MEMORY - s->allocated ||
+                grow > GLOBAL_SCRIPT_MEMORY - g_allocated) return NULL;
+    }
     void *p = realloc(ptr, new_size);
-    if (p != NULL) s->allocated = s->allocated - old_size + new_size;
+    if (p != NULL) {
+        s->allocated = s->allocated - old_size + new_size;
+        g_allocated = g_allocated - old_size + new_size;
+    }
     return p;
 }
 
