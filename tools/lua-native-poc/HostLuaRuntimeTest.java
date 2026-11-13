@@ -382,7 +382,7 @@ public final class HostLuaRuntimeTest {
                 "Nick change preserves the escalation counter");
         String[] dropped = eventAt(OTHER, "command", "#room", "me",
                 "mod canali drop #room", 1794400083L);
-        check(dropped.length == 4 && dropped[3].contains("Rimosso: #room"),
+        check(dropped.length == 4 && dropped[3].contains("rimosso: #room"),
                 "Channel drop is acknowledged");
         check(eventAt(OTHER, "message", "#room", "NewNick", repeat,
                 1794400095L).length == 1,
