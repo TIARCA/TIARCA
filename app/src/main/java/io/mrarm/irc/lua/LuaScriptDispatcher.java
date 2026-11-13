@@ -894,7 +894,7 @@ public final class LuaScriptDispatcher {
                 return;
             }
 
-            String nick;
+            String nick = "";
             String reason = "";
             String mode = "";
             boolean blacklistOverride = "blkmod".equals(kind);
