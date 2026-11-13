@@ -438,7 +438,17 @@ public final class HostLuaRuntimeTest {
         }
         String[] unknown = eventAs(OTHER, "message", "#room", "Unknown",
                 repeat, 1794400112L, "", "");
-        check(unknown.length == 1, "Unknown account state fails closed");
+        check(unknown.length == 4 && "who".equals(unknown[1]) &&
+                        "#room".equals(unknown[2]),
+                "Unknown account fails closed and requests bounded WHOX");
+        String[] diagnostic = eventAt(OTHER, "command", "#room", "me",
+                "mod stato", 1794400112L);
+        check(diagnostic.length == 4 &&
+                        diagnostic[3].contains("ricevuti ") &&
+                        diagnostic[3].contains("esenti ") &&
+                        diagnostic[3].contains("ignoti 1") &&
+                        diagnostic[3].contains("monitorati "),
+                "Status separates incoming, exempt, unknown and monitored");
 
         eventAt(OTHER, "command", "#room", "me",
                 "mod azione kick", 1794400113L);

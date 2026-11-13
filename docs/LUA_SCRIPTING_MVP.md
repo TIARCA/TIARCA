@@ -573,6 +573,15 @@ un utente cambia nickname.
   blacklist. Ogni lista supporta fino a 32 account, con validazione delle
   stringhe; i nomi dei canali fino a 16 per rete.
 
+Il client richiede `account-tag`, `extended-join` e `account-notify`
+quando disponibili e aggiorna la cache per gli utenti osservati. Per un
+account ancora ignoto AutoMod richiede WHO/WHOX non più di una volta ogni
+10 minuti per canale; TIARCA limita ulteriormente le richieste a una al
+minuto per script/rete. Un account non verificabile rimane escluso dalle
+azioni punitive. `/lua mod stato` mostra `ricevuti`, `esenti`,
+`ignoti` e `monitorati` per rete; questi conteggi temporanei non
+fanno parte del backup.
+
 Il motore fornisce a Lua il roster e l'account osservato **soltanto se
 l'utente autorizza anche «Lettura dati utenti»** per quello script/rete.
 Per default un account confermato come registrato viene esentato.

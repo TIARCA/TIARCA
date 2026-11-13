@@ -1,9 +1,13 @@
--- TIARCA AutoMod: /lua mod help
--- Network settings persist with opt-in TIARCA storage; recent message history remains volatile.
 local MAX_UTENTI, MAX_MESSAGGI = 1000, 2400
 local MAX_TESTO, MAX_PAROLE = 160, 32
 local LIMIT_LISTA = 32
 local config, cronologie = {}, {}
+local statistiche, aggiornamenti = {}, {}
+local function contatori(server)
+local s=statistiche[server]
+if not s then s={0,0,0,0};statistiche[server]=s end
+return s
+end
 local utenti, messaggi = 0, 0
 
 local categorie={"registrati","voice","halfop","op","admin","owner"}
@@ -132,6 +136,10 @@ for k,r in pairs(cronologie) do
 end
 end
 local function reset(server)
+statistiche[server]=nil
+for key in pairs(aggiornamenti) do
+if key:sub(1,#server+1)==server.."\0" then aggiornamenti[key]=nil end
+end
 for k,r in pairs(cronologie) do
   if r.server==server then elimina(k) end
 end
@@ -182,31 +190,28 @@ end
 return 200*common/(na+nb)
 end
 
--- Returns an explicitly eligible user and whether an authenticated
--- blacklisted account overrides a category whitelist.
--- Without user-info permission or a known account state: fail closed.
 local function soggetto(e,c)
 local ok,list=pcall(tiarca.get_users,e.channel)
-if not ok or type(list)~="table" then return false end
+if not ok or type(list)~="table" then return false,"ignoto" end
 for _,u in ipairs(list) do
   if u.nick and u.nick:lower()==e.nick:lower() then
     local account=u.account and u.account:lower() or nil
-    if not account or account=="" then return false end
+    if not account or account=="" then return false,"ignoto" end
     if account~="*" and c.blacklist[account] then
       return true,true,account
     end
     if account~="*" and
-       (c.whitelist[account] or c.categorie.registrati) then return false end
+       (c.whitelist[account] or c.categorie.registrati) then return false,"esente" end
     local p=u.prefix or ""
     if (p:find("+",1,true) and c.categorie.voice) or
        (p:find("%",1,true) and c.categorie.halfop) or
        (p:find("@",1,true) and c.categorie.op) or
        (p:find("&",1,true) and c.categorie.admin) or
-       (p:find("~",1,true) and c.categorie.owner) then return false end
+       (p:find("~",1,true) and c.categorie.owner) then return false,"esente" end
     return true,p~="",account
   end
 end
-return false
+return false,"ignoto"
 end
 
 local function azione(e,c,livello,override,account)
@@ -239,11 +244,23 @@ tiarca.on("message",function(e)
 if not e.channel:match("^[#&+!]") or e.message_type~="normal" then return end
 local c=impostazioni(e.server)
 if not c or not c.on or not c.canali[e.channel:lower()] then return end
-local allowed,override,account=soggetto(e,c)
+local s=contatori(e.server)
+s[1]=s[1]+1
+local allowed,reason,account=soggetto(e,c)
 if not allowed then
+  if reason=="ignoto" then
+    s[3]=s[3]+1
+    local k=e.server.."\0"..e.channel:lower()
+    if not aggiornamenti[k] or e.timestamp-aggiornamenti[k]>=600 then
+      aggiornamenti[k]=e.timestamp
+      tiarca.refresh_users(e.channel)
+    end
+  else s[2]=s[2]+1 end
   elimina(chiave(e))
   return
 end
+s[4]=s[4]+1
+local override=reason==true
 local now=e.timestamp
 local key,r=prepara(e,now,c)
 local sig,n=impronta(e.text or "")
@@ -371,10 +388,12 @@ local c=copia(old)
 local changed,clear=false,nil
 local msg
 if key=="stato" then
-  msg=string.format("%s; %s/%s; canali %d; white %d; black %d; %d%%; ultimi %d; minuti %d; parole %d; pausa %ds; durata %s; utenti %d; messaggi %d",
+  local stats=contatori(e.server)
+  msg=string.format("%s; %s/%s; canali %d; white %d; black %d; %d%%; ultimi %d; minuti %d; parole %d; pausa %ds; durata %s; utenti %d; messaggi %d; ricevuti %d; esenti %d; ignoti %d; monitorati %d",
     c.on and "ON" or "OFF",c.azione,c.avviso,count(c.canali),
     count(c.whitelist),count(c.blacklist),c.soglia,c.ultimi,c.minuti,
-    c.minparole,c.pausa,c.durata,utenti,messaggi)
+    c.minparole,c.pausa,c.durata,utenti,messaggi,
+    stats[1],stats[2],stats[3],stats[4])
 elseif key=="on" or key=="off" then
   c.on=key=="on"
   changed=true

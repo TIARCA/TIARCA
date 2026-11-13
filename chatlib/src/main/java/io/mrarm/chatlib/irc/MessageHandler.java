@@ -71,13 +71,19 @@ public class MessageHandler {
             }
             throw missing;
         }
-        handler.handle(connection, prefix, command, params, tags);
-        // Observe only server-processed data. No script runs here or on the IRC
-        // reader thread; identity disclosure is separately gated in the app.
+        // Cache server-observed identity before publishing IRC events to Lua.
         IrcIdentityCache identities = connection.getIdentityCache();
-        identities.noteNumeric(command, params);
         if (prefix != null && prefix.getUser() != null && prefix.getHost() != null)
             identities.note(prefix.getNick(), prefix.getUser(), prefix.getHost(), null);
+        if (prefix != null && tags.containsKey("account") &&
+                ("PRIVMSG".equals(command) || "NOTICE".equals(command) ||
+                        "TAGMSG".equals(command)))
+            identities.note(prefix.getNick(), null, null, tags.get("account"));
+        // IRCv3 extended-join: JOIN <channel> <account|*> :<realname>.
+        if ("JOIN".equals(command) && prefix != null && params.size() >= 3)
+            identities.note(prefix.getNick(), null, null, params.get(1));
+        handler.handle(connection, prefix, command, params, tags);
+        identities.noteNumeric(command, params);
         if ("NICK".equals(command) && prefix != null && !params.isEmpty())
             identities.rename(prefix.getNick(), params.get(0));
         if ("QUIT".equals(command) && prefix != null)

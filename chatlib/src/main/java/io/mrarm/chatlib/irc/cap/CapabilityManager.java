@@ -30,6 +30,9 @@ public class CapabilityManager {
         registerCapability(new ServerTimeCapability());
         registerCapability(new MultiPrefixCapability());
         registerCapability(new AwayNotifyCapability());
+        registerCapability(new AccountTagCapability());
+        registerCapability(new ExtendedJoinCapability());
+        registerCapability(new AccountNotifyCapability());
         registerCapability(new ZNCSelfMessageCapability());
     }
 
