@@ -19,11 +19,14 @@ public final class IrcIdentityCache {
         public final String ident;
         public final String host;
         public final String account;
+        /** True only after the server explicitly reported an account or logout. */
+        public final boolean accountKnown;
 
-        Identity(String ident, String host, String account) {
+        Identity(String ident, String host, String account, boolean accountKnown) {
             this.ident = ident;
             this.host = host;
             this.account = account;
+            this.accountKnown = accountKnown;
         }
     }
 
@@ -60,13 +63,15 @@ public final class IrcIdentityCache {
         boolean loggedOut = "0".equals(acct) || "*".equals(acct);
         if (loggedOut) acct = null;
         Identity old = known.get(id);
+        boolean accountKnown = loggedOut || acct != null ||
+                (old != null && old.accountKnown);
         if (old != null) {
             if (user == null) user = old.ident;
             if (hostname == null) hostname = old.host;
             if (acct == null && !loggedOut) acct = old.account;
         }
-        if (user != null || hostname != null || acct != null)
-            known.put(id, new Identity(user, hostname, acct));
+        if (user != null || hostname != null || acct != null || accountKnown)
+            known.put(id, new Identity(user, hostname, acct, accountKnown));
     }
 
     public synchronized Identity get(String nick) {

@@ -45,7 +45,7 @@ import io.mrarm.irc.config.ServerConfigManager;
  */
 public final class LuaScriptStore {
     public static final int MAX_SCRIPTS = 8;
-    public static final int MAX_SOURCE_BYTES = 8192;
+    public static final int MAX_SOURCE_BYTES = 16384;
     public static final int MAX_NETWORKS_PER_SCRIPT = 16;
 
     private static final String BACKUP_INDEX = "lua_scripts/index.json";

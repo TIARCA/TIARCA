@@ -7,8 +7,12 @@ tiarca.on("command", function(event)
   local keyword, query = event.text:match("^%s*(%S+)%s*(.-)%s*$")
   if not keyword or keyword:lower() ~= "mask" then return end
 
-  if not query or query == "" then
-    tiarca.show("Mask Finder", "Uso: /lua mask <testo o mask IRC>")
+  if not query or query == "" or query:lower() == "help" then
+    tiarca.show("Mask Finder",
+      "Uso: /lua mask <testo o mask IRC>\n" ..
+      "Esegui da un canale; ricerca nickname, ident e host.\n" ..
+      "Esempi: /lua mask pippo e /lua mask *!*@*.example.net\n" ..
+      "Risultati nella scheda Server. Permesso: Membri e identita'.")
     return
   end
   if not event.channel:match("^[#&+!]") then

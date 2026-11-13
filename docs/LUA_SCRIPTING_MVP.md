@@ -15,7 +15,7 @@ file through the Android document picker (Storage Access Framework).
 It is copied into TIARCA private storage. No downloads, binary plugins,
 .lua bytecode, JAR, DEX or native plugins are supported.
 
-Maximum: 8 scripts, each 8192 source bytes. Imported scripts are
+Maximum: 8 scripts, each 16384 source bytes. Imported scripts are
 **disabled**. On enable, select **one or more configured IRC networks**
 (up to 16 per script). No other network receives events from that script.
 The same explicitly approved send/user-info/moderation/storage capabilities
@@ -213,9 +213,23 @@ server is connected, the channel is joined and equals the incoming/current
 channel, the **local user currently has channel operator privileges**, and
 the target is a present member other than the local user. Only validated
 structured KICK and MODE commands can be sent: scripts cannot issue raw
-IRC, change the target network or use arbitrary ban masks. Moderation
-is rate-limited (at most once every 12 seconds per script and a separate
-per-server interval). IRC servers can still reject an action; this API
+IRC, change the target network or use arbitrary ban masks. Moderation actions are reserved in the exact Lua request order and scheduled
+on a per-network pacing queue (1.5 seconds between Lua moderation commands
+on the same IRC network). There is no 12-second per-script discard window:
+sequences such as `tiarca.ban(channel, nick)` followed by
+`tiarca.kick(channel, nick, reason)` are both scheduled. For safety the queue
+holds at most 40 pending commands per network and 20 per script/network,
+with no booking more than 60 seconds ahead; if Android delays execution
+beyond that age, the stale action expires instead of being sent. Excess
+actions are rejected with
+a script log entry rather than accumulating without bound. Each command
+rechecks permissions, live membership and operator status before execution.
+Automatic punitive requests (kick, ban, mute, timed ban) also reject channel
+members with any advertised prefix (operators, halfops, voice, etc.)
+using the full live member list, not the 128-user
+Lua identity snapshot. Explicit Lua voice/devoice remains permitted.
+Pending actions are invalidated on disconnect, script reload and stop.
+IRC servers can still reject an action; this API
 does not promise that a request succeeded, and moderation is intentionally
 *not* executed for disconnected or timer callbacks. No unrestricted
 extbans, arbitrary timed-ban commands, cross-channel actions or blanket mass bans.
@@ -263,8 +277,8 @@ tiarca.storage.delete("counter")
 \`\`\`
 
 Keys: 1–48 ASCII letters/digits/underscore/dot/hyphen, never a path.
-Values: UTF-8 strings of 1–384 bytes. Up to 16 keys and 4096 bytes
-of key/value data per script. The main process stores each script's
+Values: UTF-8 strings of 1–8192 bytes. Up to 16 keys and 128 KiB
+of key/value data per script (JSON file at most 160 KiB). The main process stores each script's
 data in a private atomic JSON file. Lua receives only a checked,
 bounded copy with each event; setting or deleting emits a main-process
 action. Read-after-write in one callback is supported, while
@@ -493,3 +507,254 @@ must be recorded separately from the automated policy tests.
 The project owner confirmed the practical two-network and lost-OP tests on
 2026-11-12. The broader test matrix above remains **non verificato** where
 unchecked; Java unit tests and a green APK build cannot substitute for it.
+
+
+## AutoMod — antiripetizione (script sperimentale)
+
+Importa [automod_antiripetizione.lua](lua-examples/automod_antiripetizione.lua)
+con **Impostazioni → Script Lua**. All'importazione è disabilitato: quando
+lo abiliti devi autorizzare **Dati persistenti** (obbligatorio per AutoMod)
+e, se vuoi verificare gli account e intervenire, i consensi separati
+**Lettura dati utenti** e **Moderazione**. Senza il consenso allo storage
+AutoMod non modifica la configurazione e non modera, mentre `/lua mod help`
+rimane disponibile. Dopo l'attivazione su una o più reti IRC non controlla **nessun canale**:
+serve `/lua mod canali add #nome` sulla rete desiderata. Anche dopo aver
+scelto i canali, opera inizialmente **solo in monitoraggio**. Usa
+`/lua mod stato` per leggere le impostazioni. I comandi si digitano in una
+scheda della rete autorizzata e modificano le preferenze **di quella rete**:
+
+- `/lua mod soglia 80`: similarità Dice delle parole (60–100%, ordine ignorato,
+  occorrenze ripetute conteggiate); `/lua mod ultimi 3`: da 1 a 10 messaggi
+  precedenti dello stesso nickname nello stesso canale;
+  `/lua mod minuti 30`: scadenza da 1 a 120 minuti.
+- `/lua mod minparole 5`: lunghezza minima (3–15 parole);
+  `/lua mod pausa 10`: intervallo tra interventi sullo stesso utente
+  (0–120 secondi); `/lua mod durata 10m`: durata ban temporaneo
+  (1–99 m/h/d, solo server compatibili).
+- `/lua mod azione monitor|avviso|kick|ban|mute|tban|bankick|tbankick|escalation`:
+  seleziona la risposta. `bankick` e `tbankick` richiedono prima il kick
+  e poi il ban, con motivazione kick `non ripetere`.
+  Escalation entro la finestra temporale: avviso → kick → kick + ban
+  temporaneo → kick + ban permanente. Le azioni sono richieste, non conferme di successo remoto.
+- `/lua mod canali`: elenca i canali attualmente controllati sulla rete.
+  `/lua mod canali add #nome` aggiunge il canale e
+  `/lua mod canali drop #nome` lo rimuove, cancellandone le cronologie.
+  La lista parte vuota su **ogni rete** e ammette fino a 16 canali per rete;
+  il confronto dei nomi è insensibile alle maiuscole/minuscole mediante
+  conversione `lower()` di Lua (non è un casemapping IRC completo).
+  I canali si possono configurare anche prima di entrarvi.
+- `/lua mod on`, `/lua mod off`, `/lua mod reset`: abilita/disabilita il
+  monitoraggio o cancella lo storico della sola rete corrente. Anche con
+  `on`, non si monitorano canali che non siano stati aggiunti.
+
+### Whitelist e blacklist di AutoMod
+
+**Per impostazione iniziale sono esentate tutte le categorie**:
+`registrati`, `voice`, `halfop`, `op`, `admin`, `owner`.
+La lista dei singoli account in whitelist e quella in blacklist iniziano vuote,
+così come la lista dei canali monitorati. I nomi sono account autenticati,
+**non nickname**: la configurazione resta associata all'account anche quando
+un utente cambia nickname.
+
+- `/lua mod whitelist`: elenca gli account esentati singolarmente e lo
+  stato ON/OFF delle sei categorie.
+- `/lua mod whitelist add nomeaccount` e `drop nomeaccount`: aggiunge o
+  rimuove l'esenzione individuale.
+- `/lua mod whitelist categoria registrati|voice|halfop|op|admin|owner on|off`:
+  cambia l'esenzione della categoria per la sola rete corrente.
+- `/lua mod blacklist`: mostra gli account sempre sottoposti al controllo;
+  `/lua mod blacklist add nomeaccount` e `drop nomeaccount` li gestiscono.
+  Un account in **blacklist prevale su qualsiasi whitelist**, compreso voice
+  o registrati, anche se compare esplicitamente nella whitelist.
+- `/lua mod help` presenta le categorie per blocchi separati;
+  `/lua mod help liste`, `help canali`, `help azione`,
+  `help parametri` aprono solo la relativa sezione.
+- `/lua mod stato` comprende anche le quantità di account in whitelist e
+  blacklist. Ogni lista supporta fino a 32 account, con validazione delle
+  stringhe; i nomi dei canali fino a 16 per rete.
+
+Il motore fornisce a Lua il roster e l'account osservato **soltanto se
+l'utente autorizza anche «Lettura dati utenti»** per quello script/rete.
+Per default un account confermato come registrato viene esentato.
+Gli utenti con account **sconosciuto** (dato non ancora ricevuto dal
+server) vengono ignorati in modo prudenziale, non interpretati come
+«non registrati». Un logout esplicitamente osservato dal server viene
+invece rappresentato come `*`. La lista di 128 membri fornita a Lua
+include prioritariamente il mittente corrente anche nei canali più grandi.
+
+Il motore Android rifiuta normalmente gli interventi automatici sui membri
+con prefisso; un account espressamente in blacklist può superare quel filtro
+**solo con permessi separati Lettura dati utenti + Moderazione**, su un
+messaggio ricevuto dal medesimo nickname e dopo verifica dell'account
+effettivamente osservato in quella rete. Rimangono obbligatori presenza in
+canale, privilegi operatore, controllo anti-autokick, canale esatto,
+dialetto e host validi. Il server può comunque negare le operazioni.
+
+I rilevamenti si leggono dal log dello script. Gli avvisi richiedono
+consenso **Invio messaggi**; kick/ban/mute richiedono consenso
+**Moderazione** e privilegi operatore attuali. Liste, categorie e canali
+sono **solo RAM**: modifiche e reload/restart li riportano ai default.
+Non è stato aggiunto accesso persistente o un'autorizzazione automatica.
+
+La cronologia (testi, contatori di infrazioni e ultima azione) è **solo RAM**,
+distinta per server, canale e nickname. Le **impostazioni**, invece,
+vengono salvate per ciascuna rete mediante `tiarca.storage`: ON/OFF,
+canali abilitati, whitelist e blacklist degli account, categorie esentate,
+soglia, ultimi, minuti, minparole, pausa, durata, azione e tipo di avviso.
+Sopravvivono al reload, a `/lua restart`, al riavvio dell'app e agli
+aggiornamenti APK che conservano i dati dell'app. Ogni modifica viene
+salvata dopo la convalida; se lo storage è indisponibile, la modifica
+non viene applicata. Dati malformati non vengono sostituiti dai default:
+AutoMod si astiene dall'intervenire finché la configurazione non viene
+ripristinata. La pulizia dello storico scaduto avviene al messaggio
+successivo e all'evento timer (~60 secondi).
+I messaggi troppo brevi o con più di 32 parole/160 byte normalizzati sono
+conteggiati nella finestra numerica ma non vengono confrontati (per evitare
+falsi positivi da troncamento). I limiti complessivi sono **1000 nickname
+attivi** e **2400 impronte** tra tutte le reti; se raggiunti vengono
+eliminate le cronologie meno recenti, quindi in canali molto attivi il numero
+effettivo di confronti può essere inferiore al limite scelto. Un'uscita dal canale cancella i messaggi recenti, ma non il contatore
+infrazioni, finché la finestra di recidiva è valida. La disconnessione o
+`/lua mod reset` cancella le cronologie. Non serve modificare il sorgente:
+`/lua mod canali add|drop #nome` gestisce i canali della rete corrente.
+L'elenco dei canali autorizzati viene conservato separatamente per rete:
+il default resta **nessun canale**, ma non viene ripristinato dopo un
+semplice riavvio. Lo stato persistente è incluso nel backup TIARCA,
+conservando la configurazione ma **revocando sempre le autorizzazioni Lua**
+durante il ripristino: l'utente deve approvare nuovamente rete, dati
+persistenti e gli eventuali altri permessi. La disinstallazione con
+cancellazione dati, `Elimina script` e `Elimina tutti gli script Lua`
+eliminano anche le relative preferenze. Sostituire lo script importandolo
+come **nuovo script** non migra automaticamente i dati del vecchio ID.
+
+Da testare manualmente su una **Candidate**: somiglianza e falsi positivi in
+canali reali, 1000 utenti, spegnimento/riavvio, privilegi e differenze IRCd,
+scadenze Android e semantica ban/mute/tban. Nessun ban automatico è attivo
+senza scelta esplicita dell'utente.
+
+ 
+## Comandi integrati e convenzione help
+
+`/lua list` elenca nella scheda Server solo gli script abilitati per la
+rete IRC corrente. Funziona anche senza script attivi, perché è gestito
+direttamente dal client, non da un callback Lua. `/lua help` mostra
+i comandi generali. Nessuno dei due invia dati al server IRC.
+
+Gli script TIARCA che espongono un comando devono implementare
+`/lua <comando> help` con istruzioni ed esempi. Mask Finder:
+`/lua mask help`. AutoMod: `/lua mod help` (anche `/lua mod`);
+`/lua mod stato` mostra la configurazione.
+
+## Invio privato e NOTICE controllati
+
+`tiarca.pm(event.nick, testo)` e `tiarca.notice(event.nick, testo)`
+sono permessi solo con il consenso **Invio messaggi**. Entrambi sono
+limitati al **nick che ha generato il messaggio in canale** su una rete
+autorizzata: confronto con casemapping IRC e verifica della presenza
+in canale al momento dell'azione. Niente destinazioni arbitrarie,
+messaggi da timer/comandi, invii cross-network o comandi RAW.
+
+Si applicano i limiti di invio ordinari: 5 secondi per script/rete,
+1,5 secondi tra invii Lua nella stessa rete. Invii eccedenti sono
+scartati, non accodati. Testo massimo 400 byte UTF-8, senza CTCP/CRLF.
+
+AutoMod: `/lua mod avviso pubblico|pvt|notice`; predefinito pubblico.
+Le impostazioni AutoMod cambiate via comando sono persistenti con il
+consenso **Dati persistenti**. Le funzioni sono disponibili nel branch
+di sviluppo, non nella release 0.9.10.
+
+ 
+## Console generale Lua (per rete)
+
+I comandi di TIARCA sono disponibili anche con zero script abilitati:
+- `/lua help`: guida ai comandi generali
+- `/lua list`: elenco sintetico degli script abilitati sulla rete corrente
+- `/lua status`: motore, script abilitati o disabilitati, errori e azioni di moderazione in attesa; la memoria effettiva è indicata come non disponibile
+- `/lua log`: ultime 16 righe di log Lua per la rete, con nome dello script
+- `/lua stop`: sospende eventi e azioni Lua per questa rete, senza modificare i permessi o lo stato RAM; annulla eventi già in corso e interventi di moderazione in coda
+- `/lua start`: riattiva gli script sospesi, conservando il loro stato temporaneo
+- `/lua restart`: sospende, ricrea le VM di questa sola rete usando i sorgenti già autorizzati e riprende solo se tutti i caricamenti riescono; cronologie e variabili temporanee si azzerano, mentre le altre reti non vengono toccate
+
+I comandi sono locali e non trasmessi al server IRC. Lo stop e il restart
+non modificano le autorizzazioni persistenti. Dopo un errore di
+restart la rete rimane sospesa e gli errori sono riportati nel log.
+Una modifica nelle Impostazioni può continuare a provocare un reload
+globale, come avveniva in precedenza.
+
+Per minimizzare l'uso di RAM, le VM supplementari sono create solo al primo
+restart della rete, non durante la connessione ordinaria. Ogni VM è
+limitata a 2 MiB, con un limite complessivo di 32 MiB nel processo
+isolato. Quando non è possibile allocare una nuova VM il restart non
+viene considerato riuscito.
+
+AutoMod: `/lua mod help` descrive anche `/lua restart`, che
+reinizializza configurazione temporanea e storico della rete. Invece
+`/lua mod reset` cancella solo lo storico di AutoMod.
+
+ 
+## Quote e sicurezza dei dati AutoMod
+
+AutoMod usa una sola chiave per rete autorizzata (massimo 16), con un
+valore di al più 8192 byte. Anche riempiendo il massimo di 16 canali,
+32 account whitelist e 32 account blacklist per rete, il formato testuale
+rimane entro tale limite. Per questa funzione le quote C6 rimangono
+bounded ma salgono a 16 chiavi, 8192 byte per valore e 128 KiB totali
+per script, con file JSON massimo di 160 KiB. Le nuove quote sono
+controllate sia dal processo Android sia dall'interprete nativo.
+
+Il database C6 è privato all'app e compreso nei backup con le
+convalide già previste; le autorizzazioni a usarlo sono separate e
+revocate al ripristino. Una nuova installazione di AutoMod non
+converte automaticamente impostazioni che in versioni precedenti
+esistevano soltanto nella RAM. **Da verificare su una Candidate**:
+riavvio app, `/lua restart`, backup/ripristino e due reti IRC attive,
+oltre ai test di regressione host e CI.
+
+## AutoMod: progressione ed espulsione prima del ban
+
+Le sanzioni di AutoMod in modalità `escalation` sono:
+1. avvertimento (pubblico, PVT o NOTICE, secondo la configurazione);
+2. KICK con motivazione **`non ripetere`**;
+3. KICK con motivazione **`non ripetere`**, poi ban temporaneo (default 10m);
+4. KICK con motivazione **`non ripetere`**, poi ban permanente.
+
+L'infrazione resta valida dopo JOIN/PART/QUIT e segue il cambio nick
+quando la nuova chiave non è già occupata. Lo storico dei testi viene
+invece eliminato quando un utente esce dal canale. Il contatore decade
+alla scadenza della finestra configurata (30 minuti per default).
+Disconnessione, reset dello script o `/lua mod reset` lo azzerano.
+
+**Nota importante sull'API:** fare prima `tiarca.kick()` e poi
+`tiarca.ban()` come richieste separate non è affidabile, perché il
+secondo comando potrebbe trovare il nick già uscito dal canale.
+Ora sono disponibili `tiarca.kickban(channel,nick,reason)` e
+`tiarca.kicktban(channel,nick,duration,reason)`: ognuna produce una
+sola richiesta strutturata, verificata lato Android (rete e canale,
+operatore, presenza, prefissi, host osservato, dialetto IRC).
+Il codice convalida l'intero intervento **prima** di inviare il
+KICK e poi il comando MODE/TBAN, conservando la maschera già rilevata.
+Se manca la mask o il server non supporta il ban temporaneo,
+la richiesta viene respinta senza inviare neppure il KICK.
+Questa verifica non costituisce conferma di esecuzione da parte
+del server IRC, che può comunque rifiutare comandi.
+
+Queste due API sono ristrette alla moderazione, richiedono il consenso
+esplicito e non consentono accesso a comandi IRC arbitrari.
+
+
+## Nuovo limite sorgenti e API blacklist
+
+Il limite degli script Lua importati, validato sia nel main process Java
+sia nel processo Lua isolato in C/JNI, è **16 KiB (16384 byte UTF-8)**
+invece di 8 KiB. Restano invariati il budget di istruzioni per evento,
+i 2 MiB di heap per VM e il cap aggregato di 32 MiB.
+
+La nuova API `tiarca.blacklist_action(channel,nick,account,azione,durata)`
+è una richiesta strutturata e non permette di inviare comandi IRC raw.
+Le azioni consentite sono `kick`, `ban`, `mute`, `tban`,
+`bankick` e `tbankick`. Il client Android ricontrolla al momento
+dell'invio l'account reale e l'origine dell'evento, senza affidarsi
+al solo account indicato da Lua. Per un kick la motivazione è sempre
+`non ripetere`; le azioni composte inviano KICK e poi MODE/TBAN solo
+dopo aver preparato la mask. In assenza di un account riconosciuto non
+esiste alcun override dei privilegi.

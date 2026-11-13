@@ -51,6 +51,10 @@ public final class LuaDiagnosticService extends Service {
             new java.util.concurrent.atomic.AtomicInteger();
     private HandlerThread worker;
     private Messenger messenger;
+    // Only the isolated worker accesses these overrides; scripts on other
+    // networks continue using their original VM without interruption.
+    private final java.util.Map<String, String> scopedRuntimeIds =
+            new java.util.HashMap<>();
 
     @Override public void onCreate() {
         super.onCreate();
@@ -68,6 +72,7 @@ public final class LuaDiagnosticService extends Service {
     private boolean handle(Message message) {
         if (message.what == REQUEST_RESET) {
             NativeLuaRuntime.clear();
+            scopedRuntimeIds.clear();
             return true;
         }
         if (message.what == REQUEST_LOAD || message.what == REQUEST_EVENT) {
@@ -142,9 +147,31 @@ public final class LuaDiagnosticService extends Service {
         try {
             if (message.what == REQUEST_LOAD) {
                 byte[] source = request.getByteArray(EXTRA_SOURCE);
+                String network = request.getString(EXTRA_SERVER, "");
+                boolean scoped = !network.isEmpty();
+                String runtimeId = scriptId;
+                if (scoped) {
+                    try {
+                        if (!java.util.UUID.fromString(network).toString()
+                                .equalsIgnoreCase(network))
+                            throw new IllegalArgumentException("invalid network");
+                        // Deterministic, 36-character VM ID accepted by the existing JNI.
+                        runtimeId = java.util.UUID.nameUUIDFromBytes(
+                                (scriptId + ":" + network).getBytes(
+                                        java.nio.charset.StandardCharsets.UTF_8)).toString();
+                    } catch (IllegalArgumentException invalid) {
+                        status = "ERROR: invalid restart network";
+                        returnReply(message, scriptId, status, actions);
+                        return;
+                    }
+                }
                 status = source == null || source.length > LuaScriptStore.MAX_SOURCE_BYTES
                         ? "ERROR: source too large or missing"
-                        : NativeLuaRuntime.decode(NativeLuaRuntime.load(scriptId, source));
+                        : NativeLuaRuntime.decode(NativeLuaRuntime.load(runtimeId, source));
+                if (scoped) {
+                    if ("OK".equals(status)) scopedRuntimeIds.put(scriptId + ":" + network, runtimeId);
+                    else scopedRuntimeIds.remove(scriptId + ":" + network);
+                }
             } else {
                 String event = request.getString(EXTRA_EVENT, "");
                 String server = request.getString(EXTRA_SERVER, "");
@@ -241,7 +268,9 @@ public final class LuaDiagnosticService extends Service {
                             if (!valid) {
                                 status = "ERROR: invalid Lua storage snapshot";
                             } else {
-                                byte[][] nativeActions = NativeLuaRuntime.dispatch(scriptId, event,
+                                String runtimeId = scopedRuntimeIds.getOrDefault(
+                                        scriptId + ":" + server, scriptId);
+                                byte[][] nativeActions = NativeLuaRuntime.dispatch(runtimeId, event,
                                         NativeLuaRuntime.utf8(server), NativeLuaRuntime.utf8(channel),
                                         NativeLuaRuntime.utf8(nick), NativeLuaRuntime.utf8(text),
                                         NativeLuaRuntime.utf8(messageType), request.getLong(EXTRA_TIME),
@@ -270,10 +299,15 @@ public final class LuaDiagnosticService extends Service {
             status = "ERROR: Lua runtime exception";
         }
 
+        returnReply(message, scriptId, status, actions);
+    }
+
+    private void returnReply(Message message, String scriptId, String status,
+                             java.util.ArrayList<String> actions) {
         Message response = Message.obtain(null, RESPONSE_SCRIPT);
         Bundle payload = new Bundle();
         payload.putString(EXTRA_SCRIPT_ID, scriptId);
-        payload.putInt(EXTRA_REQUEST_ID, request.getInt(EXTRA_REQUEST_ID));
+        payload.putInt(EXTRA_REQUEST_ID, message.getData().getInt(EXTRA_REQUEST_ID));
         payload.putString(EXTRA_STATUS, status);
         payload.putStringArrayList(EXTRA_ACTIONS, actions);
         response.setData(payload);
