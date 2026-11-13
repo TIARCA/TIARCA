@@ -556,3 +556,33 @@ Da testare manualmente su una **Candidate**: somiglianza e falsi positivi in
 canali reali, 1000 utenti, spegnimento/riavvio, privilegi e differenze IRCd,
 scadenze Android e semantica ban/mute/tban. Nessun ban automatico è attivo
 senza scelta esplicita dell'utente.
+
+ 
+## Comandi integrati e convenzione help
+
+`/lua list` elenca nella scheda Server solo gli script abilitati per la
+rete IRC corrente. Funziona anche senza script attivi, perché è gestito
+direttamente dal client, non da un callback Lua. `/lua help` mostra
+i comandi generali. Nessuno dei due invia dati al server IRC.
+
+Gli script TIARCA che espongono un comando devono implementare
+`/lua <comando> help` con istruzioni ed esempi. Mask Finder:
+`/lua mask help`. AutoMod: `/lua mod help` (anche `/lua mod`);
+`/lua mod stato` mostra la configurazione.
+
+## Invio privato e NOTICE controllati
+
+`tiarca.pm(event.nick, testo)` e `tiarca.notice(event.nick, testo)`
+sono permessi solo con il consenso **Invio messaggi**. Entrambi sono
+limitati al **nick che ha generato il messaggio in canale** su una rete
+autorizzata: confronto con casemapping IRC e verifica della presenza
+in canale al momento dell'azione. Niente destinazioni arbitrarie,
+messaggi da timer/comandi, invii cross-network o comandi RAW.
+
+Si applicano i limiti di invio ordinari: 5 secondi per script/rete,
+1,5 secondi tra invii Lua nella stessa rete. Invii eccedenti sono
+scartati, non accodati. Testo massimo 400 byte UTF-8, senza CTCP/CRLF.
+
+AutoMod: `/lua mod avviso pubblico|pvt|notice`; predefinito pubblico.
+Le impostazioni cambiate via comando non sono persistenti. Le funzioni
+sono disponibili nel branch di sviluppo, non nella release 0.9.10.

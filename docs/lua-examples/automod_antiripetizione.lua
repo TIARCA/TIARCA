@@ -1,20 +1,16 @@
--- TIARCA AutoMod: antiripetizione (Lua 5.5.1).
--- Predefinito: monitoraggio, nessuna sanzione automatica.
--- Comandi: /lua mod stato; /lua mod azione monitor|avviso|kick|ban|mute|tban|bankick|escalation
--- Per gli altri comandi consultare docs/LUA_SCRIPTING_MVP.md.
--- Seleziona le reti nelle autorizzazioni dello script; CANALI limita i canali.
+-- /lua mod help
 local CANALI = {} -- esempio: ["#test"] = true (vuoto = tutti)
 local MAX_UTENTI = 1000  -- utenti attivi in memoria, non utenti presenti
 local MAX_MESSAGGI = 2400 -- cap globale tra tutte le reti
 local MAX_TESTO = 160 -- oltre questo limite si conta, ma non si confronta
 local MAX_PAROLE = 32
-
 local config = {}
 local cronologie, utenti, messaggi = {}, 0, 0
 local function impostazioni(server)
   if not config[server] then
-    config[server] = {on=true, soglia=80, ultimi=3, minuti=30,
-      minparole=5, azione="monitor", durata="10m", pausa=10}
+  config[server] = {on=true, soglia=80, ultimi=3, minuti=30,
+    minparole=5, azione="monitor", avviso="pubblico",
+    durata="10m", pausa=10}
   end
   return config[server]
 end
@@ -31,34 +27,34 @@ end
 local function scaduti(r, now, minuti)
   local limit = minuti * 60
   for i=#r.lista,1,-1 do
-    if now - r.lista[i].t >= limit then
-      table.remove(r.lista,i)
-      messaggi = messaggi - 1
-    end
+  if now - r.lista[i].t >= limit then
+    table.remove(r.lista,i)
+    messaggi = messaggi - 1
+  end
   end
   if r.infrazione > 0 and now - r.ultima_infrazione >= limit then
-    r.infrazione, r.ultima_infrazione = 0, 0
+  r.infrazione, r.ultima_infrazione = 0, 0
   end
 end
 local function pulizia(server, now)
   for k,r in pairs(cronologie) do
-    if r.server == server then
-      scaduti(r, now, impostazioni(server).minuti)
-      if #r.lista == 0 and r.infrazione == 0 then elimina(k) end
-    end
+  if r.server == server then
+    scaduti(r, now, impostazioni(server).minuti)
+    if #r.lista == 0 and r.infrazione == 0 then elimina(k) end
+  end
   end
 end
 local function reset(server)
   for k,r in pairs(cronologie) do
-    if r.server == server then elimina(k) end
+  if r.server == server then elimina(k) end
   end
 end
 local function posto(escludi)
   local k0, t0
   for k,r in pairs(cronologie) do
-    if k ~= escludi and (not t0 or r.visto < t0) then
-      k0, t0 = k, r.visto
-    end
+  if k ~= escludi and (not t0 or r.visto < t0) then
+    k0, t0 = k, r.visto
+  end
   end
   if not k0 then return false end
   elimina(k0)
@@ -68,12 +64,12 @@ local function prepara(e, now, c)
   local k = chiave(e)
   local r = cronologie[k]
   if r then
-    scaduti(r, now, c.minuti)
+  scaduti(r, now, c.minuti)
   else
-    if utenti >= MAX_UTENTI then posto(k) end
-    r = {server=e.server, lista={}, infrazione=0,
-      ultima_infrazione=0, ultima_azione=0, visto=now}
-    cronologie[k], utenti = r, utenti + 1
+  if utenti >= MAX_UTENTI then posto(k) end
+  r = {server=e.server, lista={}, infrazione=0,
+    ultima_infrazione=0, ultima_azione=0, visto=now}
+  cronologie[k], utenti = r, utenti + 1
   end
   r.visto = now
   return k, r
@@ -82,51 +78,52 @@ local function impronta(text)
   local parti, bytes = {}, 0
   local pulito = text:lower():gsub("[%c%p]", " ")
   for parola in pulito:gmatch("%S+") do
-    if #parti >= MAX_PAROLE or bytes + #parola + 1 > MAX_TESTO then
-      return "", 0 -- salta il confronto, non taglia messaggi lunghi
-    end
-    parti[#parti+1] = parola
-    bytes = bytes + #parola + 1
+  if #parti >= MAX_PAROLE or bytes + #parola + 1 > MAX_TESTO then
+    return "", 0 -- salta il confronto, non taglia messaggi lunghi
+  end
+  parti[#parti+1] = parola
+  bytes = bytes + #parola + 1
   end
   return table.concat(parti, " "), #parti
 end
--- Dice su multinsiemi di parole: ripetizioni e ordine non sono persi.
 local function simile(a, na, b, nb)
   local conta, comuni = {}, 0
   for parola in a:gmatch("%S+") do
-    conta[parola] = (conta[parola] or 0) + 1
+  conta[parola] = (conta[parola] or 0) + 1
   end
   for parola in b:gmatch("%S+") do
-    local n = conta[parola] or 0
-    if n > 0 then comuni, conta[parola] = comuni + 1, n - 1 end
+  local n = conta[parola] or 0
+  if n > 0 then comuni, conta[parola] = comuni + 1, n - 1 end
   end
   return 200 * comuni / (na + nb)
 end
 local function azione(e, c, livello)
   local scelta = c.azione
   if scelta == "escalation" then
-    if livello == 1 then scelta = "avviso"
-    elseif livello == 2 then scelta = "kick"
-    elseif livello == 3 then scelta = "tbankick"
-    else scelta = "bankick" end
+  if livello == 1 then scelta = "avviso"
+  elseif livello == 2 then scelta = "kick"
+  elseif livello == 3 then scelta = "tbankick"
+  else scelta = "bankick" end
   end
   if scelta == "monitor" then return end
   if scelta == "avviso" then
-    tiarca.send(e.channel, e.nick .. ": evita di ripetere messaggi simili.")
+  local testo = "AutoMod: evita di ripetere messaggi simili."
+  if c.avviso == "pvt" then tiarca.pm(e.nick, testo)
+  elseif c.avviso == "notice" then tiarca.notice(e.nick, testo)
+  else tiarca.send(e.channel, e.nick .. ": " .. testo) end
   elseif scelta == "kick" then
-    tiarca.kick(e.channel, e.nick, "AutoMod: messaggi ripetuti")
+  tiarca.kick(e.channel, e.nick, "AutoMod: messaggi ripetuti")
   elseif scelta == "ban" then tiarca.ban(e.channel, e.nick)
   elseif scelta == "mute" then tiarca.mute(e.channel, e.nick)
   elseif scelta == "tban" then tiarca.tban(e.channel, e.nick, c.durata)
   elseif scelta == "bankick" then
-    tiarca.ban(e.channel, e.nick)
-    tiarca.kick(e.channel, e.nick, "AutoMod: messaggi ripetuti")
+  tiarca.ban(e.channel, e.nick)
+  tiarca.kick(e.channel, e.nick, "AutoMod: messaggi ripetuti")
   elseif scelta == "tbankick" then
-    tiarca.tban(e.channel, e.nick, c.durata)
-    tiarca.kick(e.channel, e.nick, "AutoMod: messaggi ripetuti")
+  tiarca.tban(e.channel, e.nick, c.durata)
+  tiarca.kick(e.channel, e.nick, "AutoMod: messaggi ripetuti")
   end
 end
-
 tiarca.on("message", function(e)
   if not e.channel:match("^[#&+!]") or e.message_type ~= "normal" then return end
   if next(CANALI) and not CANALI[e.channel:lower()] then return end
@@ -137,19 +134,19 @@ tiarca.on("message", function(e)
   local sig, n = impronta(e.text or "")
   local max = 0
   if n >= c.minparole then
-    for _,precedente in ipairs(r.lista) do
-      if precedente.n >= c.minparole then
-        local percentuale = simile(sig, n, precedente.sig, precedente.n)
-        if percentuale > max then max = percentuale end
-      end
+  for _,precedente in ipairs(r.lista) do
+    if precedente.n >= c.minparole then
+      local percentuale = simile(sig, n, precedente.sig, precedente.n)
+      if percentuale > max then max = percentuale end
     end
   end
+  end
   while #r.lista >= c.ultimi do
-    table.remove(r.lista,1)
-    messaggi = messaggi - 1
+  table.remove(r.lista,1)
+  messaggi = messaggi - 1
   end
   while messaggi >= MAX_MESSAGGI do
-    if not posto(k) then break end
+  if not posto(k) then break end
   end
   r.lista[#r.lista+1] = {sig=sig, n=n, t=now}
   messaggi = messaggi + 1
@@ -158,59 +155,68 @@ tiarca.on("message", function(e)
   r.infrazione = r.infrazione + 1
   r.ultima_infrazione, r.ultima_azione = now, now
   tiarca.log(string.format("AutoMod %s/%s %s: %.1f%%, infrazione %d (%s)",
-    e.server:sub(1,8), e.channel, e.nick, max, r.infrazione, c.azione))
+  e.server:sub(1,8), e.channel, e.nick, max, r.infrazione, c.azione))
   azione(e,c,r.infrazione)
 end)
-
 tiarca.on("timer", function(e) pulizia(e.server, e.timestamp) end)
 tiarca.on("disconnected", function(e) reset(e.server) end)
 for _,tipo in ipairs({"join","part","quit","nick"}) do
   tiarca.on(tipo, function(e)
-    if e.channel:match("^[#&+!]") and e.nick ~= "" then
-      elimina(chiave(e))
-    end
+  if e.channel:match("^[#&+!]") and e.nick ~= "" then
+    elimina(chiave(e))
+  end
   end)
 end
-
 tiarca.on("command", function(e)
   local cmd = (e.text or ""):lower():match("^%s*(.-)%s*$")
   if cmd ~= "mod" and not cmd:match("^mod%s+") then return end
   local c = impostazioni(e.server)
   local key, val = cmd:match("^mod%s+(%S+)%s*(.-)%s*$")
   local msg
-  if cmd == "mod" or key == "stato" then
-    msg = string.format("%s | %s | soglia %d%% | ultimi %d | minuti %d | minparole %d | pausa %ds | durata %s | utenti %d, messaggi %d (globali)",
-      c.on and "ON" or "OFF", c.azione, c.soglia, c.ultimi,
-      c.minuti, c.minparole, c.pausa, c.durata, utenti, messaggi)
+  if cmd == "mod" or key == "help" then
+  msg = "Uso: /lua mod stato|on|off|reset\n" ..
+    "Config: soglia 80, ultimi 3, minuti 30, minparole 5, pausa 10\n" ..
+    "Avvisi: /lua mod avviso pubblico|pvt|notice\n" ..
+    "Azione: /lua mod azione monitor|avviso|kick|ban|mute|tban|bankick|escalation\n" ..
+    "Ban temporaneo: /lua mod durata 10m"
+  elseif key == "stato" then
+  msg = string.format("%s | %s | soglia %d%% | ultimi %d | minuti %d | minparole %d | pausa %ds | durata %s | utenti %d, messaggi %d (globali)",
+    c.on and "ON" or "OFF", c.azione .. "/" .. c.avviso, c.soglia, c.ultimi,
+    c.minuti, c.minparole, c.pausa, c.durata, utenti, messaggi)
   elseif key == "on" or key == "off" then
-    c.on = key == "on"
-    if not c.on then reset(e.server) end
-    msg = "AutoMod " .. (c.on and "attivo" or "disattivato")
+  c.on = key == "on"
+  if not c.on then reset(e.server) end
+  msg = "AutoMod " .. (c.on and "attivo" or "disattivato")
   elseif key == "reset" then
-    reset(e.server)
-    msg = "Cronologia cancellata per questa rete"
+  reset(e.server)
+  msg = "Cronologia cancellata per questa rete"
+  elseif key == "avviso" then
+  if val == "privato" then val = "pvt" end
+  if val == "pubblico" or val == "pvt" or val == "notice" then
+    c.avviso = val; msg = "Avvertimento: " .. val
+  end
   elseif key == "azione" then
-    local azioni = {monitor=true,avviso=true,kick=true,ban=true,
-      mute=true,tban=true,bankick=true,escalation=true}
-    if azioni[val] then c.azione = val; msg = "Azione: " .. val end
+  local azioni = {monitor=true,avviso=true,kick=true,ban=true,
+    mute=true,tban=true,bankick=true,escalation=true}
+  if azioni[val] then c.azione = val; msg = "Azione: " .. val end
   elseif key == "durata" then
-    local n, unit = val:match("^(%d%d?)([mhd])$")
-    if n and tonumber(n) >= 1 and tonumber(n) <= 99 then
-      c.durata = val; msg = "Ban temporaneo: " .. val
-    end
+  local n, unit = val:match("^(%d%d?)([mhd])$")
+  if n and tonumber(n) >= 1 and tonumber(n) <= 99 then
+    c.durata = val; msg = "Ban temporaneo: " .. val
+  end
   else
-    local field, low, high = nil, 0, 0
-    if key == "soglia" then field,low,high = "soglia",60,100
-    elseif key == "ultimi" then field,low,high = "ultimi",1,10
-    elseif key == "minuti" then field,low,high = "minuti",1,120
-    elseif key == "minparole" then field,low,high = "minparole",3,15
-    elseif key == "pausa" then field,low,high = "pausa",0,120 end
-    local num = tonumber(val)
-    if field and num and num == math.floor(num) and num >= low and num <= high then
-      c[field] = num
-      msg = field .. " = " .. tostring(num)
-    end
+  local field, low, high = nil, 0, 0
+  if key == "soglia" then field,low,high = "soglia",60,100
+  elseif key == "ultimi" then field,low,high = "ultimi",1,10
+  elseif key == "minuti" then field,low,high = "minuti",1,120
+  elseif key == "minparole" then field,low,high = "minparole",3,15
+  elseif key == "pausa" then field,low,high = "pausa",0,120 end
+  local num = tonumber(val)
+  if field and num and num == math.floor(num) and num >= low and num <= high then
+    c[field] = num
+    msg = field .. " = " .. tostring(num)
+  end
   end
   tiarca.show("AutoMod", msg or
-    "Comandi: stato, on, off, reset, soglia 80, ultimi 3, minuti 30, minparole 5, pausa 10, durata 10m, azione monitor|avviso|kick|ban|mute|tban|bankick|escalation")
+  "Comandi: stato, on, off, reset, soglia 80, ultimi 3, minuti 30, minparole 5, pausa 10, durata 10m, azione monitor|avviso|kick|ban|mute|tban|bankick|escalation")
 end)
