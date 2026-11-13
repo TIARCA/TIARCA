@@ -68,6 +68,8 @@ public final class LuaScriptDispatcher {
     private final AtomicInteger pendingEvents = new AtomicInteger();
     private final AtomicInteger queuedEvents = new AtomicInteger();
     private final Map<Integer, Pending> pending = new ConcurrentHashMap<>();
+    // Main-looper only; identifies the request acknowledged by the isolated worker.
+    private final LuaCrashTracker crashTracker = new LuaCrashTracker();
     private final Map<String, Long> lastScriptSend = new HashMap<>();
     private final Map<String, Long> lastServerSend = new HashMap<>();
     // Accessed only on ioThread; Java owns throttling, never the script.
@@ -162,6 +164,7 @@ public final class LuaScriptDispatcher {
     public void reload() {
         main.post(() -> {
             running = true; // Allow on-demand script validation from Settings.
+            crashTracker.reset(); // An explicit reconfiguration starts a fresh attempt.
             reconcileBinding();
             main.removeCallbacks(timerTick);
             main.postDelayed(timerTick, TICK_INTERVAL_MS);
@@ -184,6 +187,7 @@ public final class LuaScriptDispatcher {
                 bound = false;
             }
         } else if (!needed && bound) {
+            crashTracker.reset();
             clearPending();
             remote = null;
             context.unbindService(connection);
@@ -192,17 +196,26 @@ public final class LuaScriptDispatcher {
     }
 
     private void disableInFlightAfterCrash() {
-        // Only disable scripts actually executing when an isolated service dies;
-        // unrelated, idle scripts are safe to reload after reconnection.
-        for (Pending request : pending.values()) {
-            // Includes script initialization: a top-level infinite loop must
-            // also be disabled, rather than crashing repeatedly on reconnect.
-            store.fail(request.scriptId,
-                    "Lua process terminated while loading or executing this script");
+        // Messenger.send() means queued, not executing. The worker separately
+        // acknowledges the exact request it started. Never disable innocent
+        // scripts whose Binder messages were still waiting in the service.
+        Pending active = pending.get(crashTracker.activeRequestId());
+        if (active != null) {
+            if (crashTracker.terminated(active.scriptId, active.isEvent)) {
+                store.fail(active.scriptId,
+                        "Lua sandbox terminated twice while loading or executing this script");
+            } else {
+                store.recordLog(active.scriptId,
+                        "Lua sandbox restarted after an unexpected termination; retrying");
+            }
+        } else {
+            // Android may kill an idle service without any script failure.
+            crashTracker.clearActive();
         }
     }
 
     private void clearPending() {
+        crashTracker.clearActive();
         pending.clear();
         pendingEvents.set(0);
     }
@@ -417,10 +430,19 @@ public final class LuaScriptDispatcher {
     }
 
     private boolean handleReply(Message message) {
-        if (message.what != LuaDiagnosticService.RESPONSE_SCRIPT) return true;
         Bundle data = message.getData();
-        Pending request = pending.remove(data.getInt(LuaDiagnosticService.EXTRA_REQUEST_ID));
+        int requestId = data.getInt(LuaDiagnosticService.EXTRA_REQUEST_ID);
+        if (message.what == LuaDiagnosticService.RESPONSE_SCRIPT_STARTED) {
+            Pending queued = pending.get(requestId);
+            if (queued != null && queued.scriptId.equals(
+                    data.getString(LuaDiagnosticService.EXTRA_SCRIPT_ID)))
+                crashTracker.started(requestId);
+            return true;
+        }
+        if (message.what != LuaDiagnosticService.RESPONSE_SCRIPT) return true;
+        Pending request = pending.remove(requestId);
         if (request == null) return true;
+        crashTracker.completed(requestId, request.scriptId, request.isEvent);
         if (request.isEvent) pendingEvents.decrementAndGet();
         String id = data.getString(LuaDiagnosticService.EXTRA_SCRIPT_ID);
         if (!request.scriptId.equals(id)) return true;
