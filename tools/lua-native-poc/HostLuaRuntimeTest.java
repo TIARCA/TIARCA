@@ -42,10 +42,20 @@ public final class HostLuaRuntimeTest {
 
     private static String[] eventAt(String id, String kind, String channel,
                                     String nick, String text, long when) {
+        return eventAs(id, kind, channel, nick, text, when, "", "*");
+    }
+
+    private static String[] eventAs(String id, String kind, String channel,
+                                    String nick, String text, long when,
+                                    String prefix, String account) {
+        byte[][] roster = "message".equals(kind) ?
+                new byte[][]{bytes(nick), bytes(prefix), bytes("ident"),
+                        bytes("host.example"), bytes(account)} :
+                new byte[0][];
         byte[][] reply = NativeLuaRuntime.dispatch(id, kind, bytes("test-server"),
                 bytes(channel), bytes(nick), bytes(text), bytes("normal"), when,
                 new byte[0][], new int[0], false,
-                new byte[0][], false, false, new byte[0][], false);
+                roster, false, true, new byte[0][], false);
         check(reply != null, "Expected Lua response");
         String[] values = new String[reply.length];
         for (int i = 0; i < reply.length; i++) values[i] = decode(reply[i]);
@@ -283,13 +293,19 @@ public final class HostLuaRuntimeTest {
         // Import the actual user-facing AutoMod source. Also check size.
         byte[] automod = Files.readAllBytes(
                 Path.of("docs/lua-examples/automod_antiripetizione.lua"));
-        check(automod.length <= 8192, "AutoMod fits the importer source limit");
+        check(automod.length <= 16384, "AutoMod fits 16 KiB source limit");
         check("OK".equals(decode(NativeLuaRuntime.load(OTHER, automod))),
                 "AutoMod loads into official Lua native sandbox");
         String[] help = event(OTHER, "command", "#room", "me", "mod help");
-        check(help.length == 4 && "show".equals(help[1]) &&
-                        help[3].contains("/lua restart"),
-                "AutoMod help explains runtime restart");
+        boolean hasRestart = false, hasWhitelist = false, hasCategories = false;
+        for (String field : help) {
+            if (field.contains("/lua restart")) hasRestart = true;
+            if (field.contains("whitelist")) hasWhitelist = true;
+            if (field.contains("registrati")) hasCategories = true;
+        }
+        check(help.length > 10 && "show".equals(help[1]) &&
+                        hasRestart && hasWhitelist && hasCategories,
+                "Grouped AutoMod help documents all command families");
 
         // Actual AutoMod escalation: warning, kick, temporary kick+ban,
         // permanent kick+ban. A kick/rejoin must not erase infraction level.
@@ -299,7 +315,7 @@ public final class HostLuaRuntimeTest {
                 "Default with no channels must not monitor messages");
         String[] emptyList = eventAt(OTHER, "command", "#room", "me",
                 "mod canali", 1794399981L);
-        check(emptyList.length == 4 && emptyList[3].contains("Nessun canale"),
+        check(emptyList.length == 4 && emptyList[3].contains("nessuno"),
                 "Channel list starts empty");
         String[] invalid = eventAt(OTHER, "command", "#room", "me",
                 "mod canali add nonsensical", 1794399982L);
@@ -376,6 +392,60 @@ public final class HostLuaRuntimeTest {
         check(eventAt(OTHER, "message", "#room", "NewNick", repeat,
                 1794400102L).length == 1,
                 "Readding dropped channel starts with clean message history");
+
+        // Registered and channel-privileged users are whitelisted by default.
+        String[] registered = eventAs(OTHER, "message", "#room", "RegUser",
+                repeat, 1794400110L, "", "knownaccount");
+        check(registered.length == 1, "Registered accounts are exempt by default");
+        for (String prefix : new String[]{"+", "%", "@", "&", "~"}) {
+            String[] privileged = eventAs(OTHER, "message", "#room",
+                    "Privileged", repeat, 1794400111L, prefix, "*");
+            check(privileged.length == 1, "Prefixed " + prefix + " is whitelisted");
+        }
+        String[] unknown = eventAs(OTHER, "message", "#room", "Unknown",
+                repeat, 1794400112L, "", "");
+        check(unknown.length == 1, "Unknown account state fails closed");
+
+        eventAt(OTHER, "command", "#room", "me",
+                "mod azione kick", 1794400113L);
+        eventAt(OTHER, "command", "#room", "me",
+                "mod blacklist add trouble", 1794400114L);
+        String[] blacklistList = eventAt(OTHER, "command", "#room", "me",
+                "mod blacklist", 1794400115L);
+        check(blacklistList.length == 4 &&
+                        blacklistList[3].contains("trouble"),
+                "Blacklist lists added authenticated accounts");
+        check(eventAs(OTHER, "message", "#room", "VoiceUser",
+                repeat, 1794400120L, "+", "trouble").length == 1,
+                "First blacklisted voice message initializes history");
+        String[] forced = eventAs(OTHER, "message", "#room", "VoiceUser",
+                repeat, 1794400121L, "+", "trouble");
+        check(forced.length == 7 && "blkmod".equals(forced[4]) &&
+                        ("VoiceUser" + (char)9 + "trouble" + (char)9 +
+                                "kick" + (char)9 + "10m").equals(forced[6]),
+                "Blacklisted account overrides default voice and registered whitelist");
+        eventAt(OTHER, "command", "#room", "me",
+                "mod blacklist drop trouble", 1794400122L);
+        check(eventAs(OTHER, "message", "#room", "VoiceUser",
+                repeat, 1794400123L, "+", "trouble").length == 1,
+                "Dropped blacklist account becomes exempt again");
+        eventAt(OTHER, "command", "#room", "me",
+                "mod whitelist categoria registrati off", 1794400124L);
+        eventAt(OTHER, "command", "#room", "me",
+                "mod whitelist add personal", 1794400125L);
+        check(eventAs(OTHER, "message", "#room", "PersonalUser",
+                repeat, 1794400126L, "", "personal").length == 1,
+                "Individually whitelisted account stays exempt if category is off");
+        eventAt(OTHER, "command", "#room", "me",
+                "mod whitelist categoria voice off", 1794400127L);
+        check(eventAs(OTHER, "message", "#room", "VoiceOther",
+                repeat, 1794400128L, "+", "*").length == 1,
+                "Voice can be excluded from default whitelist");
+        String[] voiceUnprotected = eventAs(OTHER, "message", "#room",
+                "VoiceOther", repeat, 1794400129L, "+", "*");
+        check(voiceUnprotected.length == 7 &&
+                        "kick".equals(voiceUnprotected[4]),
+                "Voice category toggle changes Lua matching (host still guards kick)");
 
         NativeLuaRuntime.unload(ID);
         check(NativeLuaRuntime.dispatch(ID, "message", bytes("test-server"),
