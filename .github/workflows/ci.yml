@@ -67,8 +67,8 @@ jobs:
       - name: Run unit tests
         run: gradle :chatlib:test :app:test${{ matrix.flavor }}DebugUnitTest
 
-      - name: Build debug APK
-        run: gradle :app:assemble${{ matrix.flavor }}Debug :app:assemble${{ matrix.flavor }}Release
+      - name: Build release APK
+        run: gradle :app:assemble${{ matrix.flavor }}Release
 
       - name: Verify distribution APK
         run: python tools/verify_distribution_apk.py ${{ matrix.flavor }}
