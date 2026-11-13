@@ -223,8 +223,12 @@ with no booking more than 60 seconds ahead; if Android delays execution
 beyond that age, the stale action expires instead of being sent. Excess
 actions are rejected with
 a script log entry rather than accumulating without bound. Each command
-rechecks permissions, live membership and operator status before execution;
-pending actions are invalidated on disconnect, script reload and stop.
+rechecks permissions, live membership and operator status before execution.
+Automatic punitive requests (kick, ban, mute, timed ban) also reject channel
+members with any advertised prefix (operators, halfops, voice, etc.) or
+unknown prefix state using the full live member list, not the 128-user
+Lua identity snapshot. Explicit Lua voice/devoice remains permitted.
+Pending actions are invalidated on disconnect, script reload and stop.
 IRC servers can still reject an action; this API
 does not promise that a request succeeded, and moderation is intentionally
 *not* executed for disconnected or timer callbacks. No unrestricted

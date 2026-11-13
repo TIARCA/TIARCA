@@ -33,6 +33,7 @@ import io.mrarm.chatlib.irc.IRCConnection;
 import io.mrarm.irc.util.ChannelOperatorUtils;
 import io.mrarm.irc.dialog.OperatorCommandComposer;
 import io.mrarm.chatlib.dto.MessageSenderInfo;
+import io.mrarm.chatlib.dto.NickWithPrefix;
 import io.mrarm.chatlib.irc.ServerConnectionApi;
 import io.mrarm.irc.ServerConnectionInfo;
 import io.mrarm.irc.ServerConnectionManager;
@@ -622,14 +623,21 @@ public final class LuaScriptDispatcher {
             } else if ("ban".equals(kind) || "mute".equals(kind)) {
                 nick = value;
             } else return;
+            NickWithPrefix targetMember =
+                    ChannelOperatorUtils.findMember(connection, channel, nick);
             if (!LuaModerationPolicy.liveTargetAllowed(
                     connection.isConnected(),
                     ChannelOperatorUtils.hasOperatorPrivileges(connection, channel, false),
-                    ChannelOperatorUtils.isNickPresent(connection, channel, nick),
+                    targetMember != null,
                     LuaModerationPolicy.isSelf(
                             api.getServerConnectionData().getSupportList().getCaseMapping(),
                             nick, connection.getUserNick()),
                     nick)) return;
+            // Do not auto-kick/ban/mute channel staff or voiced participants.
+            // Lookup is live (not the 128-member Lua snapshot), so this also
+            // covers channels containing 1000+ users.
+            if (!"mode".equals(kind) &&
+                    !LuaModerationPolicy.unprivilegedTarget(targetMember)) return;
             if ("kick".equals(kind)) {
                 if (!LuaModerationPolicy.validReason(reason)) return;
                 api.sendCommand("KICK", true, new String[]{channel, nick, reason},

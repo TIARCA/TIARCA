@@ -2,6 +2,8 @@ package io.mrarm.irc.lua;
 
 import org.junit.Test;
 import io.mrarm.chatlib.irc.IRCCaseMapping;
+import io.mrarm.chatlib.dto.NickWithPrefix;
+import io.mrarm.chatlib.dto.NickPrefixList;
 import static org.junit.Assert.*;
 
 public class LuaModerationPolicyTest {
@@ -81,6 +83,18 @@ public class LuaModerationPolicyTest {
                 true, true, true, true, "OtherNick"));
         assertFalse(LuaModerationPolicy.liveTargetAllowed(
                 true, true, true, false, "OtherNick\r\nMODE"));
+    }
+
+    @Test public void automaticPunishmentSkipsAllPrivilegedOrUnknownUsers() {
+        assertTrue(LuaModerationPolicy.unprivilegedTarget(
+                new NickWithPrefix("regular", new NickPrefixList(""))));
+        assertFalse(LuaModerationPolicy.unprivilegedTarget(
+                new NickWithPrefix("operator", new NickPrefixList("@"))));
+        assertFalse(LuaModerationPolicy.unprivilegedTarget(
+                new NickWithPrefix("voice", new NickPrefixList("+"))));
+        assertFalse(LuaModerationPolicy.unprivilegedTarget(
+                new NickWithPrefix("unknown", null)));
+        assertFalse(LuaModerationPolicy.unprivilegedTarget(null));
     }
 
     @Test public void revokedPermissionDisablesExistingScriptActions() {

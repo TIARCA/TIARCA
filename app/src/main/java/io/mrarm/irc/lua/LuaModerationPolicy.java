@@ -2,6 +2,7 @@ package io.mrarm.irc.lua;
 
 import java.nio.charset.StandardCharsets;
 import io.mrarm.chatlib.irc.IRCCaseMapping;
+import io.mrarm.chatlib.dto.NickWithPrefix;
 
 /**
  * Pure-Java validation: Lua only requests named operator actions, never raw
@@ -84,6 +85,16 @@ final class LuaModerationPolicy {
                                      boolean targetPresent, boolean self,
                                      String nick) {
         return connected && operator && targetPresent && !self && validNick(nick);
+    }
+
+    /**
+     * Automatic punitive actions must not target ops, halfops or voiced users.
+     * Any unknown prefix state also fails closed. MODE is intentionally exempt
+     * so existing Lua voice/devoice actions remain available.
+     */
+    static boolean unprivilegedTarget(NickWithPrefix member) {
+        return member != null && member.getNickPrefixes() != null
+                && member.getNickPrefixes().length() == 0;
     }
 
     static boolean permittedMode(String mode) {
