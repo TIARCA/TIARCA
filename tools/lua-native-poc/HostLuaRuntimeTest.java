@@ -526,6 +526,42 @@ public final class HostLuaRuntimeTest {
         check(collect(secondaryRestored)[3].contains("#secondary"),
                 "Settings for second network survive VM restart");
 
+        // Fill the documented maximum configuration on one network. This is
+        // substantially larger than the former 384-byte persistent value cap.
+        for (int i = 1; i <= 15; i++) {
+            String channelName = "#c" + "x".repeat(58)
+                    + String.format(java.util.Locale.ROOT, "%02d", i);
+            String[] result = eventAt(OTHER, "command", "#room", "me",
+                    "mod canali add " + channelName, 1794400140L + i);
+            check("OK".equals(result[0]), "Adding maximum channel entry should work");
+        }
+        for (int i = 1; i <= 31; i++) {
+            String account = "w" + "x".repeat(60)
+                    + String.format(java.util.Locale.ROOT, "%02d", i);
+            String[] result = eventAt(OTHER, "command", "#room", "me",
+                    "mod whitelist add " + account, 1794400170L + i);
+            check("OK".equals(result[0]), "Adding maximum whitelist entry should work");
+        }
+        for (int i = 1; i <= 32; i++) {
+            String account = "b" + "y".repeat(60)
+                    + String.format(java.util.Locale.ROOT, "%02d", i);
+            String[] result = eventAt(OTHER, "command", "#room", "me",
+                    "mod blacklist add " + account, 1794400210L + i);
+            check("OK".equals(result[0]), "Adding maximum blacklist entry should work");
+        }
+        String capacityState = automodStorage.get("automod.test-server");
+        check(capacityState != null && bytes(capacityState).length > 4096 &&
+                        bytes(capacityState).length <= 8192,
+                "Full per-network AutoMod preferences must fit 8 KiB");
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, automod))),
+                "Large saved AutoMod preferences must survive reload");
+        String[] fullState = eventAt(OTHER, "command", "#room", "me",
+                "mod stato", 1794400250L);
+        check(fullState.length == 4 && fullState[3].contains("canali 16") &&
+                        fullState[3].contains("white 32") &&
+                        fullState[3].contains("black 32"),
+                "All maximum-size channel and account exception lists must restore");
+
         NativeLuaRuntime.unload(ID);
         check(NativeLuaRuntime.dispatch(ID, "message", bytes("test-server"),
                 bytes("#x"), bytes("a"), bytes("b"), bytes("normal"), 0L,
