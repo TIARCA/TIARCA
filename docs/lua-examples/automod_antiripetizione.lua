@@ -219,7 +219,7 @@ if scelta=="escalation" then
 end
 if scelta=="monitor" then return end
 if scelta=="avviso" then
-  local text="AutoMod: evita di ripetere messaggi simili."
+  local text="Evita di ripetere messaggi simili."
   if c.avviso=="pvt" then tiarca.pm(e.nick,text)
   elseif c.avviso=="notice" then tiarca.notice(e.nick,text)
   else tiarca.send(e.channel,e.nick..": "..text) end
