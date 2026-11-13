@@ -38,12 +38,18 @@ public class LuaScriptStorageTest {
             assertFalse(LuaScriptStorage.validKey("some/key"));
             assertFalse(LuaScriptStorage.validKey(""));
             assertFalse(LuaScriptStorage.validValue(""));
-            assertFalse(LuaScriptStorage.validValue("x".repeat(385)));
+            assertFalse(LuaScriptStorage.validValue("x".repeat(8193)));
+            assertTrue(LuaScriptStorage.validValue("x".repeat(8192)));
             first.apply(ID, "store", "count", "1");
             first.apply(ID, "store", "other", "value");
             Map<String, String> restored = new LuaScriptStorage(dir).read(ID);
             assertEquals("1", restored.get("count"));
             assertEquals("value", restored.get("other"));
+            String largeAutoModConfig = "v1;" + "x".repeat(7000);
+            first.apply(ID, "store", "automod.server-one", largeAutoModConfig);
+            assertEquals(largeAutoModConfig,
+                    new LuaScriptStorage(dir).read(ID).get("automod.server-one"));
+            first.apply(ID, "erase", "automod.server-one", "1");
             first.apply(ID, "erase", "count", "1");
             assertFalse(new LuaScriptStorage(dir).read(ID).containsKey("count"));
             try {
@@ -51,7 +57,7 @@ public class LuaScriptStorageTest {
                 fail("Path-like key accepted");
             } catch (IOException expected) { }
             try {
-                first.apply(ID, "store", "too_long", "Z".repeat(400));
+                first.apply(ID, "store", "too_long", "Z".repeat(8193));
                 fail("Oversized value accepted");
             } catch (IOException expected) { }
             assertEquals("value", new LuaScriptStorage(dir).read(ID).get("other"));
