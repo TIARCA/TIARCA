@@ -507,3 +507,52 @@ must be recorded separately from the automated policy tests.
 The project owner confirmed the practical two-network and lost-OP tests on
 2026-11-12. The broader test matrix above remains **non verificato** where
 unchecked; Java unit tests and a green APK build cannot substitute for it.
+
+
+## AutoMod — antiripetizione (script sperimentale)
+
+Importa [automod_antiripetizione.lua](lua-examples/automod_antiripetizione.lua)
+con **Impostazioni → Script Lua**. All'importazione è disabilitato; dopo
+l'attivazione per una o più reti IRC, opera **solo in monitoraggio**. Usa
+`/lua mod stato` per leggere le impostazioni. I comandi si digitano in una
+scheda della rete autorizzata e modificano le preferenze **di quella rete**:
+
+- `/lua mod soglia 80`: similarità Dice delle parole (60–100%, ordine ignorato,
+  occorrenze ripetute conteggiate); `/lua mod ultimi 3`: da 1 a 10 messaggi
+  precedenti dello stesso nickname nello stesso canale;
+  `/lua mod minuti 30`: scadenza da 1 a 120 minuti.
+- `/lua mod minparole 5`: lunghezza minima (3–15 parole);
+  `/lua mod pausa 10`: intervallo tra interventi sullo stesso utente
+  (0–120 secondi); `/lua mod durata 10m`: durata ban temporaneo
+  (1–99 m/h/d, solo server compatibili).
+- `/lua mod azione monitor|avviso|kick|ban|mute|tban|bankick|escalation`:
+  seleziona la risposta. `bankick` richiede prima il ban e poi il kick.
+  Escalation entro la finestra temporale: avviso → kick → ban temporaneo +
+  kick → ban + kick. Le azioni sono richieste, non conferme di successo remoto.
+- `/lua mod on`, `/lua mod off`, `/lua mod reset`: abilita/disabilita il
+  monitoraggio o cancella lo storico della sola rete corrente.
+
+I rilevamenti si leggono dall'ultimo log dello script. Gli avvisi richiedono
+permesso **Invio messaggi**, i kick/ban/mute richiedono permesso **Moderazione**
+e privilegi operatore attuali. Le azioni punitive proteggono automaticamente
+tutti i membri con prefisso (incluso voice) tramite la lista live completa,
+indipendentemente dal limite di 128 identità dello snapshot Lua.
+
+La cronologia è **solo RAM**, distinta per server, canale e nickname;
+le impostazioni tramite comando non sopravvivono al riavvio Lua, al reload o
+all'aggiornamento APK. Non usa lo storage persistente. La pulizia degli
+scaduti avviene al messaggio successivo e all'evento timer (~60 secondi).
+I messaggi troppo brevi o con più di 32 parole/160 byte normalizzati sono
+conteggiati nella finestra numerica ma non vengono confrontati (per evitare
+falsi positivi da troncamento). I limiti complessivi sono **1000 nickname
+attivi** e **2400 impronte** tra tutte le reti; se raggiunti vengono
+eliminate le cronologie meno recenti, quindi in canali molto attivi il numero
+effettivo di confronti può essere inferiore al limite scelto. L'inizio di
+una nuova sessione, la disconnessione o la modifica del nickname cancellano
+lo storico associato. Per limitare i canali modifica `CANALI` all'inizio
+sorgente prima dell'importazione.
+
+Da testare manualmente su una **Candidate**: somiglianza e falsi positivi in
+canali reali, 1000 utenti, spegnimento/riavvio, privilegi e differenze IRCd,
+scadenze Android e semantica ban/mute/tban. Nessun ban automatico è attivo
+senza scelta esplicita dell'utente.
