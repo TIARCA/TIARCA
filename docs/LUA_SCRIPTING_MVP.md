@@ -277,8 +277,8 @@ tiarca.storage.delete("counter")
 \`\`\`
 
 Keys: 1–48 ASCII letters/digits/underscore/dot/hyphen, never a path.
-Values: UTF-8 strings of 1–384 bytes. Up to 16 keys and 4096 bytes
-of key/value data per script. The main process stores each script's
+Values: UTF-8 strings of 1–8192 bytes. Up to 16 keys and 128 KiB
+of key/value data per script (JSON file at most 160 KiB). The main process stores each script's
 data in a private atomic JSON file. Lua receives only a checked,
 bounded copy with each event; setting or deleting emits a main-process
 action. Read-after-write in one callback is supported, while
