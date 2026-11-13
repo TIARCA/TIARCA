@@ -27,7 +27,9 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -44,6 +46,7 @@ import io.mrarm.irc.config.ServerConfigManager;
 public final class LuaScriptStore {
     public static final int MAX_SCRIPTS = 8;
     public static final int MAX_SOURCE_BYTES = 8192;
+    public static final int MAX_NETWORKS_PER_SCRIPT = 16;
 
     private static final String BACKUP_INDEX = "lua_scripts/index.json";
     private static LuaScriptStore instance;
@@ -58,7 +61,10 @@ public final class LuaScriptStore {
         public final String id;
         public final String name;
         public final String sha256;
+        // The first entry mirrors the legacy single-server field. The full list
+        // is the explicit per-script network allowlist.
         public final String serverId;
+        public final List<String> serverIds;
         public final boolean enabled;
         public final boolean allowSend;
         public final boolean allowUserInfo;
@@ -81,16 +87,29 @@ public final class LuaScriptStore {
         Script(String id, String name, String hash, String serverId,
                boolean enabled, boolean allowSend, boolean allowUserInfo,
                boolean allowModeration, boolean allowStorage, String error) {
+            this(id, name, hash, serverId == null || serverId.isEmpty() ?
+                            Collections.emptyList() : Collections.singletonList(serverId),
+                    enabled, allowSend, allowUserInfo, allowModeration, allowStorage, error);
+        }
+
+        private Script(String id, String name, String hash, List<String> serverIds,
+                       boolean enabled, boolean allowSend, boolean allowUserInfo,
+                       boolean allowModeration, boolean allowStorage, String error) {
             this.id = id;
             this.name = name;
             this.sha256 = hash;
-            this.serverId = serverId;
+            this.serverIds = Collections.unmodifiableList(new ArrayList<>(serverIds));
+            this.serverId = serverIds.isEmpty() ? "" : serverIds.get(0);
             this.enabled = enabled;
             this.allowSend = allowSend;
             this.allowUserInfo = allowUserInfo;
             this.allowModeration = allowModeration;
             this.allowStorage = allowStorage;
             this.error = error;
+        }
+
+        boolean isEnabledOn(String networkId) {
+            return enabled && networkId != null && serverIds.contains(networkId);
         }
 
         Script configured(String serverId, boolean enabled, boolean allowSend, String error) {
@@ -108,7 +127,16 @@ public final class LuaScriptStore {
         Script configured(String serverId, boolean enabled, boolean allowSend,
                           boolean allowUserInfo, boolean allowModeration,
                           boolean allowStorage, String error) {
-            return new Script(id, name, sha256, serverId, enabled, allowSend,
+            return configured(serverId == null || serverId.isEmpty() ?
+                            Collections.emptyList() : Collections.singletonList(serverId),
+                    enabled, allowSend, allowUserInfo, allowModeration,
+                    allowStorage, error);
+        }
+
+        Script configured(List<String> networks, boolean enabled, boolean allowSend,
+                          boolean allowUserInfo, boolean allowModeration,
+                          boolean allowStorage, String error) {
+            return new Script(id, name, sha256, networks, enabled, enabled && allowSend,
                     enabled && allowUserInfo, enabled && allowModeration,
                     enabled && allowStorage, error);
         }
@@ -206,10 +234,31 @@ public final class LuaScriptStore {
         String name = obj.optString("name", "script.lua");
         if (!validScriptName(name))
             throw new JSONException("Invalid Lua filename");
-        String server = obj.optString("server", "");
-        if (!server.isEmpty() && !validId(server))
-            throw new JSONException("Invalid Lua server UUID");
-        return new Script(id, name, hash, server, obj.optBoolean("enabled", false),
+        // Metadata written by older versions has only "server". Read it
+        // without losing existing approvals during a same-device APK upgrade.
+        ArrayList<String> servers = new ArrayList<>();
+        JSONArray selected = obj.optJSONArray("servers");
+        if (obj.has("servers") && selected == null)
+            throw new JSONException("Malformed Lua network list");
+        if (selected != null) {
+            if (selected.length() > MAX_NETWORKS_PER_SCRIPT)
+                throw new JSONException("Too many Lua network approvals");
+            for (int i = 0; i < selected.length(); i++) {
+                String network = selected.getString(i);
+                if (!validId(network) || servers.contains(network))
+                    throw new JSONException("Invalid or repeated Lua network UUID");
+                servers.add(network);
+            }
+        } else {
+            String legacy = obj.optString("server", "");
+            if (!legacy.isEmpty()) {
+                if (!validId(legacy)) throw new JSONException("Invalid Lua server UUID");
+                servers.add(legacy);
+            }
+        }
+        if (obj.optBoolean("enabled", false) && servers.isEmpty())
+            throw new JSONException("Enabled Lua script has no approved network");
+        return new Script(id, name, hash, servers, obj.optBoolean("enabled", false),
                 obj.optBoolean("send", false), obj.optBoolean("users", false),
                 obj.optBoolean("moderation", false), obj.optBoolean("storage", false),
                 obj.optString("error", ""));
@@ -220,7 +269,10 @@ public final class LuaScriptStore {
         item.put("id", script.id);
         item.put("name", script.name);
         item.put("sha256", script.sha256);
-        item.put("server", script.serverId);
+        item.put("server", script.serverId); // backward-compatible first network
+        JSONArray networks = new JSONArray();
+        for (String network : script.serverIds) networks.put(network);
+        item.put("servers", networks);
         item.put("enabled", script.enabled);
         item.put("send", script.allowSend);
         item.put("users", script.allowUserInfo);
@@ -314,7 +366,7 @@ public final class LuaScriptStore {
     public synchronized List<Script> enabledOn(String serverId) {
         ArrayList<Script> enabled = new ArrayList<>();
         for (Script s : scripts)
-            if (s.enabled && s.serverId.equals(serverId)) enabled.add(s);
+            if (s.isEnabledOn(serverId)) enabled.add(s);
         return enabled;
     }
 
@@ -397,21 +449,35 @@ public final class LuaScriptStore {
     public synchronized void enable(String id, String serverId, boolean send,
                                     boolean users, boolean moderation, boolean stored)
             throws IOException {
-        if (!validId(serverId)) throw new IOException("Select one server for script consent");
-        boolean exists = false;
+        enable(id, Collections.singletonList(serverId), send, users, moderation, stored);
+    }
+
+    public synchronized void enable(String id, List<String> selectedNetworks,
+                                    boolean send, boolean users, boolean moderation,
+                                    boolean stored) throws IOException {
+        if (selectedNetworks == null || selectedNetworks.isEmpty() ||
+                selectedNetworks.size() > MAX_NETWORKS_PER_SCRIPT)
+            throw new IOException("Select 1–16 IRC networks for Lua");
+        LinkedHashSet<String> selected = new LinkedHashSet<>(selectedNetworks);
+        if (selected.size() != selectedNetworks.size())
+            throw new IOException("Lua network selection contains duplicates");
+        LinkedHashSet<String> configured = new LinkedHashSet<>();
         for (ServerConfigData server : ServerConfigManager.getInstance(context).getServers())
-            if (serverId.equals(server.uuid.toString())) { exists = true; break; }
-        if (!exists) throw new IOException("Selected server no longer exists");
+            if (server.uuid != null) configured.add(server.uuid.toString());
+        for (String network : selected)
+            if (!validId(network) || !configured.contains(network))
+                throw new IOException("Selected Lua network is not configured");
         Script script = find(id);
         if (script == null) throw new IOException("Lua script not found");
         sourceBytes(script);
-        replace(script, script.configured(serverId, true, send, users, moderation,
-                stored, ""));
+        replace(script, script.configured(new ArrayList<>(selected), true, send,
+                users, moderation, stored, ""));
     }
 
     public synchronized void disable(String id) throws IOException {
         Script s = find(id);
-        if (s != null) replace(s, s.configured(s.serverId, false, false, s.error));
+        if (s != null) replace(s, s.configured(s.serverIds, false, false,
+                false, false, false, s.error));
     }
 
     public synchronized void fail(String id, String message) {
@@ -420,11 +486,13 @@ public final class LuaScriptStore {
         String reason = message == null ? "Lua failure" : message;
         if (reason.length() > 240) reason = reason.substring(0, 240);
         try {
-            replace(s, s.configured(s.serverId, false, false, reason));
+            replace(s, s.configured(s.serverIds, false, false,
+                    false, false, false, reason));
         } catch (IOException ignored) {
             // An in-memory failure still disables execution in this process.
             int i = scripts.indexOf(s);
-            if (i >= 0) scripts.set(i, s.configured(s.serverId, false, false, reason));
+            if (i >= 0) scripts.set(i, s.configured(s.serverIds, false, false,
+                    false, false, false, reason));
         }
     }
 
@@ -453,8 +521,8 @@ public final class LuaScriptStore {
     synchronized void applyStorage(String id, String server, String operation,
                                    String key, String value) throws IOException {
         Script script = find(id);
-        if (script == null || !script.enabled || !script.allowStorage ||
-                !script.serverId.equals(server)) return;
+        if (script == null || !script.isEnabledOn(server) ||
+                !script.allowStorage) return;
         storage.apply(id, operation, key, value);
     }
 

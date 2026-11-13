@@ -45,6 +45,9 @@ public class LuaScriptBackupTest {
         script.put("name", "backup-example.lua");
         script.put("sha256", encoded.toString());
         script.put("server", "ad9dfd3d-9d7d-4aeb-b047-a8d3cc673267");
+        script.put("servers", new JSONArray()
+                .put("ad9dfd3d-9d7d-4aeb-b047-a8d3cc673267")
+                .put("2598f719-dfb6-4bad-a69c-ff78cecb9315"));
         script.put("enabled", true);   // A malicious/legacy backup approval.
         script.put("send", true);
         script.put("error", "");
@@ -70,6 +73,7 @@ public class LuaScriptBackupTest {
             assertFalse(restored.enabled);
             assertFalse(restored.allowSend);
             assertEquals("", restored.serverId);
+            assertTrue("ZIP restore must revoke every network", restored.serverIds.isEmpty());
             assertArrayEquals(source, store.sourceBytes(restored));
         } finally {
             store.clearAll();
@@ -110,6 +114,8 @@ public class LuaScriptBackupTest {
         config.put("name", "transferred.lua");
         config.put("sha256", sha256.toString());
         config.put("server", serverId);
+        config.put("servers", new JSONArray()
+                .put(serverId).put("2598f719-dfb6-4bad-a69c-ff78cecb9315"));
         config.put("enabled", true);
         config.put("send", true);
         config.put("users", true);
@@ -141,6 +147,7 @@ public class LuaScriptBackupTest {
             assertFalse(script.allowModeration);
             assertFalse(script.allowStorage);
             assertEquals("", script.serverId);
+            assertTrue("Device transfer must revoke every network", script.serverIds.isEmpty());
             assertEquals("23", restored.storageSnapshot(id).get(1));
             assertTrue(marker.isFile());
         } finally {

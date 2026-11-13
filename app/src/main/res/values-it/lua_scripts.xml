@@ -1,7 +1,11 @@
 <resources>
     <string name="lua_scripts_title">Script Lua (sperimentale)</string>
-    <string name="lua_scripts_description">Importa sorgenti .lua dal dispositivo. Gli script sono inizialmente disattivati. Scegli una singola rete IRC e autorizza esplicitamente la lettura di messaggi e nickname. Le risposte automatiche richiedono un permesso distinto. Gli script non accedono direttamente a file, rete o API Android.</string>
+    <string name="lua_scripts_description">Importa gli script .lua dal dispositivo. Seleziona una o più reti IRC e autorizza esplicitamente i permessi, validi su tutte le reti selezionate. Gli script importati sono inizialmente disattivati e non possono accedere direttamente ai file o alla rete Android.</string>
     <string name="lua_scripts_import">Importa script .lua</string>
+    <string name="lua_scripts_configure">Reti e permessi</string>
+    <string name="lua_scripts_continue">Continua</string>
+    <string name="lua_scripts_select_network">Seleziona almeno una rete IRC.</string>
+    <string name="lua_scripts_too_many_servers">Uno script può accedere al massimo a 16 reti.</string>
     <string name="lua_scripts_refresh">Aggiorna stato e log</string>
     <string name="lua_scripts_empty">Nessuno script importato.</string>
     <string name="lua_scripts_enabled">Attivo</string>
@@ -11,14 +15,14 @@
     <string name="lua_scripts_delete">Elimina script</string>
     <string name="lua_scripts_reload">Ricarica script</string>
     <string name="lua_scripts_reloaded">Script Lua ricaricati</string>
-    <string name="lua_scripts_server_label">Rete: %1$s</string>
+    <string name="lua_scripts_server_label">Reti: %1$s</string>
     <string name="lua_scripts_sending_enabled">Permesso: risposte automatiche attive</string>
     <string name="lua_scripts_last_error">Errore (script disattivato): %1$s</string>
     <string name="lua_scripts_last_log">Ultimo log dello script: %1$s</string>
     <string name="lua_scripts_no_servers">Configura prima un server IRC.</string>
-    <string name="lua_scripts_choose_server">Scegli l’unica rete accessibile allo script</string>
+    <string name="lua_scripts_choose_server">Seleziona le reti IRC per lo script</string>
     <string name="lua_scripts_consent_title">Autorizzi questo script?</string>
-    <string name="lua_scripts_consent_body">Lo script Lua potrà leggere i messaggi e i nickname ricevuti su %1$s. Non potrà leggere password o file. Se attivato, viene eseguito automaticamente all’arrivo dei messaggi. Attiva solo script fidati.</string>
+    <string name="lua_scripts_consent_body">Lo script potrà leggere messaggi e nickname su TUTTE le reti selezionate: %1$s. Le autorizzazioni selezionate valgono per tutte. Non potrà accedere a password o file. Attiva solo script fidati.</string>
     <string name="lua_scripts_send_permission">Consenti anche risposte automatiche nella stessa conversazione (tiarca.send)</string>
     <string name="lua_scripts_imported">Importato %1$s (disattivato)</string>
     <string name="lua_scripts_error">Errore script Lua</string>

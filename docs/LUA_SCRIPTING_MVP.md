@@ -16,10 +16,13 @@ It is copied into TIARCA private storage. No downloads, binary plugins,
 .lua bytecode, JAR, DEX or native plugins are supported.
 
 Maximum: 8 scripts, each 8192 source bytes. Imported scripts are
-**disabled**. On enable, select exactly **one configured IRC network**,
-confirm read access to message text and nicknames there, and optionally
-approve automatic replies on that same network. By default, send is off.
-Disable, reload, delete and error-status controls are available.
+**disabled**. On enable, select **one or more configured IRC networks**
+(up to 16 per script). No other network receives events from that script.
+The same explicitly approved send/user-info/moderation/storage capabilities
+apply to every checked network; all optional permissions are off initially.
+An active script can change its network selection and permissions via
+**Networks and permissions**, always with confirmation. Disable, reload,
+delete and error-status controls are also available.
 
 **Storage and backups:** scripts are included in TIARCA backup as checked
 UTF-8 files but always restored disabled with read/send consent revoked.
@@ -62,12 +65,19 @@ and \`timestamp\` (Unix seconds).
 - \`tiarca.send(target, string)\`: queued request subject to host-side
   consent, server scope and *same incoming conversation* target equality.
   Rate limit: at most one script send every 5 seconds per script, plus
-  at least 1.5 seconds between sends on the same network. No RAW IRC,
+  at least 1.5 seconds between sends on the same network. The 5-second
+  script throttle is independent for each approved network. No RAW IRC,
   CTCP, multiline or arbitrary destinations.
 
 Registered Lua closures and their variables survive individual events while
-the isolated service lives. Reload/reconnect of the Lua service resets that
-state. C6 adds optional, explicitly approved persistent \`tiarca.storage\`; see below.
+the isolated service lives. An APK update (and a Lua-service restart) kills
+the process and resets ordinary local/global Lua variables. An in-place APK
+replacement with the same application ID and signing certificate normally
+retains the app's private files: existing script enable/disable status,
+selected network scopes and C6 persistent values reload on the next start.
+C6 opt-in `tiarca.storage` is the supported way to preserve counters/state
+across an update. Arbitrary Lua VM closures and locals are **not**
+automatically serialized.
 
 The new \`command\` callback is available only for an explicit user-entered
 \`/lua <text>\` command in TIARCA's composer. It is local and asynchronous,
@@ -101,9 +111,11 @@ A script error disables that script; normal IRC continues.
 ## Manual checks required on a new Candidate
 
 1. Import the example script; confirm it is disabled at import.
-2. Enable it for one server without send permission. Trigger a live
+2. Enable it for network A without send permission. Trigger a live
    message and check the last log counter increases.
-3. Confirm that a message on another configured server is not exposed.
+3. Confirm that a message on unapproved network B is not exposed; explicitly
+   add B and verify both networks receive their own events. Remove A and
+   confirm that network no longer triggers the script.
 4. Attempt \`tiarca.send\` with permission off: no IRC output.
 5. Re-enable with explicit send permission: a reply is delivered only
    in the source conversation, and rate limiting prevents flooding.
@@ -136,7 +148,7 @@ picker. These examples are **not** downloaded or executed automatically.
 
 \`tiarca.get_channels()\` is available **inside** Lua event callbacks. It returns
 an array of \`{ name = "#channel", users = 12 }\` entries for joined IRC channels
-on the script's **one explicitly approved server**, plus a boolean
+on the script's **explicitly approved server(s)**, plus a boolean
 \`result.truncated\` (true if more than 32 channels were joined).
 Private conversations are excluded. The entries are sorted by channel name.
 
@@ -237,9 +249,10 @@ Additional C5 actions (only if separately approved, while operator and with an o
 ## C6 — per-script persistent text storage (experimental)
 
 The user must separately approve **Persistent script data** on the chosen
-network when enabling each source. Permission is off on import, re-enable,
-backup restore and Android device transfer. The script never receives
-filesystem access, Java objects or a database connection.
+network(s) when enabling each source. Storage belongs to the script and is
+intentionally shared across its explicitly selected IRC networks. Permission
+is off on import, re-enable, backup restore and device transfer. The script
+never receives filesystem access, Java objects or a database connection.
 
 Inside an event callback, use:
 
@@ -264,6 +277,31 @@ are restored, but every script is **disabled with all consent revoked**.
 Old backups without state remain compatible. Android Auto Backup
 may transfer state files, but the no-backup approval marker revokes
 execution permissions on a new device.
+
+## APK update acceptance (same installed app, no data clearing)
+
+A unit test exercises saved script metadata and C6 storage across app process
+recreation; this is not a physical update. For a real update, use two
+**Candidate** APKs signed with the same key and application ID:
+
+1. On the older Candidate, import
+   [upgrade_persistence_probe.lua](lua-examples/upgrade_persistence_probe.lua).
+   Enable it with **Persistent script data**, run `/lua upgrade add` twice,
+   then `/lua upgrade status`; note the persistent count.
+2. Import another unrelated script but leave it disabled. Record both
+   active/disabled states and network selections.
+3. Install the newer Candidate **over the existing app** (do not uninstall,
+   clear data, or restore a backup).
+4. Confirm both enablement states and network selections are preserved.
+   Run `/lua upgrade status`: the saved counter should still be present;
+   its RAM-only session counter should start at zero. Run
+   `/lua upgrade add` again to prove the persistent count increases.
+5. Verify approved IRC networks still receive events and unapproved
+   networks still do not.
+
+This differs from restoring a backup or switching phones: a device transfer
+**intentionally revokes all Lua consent**. Actual APK replacement on a
+physical phone remains **non verificato** until tested.
 
 ## C7 — local output and selectable lists (experimental)
 

@@ -181,9 +181,6 @@ public class SettingsActivity extends ThemedActivity {
             ret.add(new Item(R.string.lua_scripts_title, R.drawable.ic_command_aliases,
                     (View v) -> v.getContext().startActivity(new Intent(v.getContext(),
                             io.mrarm.irc.lua.LuaScriptsActivity.class))));
-            ret.add(new Item(R.string.lua_diag_title, R.drawable.ic_info, (View v) ->
-                    v.getContext().startActivity(new Intent(v.getContext(),
-                            io.mrarm.irc.lua.LuaDiagnosticsActivity.class))));
             ret.add(new Item(R.string.pref_header_about, R.drawable.ic_info, (View v) ->
                     UpdateManager.showAboutDialog(requireActivity())));
             return ret;

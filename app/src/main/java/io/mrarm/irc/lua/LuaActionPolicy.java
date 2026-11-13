@@ -12,8 +12,7 @@ final class LuaActionPolicy {
 
     static boolean permitsSend(LuaScriptStore.Script script, String server,
                                String channel, String event, String target, String text) {
-        if (script == null || !script.enabled || !script.allowSend ||
-                server == null || !script.serverId.equals(server) ||
+        if (script == null || !script.isEnabledOn(server) || !script.allowSend ||
                 (!"message".equals(event) && !"command".equals(event) &&
                         !"join".equals(event) && !"part".equals(event) &&
                         !"quit".equals(event) && !"nick".equals(event)) ||
