@@ -63,4 +63,30 @@ public class LuaMultiServerPolicyTest {
         assertTrue(LuaActionPolicy.permitsSend(onlyB, B, "#shared",
                 "message", "#shared", "hello"));
     }
+
+    @Test public void maskFinderHonorsBothApprovedNetworksAndRevocation() {
+        LuaScriptStore.Script script = new LuaScriptStore.Script(
+                SCRIPT, "mask_finder.lua", "hash", A, false, false, "")
+                .configured(Arrays.asList(A, B), true, false, true, false, false, "");
+        assertEquals(A, script.serverId); // legacy value must not limit Mask Finder
+        assertTrue(MaskFinderManager.approvedForNetwork(script, A));
+        assertTrue(MaskFinderManager.approvedForNetwork(script, B));
+        assertFalse(MaskFinderManager.approvedForNetwork(script, UNAPPROVED));
+        assertFalse(MaskFinderManager.approvedForNetwork(null, A));
+
+        LuaScriptStore.Script withoutUserInfo = script.configured(script.serverIds,
+                true, false, false, false, false, "");
+        assertFalse(MaskFinderManager.approvedForNetwork(withoutUserInfo, A));
+        assertFalse(MaskFinderManager.approvedForNetwork(withoutUserInfo, B));
+
+        LuaScriptStore.Script onlyB = script.configured(
+                Collections.singletonList(B), true, false, true, false, false, "");
+        assertFalse(MaskFinderManager.approvedForNetwork(onlyB, A));
+        assertTrue(MaskFinderManager.approvedForNetwork(onlyB, B));
+
+        LuaScriptStore.Script disabled = script.configured(script.serverIds,
+                false, false, false, false, false, "");
+        assertFalse(MaskFinderManager.approvedForNetwork(disabled, A));
+        assertFalse(MaskFinderManager.approvedForNetwork(disabled, B));
+    }
 }

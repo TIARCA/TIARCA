@@ -99,10 +99,14 @@ public final class MaskFinderManager {
         }
     }
 
+    /** Recheck the full per-script allowlist, not the legacy first network. */
+    static boolean approvedForNetwork(LuaScriptStore.Script script, String server) {
+        return script != null && script.isEnabledOn(server) && script.allowUserInfo;
+    }
+
     private boolean approved(Session session) {
         LuaScriptStore.Script script = LuaScriptStore.get(context).find(session.scriptId);
-        return script != null && script.enabled && script.allowUserInfo &&
-                session.server.equals(script.serverId);
+        return approvedForNetwork(script, session.server);
     }
 
     private void notice(ServerConnectionInfo connection,
@@ -117,8 +121,8 @@ public final class MaskFinderManager {
     private void startOnMain(String scriptId, String server, String channel, String query) {
         ServerConnectionInfo conn = connected(server, channel);
         LuaScriptStore.Script script = LuaScriptStore.get(context).find(scriptId);
-        if (conn == null || script == null || !script.enabled || !script.allowUserInfo ||
-                !server.equals(script.serverId) || !MaskFinderMatcher.validQuery(query) ||
+        if (conn == null || !approvedForNetwork(script, server) ||
+                !MaskFinderMatcher.validQuery(query) ||
                 query.getBytes(StandardCharsets.UTF_8).length > 256) return;
 
         IRCConnection api = (IRCConnection) conn.getApiInstance();
