@@ -49,7 +49,6 @@ public final class LuaScriptDispatcher {
     private static final int MAX_PENDING_EVENTS = 32;
     private static final long SEND_INTERVAL_MS = 5000L;
     private static final long SERVER_INTERVAL_MS = 1500L;
-    private static final long MOD_INTERVAL_MS = 12000L;
     private static final long WHO_INTERVAL_MS = 60000L;
     private static final long TICK_INTERVAL_MS = 60000L;
 
@@ -70,9 +69,8 @@ public final class LuaScriptDispatcher {
     private final Map<Integer, Pending> pending = new ConcurrentHashMap<>();
     private final Map<String, Long> lastScriptSend = new HashMap<>();
     private final Map<String, Long> lastServerSend = new HashMap<>();
-    // Accessed only on ioThread; Java owns throttling, never the script.
-    private final Map<String, Long> lastScriptModeration = new HashMap<>();
-    private final Map<String, Long> lastServerModeration = new HashMap<>();
+    // Accessed only on ioThread; scripts cannot bypass the ordered, bounded pacing.
+    private final LuaModerationPacer moderationPacer = new LuaModerationPacer();
     private final Map<String, Long> lastWho = new HashMap<>();
     private final Runnable timerTick = new Runnable() {
         @Override public void run() {
@@ -154,6 +152,7 @@ public final class LuaScriptDispatcher {
         main.post(() -> {
             running = false;
             main.removeCallbacks(timerTick);
+            io.post(moderationPacer::clear);
             reconcileBinding();
         });
     }
@@ -162,6 +161,7 @@ public final class LuaScriptDispatcher {
     public void reload() {
         main.post(() -> {
             running = true; // Allow on-demand script validation from Settings.
+            io.post(moderationPacer::clear); // Invalidate queued actions on permission/script changes.
             reconcileBinding();
             main.removeCallbacks(timerTick);
             main.postDelayed(timerTick, TICK_INTERVAL_MS);
@@ -317,6 +317,10 @@ public final class LuaScriptDispatcher {
 
     public void onConnectionChanged(ServerConnectionInfo connection, boolean connected) {
         if (connection == null) return;
+        if (!connected) {
+            String serverId = connection.getUUID().toString();
+            io.post(() -> moderationPacer.clearServer(serverId));
+        }
         enqueue(connected ? "connected" : "disconnected",
                 connection.getUUID().toString(), "", "", "", "",
                 System.currentTimeMillis() / 1000);
@@ -495,7 +499,14 @@ public final class LuaScriptDispatcher {
                     "ban".equals(kind) || "mode".equals(kind) ||
                     "mute".equals(kind) || "tban".equals(kind)) {
                 final String operation = kind;
-                io.post(() -> performIrcAction(script.id, request, operation, target, value));
+                if ("who".equals(operation)) {
+                    io.post(() -> performIrcAction(script.id, request, operation, target, value));
+                } else {
+                    // Reserve ordered server-local slots; never drop the second part
+                    // of a legitimate ban + kick merely because it is too soon.
+                    io.post(() -> scheduleModeration(script.id, request,
+                            operation, target, value));
+                }
             } else {
                 store.fail(id, "Lua returned an unsupported action");
                 reload();
@@ -531,6 +542,32 @@ public final class LuaScriptDispatcher {
         }
     }
 
+    /**
+     * Runs on ioThread. Bounded outstanding actions prevent untrusted scripts from
+     * building an unbounded backlog. Every queued action is revalidated on delivery.
+     */
+    private void scheduleModeration(String scriptId, Pending request, String kind,
+                                    String channel, String value) {
+        LuaScriptStore.Script script = store.find(scriptId);
+        if (!LuaModerationPolicy.scoped(script, request.server, request.channel,
+                request.event, channel, true)) return;
+        LuaModerationPacer.Slot slot = moderationPacer.reserve(
+                request.server, scriptId, SystemClock.elapsedRealtime());
+        if (slot == null) {
+            store.recordLog(scriptId, "Moderation queue full or too old; action not scheduled");
+            return;
+        }
+        boolean accepted = io.postDelayed(() -> {
+            if (!moderationPacer.isCurrent(slot)) return;
+            try {
+                performIrcAction(scriptId, request, kind, channel, value);
+            } finally {
+                moderationPacer.complete(slot);
+            }
+        }, slot.delayMs);
+        if (!accepted) moderationPacer.complete(slot);
+    }
+
     /** Runs off the UI and IRC reader threads and rechecks consent at execution. */
     private void performIrcAction(String scriptId, Pending request, String kind,
                                   String channel, String value) {
@@ -553,8 +590,6 @@ public final class LuaScriptDispatcher {
             }
 
             long now = SystemClock.elapsedRealtime();
-            // Keep per-script throttling independent between approved networks,
-            // while preserving the existing per-server flood limit.
             String scriptNetwork = script.id + ":" + request.server;
             if (who) {
                 if (!"refresh".equals(value)) return;
@@ -568,11 +603,6 @@ public final class LuaScriptDispatcher {
                 lastWho.put(scriptNetwork, now);
                 return;
             }
-
-            if (now - lastScriptModeration.getOrDefault(scriptNetwork, -MOD_INTERVAL_MS)
-                    < MOD_INTERVAL_MS ||
-                    now - lastServerModeration.getOrDefault(request.server, -SERVER_INTERVAL_MS)
-                            < SERVER_INTERVAL_MS) return;
 
             String nick;
             String reason = "";
@@ -634,8 +664,6 @@ public final class LuaScriptDispatcher {
                             new String[]{channel, "+b", baseMask}, null, null);
                 }
             }
-            lastScriptModeration.put(scriptNetwork, now);
-            lastServerModeration.put(request.server, now);
         } catch (RuntimeException ignored) {
             // IRC callbacks, disconnects and partial rosters must never crash TIARCA.
         }

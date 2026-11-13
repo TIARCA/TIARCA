@@ -213,9 +213,17 @@ server is connected, the channel is joined and equals the incoming/current
 channel, the **local user currently has channel operator privileges**, and
 the target is a present member other than the local user. Only validated
 structured KICK and MODE commands can be sent: scripts cannot issue raw
-IRC, change the target network or use arbitrary ban masks. Moderation
-is rate-limited (at most once every 12 seconds per script and a separate
-per-server interval). IRC servers can still reject an action; this API
+IRC, change the target network or use arbitrary ban masks. Moderation actions are reserved in the exact Lua request order and scheduled
+on a per-network pacing queue (1.5 seconds between Lua moderation commands
+on the same IRC network). There is no 12-second per-script discard window:
+sequences such as `tiarca.ban(channel, nick)` followed by
+`tiarca.kick(channel, nick, reason)` are both scheduled. For safety the queue
+holds at most 40 pending commands per network and 20 per script/network,
+with no booking more than 60 seconds ahead. Excess actions are rejected with
+a script log entry rather than accumulating without bound. Each command
+rechecks permissions, live membership and operator status before execution;
+pending actions are invalidated on disconnect, script reload and stop.
+IRC servers can still reject an action; this API
 does not promise that a request succeeded, and moderation is intentionally
 *not* executed for disconnected or timer callbacks. No unrestricted
 extbans, arbitrary timed-ban commands, cross-channel actions or blanket mass bans.
