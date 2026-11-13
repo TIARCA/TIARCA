@@ -22,6 +22,11 @@ public class ServerConnectionData {
     private String userHost;
     private final HashMap<String, ChannelData> joinedChannels = new HashMap<>();
     private final IrcIdentityCache identityCache = new IrcIdentityCache();
+    private final WhoSnapshotCollector whoSnapshotCollector = new WhoSnapshotCollector();
+
+    public WhoSnapshotCollector getWhoSnapshotCollector() {
+        return whoSnapshotCollector;
+    }
 
     public IrcIdentityCache getIdentityCache() {
         return identityCache;

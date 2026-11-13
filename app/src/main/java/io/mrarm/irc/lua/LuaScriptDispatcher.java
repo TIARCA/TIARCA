@@ -481,6 +481,16 @@ public final class LuaScriptDispatcher {
                         // UI output is local only; disconnect must not interrupt scripts.
                     }
                 }
+            } else if ("mask".equals(kind)) {
+                // Only a local user command may initiate a potentially large
+                // channel WHO. The approved script cannot select another target.
+                if ("command".equals(request.event) &&
+                        LuaModerationPolicy.scoped(script, request.server,
+                                request.channel, request.event, target, false) &&
+                        MaskFinderMatcher.validQuery(value)) {
+                    MaskFinderManager.get(context).startSearch(
+                            script.id, request.server, target, value);
+                }
             } else if ("who".equals(kind) || "kick".equals(kind) ||
                     "ban".equals(kind) || "mode".equals(kind) ||
                     "mute".equals(kind) || "tban".equals(kind)) {

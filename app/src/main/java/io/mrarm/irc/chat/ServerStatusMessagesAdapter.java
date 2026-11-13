@@ -34,6 +34,8 @@ import io.mrarm.irc.ServerConnectionInfo;
 import io.mrarm.irc.dialog.UserBottomSheetDialog;
 import io.mrarm.irc.dialog.NicknameContextMenu;
 import io.mrarm.irc.dialog.MenuBottomSheetDialog;
+import io.mrarm.irc.lua.MaskFinderManager;
+import io.mrarm.irc.lua.MaskFinderStatusMessageInfo;
 import io.mrarm.irc.irc.CallerIdAcceptManager;
 import io.mrarm.irc.irc.CallerIdStatusMessageInfo;
 import io.mrarm.irc.irc.WhowasStatusMessageInfo;
@@ -185,9 +187,71 @@ public class ServerStatusMessagesAdapter extends RecyclerView.Adapter<RecyclerVi
             CharSequence built = MessageBuilder.getInstance(context).buildStatusMessage(message,
                     createServiceClickSpan(message));
             built = addAcceptConfirmationNickLink(built, message.getMessage());
+            if (message instanceof MaskFinderStatusMessageInfo)
+                built = decorateMaskFinder(built, (MaskFinderStatusMessageInfo) message);
             mText.setText(AlignToPointSpan.apply(mText, built));
         }
 
+    }
+
+    /** Mask Finder rows are linked using trusted metadata, not regexes over IRC text. */
+    private CharSequence decorateMaskFinder(CharSequence built, MaskFinderStatusMessageInfo info) {
+        SpannableStringBuilder text = new SpannableStringBuilder(built);
+        if (info.kind == MaskFinderStatusMessageInfo.Kind.BATCH) {
+            int from = 0;
+            for (int i = 0; i < info.nicks.size(); i++) {
+                String mask = info.masks.get(i);
+                final String nick = info.nicks.get(i);
+                int index = text.toString().indexOf(mask, from);
+                if (index < 0) continue;
+                text.setSpan(new LongClickableSpan() {
+                    @Override public void onClick(@NonNull View widget) {
+                        NicknameContextMenu.show(widget.getContext(), mConnection,
+                                nick, info.channel);
+                    }
+
+                    @Override public boolean onLongClick(@NonNull View widget) {
+                        NicknameContextMenu.show(widget.getContext(), mConnection,
+                                nick, info.channel);
+                        return true;
+                    }
+
+                    @Override public void updateDrawState(@NonNull TextPaint ds) {
+                        ds.setUnderlineText(false);
+                    }
+                }, index, index + nick.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                from = index + mask.length();
+            }
+        } else if (info.kind == MaskFinderStatusMessageInfo.Kind.CONTINUE) {
+            int yes = text.toString().lastIndexOf("[SI]");
+            int no = text.toString().lastIndexOf("[NO]");
+            if (yes >= 0 && no >= 0) {
+                if (info.consumed) {
+                    text.replace(yes, no + 4, "[già gestito]");
+                } else {
+                    text.setSpan(maskChoice(info, true), yes, yes + 4,
+                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    text.setSpan(maskChoice(info, false), no, no + 4,
+                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
+            }
+        }
+        return text;
+    }
+
+    private ClickableSpan maskChoice(MaskFinderStatusMessageInfo info, boolean yes) {
+        return new ClickableSpan() {
+            @Override public void onClick(@NonNull View widget) {
+                if (info.consumed) return;
+                MaskFinderManager.get(widget.getContext()).advance(
+                        mConnection.getUUID().toString(), info.searchId, yes);
+                int position = mMessages.getMessages().indexOf(info);
+                if (position >= 0) notifyItemChanged(position);
+            }
+            @Override public void updateDrawState(@NonNull TextPaint ds) {
+                ds.setUnderlineText(false);
+            }
+        };
     }
 
     private CharSequence addAcceptConfirmationNickLink(CharSequence built, String rawMessage) {

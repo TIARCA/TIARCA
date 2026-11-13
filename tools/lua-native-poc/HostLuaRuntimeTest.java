@@ -1,6 +1,8 @@
 package io.mrarm.irc.lua;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /** Host-JVM acceptance test for the real Lua 5.5.1 native bridge. */
 public final class HostLuaRuntimeTest {
@@ -38,7 +40,7 @@ public final class HostLuaRuntimeTest {
         return values;
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         String source = "local counter = 0\n"
                 + "tiarca.on('message', function(event)\n"
                 + " counter = counter + 1\n"
@@ -77,6 +79,19 @@ public final class HostLuaRuntimeTest {
         String[] notInvoked = event(OTHER, "message", "#example", "alice", "ping");
         check(notInvoked.length == 1 && "OK".equals(notInvoked[0]),
                 "Incoming chat text must not be treated as a local command");
+
+        // Import the exact user-facing example, not a separate simplified stub.
+        String maskScript = Files.readString(Path.of("docs/lua-examples/mask_finder.lua"));
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes(maskScript)))),
+                "Mask Finder Lua action should load");
+        String[] maskResult = event(OTHER, "command", "#example", "self", "mask pippo");
+        check(maskResult.length == 4 && "OK".equals(maskResult[0]) &&
+                        "mask".equals(maskResult[1]) &&
+                        "#example".equals(maskResult[2]) &&
+                        "pippo".equals(maskResult[3]),
+                "Mask Finder native action should preserve command channel and query");
+        check(event(OTHER, "message", "#example", "stranger", "mask pippo").length == 1,
+                "Mask Finder script must ignore remote chat input");
 
         String channelsScript = "tiarca.on('command', function(e) "
                 + "local channels = tiarca.get_channels() "
