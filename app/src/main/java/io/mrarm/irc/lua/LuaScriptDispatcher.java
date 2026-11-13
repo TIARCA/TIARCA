@@ -560,6 +560,12 @@ public final class LuaScriptDispatcher {
         boolean accepted = io.postDelayed(() -> {
             if (!moderationPacer.isCurrent(slot)) return;
             try {
+                // Android may pause the worker past its scheduled time.
+                // Never punish a user for an obsolete, delayed event.
+                if (moderationPacer.isExpired(slot, SystemClock.elapsedRealtime())) {
+                    store.recordLog(scriptId, "Moderation action expired in queue");
+                    return;
+                }
                 performIrcAction(scriptId, request, kind, channel, value);
             } finally {
                 moderationPacer.complete(slot);

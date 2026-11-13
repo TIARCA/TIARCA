@@ -219,7 +219,9 @@ on the same IRC network). There is no 12-second per-script discard window:
 sequences such as `tiarca.ban(channel, nick)` followed by
 `tiarca.kick(channel, nick, reason)` are both scheduled. For safety the queue
 holds at most 40 pending commands per network and 20 per script/network,
-with no booking more than 60 seconds ahead. Excess actions are rejected with
+with no booking more than 60 seconds ahead; if Android delays execution
+beyond that age, the stale action expires instead of being sent. Excess
+actions are rejected with
 a script log entry rather than accumulating without bound. Each command
 rechecks permissions, live membership and operator status before execution;
 pending actions are invalidated on disconnect, script reload and stop.

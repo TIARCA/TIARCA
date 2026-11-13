@@ -28,12 +28,15 @@ final class LuaModerationPacer {
         final String scriptId;
         final ServerState owner;
         final long delayMs;
+        final long acceptedAtMs;
 
-        private Slot(String server, String scriptId, ServerState owner, long delayMs) {
+        private Slot(String server, String scriptId, ServerState owner,
+                     long delayMs, long acceptedAtMs) {
             this.server = server;
             this.scriptId = scriptId;
             this.owner = owner;
             this.delayMs = delayMs;
+            this.acceptedAtMs = acceptedAtMs;
         }
     }
 
@@ -53,11 +56,15 @@ final class LuaModerationPacer {
         state.nextAllowedMs = dueMs + SPACING_MS;
         state.pending++;
         state.byScript.put(scriptId, state.byScript.getOrDefault(scriptId, 0) + 1);
-        return new Slot(server, scriptId, state, dueMs - nowMs);
+        return new Slot(server, scriptId, state, dueMs - nowMs, nowMs);
     }
 
     boolean isCurrent(Slot slot) {
         return servers.get(slot.server) == slot.owner;
+    }
+
+    boolean isExpired(Slot slot, long nowMs) {
+        return nowMs - slot.acceptedAtMs > MAX_WAIT_MS;
     }
 
     void complete(Slot slot) {

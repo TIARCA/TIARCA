@@ -47,6 +47,13 @@ public class LuaModerationPacerTest {
         assertEquals(1300L, second.delayMs);
     }
 
+    @Test public void delayedExecutionExpiresInsteadOfPunishingLate() {
+        LuaModerationPacer p = new LuaModerationPacer();
+        LuaModerationPacer.Slot slot = p.reserve("A", "script", 100L);
+        assertFalse(p.isExpired(slot, 60100L));
+        assertTrue(p.isExpired(slot, 60101L));
+    }
+
     @Test public void disconnectionOrReloadInvalidatesPendingActions() {
         LuaModerationPacer p = new LuaModerationPacer();
         LuaModerationPacer.Slot previous = p.reserve("A", "script", 0L);
