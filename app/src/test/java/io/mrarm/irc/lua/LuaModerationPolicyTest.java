@@ -98,6 +98,40 @@ public class LuaModerationPolicyTest {
         assertFalse(LuaModerationPolicy.unprivilegedTarget(null));
     }
 
+    @Test public void blacklistOverrideRequiresVerifiedCurrentSenderAccount() {
+        LuaScriptStore.Script approved = script(true, true);
+        assertTrue(LuaModerationPolicy.blacklistOverrideAllowed(
+                approved, SERVER, "message", "VoiceNick", "voicenick",
+                "registered", "REGISTERED", IRCCaseMapping.ASCII));
+        assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
+                script(false, true), SERVER, "message", "Nick", "Nick",
+                "registered", "registered", IRCCaseMapping.ASCII));
+        assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
+                script(true, false), SERVER, "message", "Nick", "Nick",
+                "registered", "registered", IRCCaseMapping.ASCII));
+        assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
+                approved, "different-network", "message", "Nick", "Nick",
+                "registered", "registered", IRCCaseMapping.ASCII));
+        assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
+                approved, SERVER, "command", "Nick", "Nick",
+                "registered", "registered", IRCCaseMapping.ASCII));
+        assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
+                approved, SERVER, "message", "sender", "other",
+                "registered", "registered", IRCCaseMapping.ASCII));
+        assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
+                approved, SERVER, "message", "Nick", "Nick",
+                "registered", "other-account", IRCCaseMapping.ASCII));
+        assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
+                approved, SERVER, "message", "Nick", "Nick",
+                "registered", null, IRCCaseMapping.ASCII));
+        assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
+                approved, SERVER, "message", "Nick", "Nick",
+                "*", "*", IRCCaseMapping.ASCII));
+        assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
+                approved, SERVER, "message", "Nick", "Nick",
+                "acc\\r\\nMODE", "acc\\r\\nMODE", IRCCaseMapping.ASCII));
+    }
+
     @Test public void revokedPermissionDisablesExistingScriptActions() {
         LuaScriptStore.Script disabled = new LuaScriptStore.Script(
                 "0a14a509-49e4-4d79-8884-9504e76a252f",
