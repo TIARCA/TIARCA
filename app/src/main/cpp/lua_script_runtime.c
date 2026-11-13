@@ -20,7 +20,7 @@
 #define MAX_CHANNELS 32
 #define MAX_USERS 128
 #define MAX_STORAGE 16
-#define MAX_STORAGE_BYTES 4096
+#define MAX_STORAGE_BYTES (128u * 1024u)
 #define EVENT_KINDS 9
 #define MAX_SOURCE 16384
 #define SCRIPT_MEMORY (2u * 1024u * 1024u)
@@ -29,7 +29,7 @@
 typedef struct {
     char kind[8];
     char target[97];
-    char value[513];
+    char value[8193];
 } ScriptAction;
 
 typedef struct {
@@ -47,7 +47,7 @@ typedef struct {
 
 typedef struct {
     char key[49];
-    char value[385];
+    char value[8193];
 } StorageItem;
 
 typedef struct ScriptVm {
@@ -144,7 +144,8 @@ static void add_action(lua_State *L, const char *kind, const char *target,
     ScriptVm *s = context(L);
     if (!s->event_active) luaL_error(L, "tiarca: action outside event handler");
     if (s->action_count >= MAX_ACTIONS) luaL_error(L, "tiarca: too many actions");
-    if (target_size > 96 || value_size == 0 || value_size > 512)
+    if (target_size > 96 || value_size == 0 ||
+            value_size > (!strcmp(kind, "store") ? 8192u : 512u))
         luaL_error(L, "tiarca: invalid action size");
     if (memchr(target, 0, target_size) || memchr(value, 0, value_size))
         luaL_error(L, "tiarca: NUL forbidden");
@@ -433,7 +434,7 @@ static int script_storage_set(lua_State *L) {
     size_t kn, vn;
     const char *key = luaL_checklstring(L, 1, &kn);
     const char *value = luaL_checklstring(L, 2, &vn);
-    if (!valid_storage_key(key, kn) || vn == 0 || vn > 384 ||
+    if (!valid_storage_key(key, kn) || vn == 0 || vn > 8192 ||
             memchr(value, 0, vn))
         return luaL_error(L, "tiarca.storage.set: invalid key/value");
     ScriptVm *s = context(L);
