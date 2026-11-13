@@ -2,6 +2,7 @@ package io.mrarm.irc.lua;
 
 import java.nio.charset.StandardCharsets;
 import io.mrarm.chatlib.irc.IRCCaseMapping;
+import io.mrarm.chatlib.dto.NickWithPrefix;
 
 /**
  * Pure-Java validation: Lua only requests named operator actions, never raw
@@ -84,6 +85,51 @@ final class LuaModerationPolicy {
                                      boolean targetPresent, boolean self,
                                      String nick) {
         return connected && operator && targetPresent && !self && validNick(nick);
+    }
+
+    /**
+     * Automatic punitive actions must not target ops, halfops or voiced users.
+     * A null prefix list represents an ordinary (unprefixed) IRC member;
+     * only an unknown member must fail closed. MODE remains exempt to allow
+     * existing Lua voice/devoice actions.
+     */
+    /**
+     * Exception for an explicitly targeted, authenticated account on the same
+     * incoming channel message. No privilege or self check is bypassed here:
+     * the caller must still check operator status, live membership and self.
+     * The host never trusts just the Lua-provided account claim.
+     */
+    static boolean blacklistOverrideAllowed(LuaScriptStore.Script script, String server,
+                                            String event, String eventNick,
+                                            String targetNick, String claimedAccount,
+                                            String observedAccount, boolean accountKnown,
+                                            IRCCaseMapping mapping) {
+        return script != null && script.isEnabledOn(server) &&
+                script.allowModeration && script.allowUserInfo &&
+                "message".equals(event) &&
+                validNick(eventNick) && validNick(targetNick) &&
+                isSelf(mapping, targetNick, eventNick) &&
+                accountKnown && (
+                    ("*".equals(claimedAccount) && observedAccount == null) ||
+                    (validAccount(claimedAccount) && validAccount(observedAccount) &&
+                     claimedAccount.equalsIgnoreCase(observedAccount)));
+    }
+
+    private static boolean validAccount(String account) {
+        if (account == null || account.isEmpty() || account.equals("*") ||
+                account.equals("0") || account.length() > 64) return false;
+        for (int i = 0; i < account.length(); i++) {
+            char c = account.charAt(i);
+            if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                    (c >= '0' && c <= '9') || c == '_' || c == '.' ||
+                    c == '-')) return false;
+        }
+        return true;
+    }
+
+    static boolean unprivilegedTarget(NickWithPrefix member) {
+        return member != null && (member.getNickPrefixes() == null
+                || member.getNickPrefixes().length() == 0);
     }
 
     static boolean permittedMode(String mode) {

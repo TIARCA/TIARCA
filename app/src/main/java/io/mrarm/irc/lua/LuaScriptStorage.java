@@ -30,9 +30,9 @@ import java.util.UUID;
  */
 final class LuaScriptStorage {
     static final int MAX_KEYS = 16;
-    static final int MAX_VALUE_BYTES = 384;
-    static final int MAX_TOTAL_BYTES = 4096;
-    static final int MAX_FILE_BYTES = 8192;
+    static final int MAX_VALUE_BYTES = 8192;
+    static final int MAX_TOTAL_BYTES = 128 * 1024;
+    static final int MAX_FILE_BYTES = 160 * 1024;
     private static final String PREFIX = "lua_scripts/";
     private final File directory;
 

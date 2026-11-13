@@ -2,6 +2,8 @@ package io.mrarm.irc.lua;
 
 import org.junit.Test;
 import io.mrarm.chatlib.irc.IRCCaseMapping;
+import io.mrarm.chatlib.dto.NickWithPrefix;
+import io.mrarm.chatlib.dto.NickPrefixList;
 import static org.junit.Assert.*;
 
 public class LuaModerationPolicyTest {
@@ -81,6 +83,59 @@ public class LuaModerationPolicyTest {
                 true, true, true, true, "OtherNick"));
         assertFalse(LuaModerationPolicy.liveTargetAllowed(
                 true, true, true, false, "OtherNick\r\nMODE"));
+    }
+
+    @Test public void automaticPunishmentSkipsAllPrivilegedOrUnknownUsers() {
+        assertTrue(LuaModerationPolicy.unprivilegedTarget(
+                new NickWithPrefix("regular", new NickPrefixList(""))));
+        assertFalse(LuaModerationPolicy.unprivilegedTarget(
+                new NickWithPrefix("operator", new NickPrefixList("@"))));
+        assertFalse(LuaModerationPolicy.unprivilegedTarget(
+                new NickWithPrefix("voice", new NickPrefixList("+"))));
+        // NAMES parses an ordinary, unprefixed nickname as a null prefix list.
+        assertTrue(LuaModerationPolicy.unprivilegedTarget(
+                new NickWithPrefix("ordinary", null)));
+        assertFalse(LuaModerationPolicy.unprivilegedTarget(null));
+    }
+
+    @Test public void blacklistOverrideRequiresVerifiedCurrentSenderAccount() {
+        LuaScriptStore.Script approved = script(true, true);
+        assertTrue(LuaModerationPolicy.blacklistOverrideAllowed(
+                approved, SERVER, "message", "VoiceNick", "voicenick",
+                "registered", "REGISTERED", true, IRCCaseMapping.ASCII));
+        assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
+                script(false, true), SERVER, "message", "Nick", "Nick",
+                "registered", "registered", true, IRCCaseMapping.ASCII));
+        assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
+                script(true, false), SERVER, "message", "Nick", "Nick",
+                "registered", "registered", true, IRCCaseMapping.ASCII));
+        assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
+                approved, "different-network", "message", "Nick", "Nick",
+                "registered", "registered", true, IRCCaseMapping.ASCII));
+        assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
+                approved, SERVER, "command", "Nick", "Nick",
+                "registered", "registered", true, IRCCaseMapping.ASCII));
+        assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
+                approved, SERVER, "message", "sender", "other",
+                "registered", "registered", true, IRCCaseMapping.ASCII));
+        assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
+                approved, SERVER, "message", "Nick", "Nick",
+                "registered", "other-account", true, IRCCaseMapping.ASCII));
+        assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
+                approved, SERVER, "message", "Nick", "Nick",
+                "registered", null, true, IRCCaseMapping.ASCII));
+        assertTrue(LuaModerationPolicy.blacklistOverrideAllowed(
+                approved, SERVER, "message", "Nick", "Nick",
+                "*", null, true, IRCCaseMapping.ASCII));
+        assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
+                approved, SERVER, "message", "Nick", "Nick",
+                "*", null, false, IRCCaseMapping.ASCII));
+        assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
+                approved, SERVER, "message", "Nick", "Nick",
+                "*", "registered", true, IRCCaseMapping.ASCII));
+        assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
+                approved, SERVER, "message", "Nick", "Nick",
+                "acc\\r\\nMODE", "acc\\r\\nMODE", true, IRCCaseMapping.ASCII));
     }
 
     @Test public void revokedPermissionDisablesExistingScriptActions() {

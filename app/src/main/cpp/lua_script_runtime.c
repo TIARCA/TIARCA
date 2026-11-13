@@ -11,22 +11,25 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-#define MAX_SCRIPTS 8
+/* Up to 8 base VMs + 8 scripts times 16 restart-isolated networks.
+ * Clones are created only on demand, not when networks connect. */
+#define MAX_SCRIPTS 136
+#define GLOBAL_SCRIPT_MEMORY (32u * 1024u * 1024u)
 #define MAX_HANDLERS 8
 #define MAX_ACTIONS 12
 #define MAX_CHANNELS 32
 #define MAX_USERS 128
 #define MAX_STORAGE 16
-#define MAX_STORAGE_BYTES 4096
+#define MAX_STORAGE_BYTES (128u * 1024u)
 #define EVENT_KINDS 9
-#define MAX_SOURCE 8192
+#define MAX_SOURCE 16384
 #define SCRIPT_MEMORY (2u * 1024u * 1024u)
 #define INSTRUCTION_LIMIT 200000ul
 
 typedef struct {
     char kind[8];
     char target[97];
-    char value[513];
+    char value[8193];
 } ScriptAction;
 
 typedef struct {
@@ -44,7 +47,7 @@ typedef struct {
 
 typedef struct {
     char key[49];
-    char value[385];
+    char value[8193];
 } StorageItem;
 
 typedef struct ScriptVm {
@@ -70,7 +73,8 @@ typedef struct ScriptVm {
     int can_store;
 } ScriptVm;
 
-static ScriptVm *g_scripts[MAX_SCRIPTS]; /* All calls arrive on one service HandlerThread. */
+static ScriptVm *g_scripts[MAX_SCRIPTS]; /* Single isolated worker thread. */
+static size_t g_allocated; /* Hard overall cap, including restart-created VMs. */
 
 static ScriptVm *context(lua_State *L) {
     return *(ScriptVm **) lua_getextraspace(L);
@@ -81,14 +85,22 @@ static void *bounded_alloc(void *ud, void *ptr, size_t old, size_t new_size) {
     size_t old_size = ptr == NULL ? 0 : old;
     if (new_size == 0) {
         free(ptr);
-        s->allocated -= old_size <= s->allocated ? old_size : s->allocated;
+        size_t freed = old_size <= s->allocated ? old_size : s->allocated;
+        s->allocated -= freed;
+        g_allocated -= freed <= g_allocated ? freed : g_allocated;
         return NULL;
     }
-    if (old_size > s->allocated) return NULL;
-    if (new_size > old_size && new_size - old_size > SCRIPT_MEMORY - s->allocated)
-        return NULL;
+    if (old_size > s->allocated || old_size > g_allocated) return NULL;
+    if (new_size > old_size) {
+        size_t grow = new_size - old_size;
+        if (grow > SCRIPT_MEMORY - s->allocated ||
+                grow > GLOBAL_SCRIPT_MEMORY - g_allocated) return NULL;
+    }
     void *p = realloc(ptr, new_size);
-    if (p != NULL) s->allocated = s->allocated - old_size + new_size;
+    if (p != NULL) {
+        s->allocated = s->allocated - old_size + new_size;
+        g_allocated = g_allocated - old_size + new_size;
+    }
     return p;
 }
 
@@ -132,7 +144,8 @@ static void add_action(lua_State *L, const char *kind, const char *target,
     ScriptVm *s = context(L);
     if (!s->event_active) luaL_error(L, "tiarca: action outside event handler");
     if (s->action_count >= MAX_ACTIONS) luaL_error(L, "tiarca: too many actions");
-    if (target_size > 96 || value_size == 0 || value_size > 512)
+    if (target_size > 96 || value_size == 0 ||
+            value_size > (!strcmp(kind, "store") ? 8192u : 512u))
         luaL_error(L, "tiarca: invalid action size");
     if (memchr(target, 0, target_size) || memchr(value, 0, value_size))
         luaL_error(L, "tiarca: NUL forbidden");
@@ -157,6 +170,23 @@ static int script_send(lua_State *L) {
     const char *target = luaL_checklstring(L, 1, &target_len);
     const char *message = luaL_checklstring(L, 2, &message_len);
     add_action(L, "send", target, target_len, message, message_len);
+    return 0;
+}
+
+/* Same-source PM and NOTICE are authorized only after main-process checks. */
+static int script_pm(lua_State *L) {
+    size_t nick_len, msg_len;
+    const char *nick = luaL_checklstring(L, 1, &nick_len);
+    const char *msg = luaL_checklstring(L, 2, &msg_len);
+    add_action(L, "pm", nick, nick_len, msg, msg_len);
+    return 0;
+}
+
+static int script_notice(lua_State *L) {
+    size_t nick_len, msg_len;
+    const char *nick = luaL_checklstring(L, 1, &nick_len);
+    const char *msg = luaL_checklstring(L, 2, &msg_len);
+    add_action(L, "notice", nick, nick_len, msg, msg_len);
     return 0;
 }
 
@@ -264,6 +294,73 @@ static int script_tban(lua_State *L) {
     return 0;
 }
 
+/* Atomic kick-then-ban request; host validates all conditions before KICK. */
+/* Blacklist override: Android must independently verify the observed
+ * sender account and all ordinary moderation permissions. */
+static int script_blacklist_action(lua_State *L) {
+    size_t nick_len, account_len, action_len, duration_len;
+    const char *nick = luaL_checklstring(L, 2, &nick_len);
+    const char *account = luaL_checklstring(L, 3, &account_len);
+    const char *action = luaL_checklstring(L, 4, &action_len);
+    const char *duration = luaL_optlstring(L, 5, "10m", &duration_len);
+    if (nick_len == 0 || nick_len > 64 || account_len == 0 ||
+            account_len > 64 || action_len == 0 || action_len > 12 ||
+            duration_len == 0 || duration_len > 4 ||
+            memchr(nick, '\t', nick_len) || memchr(account, '\t', account_len) ||
+            memchr(action, '\t', action_len) ||
+            memchr(duration, '\t', duration_len))
+        return luaL_error(L, "tiarca.blacklist_action: invalid arguments");
+    if (strcmp(action, "kick") && strcmp(action, "ban") &&
+            strcmp(action, "mute") && strcmp(action, "tban") &&
+            strcmp(action, "bankick") && strcmp(action, "tbankick"))
+        return luaL_error(L, "tiarca.blacklist_action: unsupported action");
+    char payload[160];
+    size_t offset = 0;
+    memcpy(payload + offset, nick, nick_len); offset += nick_len;
+    payload[offset++] = '\t';
+    memcpy(payload + offset, account, account_len); offset += account_len;
+    payload[offset++] = '\t';
+    memcpy(payload + offset, action, action_len); offset += action_len;
+    payload[offset++] = '\t';
+    memcpy(payload + offset, duration, duration_len); offset += duration_len;
+    channel_action(L, "blkmod", payload, offset);
+    return 0;
+}
+
+static int script_kickban(lua_State *L) {
+    size_t n, rl;
+    const char *nick = luaL_checklstring(L, 2, &n);
+    const char *reason = luaL_optlstring(L, 3, "non ripetere", &rl);
+    if (n == 0 || n > 64 || rl == 0 || rl > 160 ||
+            memchr(nick, '\t', n) || memchr(reason, '\t', rl))
+        return luaL_error(L, "tiarca.kickban: invalid nick/reason");
+    char payload[228];
+    memcpy(payload, nick, n);
+    payload[n] = '\t';
+    memcpy(payload + n + 1, reason, rl);
+    channel_action(L, "kban", payload, n + 1 + rl);
+    return 0;
+}
+
+static int script_kicktban(lua_State *L) {
+    size_t n, dl, rl;
+    const char *nick = luaL_checklstring(L, 2, &n);
+    const char *duration = luaL_checklstring(L, 3, &dl);
+    const char *reason = luaL_optlstring(L, 4, "non ripetere", &rl);
+    if (n == 0 || n > 64 || dl == 0 || dl > 4 || rl == 0 || rl > 160 ||
+            memchr(nick, '\t', n) || memchr(duration, '\t', dl) ||
+            memchr(reason, '\t', rl))
+        return luaL_error(L, "tiarca.kicktban: invalid parameters");
+    char payload[235];
+    memcpy(payload, nick, n);
+    payload[n] = '\t';
+    memcpy(payload + n + 1, duration, dl);
+    payload[n + 1 + dl] = '\t';
+    memcpy(payload + n + 2 + dl, reason, rl);
+    channel_action(L, "ktban", payload, n + 2 + dl + rl);
+    return 0;
+}
+
 static int script_kick(lua_State *L) {
     size_t n, reason_len = 0;
     const char *nick = luaL_checklstring(L, 2, &n);
@@ -337,7 +434,7 @@ static int script_storage_set(lua_State *L) {
     size_t kn, vn;
     const char *key = luaL_checklstring(L, 1, &kn);
     const char *value = luaL_checklstring(L, 2, &vn);
-    if (!valid_storage_key(key, kn) || vn == 0 || vn > 384 ||
+    if (!valid_storage_key(key, kn) || vn == 0 || vn > 8192 ||
             memchr(value, 0, vn))
         return luaL_error(L, "tiarca.storage.set: invalid key/value");
     ScriptVm *s = context(L);
@@ -443,6 +540,10 @@ static void install_libraries(lua_State *L) {
     lua_setfield(L, -2, "log");
     lua_pushcfunction(L, script_send);
     lua_setfield(L, -2, "send");
+    lua_pushcfunction(L, script_pm);
+    lua_setfield(L, -2, "pm");
+    lua_pushcfunction(L, script_notice);
+    lua_setfield(L, -2, "notice");
     lua_pushcfunction(L, script_get_channels);
     lua_setfield(L, -2, "get_channels");
     lua_pushcfunction(L, script_get_users);
@@ -453,6 +554,14 @@ static void install_libraries(lua_State *L) {
     lua_setfield(L, -2, "maskfind");
     lua_pushcfunction(L, script_kick);
     lua_setfield(L, -2, "kick");
+    lua_pushcfunction(L, script_kickban);
+    lua_setfield(L, -2, "kickban");
+    lua_pushcfunction(L, script_blacklist_action);
+    lua_setfield(L, -2, "blacklist_action");
+    lua_pushcfunction(L, script_blacklist_action);
+    lua_setfield(L, -2, "override_action");
+    lua_pushcfunction(L, script_kicktban);
+    lua_setfield(L, -2, "kicktban");
     lua_pushcfunction(L, script_ban);
     lua_setfield(L, -2, "ban");
     lua_pushcfunction(L, script_mute);
@@ -689,7 +798,7 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatch(JNIEnv *env, jclass unused,
         int valid = copy_java_bytes(env, jkey, entry->key, sizeof(entry->key)) &&
                     copy_java_bytes(env, jvalue, entry->value, sizeof(entry->value)) &&
                     valid_storage_key(entry->key, (size_t)key_bytes) &&
-                    value_bytes > 0 && value_bytes <= 384;
+                    value_bytes > 0 && value_bytes <= 8192;
         (*env)->DeleteLocalRef(env, jkey);
         (*env)->DeleteLocalRef(env, jvalue);
         if (!valid || storage_index(s, entry->key) >= 0) return NULL;

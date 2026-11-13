@@ -9,6 +9,43 @@ public final class HostLuaRuntimeTest {
     private static final String ID = "8a1bb9fa-8100-40cc-9193-d00a45ab719a";
     private static final String OTHER = "16a6f13c-2b6d-4e0e-a16b-6f37e40be6d0";
 
+    // Simulate the Java C6 persistence bridge between native event callbacks.
+    private static final java.util.Map<String, String> automodStorage =
+            new java.util.LinkedHashMap<>();
+    private static boolean automodActive = false;
+
+    private static byte[][] automodSnapshot() {
+        if (!automodActive) return new byte[0][];
+        byte[][] out = new byte[automodStorage.size() * 2][];
+        int i = 0;
+        for (java.util.Map.Entry<String, String> entry : automodStorage.entrySet()) {
+            out[i++] = bytes(entry.getKey());
+            out[i++] = bytes(entry.getValue());
+        }
+        return out;
+    }
+
+    private static String[] collect(byte[][] data) {
+        check(data != null, "Expected script response");
+        java.util.ArrayList<String> output = new java.util.ArrayList<>();
+        output.add(decode(data[0]));
+        for (int i = 1; i < data.length; i += 3) {
+            String kind = decode(data[i]);
+            String key = decode(data[i + 1]);
+            String value = decode(data[i + 2]);
+            if (automodActive && "store".equals(kind)) {
+                automodStorage.put(key, value);
+            } else if (automodActive && "erase".equals(kind)) {
+                automodStorage.remove(key);
+            } else {
+                output.add(kind);
+                output.add(key);
+                output.add(value);
+            }
+        }
+        return output.toArray(new String[0]);
+    }
+
     private static void check(boolean okay, String message) {
         if (!okay) throw new AssertionError(message);
     }
@@ -33,11 +70,27 @@ public final class HostLuaRuntimeTest {
         byte[][] data = NativeLuaRuntime.dispatch(id, event, bytes("test-server"),
                 bytes(channel), bytes(nick), bytes(message), bytes("normal"), 1794400000L,
                 channelNames, memberCounts, truncated,
-                new byte[0][], false, false, new byte[0][], false);
-        check(data != null, "Expected script response");
-        String[] values = new String[data.length];
-        for (int i = 0; i < data.length; i++) values[i] = decode(data[i]);
-        return values;
+                new byte[0][], false, false, automodSnapshot(), automodActive);
+        return collect(data);
+    }
+
+    private static String[] eventAt(String id, String kind, String channel,
+                                    String nick, String text, long when) {
+        return eventAs(id, kind, channel, nick, text, when, "", "*");
+    }
+
+    private static String[] eventAs(String id, String kind, String channel,
+                                    String nick, String text, long when,
+                                    String prefix, String account) {
+        byte[][] roster = "message".equals(kind) ?
+                new byte[][]{bytes(nick), bytes(prefix), bytes("ident"),
+                        bytes("host.example"), bytes(account)} :
+                new byte[0][];
+        byte[][] reply = NativeLuaRuntime.dispatch(id, kind, bytes("test-server"),
+                bytes(channel), bytes(nick), bytes(text), bytes("normal"), when,
+                new byte[0][], new int[0], false,
+                roster, false, true, automodSnapshot(), automodActive);
+        return collect(reply);
     }
 
     public static void main(String[] args) throws Exception {
@@ -247,6 +300,267 @@ public final class HostLuaRuntimeTest {
         check(exhausted.length == 1 &&
                         (exhausted[0].contains("memory") || exhausted[0].contains("allocation")),
                 "Memory budget must stop script");
+
+        // A network restart loads a new VM identity for that network only.
+        String isolatedCounter = "local n=0;tiarca.on('message',function(e) "
+                + "n=n+1;tiarca.log(tostring(n)) end)";
+        check("OK".equals(decode(NativeLuaRuntime.load(ID, bytes(isolatedCounter)))),
+                "Initial script VM should load");
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes(isolatedCounter)))),
+                "Scoped network VM should load");
+        check("1".equals(event(ID, "message", "#x", "a", "one")[3]),
+                "Original VM counter starts at one");
+        check("1".equals(event(OTHER, "message", "#x", "a", "one")[3]),
+                "Scoped VM independently starts at one");
+        check("2".equals(event(ID, "message", "#x", "a", "two")[3]),
+                "Original VM retains its state");
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes(isolatedCounter)))),
+                "Reinitialize scoped network VM");
+        check("1".equals(event(OTHER, "message", "#x", "a", "again")[3]),
+                "Scoped network state cleared");
+        check("3".equals(event(ID, "message", "#x", "a", "three")[3]),
+                "Other network state remains intact");
+
+        // Import the actual user-facing AutoMod source. Also check size.
+        byte[] automod = Files.readAllBytes(
+                Path.of("docs/lua-examples/automod_antiripetizione.lua"));
+        check(automod.length <= 16384, "AutoMod fits 16 KiB source limit");
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, automod))),
+                "AutoMod loads into official Lua native sandbox");
+        automodActive = true;
+        String[] help = event(OTHER, "command", "#room", "me", "mod help");
+        boolean hasRestart = false, hasWhitelist = false, hasCategories = false;
+        for (String field : help) {
+            if (field.contains("/lua restart")) hasRestart = true;
+            if (field.contains("whitelist")) hasWhitelist = true;
+            if (field.contains("registrati")) hasCategories = true;
+        }
+        check(help.length > 10 && "show".equals(help[1]) &&
+                        hasRestart && hasWhitelist && hasCategories,
+                "Grouped AutoMod help documents all command families");
+
+        // Actual AutoMod escalation: warning, kick, temporary kick+ban,
+        // permanent kick+ban. A kick/rejoin must not erase infraction level.
+        String repeat = "io maschio cerco ragazza per divertimento";
+        check(eventAt(OTHER, "message", "#room", "Target", repeat,
+                1794399980L).length == 1,
+                "Default with no channels must not monitor messages");
+        String[] emptyList = eventAt(OTHER, "command", "#room", "me",
+                "mod canali", 1794399981L);
+        check(emptyList.length == 4 && emptyList[3].contains("nessuno"),
+                "Channel list starts empty");
+        String[] invalid = eventAt(OTHER, "command", "#room", "me",
+                "mod canali add nonsensical", 1794399982L);
+        check(invalid.length == 4 && invalid[3].contains("Uso:"),
+                "Commands reject invalid channel targets");
+        String[] added = eventAt(OTHER, "command", "#room", "me",
+                "mod canali add #ROOM", 1794399983L);
+        check(added.length == 4 && added[3].contains("#room"),
+                "Channel add accepts a channel and normalizes case");
+        String[] channelList = eventAt(OTHER, "command", "#room", "me",
+                "mod canali", 1794399984L);
+        check(channelList.length == 4 && channelList[3].contains("#room"),
+                "Channel list shows only explicitly added channels");
+        check(eventAt(OTHER, "message", "#unlisted", "Target", repeat,
+                1794399985L).length == 1,
+                "Unlisted channels must remain inactive");
+        byte[][] otherNetwork = NativeLuaRuntime.dispatch(OTHER, "message",
+                bytes("second-server"), bytes("#room"), bytes("Target"),
+                bytes(repeat), bytes("normal"), 1794399986L,
+                new byte[0][], new int[0], false, new byte[0][], false,
+                false, new byte[0][], false);
+        check(otherNetwork != null && otherNetwork.length == 1 &&
+                        "OK".equals(decode(otherNetwork[0])),
+                "Adding on one network must not monitor on another");
+        String[] configured = eventAt(OTHER, "command", "#room", "me",
+                "mod azione escalation", 1794400000L);
+        check(configured.length == 4 && "show".equals(configured[1]),
+                "AutoMod escalation selected");
+        check(eventAt(OTHER, "message", "#room", "Target", repeat,
+                1794400001L).length == 1, "First message not a violation");
+        String[] warning = eventAt(OTHER, "message", "#room", "Target", repeat,
+                1794400002L);
+        check(warning.length == 7 && "send".equals(warning[4]),
+                "First repetition yields a warning");
+        String[] kick = eventAt(OTHER, "message", "#room", "Target", repeat,
+                1794400014L);
+        check(kick.length == 7 && "kick".equals(kick[4]) &&
+                        ("Target" + (char)9 + "non ripetere").equals(kick[6]),
+                "Second repetition KICK reason must be non ripetere");
+        eventAt(OTHER, "part", "#room", "Target", "", 1794400015L);
+        eventAt(OTHER, "join", "#room", "Target", "", 1794400016L);
+        check(eventAt(OTHER, "message", "#room", "Target", repeat,
+                1794400020L).length == 1,
+                "Rejoin clears message history but not infractions");
+        String[] temporary = eventAt(OTHER, "message", "#room", "Target", repeat,
+                1794400030L);
+        check(temporary.length == 7 && "ktban".equals(temporary[4]) &&
+                        ("Target" + (char)9 + "10m" + (char)9 + "non ripetere")
+                                .equals(temporary[6]),
+                "Third infraction requests KICK then timed BAN atomically");
+        eventAt(OTHER, "quit", "#room", "Target", "", 1794400031L);
+        eventAt(OTHER, "join", "#room", "Target", "", 1794400032L);
+        eventAt(OTHER, "message", "#room", "Target", repeat, 1794400045L);
+        String[] permanent = eventAt(OTHER, "message", "#room", "Target", repeat,
+                1794400056L);
+        check(permanent.length == 7 && "kban".equals(permanent[4]) &&
+                        ("Target" + (char)9 + "non ripetere").equals(permanent[6]),
+                "Fourth infraction requests KICK then permanent BAN atomically");
+        eventAt(OTHER, "nick", "#room", "Target", "NewNick", 1794400057L);
+        eventAt(OTHER, "message", "#room", "NewNick", repeat, 1794400070L);
+        String[] renamed = eventAt(OTHER, "message", "#room", "NewNick", repeat,
+                1794400082L);
+        check(renamed.length == 7 && "kban".equals(renamed[4]),
+                "Nick change preserves the escalation counter");
+        String[] dropped = eventAt(OTHER, "command", "#room", "me",
+                "mod canali drop #room", 1794400083L);
+        check(dropped.length == 4 && dropped[3].contains("rimosso: #room"),
+                "Channel drop is acknowledged");
+        check(eventAt(OTHER, "message", "#room", "NewNick", repeat,
+                1794400095L).length == 1,
+                "Dropped channel must ignore repeated messages");
+        eventAt(OTHER, "command", "#room", "me",
+                "mod canali add #room", 1794400100L);
+        check(eventAt(OTHER, "message", "#room", "NewNick", repeat,
+                1794400102L).length == 1,
+                "Readding dropped channel starts with clean message history");
+
+        // Registered and channel-privileged users are whitelisted by default.
+        String[] registered = eventAs(OTHER, "message", "#room", "RegUser",
+                repeat, 1794400110L, "", "knownaccount");
+        check(registered.length == 1, "Registered accounts are exempt by default");
+        for (String prefix : new String[]{"+", "%", "@", "&", "~"}) {
+            String[] privileged = eventAs(OTHER, "message", "#room",
+                    "Privileged", repeat, 1794400111L, prefix, "*");
+            check(privileged.length == 1, "Prefixed " + prefix + " is whitelisted");
+        }
+        String[] unknown = eventAs(OTHER, "message", "#room", "Unknown",
+                repeat, 1794400112L, "", "");
+        check(unknown.length == 1, "Unknown account state fails closed");
+
+        eventAt(OTHER, "command", "#room", "me",
+                "mod azione kick", 1794400113L);
+        eventAt(OTHER, "command", "#room", "me",
+                "mod blacklist add trouble", 1794400114L);
+        String[] blacklistList = eventAt(OTHER, "command", "#room", "me",
+                "mod blacklist", 1794400115L);
+        check(blacklistList.length == 4 &&
+                        blacklistList[3].contains("trouble"),
+                "Blacklist lists added authenticated accounts");
+        check(eventAs(OTHER, "message", "#room", "VoiceUser",
+                repeat, 1794400120L, "+", "trouble").length == 1,
+                "First blacklisted voice message initializes history");
+        String[] forced = eventAs(OTHER, "message", "#room", "VoiceUser",
+                repeat, 1794400121L, "+", "trouble");
+        check(forced.length == 7 && "blkmod".equals(forced[4]) &&
+                        ("VoiceUser" + (char)9 + "trouble" + (char)9 +
+                                "kick" + (char)9 + "10m").equals(forced[6]),
+                "Blacklisted account overrides default voice and registered whitelist");
+        eventAt(OTHER, "command", "#room", "me",
+                "mod blacklist drop trouble", 1794400122L);
+        check(eventAs(OTHER, "message", "#room", "VoiceUser",
+                repeat, 1794400123L, "+", "trouble").length == 1,
+                "Dropped blacklist account becomes exempt again");
+        eventAt(OTHER, "command", "#room", "me",
+                "mod whitelist categoria registrati off", 1794400124L);
+        eventAt(OTHER, "command", "#room", "me",
+                "mod whitelist add personal", 1794400125L);
+        check(eventAs(OTHER, "message", "#room", "PersonalUser",
+                repeat, 1794400126L, "", "personal").length == 1,
+                "Individually whitelisted account stays exempt if category is off");
+        eventAt(OTHER, "command", "#room", "me",
+                "mod whitelist categoria voice off", 1794400127L);
+        check(eventAs(OTHER, "message", "#room", "VoiceOther",
+                repeat, 1794400128L, "+", "*").length == 1,
+                "Voice can be excluded from default whitelist");
+        String[] voiceUnprotected = eventAs(OTHER, "message", "#room",
+                "VoiceOther", repeat, 1794400129L, "+", "*");
+        check(voiceUnprotected.length == 7 &&
+                        "blkmod".equals(voiceUnprotected[4]) &&
+                        ("VoiceOther" + (char)9 + "*" + (char)9 +
+                                "kick" + (char)9 + "10m").equals(voiceUnprotected[6]),
+                "Voice category toggle requests verified logged-out override");
+
+        // Persist preferences, not volatile message/infraction history.
+        check(automodStorage.containsKey("automod.test-server"),
+                "AutoMod must issue persistent C6 writes");
+        String firstState = automodStorage.get("automod.test-server");
+        check(firstState.contains("C#room") && firstState.contains("Wpersonal"),
+                "Channels and individual account allowlist must be saved");
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, automod))),
+                "AutoMod VM restart must load");
+        String[] resumedChannels = eventAt(OTHER, "command", "#room", "me",
+                "mod canali", 1794400130L);
+        check(resumedChannels.length == 4 && resumedChannels[3].contains("#room"),
+                "Previously approved channel must survive VM restart");
+        String[] resumedWhite = eventAt(OTHER, "command", "#room", "me",
+                "mod whitelist", 1794400131L);
+        check(resumedWhite.length >= 7 && resumedWhite[3].contains("personal") &&
+                        java.util.Arrays.toString(resumedWhite).contains("voice=off") &&
+                        java.util.Arrays.toString(resumedWhite).contains("registrati=off"),
+                "Account and category exceptions must survive VM restart");
+        String[] resumedStatus = eventAt(OTHER, "command", "#room", "me",
+                "mod stato", 1794400132L);
+        check(resumedStatus.length == 4 && resumedStatus[3].contains("kick/") &&
+                        resumedStatus[3].contains("canali 1"),
+                "Action and channel counts must survive VM restart");
+
+        byte[][] secondary = NativeLuaRuntime.dispatch(OTHER, "command",
+                bytes("second-server"), bytes("#secondary"), bytes("me"),
+                bytes("mod canali add #secondary"), bytes("normal"), 1794400133L,
+                new byte[0][], new int[0], false, new byte[0][], false,
+                true, automodSnapshot(), true);
+        String[] secondaryResult = collect(secondary);
+        check(secondaryResult.length == 4 && secondaryResult[3].contains("#secondary"),
+                "Second network settings are editable independently");
+        check(automodStorage.containsKey("automod.second-server") &&
+                        !automodStorage.get("automod.test-server").contains("#secondary"),
+                "Second network must not overwrite first network");
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, automod))),
+                "Second restart must load AutoMod");
+        byte[][] secondaryRestored = NativeLuaRuntime.dispatch(OTHER, "command",
+                bytes("second-server"), bytes("#secondary"), bytes("me"),
+                bytes("mod canali"), bytes("normal"), 1794400134L,
+                new byte[0][], new int[0], false, new byte[0][], false,
+                true, automodSnapshot(), true);
+        check(collect(secondaryRestored)[3].contains("#secondary"),
+                "Settings for second network survive VM restart");
+
+        // Fill the documented maximum configuration on one network. This is
+        // substantially larger than the former 384-byte persistent value cap.
+        for (int i = 1; i <= 15; i++) {
+            String channelName = "#c" + "x".repeat(58)
+                    + String.format(java.util.Locale.ROOT, "%02d", i);
+            String[] result = eventAt(OTHER, "command", "#room", "me",
+                    "mod canali add " + channelName, 1794400140L + i);
+            check("OK".equals(result[0]), "Adding maximum channel entry should work");
+        }
+        for (int i = 1; i <= 31; i++) {
+            String account = "w" + "x".repeat(60)
+                    + String.format(java.util.Locale.ROOT, "%02d", i);
+            String[] result = eventAt(OTHER, "command", "#room", "me",
+                    "mod whitelist add " + account, 1794400170L + i);
+            check("OK".equals(result[0]), "Adding maximum whitelist entry should work");
+        }
+        for (int i = 1; i <= 32; i++) {
+            String account = "b" + "y".repeat(60)
+                    + String.format(java.util.Locale.ROOT, "%02d", i);
+            String[] result = eventAt(OTHER, "command", "#room", "me",
+                    "mod blacklist add " + account, 1794400210L + i);
+            check("OK".equals(result[0]), "Adding maximum blacklist entry should work");
+        }
+        String capacityState = automodStorage.get("automod.test-server");
+        check(capacityState != null && bytes(capacityState).length > 4096 &&
+                        bytes(capacityState).length <= 8192,
+                "Full per-network AutoMod preferences must fit 8 KiB");
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, automod))),
+                "Large saved AutoMod preferences must survive reload");
+        String[] fullState = eventAt(OTHER, "command", "#room", "me",
+                "mod stato", 1794400250L);
+        check(fullState.length == 4 && fullState[3].contains("canali 16") &&
+                        fullState[3].contains("white 32") &&
+                        fullState[3].contains("black 32"),
+                "All maximum-size channel and account exception lists must restore");
 
         NativeLuaRuntime.unload(ID);
         check(NativeLuaRuntime.dispatch(ID, "message", bytes("test-server"),

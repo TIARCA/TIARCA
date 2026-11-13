@@ -38,12 +38,18 @@ public class LuaScriptStorageTest {
             assertFalse(LuaScriptStorage.validKey("some/key"));
             assertFalse(LuaScriptStorage.validKey(""));
             assertFalse(LuaScriptStorage.validValue(""));
-            assertFalse(LuaScriptStorage.validValue("x".repeat(385)));
+            assertFalse(LuaScriptStorage.validValue("x".repeat(8193)));
+            assertTrue(LuaScriptStorage.validValue("x".repeat(8192)));
             first.apply(ID, "store", "count", "1");
             first.apply(ID, "store", "other", "value");
             Map<String, String> restored = new LuaScriptStorage(dir).read(ID);
             assertEquals("1", restored.get("count"));
             assertEquals("value", restored.get("other"));
+            String largeAutoModConfig = "v1;" + "x".repeat(7000);
+            first.apply(ID, "store", "automod.server-one", largeAutoModConfig);
+            assertEquals(largeAutoModConfig,
+                    new LuaScriptStorage(dir).read(ID).get("automod.server-one"));
+            first.apply(ID, "erase", "automod.server-one", "1");
             first.apply(ID, "erase", "count", "1");
             assertFalse(new LuaScriptStorage(dir).read(ID).containsKey("count"));
             try {
@@ -51,7 +57,7 @@ public class LuaScriptStorageTest {
                 fail("Path-like key accepted");
             } catch (IOException expected) { }
             try {
-                first.apply(ID, "store", "too_long", "Z".repeat(400));
+                first.apply(ID, "store", "too_long", "Z".repeat(8193));
                 fail("Oversized value accepted");
             } catch (IOException expected) { }
             assertEquals("value", new LuaScriptStorage(dir).read(ID).get("other"));
@@ -65,6 +71,42 @@ public class LuaScriptStorageTest {
             first.delete(ID);
         }
         assertTrue(new LuaScriptStorage(dir).read(ID).isEmpty());
+    }
+
+    @Test public void allNetworkSettingsFitAndSurvivePortableStorageBackup()
+            throws Exception {
+        Application app = ApplicationProvider.getApplicationContext();
+        File dir = new File(app.getCacheDir(), "lua-automod-maximum-persistence-test");
+        assertTrue(dir.isDirectory() || dir.mkdirs());
+        LuaScriptStorage storage = new LuaScriptStorage(dir);
+        storage.delete(ID);
+        File backup = File.createTempFile("lua-automod-config-", ".zip", app.getCacheDir());
+        try {
+            String value = "v1;" + "a".repeat(5800);
+            for (int network = 0; network < 16; network++) {
+                String key = "automod." +
+                        String.format(java.util.Locale.ROOT, "00000000-0000-0000-0000-%012d",
+                                network);
+                storage.apply(ID, "store", key, value);
+            }
+            assertEquals(16, storage.read(ID).size());
+            assertEquals(value, storage.read(ID).values().iterator().next());
+            try (ZipFile zip = new ZipFile(backup)) {
+                storage.export(zip, new ZipParameters(), ID);
+            }
+            storage.delete(ID);
+            try (ZipFile zip = new ZipFile(backup)) {
+                byte[] state = storage.inspectBackup(zip, ID);
+                assertNotNull(state);
+                storage.restoreValidated(ID, state);
+            }
+            Map<String, String> restored = storage.read(ID);
+            assertEquals(16, restored.size());
+            for (String saved : restored.values()) assertEquals(value, saved);
+        } finally {
+            storage.delete(ID);
+            backup.delete();
+        }
     }
 
     @Test public void backupRestoresStateButRevokesStorageAndAllOtherConsent()

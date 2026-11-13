@@ -52,6 +52,10 @@ public final class LuaDiagnosticService extends Service {
             new java.util.concurrent.atomic.AtomicInteger();
     private HandlerThread worker;
     private Messenger messenger;
+    // Only the isolated worker accesses these overrides; scripts on other
+    // networks continue using their original VM without interruption.
+    private final java.util.Map<String, String> scopedRuntimeIds =
+            new java.util.HashMap<>();
 
     @Override public void onCreate() {
         super.onCreate();
@@ -69,6 +73,7 @@ public final class LuaDiagnosticService extends Service {
     private boolean handle(Message message) {
         if (message.what == REQUEST_RESET) {
             NativeLuaRuntime.clear();
+            scopedRuntimeIds.clear();
             return true;
         }
         if (message.what == REQUEST_LOAD || message.what == REQUEST_EVENT) {
@@ -116,8 +121,8 @@ public final class LuaDiagnosticService extends Service {
 
     private void handleUserScript(Message message) {
         if (message.replyTo == null) return;
-        // The main process must distinguish executing Lua from Binder messages
-        // still queued behind it. A process death cannot implicate queued scripts.
+        // Confirm execution, not mere Binder queueing, for accurate crash
+        // attribution in the main process.
         Message started = Message.obtain(null, RESPONSE_SCRIPT_STARTED);
         Bundle startedData = new Bundle();
         startedData.putString(EXTRA_SCRIPT_ID,
@@ -128,7 +133,7 @@ public final class LuaDiagnosticService extends Service {
         try {
             message.replyTo.send(started);
         } catch (RemoteException ignored) {
-            return; // The requesting process has gone away.
+            return;
         }
         // Lua runs on a worker. The independent main looper is the watchdog:
         // a non-returning native function cannot bypass this by missing Lua
@@ -136,9 +141,8 @@ public final class LuaDiagnosticService extends Service {
         final int generation = activeCall.incrementAndGet();
         Runnable timeout = () -> {
             if (activeCall.get() != generation) return;
-            // A watchdog timeout is not an arbitrary Android process death.
-            // Best-effort return the precise failure before terminating the
-            // isolated worker; a stalled native call cannot be interrupted.
+            // Best-effort precise timeout result before killing the stuck
+            // isolated process. The native call itself cannot be interrupted.
             Message response = Message.obtain(null, RESPONSE_SCRIPT);
             Bundle payload = new Bundle();
             payload.putString(EXTRA_SCRIPT_ID,
@@ -151,7 +155,7 @@ public final class LuaDiagnosticService extends Service {
             try {
                 message.replyTo.send(response);
             } catch (RemoteException ignored) {
-                // Client went away; process isolation still applies.
+                // Main process is gone; still terminate the isolated service.
             } finally {
                 Process.killProcess(Process.myPid());
             }
@@ -175,9 +179,31 @@ public final class LuaDiagnosticService extends Service {
         try {
             if (message.what == REQUEST_LOAD) {
                 byte[] source = request.getByteArray(EXTRA_SOURCE);
+                String network = request.getString(EXTRA_SERVER, "");
+                boolean scoped = !network.isEmpty();
+                String runtimeId = scriptId;
+                if (scoped) {
+                    try {
+                        if (!java.util.UUID.fromString(network).toString()
+                                .equalsIgnoreCase(network))
+                            throw new IllegalArgumentException("invalid network");
+                        // Deterministic, 36-character VM ID accepted by the existing JNI.
+                        runtimeId = java.util.UUID.nameUUIDFromBytes(
+                                (scriptId + ":" + network).getBytes(
+                                        java.nio.charset.StandardCharsets.UTF_8)).toString();
+                    } catch (IllegalArgumentException invalid) {
+                        status = "ERROR: invalid restart network";
+                        returnReply(message, scriptId, status, actions);
+                        return;
+                    }
+                }
                 status = source == null || source.length > LuaScriptStore.MAX_SOURCE_BYTES
                         ? "ERROR: source too large or missing"
-                        : NativeLuaRuntime.decode(NativeLuaRuntime.load(scriptId, source));
+                        : NativeLuaRuntime.decode(NativeLuaRuntime.load(runtimeId, source));
+                if (scoped) {
+                    if ("OK".equals(status)) scopedRuntimeIds.put(scriptId + ":" + network, runtimeId);
+                    else scopedRuntimeIds.remove(scriptId + ":" + network);
+                }
             } else {
                 String event = request.getString(EXTRA_EVENT, "");
                 String server = request.getString(EXTRA_SERVER, "");
@@ -274,7 +300,9 @@ public final class LuaDiagnosticService extends Service {
                             if (!valid) {
                                 status = "ERROR: invalid Lua storage snapshot";
                             } else {
-                                byte[][] nativeActions = NativeLuaRuntime.dispatch(scriptId, event,
+                                String runtimeId = scopedRuntimeIds.getOrDefault(
+                                        scriptId + ":" + server, scriptId);
+                                byte[][] nativeActions = NativeLuaRuntime.dispatch(runtimeId, event,
                                         NativeLuaRuntime.utf8(server), NativeLuaRuntime.utf8(channel),
                                         NativeLuaRuntime.utf8(nick), NativeLuaRuntime.utf8(text),
                                         NativeLuaRuntime.utf8(messageType), request.getLong(EXTRA_TIME),
@@ -303,10 +331,15 @@ public final class LuaDiagnosticService extends Service {
             status = "ERROR: Lua runtime exception";
         }
 
+        returnReply(message, scriptId, status, actions);
+    }
+
+    private void returnReply(Message message, String scriptId, String status,
+                             java.util.ArrayList<String> actions) {
         Message response = Message.obtain(null, RESPONSE_SCRIPT);
         Bundle payload = new Bundle();
         payload.putString(EXTRA_SCRIPT_ID, scriptId);
-        payload.putInt(EXTRA_REQUEST_ID, request.getInt(EXTRA_REQUEST_ID));
+        payload.putInt(EXTRA_REQUEST_ID, message.getData().getInt(EXTRA_REQUEST_ID));
         payload.putString(EXTRA_STATUS, status);
         payload.putStringArrayList(EXTRA_ACTIONS, actions);
         response.setData(payload);
