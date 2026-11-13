@@ -961,7 +961,8 @@ public final class LuaScriptDispatcher {
                     !LuaModerationPolicy.blacklistOverrideAllowed(script,
                             request.server, request.event, request.nick, nick,
                             claimedAccount, liveIdentity == null ? null :
-                            liveIdentity.account,
+                            liveIdentity.account, liveIdentity != null &&
+                            liveIdentity.accountKnown,
                             api.getServerConnectionData().getSupportList()
                                     .getCaseMapping())) return;
             if (!"mode".equals(kind) && !blacklistOverride &&
