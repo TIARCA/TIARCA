@@ -183,7 +183,7 @@ if cmd == "mod" or key == "help" then
 msg = "Canali: /lua mod canali [add|drop #canale]; stato|on|off|reset\n" ..
 "soglia 80, ultimi 3, minuti 30, minparole 5, pausa 10, durata 10m\n" ..
 "avviso pubblico|pvt|notice; azione monitor|avviso|kick|ban|mute|tban|bankick|escalation\n" ..
-"restart resetta opzioni"
+"/lua restart resetta"
 elseif key == "stato" then
 local n=0;for _ in pairs(c.canali) do n=n+1 end
 msg = string.format("%s | %d canali | %s | soglia %d%% | ultimi %d | minuti %d | minparole %d | pausa %ds | durata %s | u%d m%d",
