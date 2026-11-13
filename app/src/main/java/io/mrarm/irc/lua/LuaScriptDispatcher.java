@@ -736,7 +736,8 @@ public final class LuaScriptDispatcher {
                 }
             } else if ("who".equals(kind) || "kick".equals(kind) ||
                     "ban".equals(kind) || "mode".equals(kind) ||
-                    "mute".equals(kind) || "tban".equals(kind)) {
+                    "mute".equals(kind) || "tban".equals(kind) ||
+                    "kban".equals(kind) || "ktban".equals(kind)) {
                 final String operation = kind;
                 if ("who".equals(operation)) {
                     io.post(() -> performIrcAction(script.id, request, operation, target, value));
@@ -895,7 +896,19 @@ public final class LuaScriptDispatcher {
             String nick;
             String reason = "";
             String mode = "";
-            if ("kick".equals(kind) || "mode".equals(kind) || "tban".equals(kind)) {
+            boolean compound = "kban".equals(kind) || "ktban".equals(kind);
+            if (compound) {
+                if (value == null) return;
+                String[] fields = value.split("\\t", -1);
+                if (fields.length != ("kban".equals(kind) ? 2 : 3)) return;
+                nick = fields[0];
+                if ("ktban".equals(kind)) {
+                    mode = fields[1];
+                    reason = fields[2];
+                } else reason = fields[1];
+                if (!LuaModerationPolicy.validReason(reason)) return;
+            } else if ("kick".equals(kind) || "mode".equals(kind) ||
+                    "tban".equals(kind)) {
                 int tab = value == null ? -1 : value.indexOf('\t');
                 if (tab <= 0) return;
                 nick = value.substring(0, tab);
@@ -919,7 +932,42 @@ public final class LuaScriptDispatcher {
             // covers channels containing 1000+ users.
             if (!"mode".equals(kind) &&
                     !LuaModerationPolicy.unprivilegedTarget(targetMember)) return;
-            if ("kick".equals(kind)) {
+            if (compound) {
+                // Validate both commands while the target is still in the channel.
+                // The cached host is captured BEFORE the KICK.
+                IrcIdentityCache.Identity identity =
+                        api.getServerConnectionData().getIdentityCache().get(nick);
+                if (identity == null ||
+                        !LuaModerationPolicy.validBanHost(identity.host)) return;
+                String baseMask = "*!*@" + identity.host;
+                String banVerb;
+                String[] banArgs;
+                if ("ktban".equals(kind)) {
+                    if (!mode.matches("(?i)[1-9][0-9]?[hmd]")) return;
+                    OperatorCommandComposer.Dialect dialect =
+                            new OperatorCommandComposer.Dialect(
+                                    api.getServerConnectionData().getSupportList().getExtban(),
+                                    api.getServerConnectionData().getSupportList().getAccountExtban());
+                    String timed = dialect.timedCommand(channel, mode, baseMask);
+                    if (timed == null) return;
+                    if (dialect.isInspStyle()) {
+                        banVerb = "TBAN";
+                        banArgs = new String[]{channel, mode, baseMask};
+                    } else if (dialect.isUnrealStyle()) {
+                        banVerb = "MODE";
+                        banArgs = new String[]{channel, "+b",
+                                timed.substring(timed.lastIndexOf(' ') + 1)};
+                    } else return;
+                } else {
+                    banVerb = "MODE";
+                    banArgs = new String[]{channel, "+b", baseMask};
+                }
+                // Send in the requested order. A second membership lookup
+                // after KICK would incorrectly suppress the BAN.
+                api.sendCommand("KICK", true,
+                        new String[]{channel, nick, reason}, null, null);
+                api.sendCommand(banVerb, false, banArgs, null, null);
+            } else if ("kick".equals(kind)) {
                 if (!LuaModerationPolicy.validReason(reason)) return;
                 api.sendCommand("KICK", true, new String[]{channel, nick, reason},
                         null, null);
