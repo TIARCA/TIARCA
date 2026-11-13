@@ -27,6 +27,9 @@ import com.google.android.material.tabs.TabLayout;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.core.view.GravityCompat;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.drawerlayout.widget.DrawerLayout;
@@ -711,6 +714,14 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
 
     private boolean handleMainBackPressed() {
         if (mDrawerLayout.isDrawerOpen(GravityCompat.END)) {
+            // Back must dismiss the keyboard before it closes the member list.
+            // In particular, gesture navigation can dispatch Back while the IME is open.
+            WindowInsetsCompat insets = ViewCompat.getRootWindowInsets(mDrawerLayout);
+            if (insets != null && insets.isVisible(WindowInsetsCompat.Type.ime())) {
+                WindowCompat.getInsetsController(getWindow(), mDrawerLayout)
+                        .hide(WindowInsetsCompat.Type.ime());
+                return true;
+            }
             mDrawerLayout.closeDrawer(GravityCompat.END);
             return true;
         }
