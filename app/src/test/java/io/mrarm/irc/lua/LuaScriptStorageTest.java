@@ -73,6 +73,42 @@ public class LuaScriptStorageTest {
         assertTrue(new LuaScriptStorage(dir).read(ID).isEmpty());
     }
 
+    @Test public void allNetworkSettingsFitAndSurvivePortableStorageBackup()
+            throws Exception {
+        Application app = ApplicationProvider.getApplicationContext();
+        File dir = new File(app.getCacheDir(), "lua-automod-maximum-persistence-test");
+        assertTrue(dir.isDirectory() || dir.mkdirs());
+        LuaScriptStorage storage = new LuaScriptStorage(dir);
+        storage.delete(ID);
+        File backup = File.createTempFile("lua-automod-config-", ".zip", app.getCacheDir());
+        try {
+            String value = "v1;" + "a".repeat(5800);
+            for (int network = 0; network < 16; network++) {
+                String key = "automod." +
+                        String.format(java.util.Locale.ROOT, "00000000-0000-0000-0000-%012d",
+                                network);
+                storage.apply(ID, "store", key, value);
+            }
+            assertEquals(16, storage.read(ID).size());
+            assertEquals(value, storage.read(ID).values().iterator().next());
+            try (ZipFile zip = new ZipFile(backup)) {
+                storage.export(zip, new ZipParameters(), ID);
+            }
+            storage.delete(ID);
+            try (ZipFile zip = new ZipFile(backup)) {
+                byte[] state = storage.inspectBackup(zip, ID);
+                assertNotNull(state);
+                storage.restoreValidated(ID, state);
+            }
+            Map<String, String> restored = storage.read(ID);
+            assertEquals(16, restored.size());
+            for (String saved : restored.values()) assertEquals(value, saved);
+        } finally {
+            storage.delete(ID);
+            backup.delete();
+        }
+    }
+
     @Test public void backupRestoresStateButRevokesStorageAndAllOtherConsent()
             throws Exception {
         Application app = ApplicationProvider.getApplicationContext();
