@@ -65,7 +65,7 @@ jobs:
           gradle -p app/ircSettingsPlugin dependencies --configuration runtimeClasspath > "build/dependency-audit/settings-plugin-runtime.txt"
 
       - name: Run unit tests
-        run: gradle :app:test${{ matrix.flavor }}DebugUnitTest
+        run: gradle :chatlib:test :app:test${{ matrix.flavor }}DebugUnitTest
 
       - name: Build debug APK
         run: gradle :app:assemble${{ matrix.flavor }}Debug :app:assemble${{ matrix.flavor }}Release
