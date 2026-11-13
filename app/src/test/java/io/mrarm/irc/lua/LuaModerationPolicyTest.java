@@ -92,8 +92,9 @@ public class LuaModerationPolicyTest {
                 new NickWithPrefix("operator", new NickPrefixList("@"))));
         assertFalse(LuaModerationPolicy.unprivilegedTarget(
                 new NickWithPrefix("voice", new NickPrefixList("+"))));
-        assertFalse(LuaModerationPolicy.unprivilegedTarget(
-                new NickWithPrefix("unknown", null)));
+        // NAMES parses an ordinary, unprefixed nickname as a null prefix list.
+        assertTrue(LuaModerationPolicy.unprivilegedTarget(
+                new NickWithPrefix("ordinary", null)));
         assertFalse(LuaModerationPolicy.unprivilegedTarget(null));
     }
 

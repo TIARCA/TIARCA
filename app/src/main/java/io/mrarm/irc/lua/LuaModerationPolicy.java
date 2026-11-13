@@ -89,12 +89,13 @@ final class LuaModerationPolicy {
 
     /**
      * Automatic punitive actions must not target ops, halfops or voiced users.
-     * Any unknown prefix state also fails closed. MODE is intentionally exempt
-     * so existing Lua voice/devoice actions remain available.
+     * A null prefix list represents an ordinary (unprefixed) IRC member;
+     * only an unknown member must fail closed. MODE remains exempt to allow
+     * existing Lua voice/devoice actions.
      */
     static boolean unprivilegedTarget(NickWithPrefix member) {
-        return member != null && member.getNickPrefixes() != null
-                && member.getNickPrefixes().length() == 0;
+        return member != null && (member.getNickPrefixes() == null
+                || member.getNickPrefixes().length() == 0);
     }
 
     static boolean permittedMode(String mode) {
