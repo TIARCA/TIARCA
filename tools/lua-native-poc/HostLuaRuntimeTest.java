@@ -9,6 +9,43 @@ public final class HostLuaRuntimeTest {
     private static final String ID = "8a1bb9fa-8100-40cc-9193-d00a45ab719a";
     private static final String OTHER = "16a6f13c-2b6d-4e0e-a16b-6f37e40be6d0";
 
+    // Simulate the Java C6 persistence bridge between native event callbacks.
+    private static final java.util.Map<String, String> automodStorage =
+            new java.util.LinkedHashMap<>();
+    private static boolean automodActive = false;
+
+    private static byte[][] automodSnapshot() {
+        if (!automodActive) return new byte[0][];
+        byte[][] out = new byte[automodStorage.size() * 2][];
+        int i = 0;
+        for (java.util.Map.Entry<String, String> entry : automodStorage.entrySet()) {
+            out[i++] = bytes(entry.getKey());
+            out[i++] = bytes(entry.getValue());
+        }
+        return out;
+    }
+
+    private static String[] collect(byte[][] data) {
+        check(data != null, "Expected script response");
+        java.util.ArrayList<String> output = new java.util.ArrayList<>();
+        output.add(decode(data[0]));
+        for (int i = 1; i < data.length; i += 3) {
+            String kind = decode(data[i]);
+            String key = decode(data[i + 1]);
+            String value = decode(data[i + 2]);
+            if (automodActive && "store".equals(kind)) {
+                automodStorage.put(key, value);
+            } else if (automodActive && "erase".equals(kind)) {
+                automodStorage.remove(key);
+            } else {
+                output.add(kind);
+                output.add(key);
+                output.add(value);
+            }
+        }
+        return output.toArray(new String[0]);
+    }
+
     private static void check(boolean okay, String message) {
         if (!okay) throw new AssertionError(message);
     }
@@ -33,11 +70,8 @@ public final class HostLuaRuntimeTest {
         byte[][] data = NativeLuaRuntime.dispatch(id, event, bytes("test-server"),
                 bytes(channel), bytes(nick), bytes(message), bytes("normal"), 1794400000L,
                 channelNames, memberCounts, truncated,
-                new byte[0][], false, false, new byte[0][], false);
-        check(data != null, "Expected script response");
-        String[] values = new String[data.length];
-        for (int i = 0; i < data.length; i++) values[i] = decode(data[i]);
-        return values;
+                new byte[0][], false, false, automodSnapshot(), automodActive);
+        return collect(data);
     }
 
     private static String[] eventAt(String id, String kind, String channel,
@@ -55,11 +89,8 @@ public final class HostLuaRuntimeTest {
         byte[][] reply = NativeLuaRuntime.dispatch(id, kind, bytes("test-server"),
                 bytes(channel), bytes(nick), bytes(text), bytes("normal"), when,
                 new byte[0][], new int[0], false,
-                roster, false, true, new byte[0][], false);
-        check(reply != null, "Expected Lua response");
-        String[] values = new String[reply.length];
-        for (int i = 0; i < reply.length; i++) values[i] = decode(reply[i]);
-        return values;
+                roster, false, true, automodSnapshot(), automodActive);
+        return collect(reply);
     }
 
     public static void main(String[] args) throws Exception {
@@ -296,6 +327,7 @@ public final class HostLuaRuntimeTest {
         check(automod.length <= 16384, "AutoMod fits 16 KiB source limit");
         check("OK".equals(decode(NativeLuaRuntime.load(OTHER, automod))),
                 "AutoMod loads into official Lua native sandbox");
+        automodActive = true;
         String[] help = event(OTHER, "command", "#room", "me", "mod help");
         boolean hasRestart = false, hasWhitelist = false, hasCategories = false;
         for (String field : help) {
@@ -448,6 +480,51 @@ public final class HostLuaRuntimeTest {
                         ("VoiceOther" + (char)9 + "*" + (char)9 +
                                 "kick" + (char)9 + "10m").equals(voiceUnprotected[6]),
                 "Voice category toggle requests verified logged-out override");
+
+        // Persist preferences, not volatile message/infraction history.
+        check(automodStorage.containsKey("automod.test-server"),
+                "AutoMod must issue persistent C6 writes");
+        String firstState = automodStorage.get("automod.test-server");
+        check(firstState.contains("C#room") && firstState.contains("Wpersonal"),
+                "Channels and individual account allowlist must be saved");
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, automod))),
+                "AutoMod VM restart must load");
+        String[] resumedChannels = eventAt(OTHER, "command", "#room", "me",
+                "mod canali", 1794400130L);
+        check(resumedChannels.length == 4 && resumedChannels[3].contains("#room"),
+                "Previously approved channel must survive VM restart");
+        String[] resumedWhite = eventAt(OTHER, "command", "#room", "me",
+                "mod whitelist", 1794400131L);
+        check(resumedWhite.length >= 7 && resumedWhite[3].contains("personal") &&
+                        java.util.Arrays.toString(resumedWhite).contains("voice=off") &&
+                        java.util.Arrays.toString(resumedWhite).contains("registrati=off"),
+                "Account and category exceptions must survive VM restart");
+        String[] resumedStatus = eventAt(OTHER, "command", "#room", "me",
+                "mod stato", 1794400132L);
+        check(resumedStatus.length == 4 && resumedStatus[3].contains("kick/") &&
+                        resumedStatus[3].contains("canali 1"),
+                "Action and channel counts must survive VM restart");
+
+        byte[][] secondary = NativeLuaRuntime.dispatch(OTHER, "command",
+                bytes("second-server"), bytes("#secondary"), bytes("me"),
+                bytes("mod canali add #secondary"), bytes("normal"), 1794400133L,
+                new byte[0][], new int[0], false, new byte[0][], false,
+                true, automodSnapshot(), true);
+        String[] secondaryResult = collect(secondary);
+        check(secondaryResult.length == 4 && secondaryResult[3].contains("#secondary"),
+                "Second network settings are editable independently");
+        check(automodStorage.containsKey("automod.second-server") &&
+                        !automodStorage.get("automod.test-server").contains("#secondary"),
+                "Second network must not overwrite first network");
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, automod))),
+                "Second restart must load AutoMod");
+        byte[][] secondaryRestored = NativeLuaRuntime.dispatch(OTHER, "command",
+                bytes("second-server"), bytes("#secondary"), bytes("me"),
+                bytes("mod canali"), bytes("normal"), 1794400134L,
+                new byte[0][], new int[0], false, new byte[0][], false,
+                true, automodSnapshot(), true);
+        check(collect(secondaryRestored)[3].contains("#secondary"),
+                "Settings for second network survive VM restart");
 
         NativeLuaRuntime.unload(ID);
         check(NativeLuaRuntime.dispatch(ID, "message", bytes("test-server"),
