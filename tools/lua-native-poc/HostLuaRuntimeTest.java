@@ -40,6 +40,18 @@ public final class HostLuaRuntimeTest {
         return values;
     }
 
+    private static String[] eventAt(String id, String kind, String channel,
+                                    String nick, String text, long when) {
+        byte[][] reply = NativeLuaRuntime.dispatch(id, kind, bytes("test-server"),
+                bytes(channel), bytes(nick), bytes(text), bytes("normal"), when,
+                new byte[0][], new int[0], false,
+                new byte[0][], false, false, new byte[0][], false);
+        check(reply != null, "Expected Lua response");
+        String[] values = new String[reply.length];
+        for (int i = 0; i < reply.length; i++) values[i] = decode(reply[i]);
+        return values;
+    }
+
     public static void main(String[] args) throws Exception {
         String source = "local counter = 0\n"
                 + "tiarca.on('message', function(event)\n"
@@ -278,6 +290,50 @@ public final class HostLuaRuntimeTest {
         check(help.length == 4 && "show".equals(help[1]) &&
                         help[3].contains("/lua restart"),
                 "AutoMod help explains runtime restart");
+
+        // Actual AutoMod escalation: warning, kick, temporary kick+ban,
+        // permanent kick+ban. A kick/rejoin must not erase infraction level.
+        String[] configured = eventAt(OTHER, "command", "#room", "me",
+                "mod azione escalation", 1794400000L);
+        check(configured.length == 4 && "show".equals(configured[1]),
+                "AutoMod escalation selected");
+        String repeat = "io maschio cerco ragazza per divertimento";
+        check(eventAt(OTHER, "message", "#room", "Target", repeat,
+                1794400001L).length == 1, "First message not a violation");
+        String[] warning = eventAt(OTHER, "message", "#room", "Target", repeat,
+                1794400002L);
+        check(warning.length == 7 && "send".equals(warning[4]),
+                "First repetition yields a warning");
+        String[] kick = eventAt(OTHER, "message", "#room", "Target", repeat,
+                1794400014L);
+        check(kick.length == 7 && "kick".equals(kick[4]) &&
+                        ("Target" + (char)9 + "non ripetere").equals(kick[6]),
+                "Second repetition KICK reason must be non ripetere");
+        eventAt(OTHER, "part", "#room", "Target", "", 1794400015L);
+        eventAt(OTHER, "join", "#room", "Target", "", 1794400016L);
+        check(eventAt(OTHER, "message", "#room", "Target", repeat,
+                1794400020L).length == 1,
+                "Rejoin clears message history but not infractions");
+        String[] temporary = eventAt(OTHER, "message", "#room", "Target", repeat,
+                1794400030L);
+        check(temporary.length == 7 && "ktban".equals(temporary[4]) &&
+                        ("Target" + (char)9 + "10m" + (char)9 + "non ripetere")
+                                .equals(temporary[6]),
+                "Third infraction requests KICK then timed BAN atomically");
+        eventAt(OTHER, "quit", "#room", "Target", "", 1794400031L);
+        eventAt(OTHER, "join", "#room", "Target", "", 1794400032L);
+        eventAt(OTHER, "message", "#room", "Target", repeat, 1794400045L);
+        String[] permanent = eventAt(OTHER, "message", "#room", "Target", repeat,
+                1794400056L);
+        check(permanent.length == 7 && "kban".equals(permanent[4]) &&
+                        ("Target" + (char)9 + "non ripetere").equals(permanent[6]),
+                "Fourth infraction requests KICK then permanent BAN atomically");
+        eventAt(OTHER, "nick", "#room", "Target", "NewNick", 1794400057L);
+        eventAt(OTHER, "message", "#room", "NewNick", repeat, 1794400070L);
+        String[] renamed = eventAt(OTHER, "message", "#room", "NewNick", repeat,
+                1794400082L);
+        check(renamed.length == 7 && "kban".equals(renamed[4]),
+                "Nick change preserves the escalation counter");
 
         NativeLuaRuntime.unload(ID);
         check(NativeLuaRuntime.dispatch(ID, "message", bytes("test-server"),
