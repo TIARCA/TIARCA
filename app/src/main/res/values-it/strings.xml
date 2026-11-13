@@ -970,6 +970,8 @@
     <!-- Channel moderation, media sharing and local search -->
     <string name="action_apply">Applica</string>
     <string name="action_whois">WHOIS</string>
+    <string name="whois_lookup_loading">Caricamento informazioni WHOIS…</string>
+    <string name="whois_lookup_failed_retry">WHOIS non completato. Tocca per riprovare.</string>
 
     <string name="channel_modes_menu">Modalità del canale</string>
     <string name="action_list_channels">Elenca i canali</string>

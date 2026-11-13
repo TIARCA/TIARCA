@@ -844,6 +844,8 @@
     <!-- Channel moderation, media sharing and local search -->
     <string name="action_apply">Käytä</string>
     <string name="action_whois">WHOIS</string>
+    <string name="whois_lookup_loading">Ladataan WHOIS-tietoja…</string>
+    <string name="whois_lookup_failed_retry">WHOIS ei valmistunut. Yritä uudelleen napauttamalla.</string>
 
     <string name="channel_modes_menu">Kanavatilat</string>
     <string name="action_list_channels">Listaa kanavat</string>

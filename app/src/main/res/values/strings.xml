@@ -967,6 +967,8 @@
     <!-- Channel moderation, media sharing and local search -->
     <string name="action_apply">Apply</string>
     <string name="action_whois">WHOIS</string>
+    <string name="whois_lookup_loading">Loading WHOIS information…</string>
+    <string name="whois_lookup_failed_retry">WHOIS did not complete. Tap to retry.</string>
 
     <string name="channel_modes_menu">Channel modes</string>
     <string name="action_list_channels">List channels</string>

@@ -9,6 +9,8 @@ public class NumericReplyException extends ChatApiException {
 
     public NumericReplyException(int errorCommandId, String errorMessage) {
         super(errorMessage);
+        this.errorCommandId = errorCommandId;
+        this.errorMessage = errorMessage;
     }
 
     public int getErrorCommandId() {
