@@ -20,6 +20,7 @@ public final class LuaDiagnosticService extends Service {
     public static final int REQUEST_EVENT = 4;
     public static final int REQUEST_RESET = 5;
     public static final int RESPONSE_SCRIPT = 6;
+    public static final int RESPONSE_SCRIPT_STARTED = 7;
     public static final String EXTRA_SCRIPT_ID = "script_id";
     public static final String EXTRA_SOURCE = "source";
     public static final String EXTRA_EVENT = "event";
@@ -115,6 +116,20 @@ public final class LuaDiagnosticService extends Service {
 
     private void handleUserScript(Message message) {
         if (message.replyTo == null) return;
+        // The main process must distinguish executing Lua from Binder messages
+        // still queued behind it. A process death cannot implicate queued scripts.
+        Message started = Message.obtain(null, RESPONSE_SCRIPT_STARTED);
+        Bundle startedData = new Bundle();
+        startedData.putString(EXTRA_SCRIPT_ID,
+                message.getData().getString(EXTRA_SCRIPT_ID));
+        startedData.putInt(EXTRA_REQUEST_ID,
+                message.getData().getInt(EXTRA_REQUEST_ID));
+        started.setData(startedData);
+        try {
+            message.replyTo.send(started);
+        } catch (RemoteException ignored) {
+            return; // The requesting process has gone away.
+        }
         // Lua runs on a worker. The independent main looper is the watchdog:
         // a non-returning native function cannot bypass this by missing Lua
         // instruction hooks. Only this isolated process is terminated.
