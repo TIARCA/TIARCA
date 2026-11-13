@@ -737,7 +737,8 @@ public final class LuaScriptDispatcher {
             } else if ("who".equals(kind) || "kick".equals(kind) ||
                     "ban".equals(kind) || "mode".equals(kind) ||
                     "mute".equals(kind) || "tban".equals(kind) ||
-                    "kban".equals(kind) || "ktban".equals(kind)) {
+                    "kban".equals(kind) || "ktban".equals(kind) ||
+                    "blkmod".equals(kind)) {
                 final String operation = kind;
                 if ("who".equals(operation)) {
                     io.post(() -> performIrcAction(script.id, request, operation, target, value));
@@ -896,8 +897,31 @@ public final class LuaScriptDispatcher {
             String nick;
             String reason = "";
             String mode = "";
+            boolean blacklistOverride = "blkmod".equals(kind);
+            String claimedAccount = "";
+            if (blacklistOverride) {
+                if (value == null) return;
+                String[] fields = value.split("\\t", -1);
+                if (fields.length != 4) return;
+                nick = fields[0];
+                claimedAccount = fields[1];
+                mode = fields[3];
+                switch (fields[2]) {
+                    case "kick": kind = "kick"; break;
+                    case "ban": kind = "ban"; break;
+                    case "mute": kind = "mute"; break;
+                    case "tban": kind = "tban"; break;
+                    case "bankick": kind = "kban"; break;
+                    case "tbankick": kind = "ktban"; break;
+                    default: return;
+                }
+                reason = "non ripetere";
+            }
             boolean compound = "kban".equals(kind) || "ktban".equals(kind);
-            if (compound) {
+            if (blacklistOverride) {
+                // Parsed and validated above; permission checked against the
+                // live account below, never against only the Lua claim.
+            } else if (compound) {
                 if (value == null) return;
                 String[] fields = value.split("\\t", -1);
                 if (fields.length != ("kban".equals(kind) ? 2 : 3)) return;
@@ -927,10 +951,20 @@ public final class LuaScriptDispatcher {
                             api.getServerConnectionData().getSupportList().getCaseMapping(),
                             nick, connection.getUserNick()),
                     nick)) return;
-            // Do not auto-kick/ban/mute channel staff or voiced participants.
-            // Lookup is live (not the 128-member Lua snapshot), so this also
-            // covers channels containing 1000+ users.
-            if (!"mode".equals(kind) &&
+            // Ordinary scripts cannot moderate prefixed users. An explicit
+            // account blacklist request is the sole exception, and only when
+            // the target is the event sender AND a live observed IRC account
+            // matches the claim, with user-info and moderation consent.
+            IrcIdentityCache.Identity liveIdentity =
+                    api.getServerConnectionData().getIdentityCache().get(nick);
+            if (blacklistOverride &&
+                    !LuaModerationPolicy.blacklistOverrideAllowed(script,
+                            request.server, request.event, request.nick, nick,
+                            claimedAccount, liveIdentity == null ? null :
+                            liveIdentity.account,
+                            api.getServerConnectionData().getSupportList()
+                                    .getCaseMapping())) return;
+            if (!"mode".equals(kind) && !blacklistOverride &&
                     !LuaModerationPolicy.unprivilegedTarget(targetMember)) return;
             if (compound) {
                 // Validate both commands while the target is still in the channel.
