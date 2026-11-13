@@ -102,16 +102,17 @@ final class LuaModerationPolicy {
     static boolean blacklistOverrideAllowed(LuaScriptStore.Script script, String server,
                                             String event, String eventNick,
                                             String targetNick, String claimedAccount,
-                                            String observedAccount,
+                                            String observedAccount, boolean accountKnown,
                                             IRCCaseMapping mapping) {
         return script != null && script.isEnabledOn(server) &&
                 script.allowModeration && script.allowUserInfo &&
                 "message".equals(event) &&
                 validNick(eventNick) && validNick(targetNick) &&
                 isSelf(mapping, targetNick, eventNick) &&
-                validAccount(claimedAccount) &&
-                validAccount(observedAccount) &&
-                claimedAccount.equalsIgnoreCase(observedAccount);
+                accountKnown && (
+                    ("*".equals(claimedAccount) && observedAccount == null) ||
+                    (validAccount(claimedAccount) && validAccount(observedAccount) &&
+                     claimedAccount.equalsIgnoreCase(observedAccount)));
     }
 
     private static boolean validAccount(String account) {
