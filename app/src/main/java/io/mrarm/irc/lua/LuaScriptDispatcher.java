@@ -73,6 +73,9 @@ public final class LuaScriptDispatcher {
     private final Map<String, Long> lastServerSend = new HashMap<>();
     // Accessed only on ioThread; scripts cannot bypass the ordered, bounded pacing.
     private final LuaModerationPacer moderationPacer = new LuaModerationPacer();
+    private final LuaConsoleState console = new LuaConsoleState();
+    // Main thread only. Scoped restarts do not replace other network VMs.
+    private final Map<String, RestartBatch> restarts = new HashMap<>();
     private final Map<String, Long> lastWho = new HashMap<>();
     private final Runnable timerTick = new Runnable() {
         @Override public void run() {
@@ -99,14 +102,28 @@ public final class LuaScriptDispatcher {
         final String nick;
         final String event;
         final boolean isEvent;
+        final long generation;
+
         Pending(String id, String server, String channel, String nick,
-                String event, boolean isEvent) {
+                String event, boolean isEvent, long generation) {
             this.scriptId = id;
             this.server = server;
             this.channel = channel;
             this.nick = nick;
             this.event = event;
             this.isEvent = isEvent;
+            this.generation = generation;
+        }
+    }
+
+    private static final class RestartBatch {
+        final long generation;
+        int remaining;
+        int failures;
+
+        RestartBatch(long generation, int remaining) {
+            this.generation = generation;
+            this.remaining = remaining;
         }
     }
 
@@ -158,6 +175,7 @@ public final class LuaScriptDispatcher {
             running = false;
             main.removeCallbacks(timerTick);
             io.post(moderationPacer::clear);
+            restarts.clear();
             reconcileBinding();
         });
     }
@@ -167,6 +185,7 @@ public final class LuaScriptDispatcher {
         main.post(() -> {
             running = true; // Allow on-demand script validation from Settings.
             io.post(moderationPacer::clear); // Invalidate queued actions on permission/script changes.
+            restarts.clear();
             reconcileBinding();
             main.removeCallbacks(timerTick);
             main.postDelayed(timerTick, TICK_INTERVAL_MS);
@@ -210,20 +229,31 @@ public final class LuaScriptDispatcher {
     private void clearPending() {
         pending.clear();
         pendingEvents.set(0);
+        restarts.clear();
     }
 
-    private void sendMessage(Message message, Pending identity) {
+    private void discardPendingForNetwork(String server) {
+        for (Map.Entry<Integer, Pending> entry : pending.entrySet()) {
+            Pending value = entry.getValue();
+            if (server.equals(value.server) && pending.remove(entry.getKey(), value)
+                    && value.isEvent) pendingEvents.decrementAndGet();
+        }
+    }
+
+    private boolean sendMessage(Message message, Pending identity) {
         Messenger target = remote;
-        if (target == null) return;
+        if (target == null) return false;
         int id = sequence.incrementAndGet();
         message.replyTo = replies;
         message.getData().putInt(LuaDiagnosticService.EXTRA_REQUEST_ID, id);
         pending.put(id, identity);
         try {
             target.send(message);
+            return true;
         } catch (RemoteException error) {
             pending.remove(id);
             if (identity.isEvent) pendingEvents.decrementAndGet();
+            return false;
         }
     }
 
@@ -250,7 +280,8 @@ public final class LuaScriptDispatcher {
             data.putString(LuaDiagnosticService.EXTRA_SCRIPT_ID, script.id);
             data.putByteArray(LuaDiagnosticService.EXTRA_SOURCE, source);
             request.setData(data);
-            sendMessage(request, new Pending(script.id, script.serverId, "", "", "", false));
+            sendMessage(request, new Pending(script.id, script.serverId, "", "", "", false,
+                    console.generation(script.serverId)));
         }
     }
 
@@ -317,31 +348,167 @@ public final class LuaScriptDispatcher {
                 command.indexOf('\0') >= 0)
             return false;
         String builtin = command.trim().toLowerCase(Locale.ROOT);
-        if ("list".equals(builtin) || "help".equals(builtin)) {
+        String server = connection.getUUID().toString();
+        if ("stop".equals(builtin)) {
+            console.stop(server);
+            main.post(() -> {
+                discardPendingForNetwork(server);
+                restarts.remove(server);
+                io.post(() -> moderationPacer.clearServer(server));
+                emitConsole(connection, "[Lua] Script sospesi su questa rete. /lua start per riprendere.");
+            });
+            return true;
+        }
+        if ("start".equals(builtin)) {
+            console.start(server);
+            main.post(() -> {
+                discardPendingForNetwork(server);
+                restarts.remove(server);
+                emitConsole(connection, "[Lua] Script ripresi su questa rete.");
+            });
+            return true;
+        }
+        if ("restart".equals(builtin)) {
+            long generation = console.beginRestart(server);
+            main.post(() -> restartNetwork(connection, server, generation));
+            return true;
+        }
+        if ("list".equals(builtin) || "help".equals(builtin) ||
+                "status".equals(builtin) || "log".equals(builtin)) {
             showBuiltinCommand(connection, builtin);
             return true;
         }
-        return enqueue("command", connection.getUUID().toString(), target, nick,
+        if (console.isPaused(server)) {
+            emitConsole(connection, "[Lua] Script sospesi: /lua start o /lua restart.");
+            return true;
+        }
+        return enqueue("command", server, target, nick,
                 command, "", System.currentTimeMillis() / 1000);
     }
 
-    private void showBuiltinCommand(ServerConnectionInfo connection, String builtin) {
-        List<String> lines = new ArrayList<>();
-        if ("help".equals(builtin)) {
-            lines.add("[Lua] /lua list - script attivi su questa rete");
-            lines.add("[Lua] /lua mask help e /lua mod help - guida agli script");
-        } else {
-            List<LuaScriptStore.Script> scripts =
-                    store.enabledOn(connection.getUUID().toString());
-            lines.add("[Lua] Script attivi su questa rete: " + scripts.size());
-            for (LuaScriptStore.Script script : scripts)
-                lines.add("[Lua] " + script.name);
-        }
-        for (String line : lines)
+    private void emitConsole(ServerConnectionInfo connection, String text) {
+        try {
+            if (connection == null || !(connection.getApiInstance() instanceof ServerConnectionApi))
+                return;
             ((ServerConnectionApi) connection.getApiInstance())
                     .getServerConnectionData().getServerStatusData()
                     .addMessage(new StatusMessageInfo(null, new Date(),
-                            StatusMessageInfo.MessageType.NOTICE, line));
+                            StatusMessageInfo.MessageType.NOTICE, text));
+        } catch (RuntimeException ignored) {
+            // Local diagnostics must not affect IRC.
+        }
+    }
+
+    private void showBuiltinCommand(ServerConnectionInfo connection, String builtin) {
+        String server = connection.getUUID().toString();
+        List<String> lines = new ArrayList<>();
+        if ("help".equals(builtin)) {
+            lines.add("[Lua] /lua help - guida generale");
+            lines.add("[Lua] /lua list - script attivi sulla rete");
+            lines.add("[Lua] /lua status - motore, script, errori e coda");
+            lines.add("[Lua] /lua stop | start - sospende o riprende sulla rete");
+            lines.add("[Lua] /lua restart - reinizializza gli script di questa rete");
+            lines.add("[Lua] /lua log - ultimi messaggi degli script sulla rete");
+            lines.add("[Lua] /lua mask help | mod help - guida degli script");
+        } else if ("list".equals(builtin)) {
+            List<LuaScriptStore.Script> scripts = store.enabledOn(server);
+            lines.add("[Lua] " + connection.getName() + " - script abilitati: " +
+                    scripts.size() + (console.isPaused(server) ? " (sospesi)" : ""));
+            for (LuaScriptStore.Script script : scripts)
+                lines.add("[Lua] " + script.name);
+        } else if ("log".equals(builtin)) {
+            List<LuaConsoleState.LogLine> history = console.logs(server);
+            lines.add("[Lua] " + connection.getName() + " - ultimi log: " + history.size());
+            if (history.isEmpty()) lines.add("[Lua] Nessun log disponibile");
+            for (LuaConsoleState.LogLine line : history)
+                lines.add("[Lua] " + line.script + ": " + line.message);
+        } else if ("status".equals(builtin)) {
+            io.post(() -> {
+                int queued = moderationPacer.pendingCount(server);
+                main.post(() -> showNetworkStatus(connection, queued));
+            });
+            return;
+        }
+        for (String line : lines) emitConsole(connection, line);
+    }
+
+    private void showNetworkStatus(ServerConnectionInfo connection, int queued) {
+        String server = connection.getUUID().toString();
+        List<LuaScriptStore.Script> installed = store.list();
+        List<LuaScriptStore.Script> active = store.enabledOn(server);
+        boolean paused = console.isPaused(server);
+        emitConsole(connection, "[Lua] Stato - " + connection.getName() + ": " +
+                (paused ? "SOSPESO" : remote == null ? "MOTORE NON DISPONIBILE" : "ATTIVO"));
+        emitConsole(connection, "[Lua] Script sulla rete: " + active.size() +
+                "; moderazioni in coda: " + queued);
+        for (LuaScriptStore.Script script : installed) {
+            String status = script.isEnabledOn(server) ?
+                    (paused ? "sospeso" : remote == null ? "motore assente" : "attivo") :
+                    script.enabled ? "abilitato su altre reti" : "disattivato";
+            if (script.error != null && !script.error.isEmpty())
+                status += " - errore: " + script.error;
+            emitConsole(connection, "[Lua] " + script.name + ": " + status);
+        }
+        emitConsole(connection, "[Lua] Memoria effettiva: non disponibile; limite VM 2 MiB, globale 32 MiB");
+    }
+
+    private void restartNetwork(ServerConnectionInfo connection, String server,
+                                long generation) {
+        if (!console.isPaused(server) || console.generation(server) != generation) return;
+        discardPendingForNetwork(server);
+        io.post(() -> moderationPacer.clearServer(server));
+        List<LuaScriptStore.Script> scripts = store.enabledOn(server);
+        if (scripts.isEmpty()) {
+            console.completeRestart(server, generation);
+            emitConsole(connection, "[Lua] Nessuno script abilitato da riavviare.");
+            return;
+        }
+        if (remote == null) {
+            emitConsole(connection, "[Lua] Motore non disponibile; riavvio non eseguito.");
+            return; // Remain paused until explicit /lua start or retry.
+        }
+        restarts.put(server, new RestartBatch(generation, scripts.size()));
+        io.post(() -> {
+            for (LuaScriptStore.Script script : scripts) {
+                if (!console.isPaused(server) || console.generation(server) != generation)
+                    return;
+                try {
+                    Message load = Message.obtain(null, LuaDiagnosticService.REQUEST_LOAD);
+                    Bundle data = new Bundle();
+                    data.putString(LuaDiagnosticService.EXTRA_SCRIPT_ID, script.id);
+                    data.putString(LuaDiagnosticService.EXTRA_SERVER, server);
+                    data.putByteArray(LuaDiagnosticService.EXTRA_SOURCE, store.sourceBytes(script));
+                    load.setData(data);
+                    if (!sendMessage(load, new Pending(script.id, server, "", "",
+                            "restart", false, generation)))
+                        main.post(() -> restartResult(connection, server, generation,
+                                script.name, "ERROR: motor IPC unavailable"));
+                } catch (IOException error) {
+                    main.post(() -> restartResult(connection, server, generation,
+                            script.name, "ERROR: script source unavailable"));
+                }
+            }
+        });
+    }
+
+    private void restartResult(ServerConnectionInfo connection, String server,
+                               long generation, String script, String status) {
+        RestartBatch batch = restarts.get(server);
+        if (batch == null || batch.generation != generation) return;
+        if (!"OK".equals(status)) {
+            batch.failures++;
+            console.log(server, script, status);
+        }
+        if (--batch.remaining > 0) return;
+        restarts.remove(server);
+        if (batch.failures == 0 && console.completeRestart(server, generation)) {
+            emitConsole(connection, "[Lua] Riavviati " +
+                    (store.enabledOn(server).size()) + " script sulla rete " +
+                    connection.getName() + ". Memoria temporanea azzerata.");
+        } else if (batch.failures > 0) {
+            emitConsole(connection, "[Lua] Riavvio incompleto (" + batch.failures +
+                    " errori). Script sospesi: /lua log per i dettagli.");
+        }
     }
 
     public void onConnectionChanged(ServerConnectionInfo connection, boolean connected) {
@@ -357,7 +524,9 @@ public final class LuaScriptDispatcher {
 
     private boolean enqueue(String event, String server, String channel,
                             String nick, String text, String messageType, long time) {
-        if (remote == null || store.enabledOn(server).isEmpty()) return false;
+        if (remote == null || console.isPaused(server) ||
+                store.enabledOn(server).isEmpty()) return false;
+        long currentGeneration = console.generation(server);
         // Bound events *before* adding to HandlerThread, not only in-flight Binder
         // requests: otherwise a burst of IRC messages can grow the Java queue.
         if (queuedEvents.incrementAndGet() > MAX_PENDING_EVENTS) {
@@ -366,7 +535,8 @@ public final class LuaScriptDispatcher {
         }
         boolean accepted = io.post(() -> {
             try {
-                if (remote == null) return;
+                if (remote == null || console.isPaused(server) ||
+                        console.generation(server) != currentGeneration) return;
                 List<LuaScriptStore.Script> eligible = store.enabledOn(server);
                 // Capture only names and cached counts from this approved IRC
                 // connection. Do not block the chat/UI threads with the snapshot.
@@ -439,7 +609,8 @@ public final class LuaScriptDispatcher {
                     data.putStringArrayList(LuaDiagnosticService.EXTRA_STORAGE_PAIRS, stored);
                     data.putBoolean(LuaDiagnosticService.EXTRA_CAN_STORE, script.allowStorage);
                     request.setData(data);
-                    sendMessage(request, new Pending(script.id, server, channel, nick, event, true));
+                    sendMessage(request, new Pending(script.id, server, channel, nick, event, true,
+                            console.generation(server)));
                 }
             } finally {
                 queuedEvents.decrementAndGet();
@@ -457,10 +628,25 @@ public final class LuaScriptDispatcher {
         if (request.isEvent) pendingEvents.decrementAndGet();
         String id = data.getString(LuaDiagnosticService.EXTRA_SCRIPT_ID);
         if (!request.scriptId.equals(id)) return true;
+        String status = data.getString(LuaDiagnosticService.EXTRA_STATUS, "");
+        if ("restart".equals(request.event)) {
+            LuaScriptStore.Script restartScript = store.find(id);
+            ServerConnectionInfo conn = null;
+            try {
+                conn = ServerConnectionManager.getInstance(context)
+                        .getConnection(UUID.fromString(request.server));
+            } catch (RuntimeException ignored) { }
+            if (conn != null)
+                restartResult(conn, request.server, request.generation,
+                        restartScript == null ? id : restartScript.name, status);
+            return true;
+        }
+        if (request.isEvent && (console.isPaused(request.server) ||
+                console.generation(request.server) != request.generation))
+            return true;
         LuaScriptStore.Script script = store.find(id);
         if (script == null || !script.isEnabledOn(request.server))
             return true;
-        String status = data.getString(LuaDiagnosticService.EXTRA_STATUS, "");
         if (!"OK".equals(status)) {
             store.fail(id, status);
             reload();
@@ -479,6 +665,7 @@ public final class LuaScriptDispatcher {
             String value = actions.get(i + 2);
             if ("log".equals(kind)) {
                 store.recordLog(id, value);
+                console.log(request.server, script.name, value);
             } else if ("send".equals(kind)) {
                 sendAuthorized(script, request, target, value);
             } else if ("pm".equals(kind) || "notice".equals(kind)) {
@@ -550,6 +737,8 @@ public final class LuaScriptDispatcher {
 
     private void sendAuthorized(LuaScriptStore.Script snapshot, Pending request,
                                 String target, String text) {
+        if (console.isPaused(request.server) ||
+                console.generation(request.server) != request.generation) return;
         LuaScriptStore.Script current = store.find(snapshot.id);
         if (!LuaActionPolicy.permitsSend(current, request.server, request.channel,
                 request.event, target, text)) return;
@@ -577,6 +766,8 @@ public final class LuaScriptDispatcher {
     /** Restricted outgoing PVT/NOTICE to the sender of a channel message. */
     private void sendDirectAuthorized(LuaScriptStore.Script snapshot, Pending request,
                                       String target, String text, boolean notice) {
+        if (console.isPaused(request.server) ||
+                console.generation(request.server) != request.generation) return;
         LuaScriptStore.Script current = store.find(snapshot.id);
         try {
             ServerConnectionInfo conn = ServerConnectionManager.getInstance(context)
@@ -613,6 +804,8 @@ public final class LuaScriptDispatcher {
      */
     private void scheduleModeration(String scriptId, Pending request, String kind,
                                     String channel, String value) {
+        if (console.isPaused(request.server) ||
+                console.generation(request.server) != request.generation) return;
         LuaScriptStore.Script script = store.find(scriptId);
         if (!LuaModerationPolicy.scoped(script, request.server, request.channel,
                 request.event, channel, true)) return;
@@ -623,7 +816,9 @@ public final class LuaScriptDispatcher {
             return;
         }
         boolean accepted = io.postDelayed(() -> {
-            if (!moderationPacer.isCurrent(slot)) return;
+            if (!moderationPacer.isCurrent(slot) ||
+                    console.isPaused(request.server) ||
+                    console.generation(request.server) != request.generation) return;
             try {
                 // Android may pause the worker past its scheduled time.
                 // Never punish a user for an obsolete, delayed event.
@@ -642,6 +837,8 @@ public final class LuaScriptDispatcher {
     /** Runs off the UI and IRC reader threads and rechecks consent at execution. */
     private void performIrcAction(String scriptId, Pending request, String kind,
                                   String channel, String value) {
+        if (console.isPaused(request.server) ||
+                console.generation(request.server) != request.generation) return;
         LuaScriptStore.Script script = store.find(scriptId);
         boolean who = "who".equals(kind);
         if (!LuaModerationPolicy.scoped(script, request.server, request.channel,
