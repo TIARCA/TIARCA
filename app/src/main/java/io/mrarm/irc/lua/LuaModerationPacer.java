@@ -79,6 +79,11 @@ final class LuaModerationPacer {
         // must still respect the spacing after the most recent command.
     }
 
+    int pendingCount(String server) {
+        ServerState state = servers.get(server);
+        return state == null ? 0 : state.pending;
+    }
+
     void clearServer(String server) {
         servers.remove(server); // Invalidates all outstanding slots for this network.
     }
