@@ -15,7 +15,7 @@ file through the Android document picker (Storage Access Framework).
 It is copied into TIARCA private storage. No downloads, binary plugins,
 .lua bytecode, JAR, DEX or native plugins are supported.
 
-Maximum: 8 scripts, each 8192 source bytes. Imported scripts are
+Maximum: 8 scripts, each 16384 source bytes. Imported scripts are
 **disabled**. On enable, select **one or more configured IRC networks**
 (up to 16 per script). No other network receives events from that script.
 The same explicitly approved send/user-info/moderation/storage capabilities
@@ -527,8 +527,9 @@ scheda della rete autorizzata e modificano le preferenze **di quella rete**:
   `/lua mod pausa 10`: intervallo tra interventi sullo stesso utente
   (0–120 secondi); `/lua mod durata 10m`: durata ban temporaneo
   (1–99 m/h/d, solo server compatibili).
-- `/lua mod azione monitor|avviso|kick|ban|mute|tban|bankick|escalation`:
-  seleziona la risposta. `bankick` richiede prima il kick e poi il ban.
+- `/lua mod azione monitor|avviso|kick|ban|mute|tban|bankick|tbankick|escalation`:
+  seleziona la risposta. `bankick` e `tbankick` richiedono prima il kick
+  e poi il ban, con motivazione kick `non ripetere`.
   Escalation entro la finestra temporale: avviso → kick → kick + ban
   temporaneo → kick + ban permanente. Le azioni sono richieste, non conferme di successo remoto.
 - `/lua mod canali`: elenca i canali attualmente controllati sulla rete.
@@ -542,11 +543,54 @@ scheda della rete autorizzata e modificano le preferenze **di quella rete**:
   monitoraggio o cancella lo storico della sola rete corrente. Anche con
   `on`, non si monitorano canali che non siano stati aggiunti.
 
-I rilevamenti si leggono dall'ultimo log dello script. Gli avvisi richiedono
-permesso **Invio messaggi**, i kick/ban/mute richiedono permesso **Moderazione**
-e privilegi operatore attuali. Le azioni punitive proteggono automaticamente
-tutti i membri con prefisso (incluso voice) tramite la lista live completa,
-indipendentemente dal limite di 128 identità dello snapshot Lua.
+### Whitelist e blacklist di AutoMod
+
+**Per impostazione iniziale sono esentate tutte le categorie**:
+`registrati`, `voice`, `halfop`, `op`, `admin`, `owner`.
+La lista dei singoli account in whitelist e quella in blacklist iniziano vuote,
+così come la lista dei canali monitorati. I nomi sono account autenticati,
+**non nickname**: la configurazione resta associata all'account anche quando
+un utente cambia nickname.
+
+- `/lua mod whitelist`: elenca gli account esentati singolarmente e lo
+  stato ON/OFF delle sei categorie.
+- `/lua mod whitelist add nomeaccount` e `drop nomeaccount`: aggiunge o
+  rimuove l'esenzione individuale.
+- `/lua mod whitelist categoria registrati|voice|halfop|op|admin|owner on|off`:
+  cambia l'esenzione della categoria per la sola rete corrente.
+- `/lua mod blacklist`: mostra gli account sempre sottoposti al controllo;
+  `/lua mod blacklist add nomeaccount` e `drop nomeaccount` li gestiscono.
+  Un account in **blacklist prevale su qualsiasi whitelist**, compreso voice
+  o registrati, anche se compare esplicitamente nella whitelist.
+- `/lua mod help` presenta le categorie per blocchi separati;
+  `/lua mod help liste`, `help canali`, `help azione`,
+  `help parametri` aprono solo la relativa sezione.
+- `/lua mod stato` comprende anche le quantità di account in whitelist e
+  blacklist. Ogni lista supporta fino a 32 account, con validazione delle
+  stringhe; i nomi dei canali fino a 16 per rete.
+
+Il motore fornisce a Lua il roster e l'account osservato **soltanto se
+l'utente autorizza anche «Lettura dati utenti»** per quello script/rete.
+Per default un account confermato come registrato viene esentato.
+Gli utenti con account **sconosciuto** (dato non ancora ricevuto dal
+server) vengono ignorati in modo prudenziale, non interpretati come
+«non registrati». Un logout esplicitamente osservato dal server viene
+invece rappresentato come `*`. La lista di 128 membri fornita a Lua
+include prioritariamente il mittente corrente anche nei canali più grandi.
+
+Il motore Android rifiuta normalmente gli interventi automatici sui membri
+con prefisso; un account espressamente in blacklist può superare quel filtro
+**solo con permessi separati Lettura dati utenti + Moderazione**, su un
+messaggio ricevuto dal medesimo nickname e dopo verifica dell'account
+effettivamente osservato in quella rete. Rimangono obbligatori presenza in
+canale, privilegi operatore, controllo anti-autokick, canale esatto,
+dialetto e host validi. Il server può comunque negare le operazioni.
+
+I rilevamenti si leggono dal log dello script. Gli avvisi richiedono
+consenso **Invio messaggi**; kick/ban/mute richiedono consenso
+**Moderazione** e privilegi operatore attuali. Liste, categorie e canali
+sono **solo RAM**: modifiche e reload/restart li riportano ai default.
+Non è stato aggiunto accesso persistente o un'autorizzazione automatica.
 
 La cronologia è **solo RAM**, distinta per server, canale e nickname;
 le impostazioni tramite comando non sopravvivono al riavvio Lua, al reload o
@@ -659,3 +703,21 @@ del server IRC, che può comunque rifiutare comandi.
 
 Queste due API sono ristrette alla moderazione, richiedono il consenso
 esplicito e non consentono accesso a comandi IRC arbitrari.
+
+
+## Nuovo limite sorgenti e API blacklist
+
+Il limite degli script Lua importati, validato sia nel main process Java
+sia nel processo Lua isolato in C/JNI, è **16 KiB (16384 byte UTF-8)**
+invece di 8 KiB. Restano invariati il budget di istruzioni per evento,
+i 2 MiB di heap per VM e il cap aggregato di 32 MiB.
+
+La nuova API `tiarca.blacklist_action(channel,nick,account,azione,durata)`
+è una richiesta strutturata e non permette di inviare comandi IRC raw.
+Le azioni consentite sono `kick`, `ban`, `mute`, `tban`,
+`bankick` e `tbankick`. Il client Android ricontrolla al momento
+dell'invio l'account reale e l'origine dell'evento, senza affidarsi
+al solo account indicato da Lua. Per un kick la motivazione è sempre
+`non ripetere`; le azioni composte inviano KICK e poi MODE/TBAN solo
+dopo aver preparato la mask. In assenza di un account riconosciuto non
+esiste alcun override dei privilegi.
