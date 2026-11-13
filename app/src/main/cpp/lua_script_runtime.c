@@ -293,6 +293,41 @@ static int script_tban(lua_State *L) {
     return 0;
 }
 
+/* Atomic kick-then-ban request; host validates all conditions before KICK. */
+static int script_kickban(lua_State *L) {
+    size_t n, rl;
+    const char *nick = luaL_checklstring(L, 2, &n);
+    const char *reason = luaL_optlstring(L, 3, "non ripetere", &rl);
+    if (n == 0 || n > 64 || rl == 0 || rl > 160 ||
+            memchr(nick, '\t', n) || memchr(reason, '\t', rl))
+        return luaL_error(L, "tiarca.kickban: invalid nick/reason");
+    char payload[228];
+    memcpy(payload, nick, n);
+    payload[n] = '\t';
+    memcpy(payload + n + 1, reason, rl);
+    channel_action(L, "kban", payload, n + 1 + rl);
+    return 0;
+}
+
+static int script_kicktban(lua_State *L) {
+    size_t n, dl, rl;
+    const char *nick = luaL_checklstring(L, 2, &n);
+    const char *duration = luaL_checklstring(L, 3, &dl);
+    const char *reason = luaL_optlstring(L, 4, "non ripetere", &rl);
+    if (n == 0 || n > 64 || dl == 0 || dl > 4 || rl == 0 || rl > 160 ||
+            memchr(nick, '\t', n) || memchr(duration, '\t', dl) ||
+            memchr(reason, '\t', rl))
+        return luaL_error(L, "tiarca.kicktban: invalid parameters");
+    char payload[235];
+    memcpy(payload, nick, n);
+    payload[n] = '\t';
+    memcpy(payload + n + 1, duration, dl);
+    payload[n + 1 + dl] = '\t';
+    memcpy(payload + n + 2 + dl, reason, rl);
+    channel_action(L, "ktban", payload, n + 2 + dl + rl);
+    return 0;
+}
+
 static int script_kick(lua_State *L) {
     size_t n, reason_len = 0;
     const char *nick = luaL_checklstring(L, 2, &n);
@@ -486,6 +521,10 @@ static void install_libraries(lua_State *L) {
     lua_setfield(L, -2, "maskfind");
     lua_pushcfunction(L, script_kick);
     lua_setfield(L, -2, "kick");
+    lua_pushcfunction(L, script_kickban);
+    lua_setfield(L, -2, "kickban");
+    lua_pushcfunction(L, script_kicktban);
+    lua_setfield(L, -2, "kicktban");
     lua_pushcfunction(L, script_ban);
     lua_setfield(L, -2, "ban");
     lua_pushcfunction(L, script_mute);
