@@ -1,8 +1,8 @@
 -- /lua mod help
-local CANALI = {} -- esempio: ["#test"] = true (vuoto = tutti)
-local MAX_UTENTI = 1000  -- utenti attivi in memoria, non utenti presenti
-local MAX_MESSAGGI = 2400 -- cap globale tra tutte le reti
-local MAX_TESTO = 160 -- oltre questo limite si conta, ma non si confronta
+local CANALI = {}
+local MAX_UTENTI = 1000 
+local MAX_MESSAGGI = 2400
+local MAX_TESTO = 160
 local MAX_PAROLE = 32
 local config = {}
 local cronologie, utenti, messaggi = {}, 0, 0
@@ -79,7 +79,7 @@ local function impronta(text)
   local pulito = text:lower():gsub("[%c%p]", " ")
   for parola in pulito:gmatch("%S+") do
   if #parti >= MAX_PAROLE or bytes + #parola + 1 > MAX_TESTO then
-    return "", 0 -- salta il confronto, non taglia messaggi lunghi
+    return "", 0
   end
   parti[#parti+1] = parola
   bytes = bytes + #parola + 1
@@ -112,16 +112,14 @@ local function azione(e, c, livello)
   elseif c.avviso == "notice" then tiarca.notice(e.nick, testo)
   else tiarca.send(e.channel, e.nick .. ": " .. testo) end
   elseif scelta == "kick" then
-  tiarca.kick(e.channel, e.nick, "AutoMod: messaggi ripetuti")
+  tiarca.kick(e.channel, e.nick, "non ripetere")
   elseif scelta == "ban" then tiarca.ban(e.channel, e.nick)
   elseif scelta == "mute" then tiarca.mute(e.channel, e.nick)
   elseif scelta == "tban" then tiarca.tban(e.channel, e.nick, c.durata)
   elseif scelta == "bankick" then
-  tiarca.ban(e.channel, e.nick)
-  tiarca.kick(e.channel, e.nick, "AutoMod: messaggi ripetuti")
+  tiarca.kickban(e.channel, e.nick, "non ripetere")
   elseif scelta == "tbankick" then
-  tiarca.tban(e.channel, e.nick, c.durata)
-  tiarca.kick(e.channel, e.nick, "AutoMod: messaggi ripetuti")
+  tiarca.kicktban(e.channel, e.nick, c.durata, "non ripetere")
   end
 end
 tiarca.on("message", function(e)
@@ -163,7 +161,17 @@ tiarca.on("disconnected", function(e) reset(e.server) end)
 for _,tipo in ipairs({"join","part","quit","nick"}) do
   tiarca.on(tipo, function(e)
   if e.channel:match("^[#&+!]") and e.nick ~= "" then
-    elimina(chiave(e))
+    local k = chiave(e)
+    local r = cronologie[k]
+    if r then
+      messaggi = messaggi - #r.lista
+      r.lista = {}
+      if r.infrazione == 0 then elimina(k)
+      elseif tipo == "nick" and e.text and #e.text < 65 then
+        local nuovo = e.server.."\0"..e.channel:lower().."\0"..e.text:lower()
+        if not cronologie[nuovo] then cronologie[nuovo],cronologie[k]=r,nil end
+      end
+    end
   end
   end)
 end
