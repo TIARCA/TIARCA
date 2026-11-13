@@ -160,6 +160,23 @@ static int script_send(lua_State *L) {
     return 0;
 }
 
+/* Same-source PM and NOTICE are authorized only after main-process checks. */
+static int script_pm(lua_State *L) {
+    size_t nick_len, msg_len;
+    const char *nick = luaL_checklstring(L, 1, &nick_len);
+    const char *msg = luaL_checklstring(L, 2, &msg_len);
+    add_action(L, "pm", nick, nick_len, msg, msg_len);
+    return 0;
+}
+
+static int script_notice(lua_State *L) {
+    size_t nick_len, msg_len;
+    const char *nick = luaL_checklstring(L, 1, &nick_len);
+    const char *msg = luaL_checklstring(L, 2, &msg_len);
+    add_action(L, "notice", nick, nick_len, msg, msg_len);
+    return 0;
+}
+
 /* No WHO request, socket or private-tab access; event-scoped cached data. */
 static int script_get_channels(lua_State *L) {
     ScriptVm *s = context(L);
@@ -443,6 +460,10 @@ static void install_libraries(lua_State *L) {
     lua_setfield(L, -2, "log");
     lua_pushcfunction(L, script_send);
     lua_setfield(L, -2, "send");
+    lua_pushcfunction(L, script_pm);
+    lua_setfield(L, -2, "pm");
+    lua_pushcfunction(L, script_notice);
+    lua_setfield(L, -2, "notice");
     lua_pushcfunction(L, script_get_channels);
     lua_setfield(L, -2, "get_channels");
     lua_pushcfunction(L, script_get_users);

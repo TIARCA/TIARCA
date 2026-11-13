@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -95,12 +96,15 @@ public final class LuaScriptDispatcher {
         final String scriptId;
         final String server;
         final String channel;
+        final String nick;
         final String event;
         final boolean isEvent;
-        Pending(String id, String server, String channel, String event, boolean isEvent) {
+        Pending(String id, String server, String channel, String nick,
+                String event, boolean isEvent) {
             this.scriptId = id;
             this.server = server;
             this.channel = channel;
+            this.nick = nick;
             this.event = event;
             this.isEvent = isEvent;
         }
@@ -246,7 +250,7 @@ public final class LuaScriptDispatcher {
             data.putString(LuaDiagnosticService.EXTRA_SCRIPT_ID, script.id);
             data.putByteArray(LuaDiagnosticService.EXTRA_SOURCE, source);
             request.setData(data);
-            sendMessage(request, new Pending(script.id, script.serverId, "", "", false));
+            sendMessage(request, new Pending(script.id, script.serverId, "", "", "", false));
         }
     }
 
@@ -312,8 +316,32 @@ public final class LuaScriptDispatcher {
                 command.indexOf('\n') >= 0 || command.indexOf('\r') >= 0 ||
                 command.indexOf('\0') >= 0)
             return false;
+        String builtin = command.trim().toLowerCase(Locale.ROOT);
+        if ("list".equals(builtin) || "help".equals(builtin)) {
+            showBuiltinCommand(connection, builtin);
+            return true;
+        }
         return enqueue("command", connection.getUUID().toString(), target, nick,
                 command, "", System.currentTimeMillis() / 1000);
+    }
+
+    private void showBuiltinCommand(ServerConnectionInfo connection, String builtin) {
+        List<String> lines = new ArrayList<>();
+        if ("help".equals(builtin)) {
+            lines.add("[Lua] /lua list - script attivi su questa rete");
+            lines.add("[Lua] /lua mask help e /lua mod help - guida agli script");
+        } else {
+            List<LuaScriptStore.Script> scripts =
+                    store.enabledOn(connection.getUUID().toString());
+            lines.add("[Lua] Script attivi su questa rete: " + scripts.size());
+            for (LuaScriptStore.Script script : scripts)
+                lines.add("[Lua] " + script.name);
+        }
+        for (String line : lines)
+            ((ServerConnectionApi) connection.getApiInstance())
+                    .getServerConnectionData().getServerStatusData()
+                    .addMessage(new StatusMessageInfo(null, new Date(),
+                            StatusMessageInfo.MessageType.NOTICE, line));
     }
 
     public void onConnectionChanged(ServerConnectionInfo connection, boolean connected) {
@@ -411,7 +439,7 @@ public final class LuaScriptDispatcher {
                     data.putStringArrayList(LuaDiagnosticService.EXTRA_STORAGE_PAIRS, stored);
                     data.putBoolean(LuaDiagnosticService.EXTRA_CAN_STORE, script.allowStorage);
                     request.setData(data);
-                    sendMessage(request, new Pending(script.id, server, channel, event, true));
+                    sendMessage(request, new Pending(script.id, server, channel, nick, event, true));
                 }
             } finally {
                 queuedEvents.decrementAndGet();
@@ -453,6 +481,9 @@ public final class LuaScriptDispatcher {
                 store.recordLog(id, value);
             } else if ("send".equals(kind)) {
                 sendAuthorized(script, request, target, value);
+            } else if ("pm".equals(kind) || "notice".equals(kind)) {
+                sendDirectAuthorized(script, request, target, value,
+                        "notice".equals(kind));
             } else if ("store".equals(kind) || "erase".equals(kind)) {
                 String operation = kind;
                 io.post(() -> {
@@ -540,6 +571,39 @@ public final class LuaScriptDispatcher {
             lastServerSend.put(request.server, now);
         } catch (RuntimeException ignored) {
             // Scripts must never crash or block the client.
+        }
+    }
+
+    /** Restricted outgoing PVT/NOTICE to the sender of a channel message. */
+    private void sendDirectAuthorized(LuaScriptStore.Script snapshot, Pending request,
+                                      String target, String text, boolean notice) {
+        LuaScriptStore.Script current = store.find(snapshot.id);
+        try {
+            ServerConnectionInfo conn = ServerConnectionManager.getInstance(context)
+                    .getConnection(UUID.fromString(request.server));
+            if (conn == null || !conn.isConnected() ||
+                    !(conn.getApiInstance() instanceof IRCConnection)) return;
+            IRCConnection api = (IRCConnection) conn.getApiInstance();
+            if (!LuaActionPolicy.permitsDirectReply(current, request.server,
+                    request.channel, request.event, request.nick, target, text,
+                    api.getServerConnectionData().getSupportList().getCaseMapping()))
+                return;
+            if (!api.getServerConnectionData().getSupportList()
+                    .getSupportedChannelTypes().contains(request.channel.charAt(0)) ||
+                    !ChannelOperatorUtils.isNickPresent(conn, request.channel, target))
+                return;
+            long now = SystemClock.elapsedRealtime();
+            String scriptNetwork = snapshot.id + ":" + request.server;
+            if (now - lastScriptSend.getOrDefault(scriptNetwork, -SEND_INTERVAL_MS) <
+                    SEND_INTERVAL_MS ||
+                    now - lastServerSend.getOrDefault(request.server, -SERVER_INTERVAL_MS) <
+                    SERVER_INTERVAL_MS) return;
+            if (notice) api.sendNotice(target, text, null, null);
+            else api.sendMessage(target, text, null, null);
+            lastScriptSend.put(scriptNetwork, now);
+            lastServerSend.put(request.server, now);
+        } catch (RuntimeException ignored) {
+            // A stale nick or disconnected server must not crash TIARCA.
         }
     }
 
