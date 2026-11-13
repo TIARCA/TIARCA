@@ -102,34 +102,40 @@ public class LuaModerationPolicyTest {
         LuaScriptStore.Script approved = script(true, true);
         assertTrue(LuaModerationPolicy.blacklistOverrideAllowed(
                 approved, SERVER, "message", "VoiceNick", "voicenick",
-                "registered", "REGISTERED", IRCCaseMapping.ASCII));
+                "registered", "REGISTERED", true, IRCCaseMapping.ASCII));
         assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
                 script(false, true), SERVER, "message", "Nick", "Nick",
-                "registered", "registered", IRCCaseMapping.ASCII));
+                "registered", "registered", true, IRCCaseMapping.ASCII));
         assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
                 script(true, false), SERVER, "message", "Nick", "Nick",
-                "registered", "registered", IRCCaseMapping.ASCII));
+                "registered", "registered", true, IRCCaseMapping.ASCII));
         assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
                 approved, "different-network", "message", "Nick", "Nick",
-                "registered", "registered", IRCCaseMapping.ASCII));
+                "registered", "registered", true, IRCCaseMapping.ASCII));
         assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
                 approved, SERVER, "command", "Nick", "Nick",
-                "registered", "registered", IRCCaseMapping.ASCII));
+                "registered", "registered", true, IRCCaseMapping.ASCII));
         assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
                 approved, SERVER, "message", "sender", "other",
-                "registered", "registered", IRCCaseMapping.ASCII));
+                "registered", "registered", true, IRCCaseMapping.ASCII));
         assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
                 approved, SERVER, "message", "Nick", "Nick",
-                "registered", "other-account", IRCCaseMapping.ASCII));
+                "registered", "other-account", true, IRCCaseMapping.ASCII));
         assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
                 approved, SERVER, "message", "Nick", "Nick",
-                "registered", null, IRCCaseMapping.ASCII));
+                "registered", null, true, IRCCaseMapping.ASCII));
+        assertTrue(LuaModerationPolicy.blacklistOverrideAllowed(
+                approved, SERVER, "message", "Nick", "Nick",
+                "*", null, true, IRCCaseMapping.ASCII));
         assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
                 approved, SERVER, "message", "Nick", "Nick",
-                "*", "*", IRCCaseMapping.ASCII));
+                "*", null, false, IRCCaseMapping.ASCII));
         assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
                 approved, SERVER, "message", "Nick", "Nick",
-                "acc\\r\\nMODE", "acc\\r\\nMODE", IRCCaseMapping.ASCII));
+                "*", "registered", true, IRCCaseMapping.ASCII));
+        assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
+                approved, SERVER, "message", "Nick", "Nick",
+                "acc\\r\\nMODE", "acc\\r\\nMODE", true, IRCCaseMapping.ASCII));
     }
 
     @Test public void revokedPermissionDisablesExistingScriptActions() {
