@@ -512,8 +512,12 @@ unchecked; Java unit tests and a green APK build cannot substitute for it.
 ## AutoMod — antiripetizione (script sperimentale)
 
 Importa [automod_antiripetizione.lua](lua-examples/automod_antiripetizione.lua)
-con **Impostazioni → Script Lua**. All'importazione è disabilitato; dopo
-l'attivazione su una o più reti IRC non controlla **nessun canale**:
+con **Impostazioni → Script Lua**. All'importazione è disabilitato: quando
+lo abiliti devi autorizzare **Dati persistenti** (obbligatorio per AutoMod)
+e, se vuoi verificare gli account e intervenire, i consensi separati
+**Lettura dati utenti** e **Moderazione**. Senza il consenso allo storage
+AutoMod non modifica la configurazione e non modera, mentre `/lua mod help`
+rimane disponibile. Dopo l'attivazione su una o più reti IRC non controlla **nessun canale**:
 serve `/lua mod canali add #nome` sulla rete desiderata. Anche dopo aver
 scelto i canali, opera inizialmente **solo in monitoraggio**. Usa
 `/lua mod stato` per leggere le impostazioni. I comandi si digitano in una
@@ -592,10 +596,18 @@ consenso **Invio messaggi**; kick/ban/mute richiedono consenso
 sono **solo RAM**: modifiche e reload/restart li riportano ai default.
 Non è stato aggiunto accesso persistente o un'autorizzazione automatica.
 
-La cronologia è **solo RAM**, distinta per server, canale e nickname;
-le impostazioni tramite comando non sopravvivono al riavvio Lua, al reload o
-all'aggiornamento APK. Non usa lo storage persistente. La pulizia degli
-scaduti avviene al messaggio successivo e all'evento timer (~60 secondi).
+La cronologia (testi, contatori di infrazioni e ultima azione) è **solo RAM**,
+distinta per server, canale e nickname. Le **impostazioni**, invece,
+vengono salvate per ciascuna rete mediante `tiarca.storage`: ON/OFF,
+canali abilitati, whitelist e blacklist degli account, categorie esentate,
+soglia, ultimi, minuti, minparole, pausa, durata, azione e tipo di avviso.
+Sopravvivono al reload, a `/lua restart`, al riavvio dell'app e agli
+aggiornamenti APK che conservano i dati dell'app. Ogni modifica viene
+salvata dopo la convalida; se lo storage è indisponibile, la modifica
+non viene applicata. Dati malformati non vengono sostituiti dai default:
+AutoMod si astiene dall'intervenire finché la configurazione non viene
+ripristinata. La pulizia dello storico scaduto avviene al messaggio
+successivo e all'evento timer (~60 secondi).
 I messaggi troppo brevi o con più di 32 parole/160 byte normalizzati sono
 conteggiati nella finestra numerica ma non vengono confrontati (per evitare
 falsi positivi da troncamento). I limiti complessivi sono **1000 nickname
@@ -605,9 +617,15 @@ effettivo di confronti può essere inferiore al limite scelto. Un'uscita dal can
 infrazioni, finché la finestra di recidiva è valida. La disconnessione o
 `/lua mod reset` cancella le cronologie. Non serve modificare il sorgente:
 `/lua mod canali add|drop #nome` gestisce i canali della rete corrente.
-L'elenco non è persistente: reload, restart Lua o riavvio dell'app lo
-riportano a **nessun canale**; le autorizzazioni dello script restano
-quelle configurate nelle Impostazioni.
+L'elenco dei canali autorizzati viene conservato separatamente per rete:
+il default resta **nessun canale**, ma non viene ripristinato dopo un
+semplice riavvio. Lo stato persistente è incluso nel backup TIARCA,
+conservando la configurazione ma **revocando sempre le autorizzazioni Lua**
+durante il ripristino: l'utente deve approvare nuovamente rete, dati
+persistenti e gli eventuali altri permessi. La disinstallazione con
+cancellazione dati, `Elimina script` e `Elimina tutti gli script Lua`
+eliminano anche le relative preferenze. Sostituire lo script importandolo
+come **nuovo script** non migra automaticamente i dati del vecchio ID.
 
 Da testare manualmente su una **Candidate**: somiglianza e falsi positivi in
 canali reali, 1000 utenti, spegnimento/riavvio, privilegi e differenze IRCd,
@@ -641,8 +659,9 @@ Si applicano i limiti di invio ordinari: 5 secondi per script/rete,
 scartati, non accodati. Testo massimo 400 byte UTF-8, senza CTCP/CRLF.
 
 AutoMod: `/lua mod avviso pubblico|pvt|notice`; predefinito pubblico.
-Le impostazioni cambiate via comando non sono persistenti. Le funzioni
-sono disponibili nel branch di sviluppo, non nella release 0.9.10.
+Le impostazioni AutoMod cambiate via comando sono persistenti con il
+consenso **Dati persistenti**. Le funzioni sono disponibili nel branch
+di sviluppo, non nella release 0.9.10.
 
  
 ## Console generale Lua (per rete)
@@ -673,6 +692,24 @@ reinizializza configurazione temporanea e storico della rete. Invece
 `/lua mod reset` cancella solo lo storico di AutoMod.
 
  
+## Quote e sicurezza dei dati AutoMod
+
+AutoMod usa una sola chiave per rete autorizzata (massimo 16), con un
+valore di al più 8192 byte. Anche riempiendo il massimo di 16 canali,
+32 account whitelist e 32 account blacklist per rete, il formato testuale
+rimane entro tale limite. Per questa funzione le quote C6 rimangono
+bounded ma salgono a 16 chiavi, 8192 byte per valore e 128 KiB totali
+per script, con file JSON massimo di 160 KiB. Le nuove quote sono
+controllate sia dal processo Android sia dall'interprete nativo.
+
+Il database C6 è privato all'app e compreso nei backup con le
+convalide già previste; le autorizzazioni a usarlo sono separate e
+revocate al ripristino. Una nuova installazione di AutoMod non
+converte automaticamente impostazioni che in versioni precedenti
+esistevano soltanto nella RAM. **Da verificare su una Candidate**:
+riavvio app, `/lua restart`, backup/ripristino e due reti IRC attive,
+oltre ai test di regressione host e CI.
+
 ## AutoMod: progressione ed espulsione prima del ban
 
 Le sanzioni di AutoMod in modalità `escalation` sono:
