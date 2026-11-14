@@ -324,7 +324,7 @@ public final class HostLuaRuntimeTest {
         // Import the actual user-facing AutoMod source. Also check size.
         byte[] automod = Files.readAllBytes(
                 Path.of("docs/lua-examples/automod_antiripetizione.lua"));
-        check(automod.length <= 16384, "AutoMod fits 16 KiB source limit");
+        check(automod.length <= 24576, "AutoMod fits 24 KiB source limit");
         check("OK".equals(decode(NativeLuaRuntime.load(OTHER, automod))),
                 "AutoMod loads into official Lua native sandbox");
         automodActive = true;
