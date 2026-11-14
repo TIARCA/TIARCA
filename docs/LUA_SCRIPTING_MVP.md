@@ -527,7 +527,7 @@ scheda della rete autorizzata e modificano le preferenze **di quella rete**:
   occorrenze ripetute conteggiate); `/lua mod ultimi 3`: da 1 a 10 messaggi
   precedenti dello stesso nickname nello stesso canale;
   `/lua mod minuti 30`: scadenza da 1 a 120 minuti.
-- `/lua mod minparole 5`: lunghezza minima (3–15 parole);
+- `/lua mod minparole 3`: lunghezza minima (3–15 parole);
   `/lua mod pausa 10`: intervallo tra interventi sullo stesso utente
   (0–120 secondi); `/lua mod durata 10m`: durata ban temporaneo
   (1–99 m/h/d, solo server compatibili).
@@ -667,7 +667,7 @@ Si applicano i limiti di invio ordinari: 5 secondi per script/rete,
 1,5 secondi tra invii Lua nella stessa rete. Invii eccedenti sono
 scartati, non accodati. Testo massimo 400 byte UTF-8, senza CTCP/CRLF.
 
-AutoMod: `/lua mod avviso pubblico|pvt|notice`; predefinito pubblico.
+AutoMod: `/lua mod avviso pubblico|pvt|notice`; predefinito **pvt**. In pubblico: `nick: non ripetere`; in privato/NOTICE: `non ripetere su #canale`.
 Le impostazioni AutoMod cambiate via comando sono persistenti con il
 consenso **Dati persistenti**. Le funzioni sono disponibili nel branch
 di sviluppo, non nella release 0.9.10.

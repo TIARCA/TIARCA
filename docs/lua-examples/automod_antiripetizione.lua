@@ -23,8 +23,8 @@ end
 local function defaults()
 return {on=true,canali={},whitelist={},blacklist={},
 categorie={registrati=true,voice=true,halfop=true,op=true,admin=true,owner=true},
-soglia=80,ultimi=3,minuti=30,minparole=5,pausa=10,
-durata="10m",azione="monitor",avviso="pubblico"}
+soglia=80,ultimi=3,minuti=30,minparole=3,pausa=10,
+durata="10m",azione="monitor",avviso="pvt"}
 end
 local function ordinati(t)
 local a={}
@@ -224,10 +224,9 @@ if scelta=="escalation" then
 end
 if scelta=="monitor" then return end
 if scelta=="avviso" then
-  local text="Evita di ripetere messaggi simili."
-  if c.avviso=="pvt" then tiarca.pm(e.nick,text)
-  elseif c.avviso=="notice" then tiarca.notice(e.nick,text)
-  else tiarca.send(e.channel,e.nick..": "..text) end
+  if c.avviso=="pubblico" then tiarca.send(e.channel,e.nick..": non ripetere")
+  elseif c.avviso=="notice" then tiarca.notice(e.nick,"non ripetere su "..e.channel)
+  else tiarca.pm(e.nick,"non ripetere su "..e.channel) end
 elseif override then
   tiarca.override_action(e.channel,e.nick,account,scelta,c.durata)
 elseif scelta=="kick" then tiarca.kick(e.channel,e.nick,"non ripetere")
@@ -368,7 +367,7 @@ if topic=="" or topic=="azione" then
 end
 if topic=="" or topic=="parametri" then
   show("AutoMod: parametri",
-    "/lua mod soglia 80; ultimi 3; minuti 30; minparole 5; pausa 10; durata 10m")
+    "/lua mod soglia 80; ultimi 3; minuti 30; minparole 3; pausa 10; durata 10m")
   show("AutoMod: sicurezza",
     "Consensi: Dati persistenti obbligatori; Lettura utenti; Moderazione. /lua restart conserva tutto, eccetto lo storico.")
 end
