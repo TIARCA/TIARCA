@@ -28,6 +28,23 @@ jobs:
         with:
           python-version: '3.x'
 
+      - name: Test native Lua host moderation regressions
+        if: matrix.flavor == 'Standard'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/lua-native-host/classes
+          cmake -S app/src/main/cpp -B build/lua-native-host/cmake \
+            -DCMAKE_BUILD_TYPE=Release \
+            "-DCMAKE_C_FLAGS=-I${JAVA_HOME}/include -I${JAVA_HOME}/include/linux"
+          cmake --build build/lua-native-host/cmake --parallel 2
+          javac -d build/lua-native-host/classes \
+            app/src/main/java/io/mrarm/irc/lua/NativeLuaRuntime.java \
+            tools/lua-native-poc/HostLuaRuntimeTest.java
+          java -Djava.library.path=build/lua-native-host/cmake \
+            -cp build/lua-native-host/classes \
+            io.mrarm.irc.lua.HostLuaRuntimeTest
+
       - name: Audit translation resources
         run: python tools/translation_structure_audit.py
 
