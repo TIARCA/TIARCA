@@ -586,8 +586,9 @@ account ancora ignoto AutoMod richiede WHO/WHOX non più di una volta ogni
 10 minuti per canale; TIARCA limita ulteriormente le richieste a una al
 minuto per script/rete. Un account non verificabile rimane escluso dalle
 azioni punitive. `/lua mod stato` mostra `ricevuti`, `esenti`,
-`ignoti` e `monitorati` per rete; questi conteggi temporanei non
-fanno parte del backup.
+`ignoti` e `monitorati` per rete. Anche questi contatori cumulativi
+vengono conservati nella memoria persistente dello script e inclusi nel
+backup, insieme agli altri dati Lua; il reset esplicito li azzera.
 
 Il motore fornisce a Lua il roster e l'account osservato **soltanto se
 l'utente autorizza anche «Lettura dati utenti»** per quello script/rete.
