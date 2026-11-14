@@ -45,7 +45,7 @@ import io.mrarm.irc.config.ServerConfigManager;
  */
 public final class LuaScriptStore {
     public static final int MAX_SCRIPTS = 8;
-    public static final int MAX_SOURCE_BYTES = 16384;
+    public static final int MAX_SOURCE_BYTES = 24576;
     public static final int MAX_NETWORKS_PER_SCRIPT = 16;
 
     private static final String BACKUP_INDEX = "lua_scripts/index.json";
@@ -329,7 +329,7 @@ public final class LuaScriptStore {
 
     static String checkedSource(byte[] bytes) throws IOException {
         if (bytes.length == 0 || bytes.length > MAX_SOURCE_BYTES)
-            throw new IOException("Lua script must be between 1 and 8192 bytes");
+            throw new IOException("Lua script must be between 1 and 24576 bytes");
         String source;
         try {
             source = StandardCharsets.UTF_8.newDecoder()
