@@ -154,6 +154,25 @@ public final class HostLuaRuntimeTest {
                         "#example".equals(maskResult[2]) &&
                         "pippo".equals(maskResult[3]),
                 "Mask Finder native action should preserve command channel and query");
+        String[] fromServerTab = event(OTHER, "command", "", "self",
+                "mask #example *!*@*.example.net");
+        check(fromServerTab.length == 4 && "mask".equals(fromServerTab[1]) &&
+                        "#example".equals(fromServerTab[2]) &&
+                        "*!*@*.example.net".equals(fromServerTab[3]),
+                "Mask Finder supports explicit joined channel from Server tab");
+        String[] fromOtherChannel = event(OTHER, "command", "#another", "self",
+                "mask #example pippo");
+        check(fromOtherChannel.length == 4 && "mask".equals(fromOtherChannel[1]) &&
+                        "#example".equals(fromOtherChannel[2]) &&
+                        "pippo".equals(fromOtherChannel[3]),
+                "Mask Finder supports explicit joined channel from different chat");
+        String[] fromPrivate = event(OTHER, "command", "friend", "self",
+                "mask #example nick!ident@host");
+        check(fromPrivate.length == 4 && "mask".equals(fromPrivate[1]) &&
+                        "#example".equals(fromPrivate[2]),
+                "Mask Finder supports explicit joined channel from private tab");
+        check(event(OTHER, "command", "", "self", "mask pippo").length == 4,
+                "Without a channel, Mask Finder returns a local usage warning");
         check(event(OTHER, "message", "#example", "stranger", "mask pippo").length == 1,
                 "Mask Finder script must ignore remote chat input");
 
