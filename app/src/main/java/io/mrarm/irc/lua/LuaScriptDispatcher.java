@@ -742,10 +742,13 @@ public final class LuaScriptDispatcher {
                 store.recordLog(id, value);
                 console.log(request.server, script.name, value);
             } else if ("send".equals(kind)) {
-                sendAuthorized(script, request, target, value);
+                // Queue behind preceding persistent writes in this reply.
+                io.post(() -> main.post(() ->
+                        sendAuthorized(script, request, target, value)));
             } else if ("pm".equals(kind) || "notice".equals(kind)) {
-                sendDirectAuthorized(script, request, target, value,
-                        "notice".equals(kind));
+                boolean notice = "notice".equals(kind);
+                io.post(() -> main.post(() ->
+                        sendDirectAuthorized(script, request, target, value, notice)));
             } else if ("store".equals(kind) || "erase".equals(kind)) {
                 String operation = kind;
                 io.post(() -> {
