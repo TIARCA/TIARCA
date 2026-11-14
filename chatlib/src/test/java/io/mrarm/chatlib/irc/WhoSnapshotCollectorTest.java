@@ -45,7 +45,7 @@ public class WhoSnapshotCollectorTest {
         collector.noteNumeric("354", Arrays.asList("me", "642", "id", "cloak.net",
                 "Carol", "H", "*"));
         collector.noteNumeric("354", Arrays.asList("me", "642", "id", "cloak.net",
-                "Dave", "H", "invalid\\naccount"));
+                "Dave", "H", "invalid\naccount"));
         collector.noteNumeric("315", Arrays.asList("me", "#chat", "End of WHO"));
         assertNotNull(result.get());
         assertEquals(4, result.get().users.size());
