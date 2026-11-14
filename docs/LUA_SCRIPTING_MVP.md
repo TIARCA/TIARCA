@@ -614,13 +614,23 @@ Questi contatori sono persistenti, come lo storico, e si azzerano soltanto
 con `/lua mod reset`. Le vecchie cronologie `v1` sono lette senza perdere
 i dati precedenti, inizializzando a zero solo i nuovi contatori.
 
-La scheda **Server** della rete registra localmente i comandi Lua KICK,
+La scheda **Server** della rete registra localmente anche **ogni rilevamento
+di ripetizione di AutoMod**: nickname, canale, percentuale, numero di
+infrazione e azione richiesta (inclusi il primo avviso e il solo
+monitoraggio). Questi dati provengono dal log già prodotto dallo script,
+quindi sono visibili con la nuova app anche se lo script importato non è
+stato sostituito. La visualizzazione è locale e non invia notifiche IRC
+agli altri utenti. Si tratta della **decisione dello script**, non della
+conferma di avvenuta moderazione.
+
+Separatamente, la scheda Server registra i comandi Lua KICK,
 BAN, BAN temporaneo e MUTE effettivamente inoltrati dall'app, con nickname,
-canale, eventuale motivo e durata. I messaggi locali sono distinti dagli
-avvisi inviati in IRC e indicano «comando inviato, esito non confermato»:
-il server può rifiutare un comando. Non viene inviato alcun messaggio di
-registro agli altri utenti. La visualizzazione del registro nell'APK e la
-conservazione delle singole righe dopo un riavvio richiedono verifica su dispositivo.
+canale, eventuale motivo e durata. Questi ultimi indicano
+«comando inviato, esito non confermato»: il server può rifiutarli.
+L'assenza della seconda registrazione dopo una richiesta può indicare che
+i controlli di autorizzazione o i prerequisiti IRC hanno impedito l'invio.
+La visualizzazione nell'APK e la conservazione delle singole righe dopo
+un riavvio richiedono verifica manuale su dispositivo.
 
 Gli avvisi richiedono
 consenso **Invio messaggi**; kick/ban/mute richiedono consenso

@@ -752,6 +752,20 @@ public final class LuaScriptDispatcher {
             if ("log".equals(kind)) {
                 store.recordLog(id, value);
                 console.log(request.server, script.name, value);
+                // Automatic moderation decisions used to remain in /lua log only.
+                // Show a bounded, sender/channel-verified notice on the Server tab
+                // even when a warning is private or a requested action is denied.
+                String report = LuaAutoModReport.fromEventLog(
+                        request.event, request.server, request.channel, request.nick, value);
+                if (report != null) {
+                    try {
+                        ServerConnectionInfo connection = ServerConnectionManager
+                                .getInstance(context).getConnection(UUID.fromString(request.server));
+                        emitConsole(connection, "[Lua: " + script.name + "] " + report);
+                    } catch (RuntimeException ignored) {
+                        // Local reporting must not interfere with IRC or moderation.
+                    }
+                }
             } else if ("send".equals(kind)) {
                 // Queue behind preceding persistent writes in this reply.
                 io.post(() -> main.post(() ->
