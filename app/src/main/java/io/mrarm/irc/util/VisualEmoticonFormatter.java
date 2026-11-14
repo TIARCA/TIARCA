@@ -2,7 +2,7 @@ package io.mrarm.irc.util;
 
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.text.SpannableStringBuilder;
+import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.style.ClickableSpan;
 import android.text.style.ReplacementSpan;
@@ -71,7 +71,7 @@ public final class VisualEmoticonFormatter {
 
     public static CharSequence decorate(CharSequence linkedText) {
         if (linkedText == null || linkedText.length() == 0) return linkedText;
-        SpannableStringBuilder result = new SpannableStringBuilder(linkedText);
+        SpannableString result = new SpannableString(linkedText);
         Matcher matcher = EMOTICONS.matcher(result);
         while (matcher.find()) {
             int start = matcher.start();
