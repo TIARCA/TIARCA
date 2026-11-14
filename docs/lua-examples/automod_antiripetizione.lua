@@ -150,6 +150,93 @@ for k in pairs(cronologie) do
   if k:sub(1,#prefix)==prefix then elimina(k) end
 end
 end
+
+-- Per-network history is retained in the per-script persistent storage.
+-- Never silently replace malformed history with an empty moderation state.
+local loaded,invalid,full = {},{},{}
+local function statekey(server) return "amst."..server end
+local function restore(server,now,c)
+  if loaded[server] then return not invalid[server] end
+  loaded[server]=true
+  local ok,raw=pcall(tiarca.storage.get,statekey(server))
+  if not ok then invalid[server]=true;return false end
+  if not raw then return true end
+  local lines={}
+  for line in (raw.."\n"):gmatch("(.-)\n") do lines[#lines+1]=line end
+  local a,b,d,f=(lines[1] or ""):match("^v1;(%d+);(%d+);(%d+);(%d+)$")
+  if not a then invalid[server]=true;return false end
+  local recovered,number={},0
+  for i=2,#lines do
+    local channel,nick,level,inf,action,seen,events=lines[i]:match(
+      "^([^\t]+)\t([^\t]+)\t(%d+)\t(%d+)\t(%d+)\t(%d+)\t(.*)$")
+    if not channel or not validChannel(channel) or channel~=channel:lower()
+       or #nick>64 or nick:find("[%c]") or nick~=nick:lower() then
+      invalid[server]=true;return false
+    end
+    local key=server.."\0"..channel.."\0"..nick
+    if recovered[key] then invalid[server]=true;return false end
+    local r={server=server,channel=channel,nick=nick,lista={},
+      infrazione=tonumber(level),ultima_infrazione=tonumber(inf),
+      ultima_azione=tonumber(action),visto=tonumber(seen)}
+    if r.infrazione>100000 or r.ultima_infrazione>now+60 or
+       r.ultima_azione>now+60 or r.visto>now+60 then
+      invalid[server]=true;return false
+    end
+    for item in events:gmatch("[^\v]+") do
+      local stamp,sig=item:match("^(%d+):(.*)$")
+      local t=tonumber(stamp)
+      if not t or #sig>MAX_TESTO or sig:find("[%c]") or t>now+60 then
+        invalid[server]=true;return false
+      end
+      if now-t<c.minuti*60 then
+        local _,n=sig:gsub("%S+","")
+        r.lista[#r.lista+1]={sig=sig,n=n,t=t}
+        number=number+1
+      end
+    end
+    if #r.lista>c.ultimi or number>MAX_MESSAGGI then
+      invalid[server]=true;return false
+    end
+    if r.infrazione>0 and now-r.ultima_infrazione>=c.minuti*60 then
+      r.infrazione,r.ultima_infrazione=0,0
+    end
+    if #r.lista>0 or r.infrazione>0 then recovered[key]=r end
+  end
+  local count=0
+  for _ in pairs(recovered) do count=count+1 end
+  if count+utenti>MAX_UTENTI then invalid[server]=true;return false end
+  for key,r in pairs(recovered) do
+    cronologie[key]=r;utenti=utenti+1;messaggi=messaggi+#r.lista
+  end
+  statistiche[server]={tonumber(a),tonumber(b),tonumber(d),tonumber(f)}
+  return true
+end
+local function persist(server)
+  local values=contatori(server)
+  local rows={"v1;"..table.concat(values,";")}
+  for _,r in pairs(cronologie) do
+    if r.server==server then
+      local entries={}
+      for _,m in ipairs(r.lista) do
+        entries[#entries+1]=m.t..":"..m.sig
+      end
+      rows[#rows+1]=table.concat({r.channel,r.nick,r.infrazione,
+        r.ultima_infrazione,r.ultima_azione,r.visto,
+        table.concat(entries,"\v")},"\t")
+    end
+  end
+  local value=table.concat(rows,"\n")
+  if #value>8192 then
+    if not full[server] then
+      tiarca.log("AutoMod: storico persistente pieno; azioni sospese")
+      full[server]=true
+    end
+    return false
+  end
+  full[server]=nil
+  return pcall(tiarca.storage.set,statekey(server),value)
+end
+
 local function posto(escludi)
 local key,time
 for k,r in pairs(cronologie) do
@@ -164,7 +251,8 @@ local r=cronologie[key]
 if r then scaduti(r,now,c.minuti)
 else
   if utenti>=MAX_UTENTI then posto(key) end
-  r={server=e.server,lista={},infrazione=0,ultima_infrazione=0,
+  r={server=e.server,channel=e.channel:lower(),nick=e.nick:lower(),
+     lista={},infrazione=0,ultima_infrazione=0,
      ultima_azione=0,visto=now}
   cronologie[key],utenti=r,utenti+1
 end
@@ -242,7 +330,8 @@ end
 tiarca.on("message",function(e)
 if not e.channel:match("^[#&+!]") or e.message_type~="normal" then return end
 local c=impostazioni(e.server)
-if not c or not c.on or not c.canali[e.channel:lower()] then return end
+if not c or not c.on or not c.canali[e.channel:lower()] or
+   not restore(e.server,e.timestamp,c) then return end
 local s=contatori(e.server)
 s[1]=s[1]+1
 local allowed,reason,account=soggetto(e,c)
@@ -256,6 +345,7 @@ if not allowed then
     end
   else s[2]=s[2]+1 end
   elimina(chiave(e))
+  persist(e.server)
   return
 end
 s[4]=s[4]+1
@@ -280,18 +370,28 @@ while messaggi>=MAX_MESSAGGI do
 end
 r.lista[#r.lista+1]={sig=sig,n=n,t=now}
 messaggi=messaggi+1
-if maximum<c.soglia or now-r.ultima_azione<c.pausa then return end
+if maximum<c.soglia or now-r.ultima_azione<c.pausa then
+  persist(e.server);return
+end
 r.infrazione=r.infrazione+1
 r.ultima_infrazione,r.ultima_azione=now,now
+if not persist(e.server) then return end
 tiarca.log(string.format("AutoMod %s/%s %s %.1f%% infrazione %d (%s)",
   e.server:sub(1,8),e.channel,e.nick,maximum,r.infrazione,c.azione))
 azione(e,c,r.infrazione,override,account)
 end)
-tiarca.on("timer",function(e) pulizia(e.server,e.timestamp) end)
-tiarca.on("disconnected",function(e) reset(e.server) end)
+tiarca.on("timer",function(e)
+  local c=impostazioni(e.server)
+  if c and restore(e.server,e.timestamp,c) then
+    pulizia(e.server,e.timestamp);persist(e.server)
+  end
+end)
+-- Disconnect does not reset history; all deadlines are based on timestamps.
 for _,event in ipairs({"join","part","quit","nick"}) do
 tiarca.on(event,function(e)
   if not e.channel:match("^[#&+!]") or e.nick=="" then return end
+  local c=impostazioni(e.server)
+  if not c or not restore(e.server,e.timestamp,c) then return end
   local key=chiave(e)
   local r=cronologie[key]
   if not r then return end
@@ -302,8 +402,10 @@ tiarca.on(event,function(e)
     local nextKey=e.server.."\0"..e.channel:lower().."\0"..e.text:lower()
     if not cronologie[nextKey] then
       cronologie[nextKey],cronologie[key]=r,nil
+      r.nick=e.text:lower()
     end
   end
+  persist(e.server)
 end)
 end
 
@@ -369,7 +471,7 @@ if topic=="" or topic=="parametri" then
   show("AutoMod: parametri",
     "/lua mod soglia 80; ultimi 3; minuti 30; minparole 3; pausa 10; durata 10m")
   show("AutoMod: sicurezza",
-    "Consensi: Dati persistenti obbligatori; Lettura utenti; Moderazione. /lua restart conserva tutto, eccetto lo storico.")
+    "Consensi: Dati persistenti; Lettura utenti; Moderazione. Lo storico scade naturalmente e /lua mod reset lo cancella.")
 end
 end
 
@@ -381,6 +483,10 @@ if cmd=="mod" or key=="help" then help(val or "");return end
 local old=impostazioni(e.server)
 if not old then
   show("AutoMod","Abilita Dati persistenti o verifica lo storage: AutoMod sospeso.")
+  return
+end
+if not restore(e.server,e.timestamp,old) and key~="reset" then
+  show("AutoMod","Storico persistente non valido; usa /lua mod reset.")
   return
 end
 local c=copia(old)
@@ -399,7 +505,7 @@ elseif key=="on" or key=="off" then
   if not c.on then clear="all" end
   msg="AutoMod "..(c.on and "ON" or "OFF")
 elseif key=="reset" then
-  reset(e.server);msg="Storico cancellato"
+  reset(e.server);invalid[e.server]=nil;persist(e.server);msg="Storico cancellato"
 elseif key=="canali" then
   if val=="" then showmap("AutoMod: canali",c.canali);return end
   local op,ch=val:match("^(%S+)%s+(%S+)$")
@@ -478,6 +584,7 @@ if changed then
   config[e.server]=c
   if clear=="all" then reset(e.server)
   elseif clear then reset_canale(e.server,clear) end
+  if clear then persist(e.server) end
 end
 show("AutoMod",msg or "Comando non valido; usa /lua mod help")
 end)
