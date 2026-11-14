@@ -1,9 +1,12 @@
 package io.mrarm.irc.view;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.ContextWrapper;
 import androidx.annotation.NonNull;
 import androidx.activity.BackEventCompat;
 import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
 import com.google.android.material.navigation.NavigationView;
 import androidx.core.graphics.Insets;
 import androidx.core.view.WindowInsetsCompat;
@@ -81,10 +84,14 @@ public class InsetNavigationView extends NavigationView {
     }
 
     protected void hideIme() {
-        androidx.core.view.WindowInsetsControllerCompat controller =
-                ViewCompat.getWindowInsetsController(this);
-        if (controller != null)
-            controller.hide(WindowInsetsCompat.Type.ime());
+        // NavigationView uses an AppCompat/Material-wrapped Activity context.
+        // WindowCompat replaces the deprecated ViewCompat controller lookup.
+        Context context = getContext();
+        while (context instanceof ContextWrapper && !(context instanceof Activity))
+            context = ((ContextWrapper) context).getBaseContext();
+        if (context instanceof Activity)
+            WindowCompat.getInsetsController(((Activity) context).getWindow(), this)
+                    .hide(WindowInsetsCompat.Type.ime());
     }
 
     @Override
