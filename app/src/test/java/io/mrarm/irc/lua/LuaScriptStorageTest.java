@@ -92,7 +92,8 @@ public class LuaScriptStorageTest {
                         "v1;0;0;0;0");
             }
             assertEquals(32, storage.read(ID).size());
-            assertEquals(value, storage.read(ID).values().iterator().next());
+            assertEquals(value, storage.read(ID).get(
+                    "automod.00000000-0000-0000-0000-000000000000"));
             try (ZipFile zip = new ZipFile(backup)) {
                 storage.export(zip, new ZipParameters(), ID);
             }
