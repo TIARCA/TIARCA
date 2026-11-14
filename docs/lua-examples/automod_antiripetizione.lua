@@ -274,10 +274,13 @@ if type(roster)=="table" then
     if type(u.nick)=="string" then nicks[u.nick:lower()]=true end
   end
 end
-local parti,bytes={},0
+local parti,bytes,index={},0,0
 for token in text:lower():gmatch("%S+") do
+  index=index+1
   local mentioned=token:gsub("^@",""):gsub("[:,;!?]+$","")
-  if not nicks[mentioned] then
+  -- Bare nicknames are addresses only at the start. Elsewhere require @ or punctuation.
+  local address=index==1 or token:sub(1,1)=="@" or token:match("[:,;!?]$")
+  if not (address and nicks[mentioned]) then
     for word in token:gsub("[%c%p]"," "):gmatch("%S+") do
       if #parti>=MAX_PAROLE or bytes+#word+1>MAX_TESTO then return "",0 end
       parti[#parti+1]=word; bytes=bytes+#word+1
