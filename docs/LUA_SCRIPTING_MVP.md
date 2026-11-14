@@ -15,7 +15,7 @@ file through the Android document picker (Storage Access Framework).
 It is copied into TIARCA private storage. No downloads, binary plugins,
 .lua bytecode, JAR, DEX or native plugins are supported.
 
-Maximum: 8 scripts, each 16384 source bytes. Imported scripts are
+Maximum: 8 scripts, each 24576 source bytes. Imported scripts are
 **disabled**. On enable, select **one or more configured IRC networks**
 (up to 16 per script). No other network receives events from that script.
 The same explicitly approved send/user-info/moderation/storage capabilities
@@ -754,8 +754,8 @@ esplicito e non consentono accesso a comandi IRC arbitrari.
 ## Nuovo limite sorgenti e API blacklist
 
 Il limite degli script Lua importati, validato sia nel main process Java
-sia nel processo Lua isolato in C/JNI, è **16 KiB (16384 byte UTF-8)**
-invece di 8 KiB. Restano invariati il budget di istruzioni per evento,
+sia nel processo Lua isolato in C/JNI, è **24 KiB (24576 byte UTF-8)**
+invece di 16 KiB. Restano invariati il budget di istruzioni per evento,
 i 2 MiB di heap per VM e il cap aggregato di 32 MiB.
 
 La nuova API `tiarca.blacklist_action(channel,nick,account,azione,durata)`
