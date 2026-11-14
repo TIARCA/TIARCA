@@ -457,6 +457,17 @@ public final class LuaScriptDispatcher {
         }
     }
 
+    /** Local server-tab audit: the command was sent, not confirmed by IRC. */
+    private void logModerationSent(ServerConnectionInfo connection,
+                                   LuaScriptStore.Script script, String channel,
+                                   String action, String nick, String detail) {
+        if (script == null) return;
+        String text = "[Lua: " + script.name + "] " + channel + " - " + action +
+                " " + nick + (detail.isEmpty() ? "" : " (" + detail + ")") +
+                " - comando inviato, esito non confermato";
+        main.post(() -> emitConsole(connection, text));
+    }
+
     private void showBuiltinCommand(ServerConnectionInfo connection, String builtin) {
         String server = connection.getUUID().toString();
         List<String> lines = new ArrayList<>();
@@ -1059,11 +1070,18 @@ public final class LuaScriptDispatcher {
                 // after KICK would incorrectly suppress the BAN.
                 api.sendCommand("KICK", true,
                         new String[]{channel, nick, reason}, null, null);
+                logModerationSent(connection, script, channel, "KICK", nick,
+                        "motivo: " + reason);
                 api.sendCommand(banVerb, false, banArgs, null, null);
+                logModerationSent(connection, script, channel,
+                        "ktban".equals(kind) ? "BAN temporaneo" : "BAN",
+                        nick, "ktban".equals(kind) ? "durata: " + mode : "");
             } else if ("kick".equals(kind)) {
                 if (!LuaModerationPolicy.validReason(reason)) return;
                 api.sendCommand("KICK", true, new String[]{channel, nick, reason},
                         null, null);
+                logModerationSent(connection, script, channel, "KICK", nick,
+                        "motivo: " + reason);
             } else if ("mode".equals(kind)) {
                 if (!LuaModerationPolicy.permittedMode(mode)) return;
                 api.sendCommand("MODE", false, new String[]{channel, mode, nick},
@@ -1083,6 +1101,7 @@ public final class LuaScriptDispatcher {
                     if (token == null) return; // Network has no known mute extban.
                     api.sendCommand("MODE", false,
                             new String[]{channel, "+b", token + baseMask}, null, null);
+                    logModerationSent(connection, script, channel, "MUTE", nick, "");
                 } else if ("tban".equals(kind)) {
                     if (!mode.matches("(?i)[1-9][0-9]?[hmd]")) return;
                     String timed = dialect.timedCommand(channel, mode, baseMask);
@@ -1095,9 +1114,12 @@ public final class LuaScriptDispatcher {
                         api.sendCommand("MODE", false,
                                 new String[]{channel, "+b", timedMask}, null, null);
                     } else return;
+                    logModerationSent(connection, script, channel, "BAN temporaneo",
+                            nick, "durata: " + mode);
                 } else {
                     api.sendCommand("MODE", false,
                             new String[]{channel, "+b", baseMask}, null, null);
+                    logModerationSent(connection, script, channel, "BAN", nick, "");
                 }
             }
         } catch (RuntimeException ignored) {
