@@ -34,6 +34,38 @@ public class WhoSnapshotCollectorTest {
         assertEquals("pippo!id@cloak.net", result.get().users.get(0).mask());
     }
 
+    @Test public void whoxAddsOnlyValidLoggedInAccounts() {
+        WhoSnapshotCollector collector = new WhoSnapshotCollector();
+        AtomicReference<WhoSnapshotCollector.Result> result = new AtomicReference<>();
+        assertTrue(collector.begin("#chat", "642", result::set));
+        collector.noteNumeric("354", Arrays.asList("me", "642", "id", "cloak.net",
+                "Alice", "H", "alice_account"));
+        collector.noteNumeric("354", Arrays.asList("me", "642", "id", "cloak.net",
+                "Bob", "H", "0"));
+        collector.noteNumeric("354", Arrays.asList("me", "642", "id", "cloak.net",
+                "Carol", "H", "*"));
+        collector.noteNumeric("354", Arrays.asList("me", "642", "id", "cloak.net",
+                "Dave", "H", "invalid\\naccount"));
+        collector.noteNumeric("315", Arrays.asList("me", "#chat", "End of WHO"));
+        assertNotNull(result.get());
+        assertEquals(4, result.get().users.size());
+        assertEquals("Alice!id@cloak.net", result.get().users.get(0).mask());
+        assertEquals("alice_account", result.get().users.get(0).account);
+        for (int i = 1; i < 4; i++)
+            assertNull(result.get().users.get(i).account);
+    }
+
+    @Test public void standardWhoHasNoAccount() {
+        WhoSnapshotCollector collector = new WhoSnapshotCollector();
+        AtomicReference<WhoSnapshotCollector.Result> result = new AtomicReference<>();
+        assertTrue(collector.begin("#chat", "", result::set));
+        collector.noteNumeric("352", Arrays.asList("me", "#chat", "id", "cloak.net",
+                "irc", "Alice", "H", "0 Test"));
+        collector.noteNumeric("315", Arrays.asList("me", "#chat", "End of WHO"));
+        assertNotNull(result.get());
+        assertNull(result.get().users.get(0).account);
+    }
+
     @Test public void cannotRunTwoConcurrentQueriesOnOneNetwork() {
         WhoSnapshotCollector collector = new WhoSnapshotCollector();
         assertTrue(collector.begin("#one", "", result -> { }));
