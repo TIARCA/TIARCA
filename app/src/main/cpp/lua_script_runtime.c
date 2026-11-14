@@ -19,7 +19,7 @@
 #define MAX_ACTIONS 12
 #define MAX_CHANNELS 32
 #define MAX_USERS 128
-#define MAX_STORAGE 16
+#define MAX_STORAGE 32
 #define MAX_STORAGE_BYTES (128u * 1024u)
 #define EVENT_KINDS 9
 #define MAX_SOURCE 24576
