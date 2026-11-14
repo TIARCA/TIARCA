@@ -10,12 +10,11 @@ library with an Android JNI entry point; it also runs host-only checks for
 a restricted Lua environment. No Android component, Java class, manifest
 entry, Gradle dependency or production APK is changed.
 
-The experimental workflow runs only on its dedicated feature branch (or
-manual dispatch). DO NOT MERGE THIS WORKFLOW AS-IS INTO MAIN. It downloads
-the official source archive at workflow time; a production F-Droid-compatible
-implementation must pin and provide its dependencies through the F-Droid build
-process, preferably vendor audited source files, and build without hidden
-unverified network downloads.
+The historical experimental GitHub Actions workflow has been retired. It
+downloaded the official source archive at workflow time; a production
+F-Droid-compatible implementation must pin and provide its dependencies
+through the F-Droid build process, preferably vendor audited source files,
+and build without hidden unverified network downloads.
 
 ## Source and license
 
@@ -72,6 +71,6 @@ Download the official tarball and verify the published SHA-256, then:
     cmake --build build/lua-host
     ctest --test-dir build/lua-host --output-on-failure
 
-For Android reproduction see .github/workflows/lua-native-poc.yml.
+For the historical Android build procedure, see the [archived experimental workflow](https://github.com/TIARCA/TIARCA/blob/7cfdfb20bf596e8669945c106d9adcc961f2c555/.github/workflows/lua-native-poc.yml).
 
 No version bump, tag, GitHub Release, Candidate or updater changes.
