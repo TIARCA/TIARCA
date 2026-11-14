@@ -531,7 +531,10 @@ scheda della rete autorizzata e modificano le preferenze **di quella rete**:
   occorrenze ripetute conteggiate); `/lua mod ultimi 3`: da 1 a 10 messaggi
   precedenti dello stesso nickname nello stesso canale;
   `/lua mod minuti 30`: scadenza da 1 a 120 minuti.
-- `/lua mod minparole 3`: lunghezza minima (3–15 parole);
+- `/lua mod minparole 3`: lunghezza minima (3–15 parole), calcolata escludendo
+  le menzioni di nickname riconosciuti dal roster (inizio frase, `@nick`,
+  `nick:` e forme analoghe). I confronti restano separati per rete,
+  canale e nickname del mittente; un'altra persona non eredita la cronologia;
   `/lua mod pausa 10`: intervallo tra interventi sullo stesso utente
   (0–120 secondi); `/lua mod durata 10m`: durata ban temporaneo
   (1–99 m/h/d, solo server compatibili).
@@ -603,7 +606,22 @@ effettivamente osservato in quella rete. Rimangono obbligatori presenza in
 canale, privilegi operatore, controllo anti-autokick, canale esatto,
 dialetto e host validi. Il server può comunque negare le operazioni.
 
-I rilevamenti si leggono dal log dello script. Gli avvisi richiedono
+I rilevamenti si leggono dal log dello script. `/lua mod stato` mostra
+anche i contatori cumulativi per rete di **avvisi, kick, ban e mute richiesti**;
+le combinazioni kick+ban incrementano entrambi i contatori una sola volta.
+Questi contatori sono persistenti, come lo storico, e si azzerano soltanto
+con `/lua mod reset`. Le vecchie cronologie `v1` sono lette senza perdere
+i dati precedenti, inizializzando a zero solo i nuovi contatori.
+
+La scheda **Server** della rete registra localmente i comandi Lua KICK,
+BAN, BAN temporaneo e MUTE effettivamente inoltrati dall'app, con nickname,
+canale, eventuale motivo e durata. I messaggi locali sono distinti dagli
+avvisi inviati in IRC e indicano «comando inviato, esito non confermato»:
+il server può rifiutare un comando. Non viene inviato alcun messaggio di
+registro agli altri utenti. La visualizzazione del registro nell'APK e la
+conservazione delle singole righe dopo un riavvio richiedono verifica su dispositivo.
+
+Gli avvisi richiedono
 consenso **Invio messaggi**; kick/ban/mute richiedono consenso
 **Moderazione** e privilegi operatore attuali. Liste, categorie e canali vengono conservati tramite dati persistenti
 per script/rete, se autorizzati dall'utente. I permessi Lua restano
