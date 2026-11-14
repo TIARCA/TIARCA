@@ -93,6 +93,17 @@ public final class HostLuaRuntimeTest {
         return collect(reply);
     }
 
+    private static String[] twoUserMessage(String nick, String text, long when) {
+        byte[][] roster = new byte[][]{
+                bytes("Nick-1"), bytes(""), bytes("id1"), bytes("host1.example"), bytes("*"),
+                bytes("Nick-2"), bytes(""), bytes("id2"), bytes("host2.example"), bytes("*")
+        };
+        return collect(NativeLuaRuntime.dispatch(OTHER, "message", bytes("test-server"),
+                bytes("#room"), bytes(nick), bytes(text), bytes("normal"), when,
+                new byte[0][], new int[0], false,
+                roster, false, true, automodSnapshot(), automodActive));
+    }
+
     public static void main(String[] args) throws Exception {
         String source = "local counter = 0\n"
                 + "tiarca.on('message', function(event)\n"
@@ -381,6 +392,23 @@ public final class HostLuaRuntimeTest {
                 "mod azione escalation", 1794400000L);
         check(configured.length == 4 && "show".equals(configured[1]),
                 "AutoMod escalation selected");
+
+        // Mentions are not words: two users talking to one another must not
+        // trigger each other's history, even with hyphenated IRC nicknames.
+        check(twoUserMessage("Nick-1", "Nick-2: ciao", 1794400000L).length == 1,
+                "First addressed one-word message is safe");
+        check(twoUserMessage("Nick-2", "Nick-1: salve", 1794400000L).length == 1,
+                "Different sender does not inherit the first sender's history");
+        check(twoUserMessage("Nick-1", "@Nick-2, ciao", 1794400000L).length == 1,
+                "Repeated one-word message with nickname mention is too short");
+        check(twoUserMessage("Nick-2", "Nick-1: salve", 1794400000L).length == 1,
+                "Repeated short reply must not trigger escalation");
+        check(twoUserMessage("Nick-2", "Nick-1: questa frase viene ripetuta",
+                1794400000L).length == 1, "Long addressed message is monitored");
+        String[] genuineRepeat = twoUserMessage("Nick-2",
+                "Nick-1: questa frase viene ripetuta", 1794400000L);
+        check(genuineRepeat.length == 7 && "pm".equals(genuineRepeat[4]),
+                "Repeated multi-word content still triggers first warning");
         check(eventAt(OTHER, "message", "#room", "Target", repeat,
                 1794400001L).length == 1, "First message not a violation");
         String[] warning = eventAt(OTHER, "message", "#room", "Target", repeat,
@@ -413,6 +441,13 @@ public final class HostLuaRuntimeTest {
         check(permanent.length == 7 && "kban".equals(permanent[4]) &&
                         ("Target" + (char)9 + "non ripetere").equals(permanent[6]),
                 "Fourth infraction requests KICK then permanent BAN atomically");
+        String[] actionCounts = eventAt(OTHER, "command", "#room", "me",
+                "mod stato", 1794400056L);
+        check(actionCounts.length == 4 &&
+                        actionCounts[3].contains("avvisi richiesti 2") &&
+                        actionCounts[3].contains("kick richiesti 3") &&
+                        actionCounts[3].contains("ban richiesti 2"),
+                "Warnings, kicks and bans are counted without double-counting combos");
         eventAt(OTHER, "nick", "#room", "Target", "NewNick", 1794400057L);
         eventAt(OTHER, "message", "#room", "NewNick", repeat, 1794400070L);
         String[] renamed = eventAt(OTHER, "message", "#room", "NewNick", repeat,

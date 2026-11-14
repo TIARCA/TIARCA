@@ -5,7 +5,7 @@ local config, cronologie = {}, {}
 local statistiche, aggiornamenti = {}, {}
 local function contatori(server)
 local s=statistiche[server]
-if not s then s={0,0,0,0};statistiche[server]=s end
+if not s then s={0,0,0,0,0,0,0,0};statistiche[server]=s end
 return s
 end
 local utenti, messaggi = 0, 0
@@ -163,7 +163,12 @@ local function restore(server,now,c)
   if not raw then return true end
   local lines={}
   for line in (raw.."\n"):gmatch("(.-)\n") do lines[#lines+1]=line end
-  local a,b,d,f=(lines[1] or ""):match("^v1;(%d+);(%d+);(%d+);(%d+)$")
+  local a,b,d,f,g,h,i,j=(lines[1] or ""):match(
+    "^v2;(%d+);(%d+);(%d+);(%d+);(%d+);(%d+);(%d+);(%d+)$")
+  if not a then
+    a,b,d,f=(lines[1] or ""):match("^v1;(%d+);(%d+);(%d+);(%d+)$")
+    g,h,i,j="0","0","0","0"
+  end
   if not a then invalid[server]=true;return false end
   local recovered,number={},0
   for i=2,#lines do
@@ -208,12 +213,13 @@ local function restore(server,now,c)
   for key,r in pairs(recovered) do
     cronologie[key]=r;utenti=utenti+1;messaggi=messaggi+#r.lista
   end
-  statistiche[server]={tonumber(a),tonumber(b),tonumber(d),tonumber(f)}
+  statistiche[server]={tonumber(a),tonumber(b),tonumber(d),tonumber(f),
+    tonumber(g),tonumber(h),tonumber(i),tonumber(j)}
   return true
 end
 local function persist(server)
   local values=contatori(server)
-  local rows={"v1;"..table.concat(values,";")}
+  local rows={"v2;"..table.concat(values,";")}
   for _,r in pairs(cronologie) do
     if r.server==server then
       local entries={}
@@ -260,11 +266,26 @@ r.visto=now
 return key,r
 end
 
-local function impronta(text)
-local parti,bytes={},0
-for word in text:lower():gsub("[%c%p]"," "):gmatch("%S+") do
-  if #parti>=MAX_PAROLE or bytes+#word+1>MAX_TESTO then return "",0 end
-  parti[#parti+1]=word; bytes=bytes+#word+1
+-- Exclude exact IRC nickname mentions before splitting punctuation.
+local function impronta(text,roster)
+local nicks={}
+if type(roster)=="table" then
+  for _,u in ipairs(roster) do
+    if type(u.nick)=="string" then nicks[u.nick:lower()]=true end
+  end
+end
+local parti,bytes,index={},0,0
+for token in text:lower():gmatch("%S+") do
+  index=index+1
+  local mentioned=token:gsub("^@",""):gsub("[:,;!?]+$","")
+  -- Bare nicknames are addresses only at the start. Elsewhere require @ or punctuation.
+  local address=index==1 or token:sub(1,1)=="@" or token:match("[:,;!?]$")
+  if not (address and nicks[mentioned]) then
+    for word in token:gsub("[%c%p]"," "):gmatch("%S+") do
+      if #parti>=MAX_PAROLE or bytes+#word+1>MAX_TESTO then return "",0 end
+      parti[#parti+1]=word; bytes=bytes+#word+1
+    end
+  end
 end
 return table.concat(parti," "),#parti
 end
@@ -286,7 +307,7 @@ for _,u in ipairs(list) do
     local account=u.account and u.account:lower() or nil
     if not account or account=="" then return false,"ignoto" end
     if account~="*" and c.blacklist[account] then
-      return true,true,account
+      return true,true,account,list
     end
     if account~="*" and
        (c.whitelist[account] or c.categorie.registrati) then return false,"esente" end
@@ -296,13 +317,13 @@ for _,u in ipairs(list) do
        (p:find("@",1,true) and c.categorie.op) or
        (p:find("&",1,true) and c.categorie.admin) or
        (p:find("~",1,true) and c.categorie.owner) then return false,"esente" end
-    return true,p~="",account
+    return true,p~="",account,list
   end
 end
 return false,"ignoto"
 end
 
-local function azione(e,c,livello,override,account)
+local function tipo_azione(c,livello)
 local scelta=c.azione
 if scelta=="escalation" then
   if livello==1 then scelta="avviso"
@@ -310,6 +331,9 @@ if scelta=="escalation" then
   elseif livello==3 then scelta="tbankick"
   else scelta="bankick" end
 end
+return scelta
+end
+local function azione(e,c,scelta,override,account)
 if scelta=="monitor" then return end
 if scelta=="avviso" then
   if c.avviso=="pubblico" then tiarca.send(e.channel,e.nick..": non ripetere")
@@ -334,7 +358,7 @@ if not c or not c.on or not c.canali[e.channel:lower()] or
    not restore(e.server,e.timestamp,c) then return end
 local s=contatori(e.server)
 s[1]=s[1]+1
-local allowed,reason,account=soggetto(e,c)
+local allowed,reason,account,roster=soggetto(e,c)
 if not allowed then
   if reason=="ignoto" then
     s[3]=s[3]+1
@@ -352,7 +376,7 @@ s[4]=s[4]+1
 local override=reason==true
 local now=e.timestamp
 local key,r=prepara(e,now,c)
-local sig,n=impronta(e.text or "")
+local sig,n=impronta(e.text or "",roster)
 local maximum=0
 if n>=c.minparole then
   for _,before in ipairs(r.lista) do
@@ -375,10 +399,22 @@ if maximum<c.soglia or now-r.ultima_azione<c.pausa then
 end
 r.infrazione=r.infrazione+1
 r.ultima_infrazione,r.ultima_azione=now,now
-if not persist(e.server) then return end
+local scelta=tipo_azione(c,r.infrazione)
+local old={s[5],s[6],s[7],s[8]}
+if scelta=="avviso" then s[5]=s[5]+1
+elseif scelta=="kick" then s[6]=s[6]+1
+elseif scelta=="ban" or scelta=="tban" then s[7]=s[7]+1
+elseif scelta=="mute" then s[8]=s[8]+1
+elseif scelta=="bankick" or scelta=="tbankick" then
+  s[6]=s[6]+1;s[7]=s[7]+1
+end
+if not persist(e.server) then
+  s[5],s[6],s[7],s[8]=old[1],old[2],old[3],old[4]
+  return
+end
 tiarca.log(string.format("AutoMod %s/%s %s %.1f%% infrazione %d (%s)",
-  e.server:sub(1,8),e.channel,e.nick,maximum,r.infrazione,c.azione))
-azione(e,c,r.infrazione,override,account)
+  e.server:sub(1,8),e.channel,e.nick,maximum,r.infrazione,scelta))
+azione(e,c,scelta,override,account)
 end)
 tiarca.on("timer",function(e)
   local c=impostazioni(e.server)
@@ -494,11 +530,12 @@ local changed,clear=false,nil
 local msg
 if key=="stato" then
   local stats=contatori(e.server)
-  msg=string.format("%s; %s/%s; canali %d; white %d; black %d; %d%%; ultimi %d; minuti %d; parole %d; pausa %ds; durata %s; utenti %d; messaggi %d; ricevuti %d; esenti %d; ignoti %d; monitorati %d",
+  msg=string.format("%s; %s/%s; canali %d; white %d; black %d; %d%%; ultimi %d; minuti %d; parole %d; pausa %ds; durata %s; utenti %d; messaggi %d; ricevuti %d; esenti %d; ignoti %d; monitorati %d; avvisi richiesti %d; kick richiesti %d; ban richiesti %d; mute richiesti %d",
     c.on and "ON" or "OFF",c.azione,c.avviso,count(c.canali),
     count(c.whitelist),count(c.blacklist),c.soglia,c.ultimi,c.minuti,
     c.minparole,c.pausa,c.durata,utenti,messaggi,
-    stats[1],stats[2],stats[3],stats[4])
+    stats[1],stats[2],stats[3],stats[4],
+    stats[5],stats[6],stats[7],stats[8])
 elseif key=="on" or key=="off" then
   c.on=key=="on"
   changed=true
