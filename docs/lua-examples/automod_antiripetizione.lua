@@ -471,7 +471,7 @@ if topic=="" or topic=="parametri" then
   show("AutoMod: parametri",
     "/lua mod soglia 80; ultimi 3; minuti 30; minparole 3; pausa 10; durata 10m")
   show("AutoMod: sicurezza",
-    "Consensi: Dati persistenti; Lettura utenti; Moderazione. Lo storico scade naturalmente e /lua mod reset lo cancella.")
+    "Consensi: Dati persistenti; Lettura utenti; Moderazione. /lua restart conserva lo storico; /lua mod reset lo cancella.")
 end
 end
 
