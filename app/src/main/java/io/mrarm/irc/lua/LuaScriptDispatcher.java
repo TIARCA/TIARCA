@@ -53,6 +53,7 @@ public final class LuaScriptDispatcher {
     private static final long SERVER_INTERVAL_MS = 1500L;
     private static final long WHO_INTERVAL_MS = 60000L;
     private static final long TICK_INTERVAL_MS = 60000L;
+    private static final long BIND_RETRY_GRACE_MS = 30000L;
 
     public static synchronized LuaScriptDispatcher get(Context context) {
         if (instance == null)
@@ -82,6 +83,7 @@ public final class LuaScriptDispatcher {
     private final Runnable timerTick = new Runnable() {
         @Override public void run() {
             if (!running) return;
+            recoverMissingSandbox();
             for (ServerConnectionInfo conn :
                     ServerConnectionManager.getInstance(context).getConnections()) {
                 if (conn.isConnected())
@@ -94,6 +96,7 @@ public final class LuaScriptDispatcher {
     private volatile Messenger remote;
     private boolean bound; // main thread only
     private boolean running; // main thread only
+    private long lastBindAttemptMs; // main thread only
     private final Messenger replies = new Messenger(
             new Handler(Looper.getMainLooper(), this::handleReply));
 
@@ -136,6 +139,7 @@ public final class LuaScriptDispatcher {
         }
 
         @Override public void onServiceDisconnected(ComponentName name) {
+            lastBindAttemptMs = SystemClock.elapsedRealtime();
             disableInFlightAfterCrash();
             clearPending();
             remote = null;
@@ -201,9 +205,37 @@ public final class LuaScriptDispatcher {
         });
     }
 
+    /**
+     * BIND_AUTO_CREATE normally reconnects a dead isolated process. Some device
+     * implementations can leave the binding without a live Messenger. On a
+     * connected, unpaused network, retry at the next minute tick after a grace
+     * period; never revive a script disabled by the crash guard or /lua stop.
+     */
+    private void recoverMissingSandbox() {
+        if (!running || remote != null || !store.anyEnabled()) return;
+        long now = SystemClock.elapsedRealtime();
+        if (now - lastBindAttemptMs < BIND_RETRY_GRACE_MS) return;
+        boolean needed = false;
+        for (ServerConnectionInfo conn :
+                ServerConnectionManager.getInstance(context).getConnections()) {
+            if (conn.isConnected() && !console.isPaused(conn.getUUID().toString())
+                    && !store.enabledOn(conn.getUUID().toString()).isEmpty()) {
+                needed = true;
+                break;
+            }
+        }
+        if (!needed) return;
+        if (bound) {
+            context.unbindService(connection);
+            bound = false;
+        }
+        reconcileBinding();
+    }
+
     private void reconcileBinding() {
         boolean needed = running && store.anyEnabled();
         if (needed && !bound) {
+            lastBindAttemptMs = SystemClock.elapsedRealtime();
             try {
                 bound = context.bindService(new Intent(context, LuaDiagnosticService.class),
                         connection, Context.BIND_AUTO_CREATE);
@@ -552,6 +584,7 @@ public final class LuaScriptDispatcher {
         enqueue(connected ? "connected" : "disconnected",
                 connection.getUUID().toString(), "", "", "", "",
                 System.currentTimeMillis() / 1000);
+        if (connected) main.post(this::recoverMissingSandbox);
     }
 
     private boolean enqueue(String event, String server, String channel,
