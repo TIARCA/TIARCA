@@ -188,14 +188,16 @@ public class ServerStatusMessagesAdapter extends RecyclerView.Adapter<RecyclerVi
                     createServiceClickSpan(message));
             built = addAcceptConfirmationNickLink(built, message.getMessage());
             if (message instanceof MaskFinderStatusMessageInfo)
-                built = decorateMaskFinder(built, (MaskFinderStatusMessageInfo) message);
+                built = decorateMaskFinder(built, (MaskFinderStatusMessageInfo) message,
+                        context);
             mText.setText(AlignToPointSpan.apply(mText, built));
         }
 
     }
 
     /** Mask Finder rows are linked using trusted metadata, not regexes over IRC text. */
-    private CharSequence decorateMaskFinder(CharSequence built, MaskFinderStatusMessageInfo info) {
+    private CharSequence decorateMaskFinder(CharSequence built, MaskFinderStatusMessageInfo info,
+                                            Context context) {
         SpannableStringBuilder text = new SpannableStringBuilder(built);
         if (info.kind == MaskFinderStatusMessageInfo.Kind.BATCH) {
             int from = 0;
@@ -217,6 +219,7 @@ public class ServerStatusMessagesAdapter extends RecyclerView.Adapter<RecyclerVi
                     }
 
                     @Override public void updateDrawState(@NonNull TextPaint ds) {
+                        ds.setColor(IRCColorUtils.getBanMaskColor(context));
                         ds.setUnderlineText(false);
                     }
                 }, index, index + nick.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);

@@ -19,11 +19,14 @@ public final class WhoSnapshotCollector {
         public final String nick;
         public final String ident;
         public final String host;
+        /** WHOX account, or null when unavailable or logged out. */
+        public final String account;
 
-        User(String nick, String ident, String host) {
+        User(String nick, String ident, String host, String account) {
             this.nick = nick;
             this.ident = ident;
             this.host = host;
+            this.account = account;
         }
 
         public String mask() {
@@ -87,7 +90,7 @@ public final class WhoSnapshotCollector {
         synchronized (this) {
             Request req = active;
             if (req == null) return;
-            String nick = null, ident = null, host = null;
+            String nick = null, ident = null, host = null, account = null;
             if ("352".equals(numeric) && params.size() >= 6 &&
                     req.token.isEmpty() && req.channel.equalsIgnoreCase(params.get(1))) {
                 ident = params.get(2);
@@ -98,6 +101,7 @@ public final class WhoSnapshotCollector {
                 ident = params.get(2);
                 host = params.get(3);
                 nick = params.get(4);
+                account = params.get(6);
             } else if ("315".equals(numeric) && params.size() >= 2 &&
                     req.channel.equalsIgnoreCase(params.get(1))) {
                 active = null;
@@ -109,7 +113,9 @@ public final class WhoSnapshotCollector {
                 if (!req.found.containsKey(key) && req.found.size() >= MAX_ENTRIES)
                     req.truncated = true;
                 else
-                    req.found.put(key, new User(nick, ident, host));
+                    req.found.put(key, new User(nick, ident, host,
+                            atom(account, 64) && !"0".equals(account) &&
+                                    !"*".equals(account) ? account : null));
             }
         }
         if (callback != null) callback.accept(result);

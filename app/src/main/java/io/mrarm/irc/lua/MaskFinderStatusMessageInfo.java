@@ -33,8 +33,9 @@ public final class MaskFinderStatusMessageInfo extends StatusMessageInfo {
     }
 
     private MaskFinderStatusMessageInfo(String channel, long searchId,
-                                        List<String> nicks, List<String> masks) {
-        super(null, new Date(), MessageType.NOTICE, String.join("\n", masks));
+                                        List<String> nicks, List<String> masks,
+                                        List<String> accounts) {
+        super(null, new Date(), MessageType.NOTICE, formatRows(masks, accounts));
         this.kind = Kind.BATCH;
         this.channel = channel;
         this.nick = null;
@@ -43,11 +44,23 @@ public final class MaskFinderStatusMessageInfo extends StatusMessageInfo {
         this.masks = Collections.unmodifiableList(new ArrayList<>(masks));
     }
 
+    private static String formatRows(List<String> masks, List<String> accounts) {
+        List<String> rows = new ArrayList<>(masks.size());
+        for (int i = 0; i < masks.size(); i++) {
+            String account = accounts.get(i);
+            rows.add(masks.get(i) + (account == null || account.isEmpty() ?
+                    "" : " R:" + account));
+        }
+        return String.join("\n", rows);
+    }
+
     public static MaskFinderStatusMessageInfo batch(String channel, long searchId,
-                                                     List<String> nicks, List<String> masks) {
-        if (nicks == null || masks == null || nicks.isEmpty() ||
-                nicks.size() != masks.size() || nicks.size() > 50)
+                                                     List<String> nicks, List<String> masks,
+                                                     List<String> accounts) {
+        if (nicks == null || masks == null || accounts == null || nicks.isEmpty() ||
+                nicks.size() != masks.size() || nicks.size() != accounts.size() ||
+                nicks.size() > 50)
             throw new IllegalArgumentException("Invalid Mask Finder block");
-        return new MaskFinderStatusMessageInfo(channel, searchId, nicks, masks);
+        return new MaskFinderStatusMessageInfo(channel, searchId, nicks, masks, accounts);
     }
 }

@@ -379,8 +379,12 @@ to the channel or privately to its users.
 
 Once the server sends numeric **315 (end of WHO)**, the host shows the match
 count in the **Server tab** and writes the first 50 matching
-`nick!ident@host` rows. Nicknames open the standard nickname context menu,
-retaining the original channel as the context. For larger result sets, the
+`nick!ident@host` rows. Nicknames are shown in theme-aware red and open the standard nickname context
+menu, retaining the original channel as the context. When the server supports
+WHOX and reports a logged-in account, the result appends `R:account` after
+`nick!ident@host`; unregistered users and servers without WHOX show only the
+mask. The account is taken from that search response, not a potentially stale
+identity cache. For larger result sets, the
 last row is followed by `Continua? [SI] [NO]`; SI adds the next 50 rows,
 while NO keeps those already displayed and stops. No initial confirmation,
 no paging, and no separate results window. Partial WHO rosters are explicitly
