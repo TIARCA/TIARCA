@@ -396,8 +396,8 @@ public class MessageBuilder {
 
     /** Only the rendered text receives (ops); the original IRC message stays untouched. */
     private CharSequence getChatMessageBody(MessageInfo message) {
-        CharSequence formatted = LinkHelper.addLinks(
-                IRCColorUtils.getFormattedString(mContext, message.getMessage()));
+        CharSequence formatted = VisualEmoticonFormatter.decorate(LinkHelper.addLinks(
+                IRCColorUtils.getFormattedString(mContext, message.getMessage())));
         if (!message.isStatusMessage() || !StatusMessageDisplaySettings.showPrefix(mContext))
             return formatted;
         return new SpannableStringBuilder("(ops) ").append(formatted);

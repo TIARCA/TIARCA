@@ -106,16 +106,23 @@ public final class LuaScriptDispatcher {
         final String channel;
         final String nick;
         final String event;
+        final String commandText;
         final boolean isEvent;
         final long generation;
 
         Pending(String id, String server, String channel, String nick,
                 String event, boolean isEvent, long generation) {
+            this(id, server, channel, nick, event, isEvent, generation, "");
+        }
+
+        Pending(String id, String server, String channel, String nick,
+                String event, boolean isEvent, long generation, String commandText) {
             this.scriptId = id;
             this.server = server;
             this.channel = channel;
             this.nick = nick;
             this.event = event;
+            this.commandText = commandText;
             this.isEvent = isEvent;
             this.generation = generation;
         }
@@ -686,7 +693,7 @@ public final class LuaScriptDispatcher {
                     data.putBoolean(LuaDiagnosticService.EXTRA_CAN_STORE, script.allowStorage);
                     request.setData(data);
                     sendMessage(request, new Pending(script.id, server, channel, nick, event, true,
-                            console.generation(server)));
+                            console.generation(server), "command".equals(event) ? text : ""));
                 }
             } finally {
                 queuedEvents.decrementAndGet();
@@ -808,12 +815,10 @@ public final class LuaScriptDispatcher {
                     }
                 }
             } else if ("mask".equals(kind)) {
-                // Only a local user command may initiate a potentially large
-                // channel WHO. The approved script cannot select another target.
-                if ("command".equals(request.event) &&
-                        LuaModerationPolicy.scoped(script, request.server,
-                                request.channel, request.event, target, false) &&
-                        MaskFinderMatcher.validQuery(value)) {
+                // Permit an explicitly named joined channel on this same network,
+                // never an unrequested channel, pattern or remote event.
+                if (MaskFinderCommandPolicy.permits(script, request.server,
+                        request.event, request.channel, request.commandText, target, value)) {
                     MaskFinderManager.get(context).startSearch(
                             script.id, request.server, target, value);
                 }
