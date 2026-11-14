@@ -356,12 +356,22 @@ Import [mask_finder.lua](lua-examples/mask_finder.lua) through Settings → Lua
 scripts; explicitly enable **Channel members and identities** for the selected
 IRC network. The script needs neither send nor moderation permission.
 
-While viewing a **joined channel**, enter:
+From a **joined channel**, use the short form; from **any conversation tab
+on the same connected IRC network** (including the Server tab and PVT),
+supply the joined channel explicitly:
 
 ```
 /lua mask pippo
 /lua mask *!*@*.example.net
+/lua mask #chat pippo
+/lua mask #chat *!*@*.example.net
 ```
+
+If no channel is provided, the command still searches the currently open
+channel, so it needs a channel tab. With an explicit channel, the command's
+original network is retained: the host never changes networks or searches
+unjoined channels. Existing imported copies of the Lua example must be
+replaced/reimported to receive the new command parsing.
 
 A plain term matches anywhere within the complete `nick!ident@host` without
 case sensitivity. Full IRC-style masks containing `!` or `@` use anchored
@@ -370,7 +380,9 @@ with wildcards searches anywhere in the full mask.
 
 The command delegates to the host-only `tiarca.maskfind(channel, pattern)`
 action. The host verifies the explicit local command, enabled script, separately
-approved identity scope, same joined channel and matching server before sending
+approved identity scope, a channel and pattern explicitly named by the
+user (or the currently selected channel for the short form), verified joined
+channel and matching server before sending
 a single WHO/WHOX. The ordinary C3 128-user snapshot and the network's 512-entry
 identity LRU **are not** the search limit: WHO replies are collected separately
 (up to 16,384 users per request, then marked incomplete rather than silently
