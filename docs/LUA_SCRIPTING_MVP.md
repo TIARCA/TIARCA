@@ -15,7 +15,7 @@ file through the Android document picker (Storage Access Framework).
 It is copied into TIARCA private storage. No downloads, binary plugins,
 .lua bytecode, JAR, DEX or native plugins are supported.
 
-Maximum: 8 scripts, each 16384 source bytes. Imported scripts are
+Maximum: 8 scripts, each 24576 source bytes. Imported scripts are
 **disabled**. On enable, select **one or more configured IRC networks**
 (up to 16 per script). No other network receives events from that script.
 The same explicitly approved send/user-info/moderation/storage capabilities
@@ -601,13 +601,17 @@ dialetto e host validi. Il server può comunque negare le operazioni.
 
 I rilevamenti si leggono dal log dello script. Gli avvisi richiedono
 consenso **Invio messaggi**; kick/ban/mute richiedono consenso
-**Moderazione** e privilegi operatore attuali. Liste, categorie e canali
-sono **solo RAM**: modifiche e reload/restart li riportano ai default.
-Non è stato aggiunto accesso persistente o un'autorizzazione automatica.
+**Moderazione** e privilegi operatore attuali. Liste, categorie e canali vengono conservati tramite dati persistenti
+per script/rete, se autorizzati dall'utente. I permessi Lua restano
+espliciti e non vengono concessi automaticamente.
 
-La cronologia (testi, contatori di infrazioni e ultima azione) è **solo RAM**,
-distinta per server, canale e nickname. Le **impostazioni**, invece,
-vengono salvate per ciascuna rete mediante `tiarca.storage`: ON/OFF,
+La cronologia attiva (impronte dei messaggi, contatori di infrazioni e
+ultima azione), insieme ai contatori diagnostici, è ora salvata per rete
+tramite una seconda chiave C6, con timestamp originali. Al riavvio della
+sandbox e alla riconnessione vengono mantenute solo le voci non scadute
+secondo `minuti`; i contatori diagnostici restano cumulativi fino a reset.
+Le **impostazioni** vengono salvate per ciascuna rete mediante
+`tiarca.storage`: ON/OFF,
 canali abilitati, whitelist e blacklist degli account, categorie esentate,
 soglia, ultimi, minuti, minparole, pausa, durata, azione e tipo di avviso.
 Sopravvivono al reload, a `/lua restart`, al riavvio dell'app e agli
@@ -623,8 +627,8 @@ falsi positivi da troncamento). I limiti complessivi sono **1000 nickname
 attivi** e **2400 impronte** tra tutte le reti; se raggiunti vengono
 eliminate le cronologie meno recenti, quindi in canali molto attivi il numero
 effettivo di confronti può essere inferiore al limite scelto. Un'uscita dal canale cancella i messaggi recenti, ma non il contatore
-infrazioni, finché la finestra di recidiva è valida. La disconnessione o
-`/lua mod reset` cancella le cronologie. Non serve modificare il sorgente:
+infrazioni, finché la finestra di recidiva è valida. La disconnessione non cancella più le cronologie. Il comando esplicito
+`/lua mod reset` le azzera insieme ai contatori. Non serve modificare il sorgente:
 `/lua mod canali add|drop #nome` gestisce i canali della rete corrente.
 L'elenco dei canali autorizzati viene conservato separatamente per rete:
 il default resta **nessun canale**, ma non viene ripristinato dopo un
@@ -682,7 +686,7 @@ I comandi di TIARCA sono disponibili anche con zero script abilitati:
 - `/lua log`: ultime 16 righe di log Lua per la rete, con nome dello script
 - `/lua stop`: sospende eventi e azioni Lua per questa rete, senza modificare i permessi o lo stato RAM; annulla eventi già in corso e interventi di moderazione in coda
 - `/lua start`: riattiva gli script sospesi, conservando il loro stato temporaneo
-- `/lua restart`: sospende, ricrea le VM di questa sola rete usando i sorgenti già autorizzati e riprende solo se tutti i caricamenti riescono; cronologie e variabili temporanee si azzerano, mentre le altre reti non vengono toccate
+- `/lua restart`: sospende, ricrea le VM di questa sola rete usando i sorgenti già autorizzati e riprende solo se tutti i caricamenti riescono; le variabili solo RAM si azzerano, mentre gli stati espressamente salvati (come lo storico AutoMod non scaduto) vengono recuperati; le altre reti non vengono toccate
 
 I comandi sono locali e non trasmessi al server IRC. Lo stop e il restart
 non modificano le autorizzazioni persistenti. Dopo un errore di
@@ -696,20 +700,24 @@ limitata a 2 MiB, con un limite complessivo di 32 MiB nel processo
 isolato. Quando non è possibile allocare una nuova VM il restart non
 viene considerato riuscito.
 
-AutoMod: `/lua mod help` descrive anche `/lua restart`, che
-reinizializza configurazione temporanea e storico della rete. Invece
-`/lua mod reset` cancella solo lo storico di AutoMod.
+AutoMod: `/lua restart` ricrea la VM ma conserva configurazione e
+storico ancora valido. `/lua mod reset` cancella lo storico e i
+contatori per la rete corrente, senza cambiare le preferenze.
 
  
 ## Quote e sicurezza dei dati AutoMod
 
-AutoMod usa una sola chiave per rete autorizzata (massimo 16), con un
-valore di al più 8192 byte. Anche riempiendo il massimo di 16 canali,
-32 account whitelist e 32 account blacklist per rete, il formato testuale
-rimane entro tale limite. Per questa funzione le quote C6 rimangono
-bounded ma salgono a 16 chiavi, 8192 byte per valore e 128 KiB totali
-per script, con file JSON massimo di 160 KiB. Le nuove quote sono
-controllate sia dal processo Android sia dall'interprete nativo.
+AutoMod usa due chiavi per rete: una per le impostazioni e una per
+lo storico. Per sostenere fino a 16 reti, il numero massimo di chiavi
+C6 per script sale a **32**, mantenendo 8192 byte per valore,
+**128 KiB complessivi** e file JSON massimo di 160 KiB. I limiti
+sono controllati nel processo Android e nel runtime nativo. Se la
+cronologia di una rete supera 8192 byte, AutoMod registra
+`storico persistente pieno; azioni sospese` e non emette nuove
+sanzioni che non potrebbe conservare in modo affidabile: è necessario
+ridurre il carico o rivedere la capacità. Il recupero è limitato alla
+capacità effettiva del supporto di persistenza, e va testato su canali
+molto popolati.
 
 Il database C6 è privato all'app e compreso nei backup con le
 convalide già previste; le autorizzazioni a usarlo sono separate e
@@ -731,7 +739,8 @@ L'infrazione resta valida dopo JOIN/PART/QUIT e segue il cambio nick
 quando la nuova chiave non è già occupata. Lo storico dei testi viene
 invece eliminato quando un utente esce dal canale. Il contatore decade
 alla scadenza della finestra configurata (30 minuti per default).
-Disconnessione, reset dello script o `/lua mod reset` lo azzerano.
+La disconnessione e il riavvio dello script non azzerano il contatore:
+scade naturalmente, oppure viene cancellato con `/lua mod reset`.
 
 **Nota importante sull'API:** fare prima `tiarca.kick()` e poi
 `tiarca.ban()` come richieste separate non è affidabile, perché il
@@ -754,8 +763,8 @@ esplicito e non consentono accesso a comandi IRC arbitrari.
 ## Nuovo limite sorgenti e API blacklist
 
 Il limite degli script Lua importati, validato sia nel main process Java
-sia nel processo Lua isolato in C/JNI, è **16 KiB (16384 byte UTF-8)**
-invece di 8 KiB. Restano invariati il budget di istruzioni per evento,
+sia nel processo Lua isolato in C/JNI, è **24 KiB (24576 byte UTF-8)**
+invece di 16 KiB. Restano invariati il budget di istruzioni per evento,
 i 2 MiB di heap per VM e il cap aggregato di 32 MiB.
 
 La nuova API `tiarca.blacklist_action(channel,nick,account,azione,durata)`

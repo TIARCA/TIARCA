@@ -61,7 +61,7 @@ public class LuaScriptStorageTest {
                 fail("Oversized value accepted");
             } catch (IOException expected) { }
             assertEquals("value", new LuaScriptStorage(dir).read(ID).get("other"));
-            for (int i = 0; i < 15; i++)
+            for (int i = 0; i < 31; i++)
                 first.apply(ID, "store", "key" + i, "v");
             try {
                 first.apply(ID, "store", "key_overflow", "v");
@@ -88,9 +88,12 @@ public class LuaScriptStorageTest {
                         String.format(java.util.Locale.ROOT, "00000000-0000-0000-0000-%012d",
                                 network);
                 storage.apply(ID, "store", key, value);
+                storage.apply(ID, "store", "amst." + key.substring(8),
+                        "v1;0;0;0;0");
             }
-            assertEquals(16, storage.read(ID).size());
-            assertEquals(value, storage.read(ID).values().iterator().next());
+            assertEquals(32, storage.read(ID).size());
+            assertEquals(value, storage.read(ID).get(
+                    "automod.00000000-0000-0000-0000-000000000000"));
             try (ZipFile zip = new ZipFile(backup)) {
                 storage.export(zip, new ZipParameters(), ID);
             }
@@ -101,8 +104,13 @@ public class LuaScriptStorageTest {
                 storage.restoreValidated(ID, state);
             }
             Map<String, String> restored = storage.read(ID);
-            assertEquals(16, restored.size());
-            for (String saved : restored.values()) assertEquals(value, saved);
+            assertEquals(32, restored.size());
+            for (int i = 0; i < 16; i++) {
+                String uuid = String.format(java.util.Locale.ROOT,
+                        "00000000-0000-0000-0000-%012d", i);
+                assertEquals(value, restored.get("automod." + uuid));
+                assertEquals("v1;0;0;0;0", restored.get("amst." + uuid));
+            }
         } finally {
             storage.delete(ID);
             backup.delete();

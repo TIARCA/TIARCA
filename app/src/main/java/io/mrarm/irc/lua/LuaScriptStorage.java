@@ -29,7 +29,7 @@ import java.util.UUID;
  * Lua sees event-scoped copied values through the isolated-service IPC.
  */
 final class LuaScriptStorage {
-    static final int MAX_KEYS = 16;
+    static final int MAX_KEYS = 32;
     static final int MAX_VALUE_BYTES = 8192;
     static final int MAX_TOTAL_BYTES = 128 * 1024;
     static final int MAX_FILE_BYTES = 160 * 1024;

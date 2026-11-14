@@ -324,7 +324,7 @@ public final class HostLuaRuntimeTest {
         // Import the actual user-facing AutoMod source. Also check size.
         byte[] automod = Files.readAllBytes(
                 Path.of("docs/lua-examples/automod_antiripetizione.lua"));
-        check(automod.length <= 16384, "AutoMod fits 16 KiB source limit");
+        check(automod.length <= 24576, "AutoMod fits 24 KiB source limit");
         check("OK".equals(decode(NativeLuaRuntime.load(OTHER, automod))),
                 "AutoMod loads into official Lua native sandbox");
         automodActive = true;
@@ -610,6 +610,50 @@ public final class HostLuaRuntimeTest {
                         "#room".equals(publicWarning[5]) &&
                         "TestPublic: non ripetere".equals(publicWarning[6]),
                 "Explicit public warning has the short nick-prefixed format");
+
+        // A transport disconnect must not clear the recent escalation state,
+        // and a new Lua worker must restore it from per-script storage.
+        eventAt(OTHER, "command", "#room", "me",
+                "mod azione escalation", 1794400283L);
+        check(eventAs(OTHER, "message", "#room", "Retained", repeat,
+                1794400284L, "", "*").length == 1,
+                "Fresh nickname initializes persisted history");
+        String[] retainedWarn = eventAs(OTHER, "message", "#room", "Retained", repeat,
+                1794400285L, "", "*");
+        check(retainedWarn.length == 7 && "send".equals(retainedWarn[4]),
+                "First infraction on persisted history is a warning");
+        String[] beforeDisconnect = eventAt(OTHER, "command", "#room", "me",
+                "mod stato", 1794400286L);
+        eventAt(OTHER, "disconnected", "", "", "", 1794400287L);
+        String[] afterDisconnect = eventAt(OTHER, "command", "#room", "me",
+                "mod stato", 1794400288L);
+        check(afterDisconnect.length == 4 &&
+                        afterDisconnect[3].contains("utenti ") &&
+                        afterDisconnect[3].contains("ricevuti ") &&
+                        afterDisconnect[3].equals(beforeDisconnect[3]),
+                "Disconnect preserves active fingerprints and cumulative counters");
+        check(automodStorage.containsKey("amst.test-server"),
+                "Active AutoMod state is saved separately from configuration");
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, automod))),
+                "Worker restart restores persisted state");
+        String[] afterWorkerRestart = eventAt(OTHER, "command", "#room", "me",
+                "mod stato", 1794400290L);
+        check(afterWorkerRestart.length == 4 &&
+                        afterWorkerRestart[3].equals(beforeDisconnect[3]),
+                "Counters and active users survive a Lua VM restart");
+        String[] nextEscalation = eventAs(OTHER, "message", "#room", "Retained", repeat,
+                1794400300L, "", "*");
+        check(nextEscalation.length == 7 && "kick".equals(nextEscalation[4]),
+                "Second infraction KICKs after disconnect and Lua restart");
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, automod))),
+                "Worker reload for expiration test succeeds");
+        check(eventAs(OTHER, "message", "#room", "Retained", repeat,
+                1794402301L, "", "*").length == 1,
+                "Expired message and escalation history is dropped after reload");
+        String[] freshWarn = eventAs(OTHER, "message", "#room", "Retained", repeat,
+                1794402302L, "", "*");
+        check(freshWarn.length == 7 && "send".equals(freshWarn[4]),
+                "New natural-expiry window starts from first warning");
 
         NativeLuaRuntime.unload(ID);
         check(NativeLuaRuntime.dispatch(ID, "message", bytes("test-server"),
