@@ -345,6 +345,11 @@ public final class HostLuaRuntimeTest {
         check(eventAt(OTHER, "message", "#room", "Target", repeat,
                 1794399980L).length == 1,
                 "Default with no channels must not monitor messages");
+        String[] defaultState = eventAt(OTHER, "command", "#room", "me",
+                "mod stato", 1794399981L);
+        check(defaultState.length == 4 && defaultState[3].contains("monitor/pvt") &&
+                        defaultState[3].contains("parole 3"),
+                "New AutoMod configuration defaults to private warnings and three words");
         String[] emptyList = eventAt(OTHER, "command", "#room", "me",
                 "mod canali", 1794399981L);
         check(emptyList.length == 4 && emptyList[3].contains("nessuno"),
@@ -380,10 +385,10 @@ public final class HostLuaRuntimeTest {
                 1794400001L).length == 1, "First message not a violation");
         String[] warning = eventAt(OTHER, "message", "#room", "Target", repeat,
                 1794400002L);
-        check(warning.length == 7 && "send".equals(warning[4]) &&
-                        "#room".equals(warning[5]) &&
-                        "Target: Evita di ripetere messaggi simili.".equals(warning[6]),
-                "Public warning must not identify the AutoMod scripting system");
+        check(warning.length == 7 && "pm".equals(warning[4]) &&
+                        "Target".equals(warning[5]) &&
+                        "non ripetere su #room".equals(warning[6]),
+                "Default warning is a private channel-specific message");
         String[] kick = eventAt(OTHER, "message", "#room", "Target", repeat,
                 1794400014L);
         check(kick.length == 7 && "kick".equals(kick[4]) &&
@@ -590,9 +595,21 @@ public final class HostLuaRuntimeTest {
             check(response.length == 7 &&
                             (method.equals("pvt") ? "pm" : "notice").equals(response[4]) &&
                             nick.equals(response[5]) &&
-                            "Evita di ripetere messaggi simili.".equals(response[6]),
+                            "non ripetere su #room".equals(response[6]),
                     "The " + method + " warning must not disclose the script name");
         }
+
+        eventAt(OTHER, "command", "#room", "me",
+                "mod avviso pubblico", 1794400280L);
+        check(eventAs(OTHER, "message", "#room", "TestPublic", repeat,
+                1794400281L, "", "*").length == 1,
+                "First public-warning message initializes history");
+        String[] publicWarning = eventAs(OTHER, "message", "#room", "TestPublic", repeat,
+                1794400282L, "", "*");
+        check(publicWarning.length == 7 && "send".equals(publicWarning[4]) &&
+                        "#room".equals(publicWarning[5]) &&
+                        "TestPublic: non ripetere".equals(publicWarning[6]),
+                "Explicit public warning has the short nick-prefixed format");
 
         NativeLuaRuntime.unload(ID);
         check(NativeLuaRuntime.dispatch(ID, "message", bytes("test-server"),
