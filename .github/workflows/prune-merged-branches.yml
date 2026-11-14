@@ -35,6 +35,7 @@ jobs:
           python3 - <<'PY'
           import json
           import os
+          from datetime import datetime, timedelta
           import subprocess
           import urllib.error
           import urllib.parse
@@ -78,17 +79,29 @@ jobs:
           protected = {"main"}
           for pr in open_prs:
               protected.add(pr["base"]["ref"])
-              if pr["head"]["repo"] and pr["head"]["repo"]["full_name"] == repo:
-                  protected.add(pr["head"]["ref"])
+              # Exclude names of all open PR heads, including forks (extra-safe).
+              protected.add(pr["head"]["ref"])
 
           merged_pr_tips = {
-              (pr["head"]["ref"], pr["head"]["sha"])
+              (pr["head"]["ref"], pr["head"]["sha"]): datetime.fromisoformat(
+                  pr["merged_at"].replace("Z", "+00:00"))
               for pr in closed_prs
               if pr.get("merged_at") and pr["base"]["ref"] == "main"
               and pr["head"].get("repo")
               and pr["head"]["repo"]["full_name"] == repo
           }
           main_sha = request("GET", "/branches/main")["commit"]["sha"]
+
+          def committed_before_merge(sha, merged_at):
+              # A reused branch with commits after its merged PR must survive.
+              result = subprocess.run(
+                  ["git", "show", "-s", "--format=%cI", sha],
+                  capture_output=True, text=True, check=False,
+              )
+              if result.returncode != 0:
+                  return False
+              committed = datetime.fromisoformat(result.stdout.strip())
+              return committed <= merged_at + timedelta(minutes=2)
 
           def ancestor(sha):
               return subprocess.run(
@@ -106,8 +119,9 @@ jobs:
                   skipped.append({"branch": name, "reason": "protected or active PR"})
               elif ancestor(sha):
                   eligible.append({"branch": name, "sha": sha, "proof": "ancestor of main"})
-              elif (name, sha) in merged_pr_tips:
-                  eligible.append({"branch": name, "sha": sha, "proof": "unchanged merged PR to main"})
+              elif ((name, sha) in merged_pr_tips and
+                    committed_before_merge(sha, merged_pr_tips[(name, sha)])):
+                  eligible.append({"branch": name, "sha": sha, "proof": "merged PR to main; no newer tip"})
               else:
                   skipped.append({"branch": name, "reason": "not proven merged"})
 
