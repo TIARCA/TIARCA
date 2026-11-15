@@ -182,6 +182,14 @@ static int script_pm(lua_State *L) {
     return 0;
 }
 
+/* Requests local cleanup only; the host closes tabs owned by this script. */
+static int script_close_pms(lua_State *L) {
+    if (lua_gettop(L) != 0)
+        return luaL_error(L, "tiarca.close_pms: no arguments expected");
+    add_action(L, "closepm", "", 0, "1", 1);
+    return 0;
+}
+
 static int script_notice(lua_State *L) {
     size_t nick_len, msg_len;
     const char *nick = luaL_checklstring(L, 1, &nick_len);
@@ -544,6 +552,8 @@ static void install_libraries(lua_State *L) {
     lua_setfield(L, -2, "pm");
     lua_pushcfunction(L, script_notice);
     lua_setfield(L, -2, "notice");
+    lua_pushcfunction(L, script_close_pms);
+    lua_setfield(L, -2, "close_pms");
     lua_pushcfunction(L, script_get_channels);
     lua_setfield(L, -2, "get_channels");
     lua_pushcfunction(L, script_get_users);

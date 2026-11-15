@@ -74,6 +74,9 @@ public final class LuaScriptDispatcher {
     private final LuaCrashTracker crashTracker = new LuaCrashTracker();
     private final Map<String, Long> lastScriptSend = new HashMap<>();
     private final Map<String, Long> lastServerSend = new HashMap<>();
+    // Main-thread only. Tabs opened by script PVTs, never pre-existing conversations.
+    private final LuaPrivateTabTracker privateTabs = new LuaPrivateTabTracker();
+    private final Map<String, PrivateTabWatcher> privateTabWatchers = new HashMap<>();
     // Accessed only on ioThread; scripts cannot bypass the ordered, bounded pacing.
     private final LuaModerationPacer moderationPacer = new LuaModerationPacer();
     private final LuaConsoleState console = new LuaConsoleState();
@@ -99,6 +102,17 @@ public final class LuaScriptDispatcher {
     private long lastBindAttemptMs; // main thread only
     private final Messenger replies = new Messenger(
             new Handler(Looper.getMainLooper(), this::handleReply));
+
+    private static final class PrivateTabWatcher {
+        final ServerConnectionInfo connection;
+        final ServerConnectionInfo.ChannelListChangeListener listener;
+
+        PrivateTabWatcher(ServerConnectionInfo connection,
+                          ServerConnectionInfo.ChannelListChangeListener listener) {
+            this.connection = connection;
+            this.listener = listener;
+        }
+    }
 
     private static final class Pending {
         final String scriptId;
@@ -777,6 +791,12 @@ public final class LuaScriptDispatcher {
                 // Queue behind preceding persistent writes in this reply.
                 io.post(() -> main.post(() ->
                         sendAuthorized(script, request, target, value)));
+            } else if ("closepm".equals(kind)) {
+                // Only a locally typed /lua mod close may clean up this script's tabs.
+                if ("command".equals(request.event) &&
+                        "mod close".equals(request.commandText.trim().toLowerCase(Locale.ROOT)) &&
+                        target.isEmpty() && "1".equals(value))
+                    closeScriptPrivateTabs(script, request.server);
             } else if ("pm".equals(kind) || "notice".equals(kind)) {
                 boolean notice = "notice".equals(kind);
                 io.post(() -> main.post(() ->
@@ -899,12 +919,62 @@ public final class LuaScriptDispatcher {
                     SEND_INTERVAL_MS ||
                     now - lastServerSend.getOrDefault(request.server, -SERVER_INTERVAL_MS) <
                     SERVER_INTERVAL_MS) return;
-            if (notice) api.sendNotice(target, text, null, null);
-            else api.sendMessage(target, text, null, null);
+            if (notice) {
+                api.sendNotice(target, text, null, null);
+            } else if (conn.hasOpenConversation(target)) {
+                // A manually opened PVT is never claimed by Lua.
+                api.sendMessage(target, text, null, null);
+            } else {
+                api.sendMessage(target, text, ignored -> main.post(() -> {
+                    if (conn.hasOpenConversation(target)) {
+                        privateTabs.track(request.server, snapshot.id, target);
+                        watchScriptPrivateTabs(conn, request.server);
+                    }
+                }), ignored -> { /* A failed send must not claim a tab. */ });
+            }
             lastScriptSend.put(scriptNetwork, now);
             lastServerSend.put(request.server, now);
         } catch (RuntimeException ignored) {
             // A stale nick or disconnected server must not crash TIARCA.
+        }
+    }
+
+    /** Keep ownership accurate when the user closes a private tab manually. */
+    private void watchScriptPrivateTabs(ServerConnectionInfo connection, String server) {
+        PrivateTabWatcher old = privateTabWatchers.get(server);
+        if (old != null && old.connection == connection) return;
+        if (old != null)
+            old.connection.removeOnChannelListChangeListener(old.listener);
+        ServerConnectionInfo.ChannelListChangeListener listener = (changed, channels) ->
+                main.post(() -> {
+                    privateTabs.prune(server, channels);
+                    if (!privateTabs.hasTracked(server)) unwatchScriptPrivateTabs(server);
+                });
+        connection.addOnChannelListChangeListener(listener);
+        privateTabWatchers.put(server, new PrivateTabWatcher(connection, listener));
+    }
+
+    private void unwatchScriptPrivateTabs(String server) {
+        PrivateTabWatcher watcher = privateTabWatchers.remove(server);
+        if (watcher != null)
+            watcher.connection.removeOnChannelListChangeListener(watcher.listener);
+    }
+
+    /** Local-only cleanup. Does not send IRC messages or touch moderation history. */
+    private void closeScriptPrivateTabs(LuaScriptStore.Script script, String server) {
+        try {
+            ServerConnectionInfo connection = ServerConnectionManager.getInstance(context)
+                    .getConnection(UUID.fromString(server));
+            if (connection == null) return;
+            List<String> owned = privateTabs.take(server, script.id, connection.getChannels());
+            if (!privateTabs.hasTracked(server)) unwatchScriptPrivateTabs(server);
+            for (String nick : owned)
+                if (connection.hasOpenConversation(nick))
+                    connection.closePrivateConversation(nick, "");
+            emitConsole(connection, "[Lua: " + script.name + "] PVT aperti dallo script chiusi: " +
+                    owned.size());
+        } catch (RuntimeException ignored) {
+            // Closing an obsolete/disconnected tab must not interrupt Lua.
         }
     }
 
