@@ -335,12 +335,35 @@ public class SQLiteMessageStorageFile {
                 MessagesContract.MessageEntry.COLUMN_NAME_TEXT + "," +
                 MessagesContract.MessageEntry.COLUMN_NAME_TYPE + "," +
                 MessagesContract.MessageEntry.COLUMN_NAME_EXTRA_DATA;
+        // Incoming messages can already have created the new-nick table before the
+        // asynchronous NICK history migration runs. Appending the old table to it
+        // makes older messages receive the highest row IDs, hiding newer messages
+        // from the latest-message page (which is paginated by row ID).
+        //
+        // Rebuild both tables in timestamp order, atomically. New row IDs are
+        // intentional: the merged conversation must have a single ordered ID space.
+        String mergedTable = MessagesContract.MessageEntry.getEscapedTableName(
+                "__tiarca_nick_merge_" + java.util.UUID.randomUUID().toString().replace("-", ""));
+        String rowId = MessagesContract.MessageEntry._ID;
+        String timestamp = MessagesContract.MessageEntry.COLUMN_NAME_DATE;
         database.beginTransaction();
         try {
-            database.execSQL("INSERT INTO " + newTable + " (" + columns + ") SELECT " +
-                    columns + " FROM " + oldTable + " ORDER BY " +
-                    MessagesContract.MessageEntry._ID);
+            database.execSQL("CREATE TABLE " + mergedTable + " (" +
+                    rowId + " INTEGER PRIMARY KEY," +
+                    MessagesContract.MessageEntry.COLUMN_NAME_SENDER_DATA + " TEXT," +
+                    MessagesContract.MessageEntry.COLUMN_NAME_SENDER_UUID + " BLOB," +
+                    timestamp + " INTEGER," +
+                    MessagesContract.MessageEntry.COLUMN_NAME_TEXT + " TEXT," +
+                    MessagesContract.MessageEntry.COLUMN_NAME_TYPE + " INTEGER," +
+                    MessagesContract.MessageEntry.COLUMN_NAME_EXTRA_DATA + " TEXT)");
+            database.execSQL("INSERT INTO " + mergedTable + " (" + columns + ") SELECT " +
+                    columns + " FROM (SELECT " + columns + ", 0 AS source_order, " +
+                    rowId + " AS source_id FROM " + oldTable + " UNION ALL SELECT " +
+                    columns + ", 1 AS source_order, " + rowId + " AS source_id FROM " +
+                    newTable + ") ORDER BY " + timestamp + ", source_order, source_id");
             database.execSQL("DROP TABLE " + oldTable);
+            database.execSQL("DROP TABLE " + newTable);
+            database.execSQL("ALTER TABLE " + mergedTable + " RENAME TO " + newTable);
             database.setTransactionSuccessful();
         } finally {
             database.endTransaction();
