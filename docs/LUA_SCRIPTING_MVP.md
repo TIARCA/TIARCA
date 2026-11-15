@@ -717,6 +717,12 @@ Si applicano i limiti di invio ordinari: 5 secondi per script/rete,
 scartati, non accodati. Testo massimo 400 byte UTF-8, senza CTCP/CRLF.
 
 AutoMod: `/lua mod avviso pubblico|pvt|notice`; predefinito **pvt**. In pubblico: `nick: non ripetere`; in privato/NOTICE: `non ripetere su #canale`.
+`/lua mod close` chiude **solo sulla rete corrente** i PVT creati dagli
+avvisi `tiarca.pm` di quel particolare script, non PVT già aperti a mano,
+di altri script o di altre reti. L'app traccia l'origine delle schede nella
+sessione attiva; dopo un riavvio completo dell'app la loro origine non è
+più verificabile e non vengono chiuse automaticamente. Il comando non
+invia IRC, non disabilita AutoMod e non cancella lo storico.
 Le impostazioni AutoMod cambiate via comando sono persistenti con il
 consenso **Dati persistenti**. Le funzioni sono disponibili nel branch
 di sviluppo, non nella release 0.9.10.

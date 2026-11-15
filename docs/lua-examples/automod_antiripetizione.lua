@@ -485,7 +485,7 @@ end
 local function help(topic)
 if topic=="" or topic=="generale" then
   show("AutoMod: comandi",
-    "/lua mod help [canali|liste|azione|parametri]; /lua mod stato; /lua mod on|off; /lua mod reset")
+    "/lua mod help [canali|liste|azione|parametri]; /lua mod stato; /lua mod on|off; /lua mod reset; /lua mod close")
 end
 if topic=="" or topic=="canali" then
   show("AutoMod: canali",
@@ -516,6 +516,14 @@ local cmd=(e.text or ""):lower():match("^%s*(.-)%s*$")
 if cmd~="mod" and not cmd:match("^mod%s+") then return end
 local key,val=cmd:match("^mod%s+(%S+)%s*(.-)%s*$")
 if cmd=="mod" or key=="help" then help(val or "");return end
+if key=="close" then
+  if val~="" then show("AutoMod","Uso: /lua mod close")
+  else
+    tiarca.close_pms()
+    show("AutoMod","Chiusura dei PVT di AutoMod richiesta; esito nella scheda server")
+  end
+  return
+end
 local old=impostazioni(e.server)
 if not old then
   show("AutoMod","Abilita Dati persistenti o verifica lo storage: AutoMod sospeso.")

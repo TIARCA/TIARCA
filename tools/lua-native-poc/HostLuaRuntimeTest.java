@@ -358,15 +358,23 @@ public final class HostLuaRuntimeTest {
         check("OK".equals(decode(NativeLuaRuntime.load(OTHER, automod))),
                 "AutoMod loads into official Lua native sandbox");
         automodActive = true;
+        String[] close = event(OTHER, "command", "#room", "me", "mod close");
+        check(close.length >= 4 && "closepm".equals(close[1]) &&
+                        "".equals(close[2]) && "1".equals(close[3]),
+                "/lua mod close requests local-only cleanup");
+        String[] invalidClose = event(OTHER, "command", "#room", "me", "mod close extra");
+        check(invalidClose.length >= 4 && !"closepm".equals(invalidClose[1]),
+                "/lua mod close rejects unexpected arguments");
         String[] help = event(OTHER, "command", "#room", "me", "mod help");
-        boolean hasRestart = false, hasWhitelist = false, hasCategories = false;
+        boolean hasRestart = false, hasWhitelist = false, hasCategories = false, hasClose = false;
         for (String field : help) {
             if (field.contains("/lua restart")) hasRestart = true;
             if (field.contains("whitelist")) hasWhitelist = true;
             if (field.contains("registrati")) hasCategories = true;
+            if (field.contains("/lua mod close")) hasClose = true;
         }
         check(help.length > 10 && "show".equals(help[1]) &&
-                        hasRestart && hasWhitelist && hasCategories,
+                        hasRestart && hasWhitelist && hasCategories && hasClose,
                 "Grouped AutoMod help documents all command families");
 
         // Actual AutoMod escalation: warning, kick, temporary kick+ban,
