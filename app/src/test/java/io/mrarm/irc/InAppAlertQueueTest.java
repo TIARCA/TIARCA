@@ -139,6 +139,41 @@ public class InAppAlertQueueTest {
     }
 
     @Test
+    public void nickRenameRetargetsOnlyThisServersPvtAndInvalidatesMergedRowIds() {
+        UUID server = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID anotherServer = UUID.fromString("00000000-0000-0000-0000-000000000002");
+        InAppAlertQueue queue = new InAppAlertQueue();
+        queue.add(new InAppAlertQueue.Alert(server,
+                "Resilienza", "Resilienza", ":*", true, "2026-11-15:9", false));
+        queue.add(alert("channel"));
+        queue.add(new InAppAlertQueue.Alert(server,
+                "Resilienza_out", "Resilienza_out", "new nick", true, "2026-11-15:3", false));
+        queue.add(new InAppAlertQueue.Alert(anotherServer,
+                "Resilienza", "Resilienza", "different network", true, "2026-11-15:4", false));
+        queue.add(InAppAlertQueue.Alert.callerId(server, "Resilienza"));
+
+        assertTrue(queue.renamePrivateConversation(server, "resilienza", "RESILIENZA_OUT",
+                IRCCaseMapping.RFC1459));
+        assertEquals(5, queue.size());
+        assertEquals("RESILIENZA_OUT", queue.current().target);
+        assertEquals("RESILIENZA_OUT", queue.current().sender);
+        assertEquals(":*", queue.current().message);
+        assertNull(queue.current().messageId);
+        assertFalse(queue.current().mention);
+
+        assertTrue(queue.dismissPrivateConversation(server, "resilienza_out",
+                IRCCaseMapping.RFC1459));
+        assertEquals(3, queue.size());
+        assertTrue(queue.current().mention);
+        queue.dismissCurrent();
+        assertEquals(anotherServer, queue.current().serverUUID);
+        assertEquals("2026-11-15:4", queue.current().messageId);
+        queue.dismissCurrent();
+        assertTrue(queue.current().callerId);
+        assertEquals("Resilienza", queue.current().sender);
+    }
+
+    @Test
     public void isBoundedWithoutReplacingCurrentOrOlderWaitingAlerts() {
         InAppAlertQueue queue = new InAppAlertQueue();
         InAppAlertQueue.Alert first = alert("first");

@@ -79,6 +79,35 @@ public class SQLiteMessageStorageNickRenameTest {
     }
 
     @Test
+    public void incomingMessageBeforeRenameStaysAtEndOfLongHistory() {
+        long base = 1_760_000_000_000L;
+        for (int i = 0; i < 150; i++)
+            addAt("Resilienza", "history " + i, base + i);
+        // The incoming message is stored under the new nick while the rename is queued.
+        addAt("Resilienza_out", ":*", base + 1_000);
+
+        file.renameChannel("Resilienza", "Resilienza_out");
+
+        List<String> newest = file.getMessages("Resilienza_out", -1, 0, 25, false, null)
+                .getMessages().stream().map(MessageInfo::getMessage)
+                .collect(Collectors.toList());
+        assertEquals(25, newest.size());
+        assertEquals(":*", newest.get(newest.size() - 1));
+        assertEquals("history 126", newest.get(0));
+        assertEquals(100, messages("Resilienza_out").size());
+    }
+
+    @Test
+    public void mergeOrdersBothHistoriesByTimestampNotInsertionOrder() {
+        long base = 1_760_000_000_000L;
+        addAt("Resilienza", "newer under old nick", base + 20);
+        addAt("Resilienza_out", "older under new nick", base + 10);
+        file.renameChannel("Resilienza", "Resilienza_out");
+        assertEquals(java.util.Arrays.asList("older under new nick", "newer under old nick"),
+                messages("Resilienza_out"));
+    }
+
+    @Test
     public void consecutiveNickChangesPreserveHistory() {
         add("Resilienza", "original");
         file.renameChannel("RESILIENZA", "Resilienza_out");
@@ -93,6 +122,11 @@ public class SQLiteMessageStorageNickRenameTest {
 
     private void add(String nick, String text) {
         file.addMessage(nick, new MessageInfo(null, new Date(1_760_000_000_000L),
+                text, MessageInfo.MessageType.NORMAL));
+    }
+
+    private void addAt(String nick, String text, long timestamp) {
+        file.addMessage(nick, new MessageInfo(null, new Date(timestamp),
                 text, MessageInfo.MessageType.NORMAL));
     }
 

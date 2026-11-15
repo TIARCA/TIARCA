@@ -116,6 +116,23 @@ public class NotificationManager {
             mInAppAlertListener.onInAppAlertsChanged(false);
     }
 
+    /** Keep queued foreground PVT alerts linked to the query after its history moves. */
+    public void onPrivateConversationRenamed(ServerConnectionInfo connection,
+                                              String oldNick, String newNick) {
+        if (connection == null || oldNick == null || newNick == null)
+            return;
+        ChatApi api = connection.getApiInstance();
+        if (!(api instanceof ServerConnectionApi))
+            return;
+        io.mrarm.chatlib.irc.IRCCaseMapping mapping = ((ServerConnectionApi) api)
+                .getServerConnectionData().getSupportList().getCaseMapping();
+        mUiHandler.post(() -> {
+            if (mInAppAlerts.renamePrivateConversation(connection.getUUID(), oldNick,
+                    newNick, mapping) && mInAppAlertListener != null)
+                mInAppAlertListener.onInAppAlertsChanged(false);
+        });
+    }
+
     public interface InAppAlertListener {
         void onInAppAlertsChanged(boolean newlyReceived);
 

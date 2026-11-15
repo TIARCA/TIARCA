@@ -892,6 +892,9 @@ public class ServerConnectionInfo {
         }
         mChatUIData.renameChannel(oldNick, newNick);
         mNotificationData.discardRenamedChannel(oldNick);
+        // The SQLite rename/merge is complete. Queued alerts must now open the new
+        // PVT rather than an obsolete nickname, without using remapped row IDs.
+        NotificationManager.getInstance().onPrivateConversationRenamed(this, oldNick, newNick);
         setChannels(renamed);
     }
 
