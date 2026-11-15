@@ -56,6 +56,42 @@ public final class InAppAlertQueue {
         return changed;
     }
 
+    /**
+     * Retarget queued private alerts after an observed IRC NICK change.
+     * A SQLite merge can reassign row IDs, so never navigate using an old message
+     * ID after the two nickname histories have been combined.
+     */
+    public boolean renamePrivateConversation(UUID serverUUID, String oldNick, String newNick,
+                                             IRCCaseMapping caseMapping) {
+        if (serverUUID == null || oldNick == null || newNick == null ||
+                caseMapping == null || caseMapping.equals(oldNick, newNick))
+            return false;
+        boolean changed = false;
+        Deque<Alert> updated = new ArrayDeque<>(mItems.size());
+        for (Alert alert : mItems) {
+            boolean oldTarget = alert.privateMessage && !alert.callerId &&
+                    InAppAlertVisibility.isConversationVisible(serverUUID, oldNick,
+                            alert.serverUUID, alert.target, caseMapping);
+            boolean newTarget = alert.privateMessage && !alert.callerId &&
+                    InAppAlertVisibility.isConversationVisible(serverUUID, newNick,
+                            alert.serverUUID, alert.target, caseMapping);
+            if (oldTarget || newTarget) {
+                // Existing new-nick alerts also have stale IDs if SQLite merged the
+                // destination table. Keep their previews and original queue order.
+                updated.addLast(new Alert(serverUUID, newNick, newNick, alert.message,
+                        true, null, alert.mention));
+                changed = true;
+            } else {
+                updated.addLast(alert);
+            }
+        }
+        if (changed) {
+            mItems.clear();
+            mItems.addAll(updated);
+        }
+        return changed;
+    }
+
     public void clear() {
         mItems.clear();
     }
