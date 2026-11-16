@@ -661,7 +661,8 @@ public final class HostLuaRuntimeTest {
                                 "utenti attuali 1; utenti storici 1") &&
                         java.util.Arrays.toString(legacyStatus).contains(
                                 "ricevuti 5; esenti 2; ignoti 1"),
-                "v2 migration retains historical counters and seeds user history");
+                "v2 migration retains historical counters and seeds user history: " +
+                        java.util.Arrays.toString(legacyStatus));
         byte[][] migratedRoster = new byte[][]{
                 bytes("oldnick"), bytes(""), bytes("ident"),
                 bytes("host.example"), bytes("*")};
