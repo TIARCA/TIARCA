@@ -624,6 +624,17 @@ public final class HostLuaRuntimeTest {
         check(automodStorage.containsKey("automod.second-server") &&
                         !automodStorage.get("automod.test-server").contains("#secondary"),
                 "Second network must not overwrite first network");
+        String[] secondaryStatus = collect(NativeLuaRuntime.dispatch(
+                OTHER, "command", bytes("second-server"), bytes("#secondary"),
+                bytes("me"), bytes("mod stato"), bytes("normal"), 1794400133L,
+                new byte[0][], new int[0], false, new byte[0][], false,
+                true, automodSnapshot(), true));
+        check(secondaryStatus.length == 22 &&
+                        java.util.Arrays.toString(secondaryStatus).contains(
+                                "utenti attuali 0; utenti storici 0") &&
+                        java.util.Arrays.toString(secondaryStatus).contains(
+                                "ricevuti 0"),
+                "Status must not mix user history and counters from other networks");
         check("OK".equals(decode(NativeLuaRuntime.load(OTHER, automod))),
                 "Second restart must load AutoMod");
         byte[][] secondaryRestored = NativeLuaRuntime.dispatch(OTHER, "command",
@@ -633,6 +644,34 @@ public final class HostLuaRuntimeTest {
                 true, automodSnapshot(), true);
         check(collect(secondaryRestored)[3].contains("#secondary"),
                 "Settings for second network survive VM restart");
+
+        // Legacy v2 persisted counters and recent user histories must migrate
+        // without pretending that older, expired users can be reconstructed.
+        automodStorage.put("automod.migration-server",
+                "v1;1;80;3;30;3;5;10m;monitor;pvt;000000\nC#room");
+        automodStorage.put("amst.migration-server",
+                "v2;5;2;1;2;1;1;0;0\n#room\toldnick\t1\t1794400130\t1794400131\t1794400132\t1794400132:salve ciao amico");
+        String[] legacyStatus = collect(NativeLuaRuntime.dispatch(
+                OTHER, "command", bytes("migration-server"), bytes("#room"),
+                bytes("me"), bytes("mod stato"), bytes("normal"), 1794400134L,
+                new byte[0][], new int[0], false, new byte[0][], false,
+                true, automodSnapshot(), true));
+        check(legacyStatus.length == 22 &&
+                        java.util.Arrays.toString(legacyStatus).contains(
+                                "utenti attuali 1; utenti storici 1") &&
+                        java.util.Arrays.toString(legacyStatus).contains(
+                                "ricevuti 5; esenti 2; ignoti 1"),
+                "v2 migration retains historical counters and seeds user history");
+        byte[][] migratedRoster = new byte[][]{
+                bytes("oldnick"), bytes(""), bytes("ident"),
+                bytes("host.example"), bytes("*")};
+        collect(NativeLuaRuntime.dispatch(OTHER, "message",
+                bytes("migration-server"), bytes("#room"), bytes("oldnick"),
+                bytes("unrelated three words"), bytes("normal"), 1794400135L,
+                new byte[0][], new int[0], false,
+                migratedRoster, false, true, automodSnapshot(), true));
+        check(automodStorage.get("amst.migration-server").startsWith("v3;"),
+                "A v2 history is persisted in v3 after the next message");
 
         // Fill the documented maximum configuration on one network. This is
         // substantially larger than the former 384-byte persistent value cap.
