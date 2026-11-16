@@ -597,7 +597,13 @@ quando disponibili e aggiorna la cache per gli utenti osservati. Per un
 account ancora ignoto AutoMod richiede WHO/WHOX non più di una volta ogni
 10 minuti per canale; TIARCA limita ulteriormente le richieste a una al
 minuto per script/rete. Un account non verificabile rimane escluso dalle
-azioni punitive. `/lua mod stato` mostra `ricevuti`, `esenti`,
+azioni punitive. L'assenza temporanea dell'account non cancella piu' lo storico:
+le impronte di un mittente presente nel roster vengono conservate senza
+interventi, e possono essere confrontate quando il server conferma l'account
+o il logout. Una successiva esenzione verificata continua a prevalere.
+La richiesta WHO/WHOX viene ripetuta, solo se continuano a mancare dati,
+non piu' di una volta ogni 5 minuti per canale (oltre al limite host);
+un WHO standard non puo' confermare lo stato di autenticazione. `/lua mod stato` mostra `ricevuti`, `esenti`,
 `ignoti` e `monitorati` per rete. Anche questi contatori cumulativi
 vengono conservati nella memoria persistente dello script e inclusi nel
 backup, insieme agli altri dati Lua; il reset esplicito li azzera.
@@ -827,3 +833,10 @@ al solo account indicato da Lua. Per un kick la motivazione è sempre
 `non ripetere`; le azioni composte inviano KICK e poi MODE/TBAN solo
 dopo aver preparato la mask. In assenza di un account riconosciuto non
 esiste alcun override dei privilegi.
+
+La cache delle identita' osservate lato IRC e' limitata a 4096 nickname
+(anziche' 512); l'incremento riduce le espulsioni nei canali affollati
+senza attribuire account non confermati. I contatori `ignoti` misurano
+messaggi senza account conosciuto, non persone distinte. L'effettiva
+riduzione dipende dai dati IRCv3/WHOX offerti dalla rete e va verificata
+su una Candidate.

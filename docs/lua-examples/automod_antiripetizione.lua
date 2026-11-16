@@ -299,13 +299,26 @@ end
 return 200*common/(na+nb)
 end
 
+-- Retain fingerprints while the server account is unresolved; moderation still
+-- requires a later event with a verified account or explicit logout.
+local function ricorda(key,r,sig,n,now,c)
+  while #r.lista>=c.ultimi do
+    table.remove(r.lista,1);messaggi=messaggi-1
+  end
+  while messaggi>=MAX_MESSAGGI do
+    if not posto(key) then break end
+  end
+  r.lista[#r.lista+1]={sig=sig,n=n,t=now}
+  messaggi=messaggi+1
+end
+
 local function soggetto(e,c)
 local ok,list=pcall(tiarca.get_users,e.channel)
 if not ok or type(list)~="table" then return false,"ignoto" end
 for _,u in ipairs(list) do
   if u.nick and u.nick:lower()==e.nick:lower() then
     local account=u.account and u.account:lower() or nil
-    if not account or account=="" then return false,"ignoto" end
+    if not account or account=="" then return false,"ignoto",nil,list end
     if account~="*" and c.blacklist[account] then
       return true,true,account,list
     end
@@ -320,7 +333,7 @@ for _,u in ipairs(list) do
     return true,p~="",account,list
   end
 end
-return false,"ignoto"
+return false,"ignoto",nil,list
 end
 
 local function tipo_azione(c,livello)
@@ -363,12 +376,22 @@ if not allowed then
   if reason=="ignoto" then
     s[3]=s[3]+1
     local k=e.server.."\0"..e.channel:lower()
-    if not aggiornamenti[k] or e.timestamp-aggiornamenti[k]>=600 then
+    if not aggiornamenti[k] or e.timestamp-aggiornamenti[k]>=300 then
       aggiornamenti[k]=e.timestamp
       tiarca.refresh_users(e.channel)
     end
-  else s[2]=s[2]+1 end
-  elimina(chiave(e))
+    -- Lack of account evidence must not erase previous matching history.
+    -- Capture the text only if we actually have a channel roster, so
+    -- nickname mentions can be normalized without guessing identities.
+    if type(roster)=="table" and #roster>0 then
+      local key,r=prepara(e,e.timestamp,c)
+      local sig,n=impronta(e.text or "",roster)
+      ricorda(key,r,sig,n,e.timestamp,c)
+    end
+  else
+    s[2]=s[2]+1
+    elimina(chiave(e))
+  end
   persist(e.server)
   return
 end
@@ -386,14 +409,7 @@ if n>=c.minparole then
     end
   end
 end
-while #r.lista>=c.ultimi do
-  table.remove(r.lista,1);messaggi=messaggi-1
-end
-while messaggi>=MAX_MESSAGGI do
-  if not posto(key) then break end
-end
-r.lista[#r.lista+1]={sig=sig,n=n,t=now}
-messaggi=messaggi+1
+ricorda(key,r,sig,n,now,c)
 if maximum<c.soglia or now-r.ultima_azione<c.pausa then
   persist(e.server);return
 end

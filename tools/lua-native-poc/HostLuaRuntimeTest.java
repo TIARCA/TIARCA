@@ -517,6 +517,29 @@ public final class HostLuaRuntimeTest {
                         diagnostic[3].contains("monitorati "),
                 "Status separates incoming, exempt, unknown and monitored");
 
+        // A missing account tag is not evidence of exemption or guilt.
+        // Keep known text evidence while withholding any moderation until
+        // the IRC server supplies an authenticated account/logout.
+        check(eventAs(OTHER, "message", "#room", "PendingUser", repeat,
+                1794400113L, "", "").length == 1,
+                "Unknown account retains first fingerprint without punishment");
+        check(eventAs(OTHER, "message", "#room", "PendingUser", repeat,
+                1794400114L, "", "").length == 1,
+                "Unknown repeat is still not punished");
+        String[] verifiedRepeat = eventAs(OTHER, "message", "#room", "PendingUser",
+                repeat, 1794400115L, "", "*");
+        check(verifiedRepeat.length == 7 && "pm".equals(verifiedRepeat[4]),
+                "After confirmed logout, repeat uses retained unknown history");
+        check(eventAs(OTHER, "message", "#room", "ExemptPending", repeat,
+                1794400116L, "", "").length == 1,
+                "Unknown future-exempt user is never punished");
+        check(eventAs(OTHER, "message", "#room", "ExemptPending", repeat,
+                1794400117L, "", "").length == 1,
+                "Repeated unknown future-exempt user is never punished");
+        check(eventAs(OTHER, "message", "#room", "ExemptPending", repeat,
+                1794400118L, "", "registered").length == 1,
+                "Confirmed registered exemption prevails over retained history");
+
         eventAt(OTHER, "command", "#room", "me",
                 "mod azione kick", 1794400113L);
         eventAt(OTHER, "command", "#room", "me",
