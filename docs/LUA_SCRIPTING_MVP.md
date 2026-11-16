@@ -626,11 +626,24 @@ canale, privilegi operatore, controllo anti-autokick, canale esatto,
 dialetto e host validi. Il server può comunque negare le operazioni.
 
 I rilevamenti si leggono dal log dello script. `/lua mod stato` mostra
-anche i contatori cumulativi per rete di **avvisi, kick, ban e mute richiesti**;
+in blocchi distinti **tutte le impostazioni** (stato, azione, avviso,
+soglia, ultimi, finestra, parole minime, pausa, durata, esenzioni), i canali
+e le liste di account (anteprima limitata; eventuali altri elementi
+sono consultabili con `/lua mod canali|whitelist|blacklist`), i messaggi
+e gli **utenti attuali** della sola rete corrente, e gli **utenti storici**
+come numero cumulativo di nuove cronologie create su quella rete.
+Quest'ultimo valore non misura persone o nickname univoci: dopo scadenza
+della cronologia uno stesso nickname puo' essere contato di nuovo.
+I contatori precedenti sono conservati; il contatore storico utenti
+inizia dalle cronologie ancora attive alla prima migrazione e non
+ricostruisce i periodi precedenti ormai scaduti.
+Il comando mostra inoltre i contatori cumulativi per rete di
+**ricevuti, esenti, ignoti, monitorati, avvisi, kick, ban e mute richiesti**;
 le combinazioni kick+ban incrementano entrambi i contatori una sola volta.
 Questi contatori sono persistenti, come lo storico, e si azzerano soltanto
-con `/lua mod reset`. Le vecchie cronologie `v1` sono lette senza perdere
-i dati precedenti, inizializzando a zero solo i nuovi contatori.
+con `/lua mod reset`. Le cronologie `v1` e `v2` sono lette senza perdere
+i dati precedenti. Il formato `v3` conserva anche il nuovo contatore
+cumulativo delle cronologie utente create.
 
 La scheda **Server** della rete registra localmente anche **ogni rilevamento
 di ripetizione di AutoMod**: nickname, canale, percentuale, numero di

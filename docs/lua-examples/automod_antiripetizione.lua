@@ -5,7 +5,7 @@ local config, cronologie = {}, {}
 local statistiche, aggiornamenti = {}, {}
 local function contatori(server)
 local s=statistiche[server]
-if not s then s={0,0,0,0,0,0,0,0};statistiche[server]=s end
+if not s then s={0,0,0,0,0,0,0,0,0};statistiche[server]=s end
 return s
 end
 local utenti, messaggi = 0, 0
@@ -163,8 +163,12 @@ local function restore(server,now,c)
   if not raw then return true end
   local lines={}
   for line in (raw.."\n"):gmatch("(.-)\n") do lines[#lines+1]=line end
-  local a,b,d,f,g,h,i,j=(lines[1] or ""):match(
-    "^v2;(%d+);(%d+);(%d+);(%d+);(%d+);(%d+);(%d+);(%d+)$")
+  local a,b,d,f,g,h,i,j,k=(lines[1] or ""):match(
+    "^v3;(%d+);(%d+);(%d+);(%d+);(%d+);(%d+);(%d+);(%d+);(%d+)$")
+  if not a then
+    a,b,d,f,g,h,i,j=(lines[1] or ""):match(
+      "^v2;(%d+);(%d+);(%d+);(%d+);(%d+);(%d+);(%d+)$")
+  end
   if not a then
     a,b,d,f=(lines[1] or ""):match("^v1;(%d+);(%d+);(%d+);(%d+)$")
     g,h,i,j="0","0","0","0"
@@ -214,12 +218,12 @@ local function restore(server,now,c)
     cronologie[key]=r;utenti=utenti+1;messaggi=messaggi+#r.lista
   end
   statistiche[server]={tonumber(a),tonumber(b),tonumber(d),tonumber(f),
-    tonumber(g),tonumber(h),tonumber(i),tonumber(j)}
+    tonumber(g),tonumber(h),tonumber(i),tonumber(j),tonumber(k) or count}
   return true
 end
 local function persist(server)
   local values=contatori(server)
-  local rows={"v2;"..table.concat(values,";")}
+  local rows={"v3;"..table.concat(values,";")}
   for _,r in pairs(cronologie) do
     if r.server==server then
       local entries={}
@@ -261,6 +265,8 @@ else
      lista={},infrazione=0,ultima_infrazione=0,
      ultima_azione=0,visto=now}
   cronologie[key],utenti=r,utenti+1
+  local stats=contatori(e.server)
+  stats[9]=stats[9]+1
 end
 r.visto=now
 return key,r
@@ -485,6 +491,44 @@ for _,item in ipairs(all) do
 end
 if line~="" then show(title,line) end
 end
+local function statomap(title,map,command)
+local all=keys(map)
+local line=""
+for i,item in ipairs(all) do
+  if #line+#item+2>300 then
+    line=line.."; +"..(#all-i+1).." altri (/lua mod "..command..")"
+    break
+  end
+  line=line=="" and item or line.."; "..item
+end
+show(title,#all..": "..(line=="" and "nessuno" or line))
+end
+local function stato(server,c)
+local s=contatori(server)
+local active,items=0,0
+for _,r in pairs(cronologie) do
+  if r.server==server then active=active+1;items=items+#r.lista end
+end
+show("AutoMod: configurazione",string.format(
+  "%s; azione %s; avviso %s; canali %d; white %d; black %d; soglia %d%%; ultimi %d; minuti %d; parole %d; pausa %ds; durata %s",
+  c.on and "ON" or "OFF",c.azione,c.avviso,count(c.canali),
+  count(c.whitelist),count(c.blacklist),c.soglia,c.ultimi,c.minuti,
+  c.minparole,c.pausa,c.durata))
+local flags={}
+for _,name in ipairs(categorie) do
+  flags[#flags+1]=name.."="..(c.categorie[name] and "on" or "off")
+end
+show("AutoMod: esenzioni",table.concat(flags,"; "))
+show("AutoMod: utenti",string.format(
+  "utenti attuali %d; utenti storici %d (cronologie create); messaggi attivi %d",
+  active,s[9],items))
+show("AutoMod: contatori",string.format(
+  "ricevuti %d; esenti %d; ignoti %d; monitorati %d; avvisi richiesti %d; kick richiesti %d; ban richiesti %d; mute richiesti %d",
+  s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8]))
+statomap("AutoMod: canali",c.canali,"canali")
+statomap("AutoMod: whitelist",c.whitelist,"whitelist")
+statomap("AutoMod: blacklist",c.blacklist,"blacklist")
+end
 local function editList(map,operation,value)
 if not validAccount(value) then return "Account non valido" end
 if operation=="add" then
@@ -553,13 +597,7 @@ local c=copia(old)
 local changed,clear=false,nil
 local msg
 if key=="stato" then
-  local stats=contatori(e.server)
-  msg=string.format("%s; %s/%s; canali %d; white %d; black %d; %d%%; ultimi %d; minuti %d; parole %d; pausa %ds; durata %s; utenti %d; messaggi %d; ricevuti %d; esenti %d; ignoti %d; monitorati %d; avvisi richiesti %d; kick richiesti %d; ban richiesti %d; mute richiesti %d",
-    c.on and "ON" or "OFF",c.azione,c.avviso,count(c.canali),
-    count(c.whitelist),count(c.blacklist),c.soglia,c.ultimi,c.minuti,
-    c.minparole,c.pausa,c.durata,utenti,messaggi,
-    stats[1],stats[2],stats[3],stats[4],
-    stats[5],stats[6],stats[7],stats[8])
+  stato(e.server,c);return
 elseif key=="on" or key=="off" then
   c.on=key=="on"
   changed=true
