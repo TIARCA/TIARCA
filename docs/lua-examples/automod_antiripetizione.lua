@@ -159,7 +159,7 @@ local function restore(server,now,c)
   if loaded[server] then return not invalid[server] end
   loaded[server]=true
   local ok,raw=pcall(tiarca.storage.get,statekey(server))
-  if not ok then invalid[server]=true;return false end
+  if not ok then tiarca.log('restore: storage');invalid[server]=true;return false end
   if not raw then return true end
   local lines={}
   for line in (raw.."\n"):gmatch("(.-)\n") do lines[#lines+1]=line end
@@ -173,14 +173,14 @@ local function restore(server,now,c)
     a,b,d,f=(lines[1] or ""):match("^v1;(%d+);(%d+);(%d+);(%d+)$")
     g,h,i,j="0","0","0","0"
   end
-  if not a then invalid[server]=true;return false end
+  if not a then tiarca.log('restore: header');invalid[server]=true;return false end
   local recovered,number={},0
   for i=2,#lines do
     local channel,nick,level,inf,action,seen,events=lines[i]:match(
       "^([^\t]+)\t([^\t]+)\t(%d+)\t(%d+)\t(%d+)\t(%d+)\t(.*)$")
     if not channel or not validChannel(channel) or channel~=channel:lower()
        or #nick>64 or nick:find("[%c]") or nick~=nick:lower() then
-      invalid[server]=true;return false
+      tiarca.log('restore: row');invalid[server]=true;return false
     end
     local key=server.."\0"..channel.."\0"..nick
     if recovered[key] then invalid[server]=true;return false end
@@ -189,13 +189,13 @@ local function restore(server,now,c)
       ultima_azione=tonumber(action),visto=tonumber(seen)}
     if r.infrazione>100000 or r.ultima_infrazione>now+60 or
        r.ultima_azione>now+60 or r.visto>now+60 then
-      invalid[server]=true;return false
+      tiarca.log('restore: time');invalid[server]=true;return false
     end
     for item in events:gmatch("[^\v]+") do
       local stamp,sig=item:match("^(%d+):(.*)$")
       local t=tonumber(stamp)
       if not t or #sig>MAX_TESTO or sig:find("[%c]") or t>now+60 then
-        invalid[server]=true;return false
+        tiarca.log('restore: event');invalid[server]=true;return false
       end
       if now-t<c.minuti*60 then
         local _,n=sig:gsub("%S+","")
@@ -204,7 +204,7 @@ local function restore(server,now,c)
       end
     end
     if #r.lista>c.ultimi or number>MAX_MESSAGGI then
-      invalid[server]=true;return false
+      tiarca.log('restore: count');invalid[server]=true;return false
     end
     if r.infrazione>0 and now-r.ultima_infrazione>=c.minuti*60 then
       r.infrazione,r.ultima_infrazione=0,0
@@ -213,7 +213,7 @@ local function restore(server,now,c)
   end
   local count=0
   for _ in pairs(recovered) do count=count+1 end
-  if count+utenti>MAX_UTENTI then invalid[server]=true;return false end
+  if count+utenti>MAX_UTENTI then tiarca.log('restore: users');invalid[server]=true;return false end
   for key,r in pairs(recovered) do
     cronologie[key]=r;utenti=utenti+1;messaggi=messaggi+#r.lista
   end
