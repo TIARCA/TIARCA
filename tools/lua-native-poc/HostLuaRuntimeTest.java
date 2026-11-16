@@ -385,8 +385,10 @@ public final class HostLuaRuntimeTest {
                 "Default with no channels must not monitor messages");
         String[] defaultState = eventAt(OTHER, "command", "#room", "me",
                 "mod stato", 1794399981L);
-        check(defaultState.length == 4 && defaultState[3].contains("monitor/pvt") &&
-                        defaultState[3].contains("parole 3"),
+        check(defaultState.length == 22 &&
+                        java.util.Arrays.toString(defaultState).contains("azione monitor") &&
+                        java.util.Arrays.toString(defaultState).contains("parole 3") &&
+                        java.util.Arrays.toString(defaultState).contains("utenti attuali 0; utenti storici 0"),
                 "New AutoMod configuration defaults to private warnings and three words");
         String[] emptyList = eventAt(OTHER, "command", "#room", "me",
                 "mod canali", 1794399981L);
@@ -470,10 +472,11 @@ public final class HostLuaRuntimeTest {
                 "Fourth infraction requests KICK then permanent BAN atomically");
         String[] actionCounts = eventAt(OTHER, "command", "#room", "me",
                 "mod stato", 1794400056L);
-        check(actionCounts.length == 4 &&
-                        actionCounts[3].contains("avvisi richiesti 2") &&
-                        actionCounts[3].contains("kick richiesti 3") &&
-                        actionCounts[3].contains("ban richiesti 2"),
+        check(actionCounts.length == 22 &&
+                        java.util.Arrays.toString(actionCounts).contains("avvisi richiesti 2") &&
+                        java.util.Arrays.toString(actionCounts).contains("kick richiesti 3") &&
+                        java.util.Arrays.toString(actionCounts).contains("ban richiesti 2") &&
+                        java.util.Arrays.toString(actionCounts).contains("utenti storici "),
                 "Warnings, kicks and bans are counted without double-counting combos");
         eventAt(OTHER, "nick", "#room", "Target", "NewNick", 1794400057L);
         eventAt(OTHER, "message", "#room", "NewNick", repeat, 1794400070L);
@@ -510,12 +513,35 @@ public final class HostLuaRuntimeTest {
                 "Unknown account fails closed and requests bounded WHOX");
         String[] diagnostic = eventAt(OTHER, "command", "#room", "me",
                 "mod stato", 1794400112L);
-        check(diagnostic.length == 4 &&
-                        diagnostic[3].contains("ricevuti ") &&
-                        diagnostic[3].contains("esenti ") &&
-                        diagnostic[3].contains("ignoti 1") &&
-                        diagnostic[3].contains("monitorati "),
+        check(diagnostic.length == 22 &&
+                        java.util.Arrays.toString(diagnostic).contains("ricevuti ") &&
+                        java.util.Arrays.toString(diagnostic).contains("esenti ") &&
+                        java.util.Arrays.toString(diagnostic).contains("ignoti 1") &&
+                        java.util.Arrays.toString(diagnostic).contains("monitorati "),
                 "Status separates incoming, exempt, unknown and monitored");
+
+        // A missing account tag is not evidence of exemption or guilt.
+        // Keep known text evidence while withholding any moderation until
+        // the IRC server supplies an authenticated account/logout.
+        check(eventAs(OTHER, "message", "#room", "PendingUser", repeat,
+                1794400113L, "", "").length == 1,
+                "Unknown account retains first fingerprint without punishment");
+        check(eventAs(OTHER, "message", "#room", "PendingUser", repeat,
+                1794400114L, "", "").length == 1,
+                "Unknown repeat is still not punished");
+        String[] verifiedRepeat = eventAs(OTHER, "message", "#room", "PendingUser",
+                repeat, 1794400115L, "", "*");
+        check(verifiedRepeat.length == 7 && "pm".equals(verifiedRepeat[4]),
+                "After confirmed logout, repeat uses retained unknown history");
+        check(eventAs(OTHER, "message", "#room", "ExemptPending", repeat,
+                1794400116L, "", "").length == 1,
+                "Unknown future-exempt user is never punished");
+        check(eventAs(OTHER, "message", "#room", "ExemptPending", repeat,
+                1794400117L, "", "").length == 1,
+                "Repeated unknown future-exempt user is never punished");
+        check(eventAs(OTHER, "message", "#room", "ExemptPending", repeat,
+                1794400118L, "", "registered").length == 1,
+                "Confirmed registered exemption prevails over retained history");
 
         eventAt(OTHER, "command", "#room", "me",
                 "mod azione kick", 1794400113L);
@@ -580,8 +606,11 @@ public final class HostLuaRuntimeTest {
                 "Account and category exceptions must survive VM restart");
         String[] resumedStatus = eventAt(OTHER, "command", "#room", "me",
                 "mod stato", 1794400132L);
-        check(resumedStatus.length == 4 && resumedStatus[3].contains("kick/") &&
-                        resumedStatus[3].contains("canali 1"),
+        check(resumedStatus.length == 22 &&
+                        java.util.Arrays.toString(resumedStatus).contains("azione kick") &&
+                        java.util.Arrays.toString(resumedStatus).contains("canali 1") &&
+                        java.util.Arrays.toString(resumedStatus).contains("registrati=off") &&
+                        java.util.Arrays.toString(resumedStatus).contains("voice=off"),
                 "Action and channel counts must survive VM restart");
 
         byte[][] secondary = NativeLuaRuntime.dispatch(OTHER, "command",
@@ -595,6 +624,17 @@ public final class HostLuaRuntimeTest {
         check(automodStorage.containsKey("automod.second-server") &&
                         !automodStorage.get("automod.test-server").contains("#secondary"),
                 "Second network must not overwrite first network");
+        String[] secondaryStatus = collect(NativeLuaRuntime.dispatch(
+                OTHER, "command", bytes("second-server"), bytes("#secondary"),
+                bytes("me"), bytes("mod stato"), bytes("normal"), 1794400133L,
+                new byte[0][], new int[0], false, new byte[0][], false,
+                true, automodSnapshot(), true));
+        check(secondaryStatus.length == 22 &&
+                        java.util.Arrays.toString(secondaryStatus).contains(
+                                "utenti attuali 0; utenti storici 0") &&
+                        java.util.Arrays.toString(secondaryStatus).contains(
+                                "ricevuti 0"),
+                "Status must not mix user history and counters from other networks");
         check("OK".equals(decode(NativeLuaRuntime.load(OTHER, automod))),
                 "Second restart must load AutoMod");
         byte[][] secondaryRestored = NativeLuaRuntime.dispatch(OTHER, "command",
@@ -604,6 +644,35 @@ public final class HostLuaRuntimeTest {
                 true, automodSnapshot(), true);
         check(collect(secondaryRestored)[3].contains("#secondary"),
                 "Settings for second network survive VM restart");
+
+        // Legacy v2 persisted counters and recent user histories must migrate
+        // without pretending that older, expired users can be reconstructed.
+        automodStorage.put("automod.migration-server",
+                "v1;1;80;3;30;3;5;10m;monitor;pvt;000000\nC#room");
+        automodStorage.put("amst.migration-server",
+                "v2;5;2;1;2;1;1;0;0\n#room\toldnick\t1\t1794400130\t1794400131\t1794400132\t1794400132:salve ciao amico");
+        String[] legacyStatus = collect(NativeLuaRuntime.dispatch(
+                OTHER, "command", bytes("migration-server"), bytes("#room"),
+                bytes("me"), bytes("mod stato"), bytes("normal"), 1794400134L,
+                new byte[0][], new int[0], false, new byte[0][], false,
+                true, automodSnapshot(), true));
+        check(legacyStatus.length == 22 &&
+                        java.util.Arrays.toString(legacyStatus).contains(
+                                "utenti attuali 1; utenti storici 1") &&
+                        java.util.Arrays.toString(legacyStatus).contains(
+                                "ricevuti 5; esenti 2; ignoti 1"),
+                "v2 migration retains historical counters and seeds user history: " +
+                        java.util.Arrays.toString(legacyStatus));
+        byte[][] migratedRoster = new byte[][]{
+                bytes("oldnick"), bytes(""), bytes("ident"),
+                bytes("host.example"), bytes("*")};
+        collect(NativeLuaRuntime.dispatch(OTHER, "message",
+                bytes("migration-server"), bytes("#room"), bytes("oldnick"),
+                bytes("unrelated three words"), bytes("normal"), 1794400135L,
+                new byte[0][], new int[0], false,
+                migratedRoster, false, true, automodSnapshot(), true));
+        check(automodStorage.get("amst.migration-server").startsWith("v3;"),
+                "A v2 history is persisted in v3 after the next message");
 
         // Fill the documented maximum configuration on one network. This is
         // substantially larger than the former 384-byte persistent value cap.
@@ -636,9 +705,12 @@ public final class HostLuaRuntimeTest {
                 "Large saved AutoMod preferences must survive reload");
         String[] fullState = eventAt(OTHER, "command", "#room", "me",
                 "mod stato", 1794400250L);
-        check(fullState.length == 4 && fullState[3].contains("canali 16") &&
-                        fullState[3].contains("white 32") &&
-                        fullState[3].contains("black 32"),
+        check(fullState.length == 22 &&
+                        java.util.Arrays.toString(fullState).contains("canali 16") &&
+                        java.util.Arrays.toString(fullState).contains("white 32") &&
+                        java.util.Arrays.toString(fullState).contains("black 32") &&
+                        java.util.Arrays.toString(fullState).contains("altri (/lua mod whitelist)") &&
+                        java.util.Arrays.toString(fullState).contains("altri (/lua mod blacklist)"),
                 "All maximum-size channel and account exception lists must restore");
 
         // IRC-facing warnings may not disclose the internal script name,
@@ -689,10 +761,10 @@ public final class HostLuaRuntimeTest {
         eventAt(OTHER, "disconnected", "", "", "", 1794400287L);
         String[] afterDisconnect = eventAt(OTHER, "command", "#room", "me",
                 "mod stato", 1794400288L);
-        check(afterDisconnect.length == 4 &&
-                        afterDisconnect[3].contains("utenti ") &&
-                        afterDisconnect[3].contains("ricevuti ") &&
-                        afterDisconnect[3].equals(beforeDisconnect[3]),
+        check(afterDisconnect.length == 22 &&
+                        java.util.Arrays.toString(afterDisconnect).contains("utenti attuali ") &&
+                        java.util.Arrays.toString(afterDisconnect).contains("ricevuti ") &&
+                        java.util.Arrays.equals(afterDisconnect,beforeDisconnect),
                 "Disconnect preserves active fingerprints and cumulative counters");
         check(automodStorage.containsKey("amst.test-server"),
                 "Active AutoMod state is saved separately from configuration");
@@ -700,8 +772,8 @@ public final class HostLuaRuntimeTest {
                 "Worker restart restores persisted state");
         String[] afterWorkerRestart = eventAt(OTHER, "command", "#room", "me",
                 "mod stato", 1794400290L);
-        check(afterWorkerRestart.length == 4 &&
-                        afterWorkerRestart[3].equals(beforeDisconnect[3]),
+        check(afterWorkerRestart.length == 22 &&
+                        java.util.Arrays.equals(afterWorkerRestart,beforeDisconnect),
                 "Counters and active users survive a Lua VM restart");
         String[] nextEscalation = eventAs(OTHER, "message", "#room", "Retained", repeat,
                 1794400300L, "", "*");

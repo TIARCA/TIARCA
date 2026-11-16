@@ -65,6 +65,17 @@ public class IrcIdentityCacheTest {
                 data.getIdentityCache().get("Unknown").accountKnown);
     }
 
+    @Test public void largeRosterDoesNotEvictRecentlyObservedAccounts() {
+        IrcIdentityCache cache = new IrcIdentityCache();
+        cache.note("first", "ident", "host.example", "registered");
+        for (int i = 0; i < 1024; i++)
+            cache.note("guest" + i, "ident", "guest.example", "0");
+        assertNotNull("Active channel identities must survive a roster >512", cache.get("first"));
+        assertEquals("registered", cache.get("first").account);
+        assertTrue(cache.get("guest1023").accountKnown);
+        assertNull(cache.get("guest1023").account);
+    }
+
     @Test public void unknownWhoxTokenMustNotPopulateData() {
         IrcIdentityCache cache = new IrcIdentityCache();
         cache.noteNumeric("354", Arrays.asList("me", "042", "ident", "host",

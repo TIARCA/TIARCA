@@ -11,7 +11,8 @@ import java.util.Map;
  * No scripting permission is implied merely by caching data already received.
  */
 public final class IrcIdentityCache {
-    private static final int LIMIT = 512;
+    // Keep server-observed identities for active, large IRC rosters; bounded LRU.
+    private static final int LIMIT = 4096;
     private static final long WHOX_WINDOW_MS = 20_000L;
     private static final String WHOX_TOKEN = "042";
 

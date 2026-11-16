@@ -597,7 +597,13 @@ quando disponibili e aggiorna la cache per gli utenti osservati. Per un
 account ancora ignoto AutoMod richiede WHO/WHOX non più di una volta ogni
 10 minuti per canale; TIARCA limita ulteriormente le richieste a una al
 minuto per script/rete. Un account non verificabile rimane escluso dalle
-azioni punitive. `/lua mod stato` mostra `ricevuti`, `esenti`,
+azioni punitive. L'assenza temporanea dell'account non cancella piu' lo storico:
+le impronte di un mittente presente nel roster vengono conservate senza
+interventi, e possono essere confrontate quando il server conferma l'account
+o il logout. Una successiva esenzione verificata continua a prevalere.
+La richiesta WHO/WHOX viene ripetuta, solo se continuano a mancare dati,
+non piu' di una volta ogni 5 minuti per canale (oltre al limite host);
+un WHO standard non puo' confermare lo stato di autenticazione. `/lua mod stato` mostra `ricevuti`, `esenti`,
 `ignoti` e `monitorati` per rete. Anche questi contatori cumulativi
 vengono conservati nella memoria persistente dello script e inclusi nel
 backup, insieme agli altri dati Lua; il reset esplicito li azzera.
@@ -620,11 +626,24 @@ canale, privilegi operatore, controllo anti-autokick, canale esatto,
 dialetto e host validi. Il server può comunque negare le operazioni.
 
 I rilevamenti si leggono dal log dello script. `/lua mod stato` mostra
-anche i contatori cumulativi per rete di **avvisi, kick, ban e mute richiesti**;
+in blocchi distinti **tutte le impostazioni** (stato, azione, avviso,
+soglia, ultimi, finestra, parole minime, pausa, durata, esenzioni), i canali
+e le liste di account (anteprima limitata; eventuali altri elementi
+sono consultabili con `/lua mod canali|whitelist|blacklist`), i messaggi
+e gli **utenti attuali** della sola rete corrente, e gli **utenti storici**
+come numero cumulativo di nuove cronologie create su quella rete.
+Quest'ultimo valore non misura persone o nickname univoci: dopo scadenza
+della cronologia uno stesso nickname puo' essere contato di nuovo.
+I contatori precedenti sono conservati; il contatore storico utenti
+inizia dalle cronologie ancora attive alla prima migrazione e non
+ricostruisce i periodi precedenti ormai scaduti.
+Il comando mostra inoltre i contatori cumulativi per rete di
+**ricevuti, esenti, ignoti, monitorati, avvisi, kick, ban e mute richiesti**;
 le combinazioni kick+ban incrementano entrambi i contatori una sola volta.
 Questi contatori sono persistenti, come lo storico, e si azzerano soltanto
-con `/lua mod reset`. Le vecchie cronologie `v1` sono lette senza perdere
-i dati precedenti, inizializzando a zero solo i nuovi contatori.
+con `/lua mod reset`. Le cronologie `v1` e `v2` sono lette senza perdere
+i dati precedenti. Il formato `v3` conserva anche il nuovo contatore
+cumulativo delle cronologie utente create.
 
 La scheda **Server** della rete registra localmente anche **ogni rilevamento
 di ripetizione di AutoMod**: nickname, canale, percentuale, numero di
@@ -827,3 +846,10 @@ al solo account indicato da Lua. Per un kick la motivazione è sempre
 `non ripetere`; le azioni composte inviano KICK e poi MODE/TBAN solo
 dopo aver preparato la mask. In assenza di un account riconosciuto non
 esiste alcun override dei privilegi.
+
+La cache delle identita' osservate lato IRC e' limitata a 4096 nickname
+(anziche' 512); l'incremento riduce le espulsioni nei canali affollati
+senza attribuire account non confermati. I contatori `ignoti` misurano
+messaggi senza account conosciuto, non persone distinte. L'effettiva
+riduzione dipende dai dati IRCv3/WHOX offerti dalla rete e va verificata
+su una Candidate.
