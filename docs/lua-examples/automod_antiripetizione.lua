@@ -173,7 +173,7 @@ local function restore(server,now,c)
     a,b,d,f=(lines[1] or ""):match("^v1;(%d+);(%d+);(%d+);(%d+)$")
     g,h,i,j="0","0","0","0"
   end
-  if not a then tiarca.log('restore: header');invalid[server]=true;return false end
+  if not a then tiarca.log('restore: header '..(lines[1] or 'nil'));invalid[server]=true;return false end
   local recovered,number={},0
   for i=2,#lines do
     local channel,nick,level,inf,action,seen,events=lines[i]:match(
