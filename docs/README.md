@@ -2,6 +2,8 @@
 
 Complete user documentation for TIARCA 0.9.9 and current development builds.
 
+**Lua scripting developer documentation (development feature):** [Italiano](lua/it/README.md) · [English](lua/en/README.md) · [AI agents](lua/AGENTS.md).
+
 Choose your language:
 
 - [Italiano](it/README.md)
