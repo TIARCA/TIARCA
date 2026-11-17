@@ -45,6 +45,10 @@ jobs:
             -cp build/lua-native-host/classes \
             io.mrarm.irc.lua.HostLuaRuntimeTest
 
+      - name: Check bilingual Lua developer documentation
+        if: matrix.flavor == 'Standard'
+        run: python tools/check_lua_docs.py
+
       - name: Audit translation resources
         run: python tools/translation_structure_audit.py
 
