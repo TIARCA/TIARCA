@@ -23,7 +23,7 @@ def links_ok(path: Path, content: str) -> list[str]:
         if dest.startswith(("http:", "https:", "#", "mailto:")):
             continue
         target = (path.parent / dest.split("#", 1)[0]).resolve()
-        if not target.is_file():
+        if not target.exists():
             problems.append(f"{path.relative_to(ROOT)}: broken link {dest}")
     return problems
 
