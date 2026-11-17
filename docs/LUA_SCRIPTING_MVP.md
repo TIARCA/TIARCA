@@ -539,22 +539,34 @@ scelto i canali, opera inizialmente **solo in monitoraggio**. Usa
 `/lua mod stato` per leggere le impostazioni. I comandi si digitano in una
 scheda della rete autorizzata e modificano le preferenze **di quella rete**:
 
-- `/lua mod soglia 80`: similarità Dice delle parole (60–100%, ordine ignorato,
-  occorrenze ripetute conteggiate); `/lua mod ultimi 3`: da 1 a 10 messaggi
-  precedenti dello stesso nickname nello stesso canale;
-  `/lua mod minuti 30`: scadenza da 1 a 120 minuti.
+- `/lua mod occorrenze 3`: numero **X** di messaggi simili necessari per
+  il primo rilevamento (2–5); `/lua mod ultimi 8`: finestra **Y** di
+  messaggi confrontabili dello stesso nickname e canale, **incluso il
+  messaggio appena arrivato** (2–11 e non inferiore a X);
+  `/lua mod minuti 30`: finestra **Z** temporale (1–120 minuti);
+  `/lua mod soglia 75`: somiglianza minima delle parole (Dice 60–100%,
+  ordine ignorato, ripetizioni delle stesse parole conteggiate).
+  Un messaggio provoca il primo avviso alla sua X-esima occorrenza,
+  confrontandolo singolarmente con X−1 messaggi precedenti sufficientemente
+  simili. **Dopo il primo intervento**, una successiva frase simile ad
+  almeno una di quelle ancora nella finestra avanza l'escalation
+  senza dover raggiungere nuovamente X occorrenze.
 - `/lua mod minparole 3`: lunghezza minima (3–15 parole), calcolata escludendo
   le menzioni di nickname riconosciuti dal roster (inizio frase, `@nick`,
-  `nick:` e forme analoghe). I confronti restano separati per rete,
-  canale e nickname del mittente; un'altra persona non eredita la cronologia;
-  `/lua mod pausa 10`: intervallo tra interventi sullo stesso utente
-  (0–120 secondi); `/lua mod durata 10m`: durata ban temporaneo
+  `nick:` e forme analoghe). Messaggi più brevi o non normalizzabili non
+  consumano posizioni nella finestra Y. I confronti restano separati
+  per rete, canale e nickname; un'altra persona non eredita la cronologia.
+  `/lua mod pausa 0`: intervallo predefinito tra interventi sullo
+  stesso utente (0–120 secondi); `/lua mod durata 10m`: durata ban temporaneo
   (1–99 m/h/d, solo server compatibili).
 - `/lua mod azione monitor|avviso|kick|ban|mute|tban|bankick|tbankick|escalation`:
   seleziona la risposta. `bankick` e `tbankick` richiedono prima il kick
   e poi il ban, con motivazione kick `non ripetere`.
-  Escalation entro la finestra temporale: avviso → kick → kick + ban
-  temporaneo → kick + ban permanente. Le azioni sono richieste, non conferme di successo remoto.
+  Escalation entro la finestra temporale: avviso alla X-esima occorrenza →
+  kick al successivo messaggio simile → kick + ban temporaneo → kick + ban
+  permanente. Con pausa 0 non c'è attesa aggiuntiva, ma ciascun livello
+  richiede sempre un nuovo messaggio corrispondente. Le azioni sono
+  richieste, non conferme di successo remoto.
 - `/lua mod canali`: elenca i canali attualmente controllati sulla rete.
   `/lua mod canali add #nome` aggiunge il canale e
   `/lua mod canali drop #nome` lo rimuove, cancellandone le cronologie.
@@ -595,7 +607,7 @@ un utente cambia nickname.
 Il client richiede `account-tag`, `extended-join` e `account-notify`
 quando disponibili e aggiorna la cache per gli utenti osservati. Per un
 account ancora ignoto AutoMod richiede WHO/WHOX non più di una volta ogni
-10 minuti per canale; TIARCA limita ulteriormente le richieste a una al
+5 minuti per canale; TIARCA limita ulteriormente le richieste a una al
 minuto per script/rete. Un account non verificabile rimane escluso dalle
 azioni punitive. L'assenza temporanea dell'account non cancella piu' lo storico:
 le impronte di un mittente presente nel roster vengono conservate senza
@@ -627,7 +639,7 @@ dialetto e host validi. Il server può comunque negare le operazioni.
 
 I rilevamenti si leggono dal log dello script. `/lua mod stato` mostra
 in blocchi distinti **tutte le impostazioni** (stato, azione, avviso,
-soglia, ultimi, finestra, parole minime, pausa, durata, esenzioni), i canali
+soglia, occorrenze X, ultimi Y, finestra Z, parole minime, pausa, durata, esenzioni), i canali
 e le liste di account (anteprima limitata; eventuali altri elementi
 sono consultabili con `/lua mod canali|whitelist|blacklist`), i messaggi
 e gli **utenti attuali** della sola rete corrente, e gli **utenti storici**
@@ -677,7 +689,19 @@ secondo `minuti`; i contatori diagnostici restano cumulativi fino a reset.
 Le **impostazioni** vengono salvate per ciascuna rete mediante
 `tiarca.storage`: ON/OFF,
 canali abilitati, whitelist e blacklist degli account, categorie esentate,
-soglia, ultimi, minuti, minparole, pausa, durata, azione e tipo di avviso.
+soglia, occorrenze, ultimi, minuti, minparole, pausa, durata, azione
+e tipo di avviso. Il formato preferenze `v2` conserva X e Y;
+il formato storico delle azioni e dei contatori rimane `v3`.
+Le precedenti preferenze `v1` vengono lette e convertite senza
+azzerare canali, whitelist, blacklist, esenzioni, soglia o pausa:
+il vecchio valore `ultimi N` (N messaggi precedenti) diventa
+`ultimi N+1` (incluso quello corrente). Il nuovo parametro X viene
+inizializzato a 3, o a 2 se la vecchia finestra comprendeva solo
+due messaggi. Il valore 75%, il limite Y=8 e la pausa 0 sono
+**predefiniti delle nuove configurazioni**, non sovrascrivono
+le preferenze già salvate. Per applicarli a una rete già configurata:
+`/lua mod occorrenze 3`, `/lua mod ultimi 8`,
+`/lua mod soglia 75`, `/lua mod pausa 0`.
 Sopravvivono al reload, a `/lua restart`, al riavvio dell'app e agli
 aggiornamenti APK che conservano i dati dell'app. Ogni modifica viene
 salvata dopo la convalida; se lo storage è indisponibile, la modifica
@@ -685,9 +709,10 @@ non viene applicata. Dati malformati non vengono sostituiti dai default:
 AutoMod si astiene dall'intervenire finché la configurazione non viene
 ripristinata. La pulizia dello storico scaduto avviene al messaggio
 successivo e all'evento timer (~60 secondi).
-I messaggi troppo brevi o con più di 32 parole/160 byte normalizzati sono
-conteggiati nella finestra numerica ma non vengono confrontati (per evitare
-falsi positivi da troncamento). I limiti complessivi sono **1000 nickname
+Solo i messaggi con almeno `minparole` parole normalizzate consumano
+posizioni nella finestra Y. Quelli non normalizzabili per il limite
+di 32 parole/160 byte non vengono confrontati né inseriti nello storico
+(per evitare falsi positivi da troncamento). I limiti complessivi sono **1000 nickname
 attivi** e **2400 impronte** tra tutte le reti; se raggiunti vengono
 eliminate le cronologie meno recenti, quindi in canali molto attivi il numero
 effettivo di confronti può essere inferiore al limite scelto. Un'uscita dal canale cancella i messaggi recenti, ma non il contatore

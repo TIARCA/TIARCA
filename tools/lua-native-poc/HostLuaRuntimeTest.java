@@ -93,6 +93,17 @@ public final class HostLuaRuntimeTest {
         return collect(reply);
     }
 
+    private static String[] automodOn(String server, String kind, String nick,
+                                       String text, long when) {
+        byte[][] roster = "message".equals(kind) ? new byte[][]{
+                bytes(nick), bytes(""), bytes("ident"), bytes("host.example"), bytes("*")
+        } : new byte[0][];
+        return collect(NativeLuaRuntime.dispatch(OTHER, kind, bytes(server),
+                bytes("#room"), bytes(nick), bytes(text), bytes("normal"), when,
+                new byte[0][], new int[0], false, roster, false, true,
+                automodSnapshot(), automodActive));
+    }
+
     private static String[] twoUserMessage(String nick, String text, long when) {
         byte[][] roster = new byte[][]{
                 bytes("Nick-1"), bytes(""), bytes("id1"), bytes("host1.example"), bytes("*"),
@@ -388,6 +399,9 @@ public final class HostLuaRuntimeTest {
         check(defaultState.length == 22 &&
                         java.util.Arrays.toString(defaultState).contains("azione monitor") &&
                         java.util.Arrays.toString(defaultState).contains("parole 3") &&
+                        java.util.Arrays.toString(defaultState).contains("soglia 75%") &&
+                        java.util.Arrays.toString(defaultState).contains("occorrenze 3; ultimi 8") &&
+                        java.util.Arrays.toString(defaultState).contains("pausa 0s") &&
                         java.util.Arrays.toString(defaultState).contains("utenti attuali 0; utenti storici 0"),
                 "New AutoMod configuration defaults to private warnings and three words");
         String[] emptyList = eventAt(OTHER, "command", "#room", "me",
@@ -421,6 +435,77 @@ public final class HostLuaRuntimeTest {
                 "mod azione escalation", 1794400000L);
         check(configured.length == 4 && "show".equals(configured[1]),
                 "AutoMod escalation selected");
+
+        // X=3 matches within Y=8 eligible messages in Z=30 minutes.
+        // The current message is the third occurrence: it must warn now,
+        // and each further comparable message escalates with pause=0.
+        automodOn("three-server","command","me","mod canali add #room",1794400000L);
+        automodOn("three-server","command","me","mod azione escalation",1794400000L);
+        String exact = "cerco ragazza di roma", approximate = "cerco amica di roma";
+        check(automodOn("three-server","message","Three",exact,1794400001L).length==1,
+                "First occurrence does not warn");
+        check(automodOn("three-server","message","Three",exact,1794400002L).length==1,
+                "Second occurrence does not warn");
+        String[] threeWarning= automodOn("three-server","message","Three",approximate,
+                1794400003L);
+        check(threeWarning.length==7 && "pm".equals(threeWarning[4]),
+                "Third occurrence at exactly 75 percent warns, not fourth");
+        String[] threeKick=automodOn("three-server","message","Three",exact,1794400003L);
+        check(threeKick.length==7 && "kick".equals(threeKick[4]),
+                "A fourth matching message immediately KICKs with zero pause");
+        String[] threeTemp=automodOn("three-server","message","Three",exact,1794400003L);
+        check(threeTemp.length==7 && "ktban".equals(threeTemp[4]),
+                "Next occurrence requests temporary kick+ban");
+        String[] threePermanent=automodOn("three-server","message","Three",exact,1794400003L);
+        check(threePermanent.length==7 && "kban".equals(threePermanent[4]),
+                "Next occurrence requests permanent kick+ban");
+        String[] invalidY=automodOn("three-server","command","me",
+                "mod ultimi 2",1794400004L);
+        check(invalidY.length==4 && invalidY[3].contains("Occorrenze"),
+                "Reject a window smaller than the occurrence threshold");
+        String[] persistedThree=automodOn("three-server","command","me",
+                "mod stato",1794400004L);
+        check(java.util.Arrays.toString(persistedThree).contains(
+                "occorrenze 3; ultimi 8"),
+                "Invalid window command must not damage saved settings");
+
+        automodOn("window-server","command","me","mod canali add #room",1794400000L);
+        automodOn("window-server","command","me","mod azione escalation",1794400000L);
+        automodOn("window-server","message","Walker",exact,1794400001L);
+        for (int i=1;i<=5;i++) automodOn("window-server","message","Walker",
+                "filler"+i+" alpha"+i+" beta"+i,1794400001L+i);
+        automodOn("window-server","message","Walker",exact,1794400007L);
+        for (int i=1;i<=12;i++) automodOn("window-server","message","Walker",
+                "ok",1794400007L);
+        String[] withinWindow=automodOn("window-server","message","Walker",
+                approximate,1794400008L);
+        check(withinWindow.length==7 && "pm".equals(withinWindow[4]),
+                "Third occurrence counts within 8 eligible messages; short messages do not evict");
+
+        automodOn("outside-server","command","me","mod canali add #room",1794400000L);
+        automodOn("outside-server","command","me","mod azione escalation",1794400000L);
+        automodOn("outside-server","message","Walker",exact,1794400001L);
+        for (int i=1;i<=6;i++) automodOn("outside-server","message","Walker",
+                "other"+i+" no"+i+" common"+i,1794400001L+i);
+        automodOn("outside-server","message","Walker",exact,1794400008L);
+        check(automodOn("outside-server","message","Walker",approximate,
+                1794400009L).length==1,
+                "A matching message outside the last 8 eligible messages is not counted");
+
+        automodOn("expired-server","command","me","mod canali add #room",1794400000L);
+        automodOn("expired-server","command","me","mod azione escalation",1794400000L);
+        automodOn("expired-server","message","Walker",exact,1794400001L);
+        automodOn("expired-server","message","Walker",exact,1794400002L);
+        check(automodOn("expired-server","message","Walker",approximate,
+                1794401803L).length==1,
+                "Occurrences older than Z=30 minutes do not contribute");
+
+        // Keep historical two-occurrence acceptance checks using an explicit
+        // setting, while the independent fresh-server tests verify the new defaults.
+        eventAt(OTHER, "command", "#room", "me",
+                "mod occorrenze 2",1794400000L);
+        eventAt(OTHER, "command", "#room", "me",
+                "mod ultimi 4",1794400000L);
 
         // Mentions are not words: two users talking to one another must not
         // trigger each other's history, even with hyphenated IRC nicknames.
@@ -590,7 +675,8 @@ public final class HostLuaRuntimeTest {
         check(automodStorage.containsKey("automod.test-server"),
                 "AutoMod must issue persistent C6 writes");
         String firstState = automodStorage.get("automod.test-server");
-        check(firstState.contains("C#room") && firstState.contains("Wpersonal"),
+        check(firstState.startsWith("v2;") && firstState.contains("C#room")
+                && firstState.contains("Wpersonal"),
                 "Channels and individual account allowlist must be saved");
         check("OK".equals(decode(NativeLuaRuntime.load(OTHER, automod))),
                 "AutoMod VM restart must load");
@@ -660,7 +746,11 @@ public final class HostLuaRuntimeTest {
                         java.util.Arrays.toString(legacyStatus).contains(
                                 "utenti attuali 1; utenti storici 1") &&
                         java.util.Arrays.toString(legacyStatus).contains(
-                                "ricevuti 5; esenti 2; ignoti 1"),
+                                "ricevuti 5; esenti 2; ignoti 1") &&
+                        java.util.Arrays.toString(legacyStatus).contains(
+                                "soglia 80%; occorrenze 3; ultimi 4") &&
+                        java.util.Arrays.toString(legacyStatus).contains(
+                                "pausa 5s"),
                 "v2 migration retains historical counters and seeds user history: " +
                         java.util.Arrays.toString(legacyStatus));
         byte[][] migratedRoster = new byte[][]{
