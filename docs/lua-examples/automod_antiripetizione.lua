@@ -23,7 +23,7 @@ end
 local function defaults()
 return {on=true,canali={},whitelist={},blacklist={},
 categorie={registrati=true,voice=true,halfop=true,op=true,admin=true,owner=true},
-soglia=80,ultimi=3,minuti=30,minparole=3,pausa=10,
+soglia=75,ultimi=8,occorrenze=3,minuti=30,minparole=3,pausa=0,
 durata="10m",azione="monitor",avviso="pvt"}
 end
 local function ordinati(t)
@@ -35,8 +35,8 @@ end
 local function serializza(c)
 local flags=""
 for _,k in ipairs(categorie) do flags=flags..(c.categorie[k] and "1" or "0") end
-local lines={table.concat({"v1",c.on and 1 or 0,c.soglia,c.ultimi,
-c.minuti,c.minparole,c.pausa,c.durata,c.azione,c.avviso,flags},";")}
+local lines={table.concat({"v2",c.on and 1 or 0,c.soglia,c.ultimi,
+c.minuti,c.minparole,c.pausa,c.durata,c.azione,c.avviso,flags,c.occorrenze},";")}
 for _,entry in ipairs({{"C",c.canali},{"W",c.whitelist},{"B",c.blacklist}}) do
 for _,v in ipairs(ordinati(entry[2])) do lines[#lines+1]=entry[1]..v end
 end
@@ -54,13 +54,25 @@ if line=="" then return nil end
 rows[#rows+1]=line
 end
 if #rows==0 then return nil end
-local a,b,d,f,g,h,i,j,k,l=rows[1]:match(
+local head=rows[1]
+local v2=head:sub(1,3)=="v2;"
+local a,b,d,f,g,h,i,j,k,l,m
+if v2 then
+  a,b,d,f,g,h,i,j,k,l,m=head:match(
+"^v2;([01]);(%d+);(%d+);(%d+);(%d+);(%d+);([1-9]%d?[mhd]);([%a]+);([%a]+);([01]+);(%d+)$")
+else
+  a,b,d,f,g,h,i,j,k,l=head:match(
 "^v1;([01]);(%d+);(%d+);(%d+);(%d+);(%d+);([1-9]%d?[mhd]);([%a]+);([%a]+);([01]+)$")
-if not a or #l~=6 or not numero(b,60,100) or not numero(d,1,10)
+end
+if not a or #l~=6 or not numero(b,60,100)
+or not numero(d,v2 and 2 or 1,v2 and 11 or 10)
 or not numero(f,1,120) or not numero(g,3,15)
-or not numero(h,0,120) or not azioni[j] or not avvisi[k] then return nil end
+or not numero(h,0,120) or not azioni[j] or not avvisi[k]
+or (v2 and (not numero(m,2,5) or tonumber(m)>tonumber(d))) then return nil end
 local c=defaults()
-c.on=a=="1";c.soglia=tonumber(b);c.ultimi=tonumber(d)
+c.on=a=="1";c.soglia=tonumber(b)
+c.ultimi=tonumber(d)+(v2 and 0 or 1)
+c.occorrenze=v2 and tonumber(m) or math.min(3,c.ultimi)
 c.minuti=tonumber(f);c.minparole=tonumber(g);c.pausa=tonumber(h)
 c.durata=i;c.azione=j;c.avviso=k
 for index,name in ipairs(categorie) do c.categorie[name]=l:sub(index,index)=="1" end
@@ -151,8 +163,6 @@ for k in pairs(cronologie) do
 end
 end
 
--- Per-network history is retained in the per-script persistent storage.
--- Never silently replace malformed history with an empty moderation state.
 local loaded,invalid,full = {},{},{}
 local function statekey(server) return "amst."..server end
 local function restore(server,now,c)
@@ -203,7 +213,7 @@ local function restore(server,now,c)
         number=number+1
       end
     end
-    if #r.lista>c.ultimi or number>MAX_MESSAGGI then
+    if #r.lista>=c.ultimi or number>MAX_MESSAGGI then
       invalid[server]=true;return false
     end
     if r.infrazione>0 and now-r.ultima_infrazione>=c.minuti*60 then
@@ -272,7 +282,6 @@ r.visto=now
 return key,r
 end
 
--- Exclude exact IRC nickname mentions before splitting punctuation.
 local function impronta(text,roster)
 local nicks={}
 if type(roster)=="table" then
@@ -284,7 +293,6 @@ local parti,bytes,index={},0,0
 for token in text:lower():gmatch("%S+") do
   index=index+1
   local mentioned=token:gsub("^@",""):gsub("[:,;!?]+$","")
-  -- Bare nicknames are addresses only at the start. Elsewhere require @ or punctuation.
   local address=index==1 or token:sub(1,1)=="@" or token:match("[:,;!?]$")
   if not (address and nicks[mentioned]) then
     for word in token:gsub("[%c%p]"," "):gmatch("%S+") do
@@ -305,10 +313,8 @@ end
 return 200*common/(na+nb)
 end
 
--- Retain fingerprints while the server account is unresolved; moderation still
--- requires a later event with a verified account or explicit logout.
 local function ricorda(key,r,sig,n,now,c)
-  while #r.lista>=c.ultimi do
+  while #r.lista>=c.ultimi-1 do
     table.remove(r.lista,1);messaggi=messaggi-1
   end
   while messaggi>=MAX_MESSAGGI do
@@ -386,13 +392,10 @@ if not allowed then
       aggiornamenti[k]=e.timestamp
       tiarca.refresh_users(e.channel)
     end
-    -- Lack of account evidence must not erase previous matching history.
-    -- Capture the text only if we actually have a channel roster, so
-    -- nickname mentions can be normalized without guessing identities.
     if type(roster)=="table" and #roster>0 then
       local key,r=prepara(e,e.timestamp,c)
       local sig,n=impronta(e.text or "",roster)
-      ricorda(key,r,sig,n,e.timestamp,c)
+      if n>=c.minparole then ricorda(key,r,sig,n,e.timestamp,c) end
     end
   else
     s[2]=s[2]+1
@@ -406,17 +409,19 @@ local override=reason==true
 local now=e.timestamp
 local key,r=prepara(e,now,c)
 local sig,n=impronta(e.text or "",roster)
-local maximum=0
+local maximum,matches=0,0
 if n>=c.minparole then
   for _,before in ipairs(r.lista) do
     if before.n>=c.minparole then
       local pct=simile(sig,n,before.sig,before.n)
       if pct>maximum then maximum=pct end
+      if pct>=c.soglia then matches=matches+1 end
     end
   end
+  ricorda(key,r,sig,n,now,c)
 end
-ricorda(key,r,sig,n,now,c)
-if maximum<c.soglia or now-r.ultima_azione<c.pausa then
+local needed=r.infrazione>0 and 1 or c.occorrenze-1
+if matches<needed or now-r.ultima_azione<c.pausa then
   persist(e.server);return
 end
 r.infrazione=r.infrazione+1
@@ -444,7 +449,6 @@ tiarca.on("timer",function(e)
     pulizia(e.server,e.timestamp);persist(e.server)
   end
 end)
--- Disconnect does not reset history; all deadlines are based on timestamps.
 for _,event in ipairs({"join","part","quit","nick"}) do
 tiarca.on(event,function(e)
   if not e.channel:match("^[#&+!]") or e.nick=="" then return end
@@ -510,9 +514,9 @@ for _,r in pairs(cronologie) do
   if r.server==server then active=active+1;items=items+#r.lista end
 end
 show("AutoMod: configurazione",string.format(
-  "%s; azione %s; avviso %s; canali %d; white %d; black %d; soglia %d%%; ultimi %d; minuti %d; parole %d; pausa %ds; durata %s",
+  "%s; azione %s; avviso %s; canali %d; white %d; black %d; soglia %d%%; occorrenze %d; ultimi %d; minuti %d; parole %d; pausa %ds; durata %s",
   c.on and "ON" or "OFF",c.azione,c.avviso,count(c.canali),
-  count(c.whitelist),count(c.blacklist),c.soglia,c.ultimi,c.minuti,
+  count(c.whitelist),count(c.blacklist),c.soglia,c.occorrenze,c.ultimi,c.minuti,
   c.minparole,c.pausa,c.durata))
 local flags={}
 for _,name in ipairs(categorie) do
@@ -565,7 +569,7 @@ if topic=="" or topic=="azione" then
 end
 if topic=="" or topic=="parametri" then
   show("AutoMod: parametri",
-    "/lua mod soglia 80; ultimi 3; minuti 30; minparole 3; pausa 10; durata 10m")
+    "/lua mod occorrenze 3; ultimi 8 (incluso nuovo); soglia 75; minuti 30; minparole 3; pausa 0; durata 10m")
   show("AutoMod: sicurezza",
     "Consensi: Dati persistenti; Lettura utenti; Moderazione. /lua restart conserva lo storico; /lua mod reset lo cancella.")
 end
@@ -666,13 +670,17 @@ elseif key=="durata" then
 else
   local field,lo,hi
   if key=="soglia" then field,lo,hi="soglia",60,100
-  elseif key=="ultimi" then field,lo,hi="ultimi",1,10
+  elseif key=="occorrenze" then field,lo,hi="occorrenze",2,5
+  elseif key=="ultimi" then field,lo,hi="ultimi",2,11
   elseif key=="minuti" then field,lo,hi="minuti",1,120
   elseif key=="minparole" then field,lo,hi="minparole",3,15
   elseif key=="pausa" then field,lo,hi="pausa",0,120 end
   local n=tonumber(val)
   if field and n and n==math.floor(n) and n>=lo and n<=hi then
-    c[field]=n;changed=true;msg=field.."="..n
+    if (field=="ultimi" and n<c.occorrenze) or
+       (field=="occorrenze" and n>c.ultimi) then
+      msg="Occorrenze non possono superare ultimi"
+    else c[field]=n;changed=true;msg=field.."="..n end
   end
 end
 if changed then
