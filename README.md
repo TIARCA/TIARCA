@@ -57,6 +57,14 @@ Documentation is available in every language currently supported by TIARCA:
 
 **[Italiano](docs/it/README.md)** · **[English](docs/en/README.md)** · **[Deutsch](docs/de/README.md)** · **[Español](docs/es/README.md)** · **[Français](docs/fr/README.md)** · **[Polski](docs/pl/README.md)** · **[Português (Brasil)](docs/pt-BR/README.md)** · **[Suomi](docs/fi/README.md)** · **[Română](docs/ro/README.md)**
 
+## Lua scripting developer documentation (experimental)
+
+Build Lua scripts for TIARCA without reverse-engineering the Android app:
+
+**[🇮🇹 Guida per sviluppatori Lua](docs/lua/it/README.md)** · **[🇬🇧 Lua Scripting Developer Guide](docs/lua/en/README.md)** · [API reference](docs/lua/README.md) · [AI agent instructions](docs/lua/AGENTS.md)
+
+Lua scripting is available on development `main`, **not in the published stable v0.9.10 APK**.
+
 ## Installation
 
 Download the signed APK from the latest GitHub Release. Android may ask you to allow installation from the browser or file manager used to open the APK. Official TIARCA APKs are distributed through this repository's **Releases** section.
