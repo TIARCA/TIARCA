@@ -446,17 +446,17 @@ public final class HostLuaRuntimeTest {
                 "First occurrence does not warn");
         check(automodOn("three-server","message","Three",exact,1794400002L).length==1,
                 "Second occurrence does not warn");
-        String threeWarning = automodOn("three-server","message","Three",approximate,
+        String[] threeWarning= automodOn("three-server","message","Three",approximate,
                 1794400003L);
         check(threeWarning.length==7 && "pm".equals(threeWarning[4]),
                 "Third occurrence at exactly 75 percent warns, not fourth");
-        String threeKick=automodOn("three-server","message","Three",exact,1794400003L);
+        String[] threeKick=automodOn("three-server","message","Three",exact,1794400003L);
         check(threeKick.length==7 && "kick".equals(threeKick[4]),
                 "A fourth matching message immediately KICKs with zero pause");
-        String threeTemp=automodOn("three-server","message","Three",exact,1794400003L);
+        String[] threeTemp=automodOn("three-server","message","Three",exact,1794400003L);
         check(threeTemp.length==7 && "ktban".equals(threeTemp[4]),
                 "Next occurrence requests temporary kick+ban");
-        String threePermanent=automodOn("three-server","message","Three",exact,1794400003L);
+        String[] threePermanent=automodOn("three-server","message","Three",exact,1794400003L);
         check(threePermanent.length==7 && "kban".equals(threePermanent[4]),
                 "Next occurrence requests permanent kick+ban");
         String[] invalidY=automodOn("three-server","command","me",
@@ -477,7 +477,7 @@ public final class HostLuaRuntimeTest {
         automodOn("window-server","message","Walker",exact,1794400007L);
         for (int i=1;i<=12;i++) automodOn("window-server","message","Walker",
                 "ok",1794400007L);
-        String withinWindow=automodOn("window-server","message","Walker",
+        String[] withinWindow=automodOn("window-server","message","Walker",
                 approximate,1794400008L);
         check(withinWindow.length==7 && "pm".equals(withinWindow[4]),
                 "Third occurrence counts within 8 eligible messages; short messages do not evict");
