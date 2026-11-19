@@ -31,6 +31,9 @@ import java.util.Date;
 import io.mrarm.chatlib.dto.NickChangeMessageInfo;
 import io.mrarm.chatlib.dto.KickMessageInfo;
 import io.mrarm.chatlib.dto.ChannelModeMessageInfo;
+import io.mrarm.chatlib.dto.MessageList;
+import io.mrarm.chatlib.dto.MessageFilterOptions;
+import java.util.Arrays;
 import io.mrarm.chatlib.irc.IrcIdentityCache;
 import io.mrarm.chatlib.irc.IRCConnection;
 import io.mrarm.irc.util.ChannelOperatorUtils;
@@ -428,6 +431,46 @@ public final class LuaScriptDispatcher {
                 System.currentTimeMillis()/1000 : info.getDate().getTime()/1000;
         enqueue(event, connection.getUUID().toString(), channel, sender.getNick(),
                 value, messageType, timestamp);
+        if ("kick".equals(event))
+            lookupKickContext(connection, channel, messageType, timestamp);
+    }
+
+    /**
+     * Resolve context from the existing chat storage, not from a second Lua
+     * message buffer. The separate event is emitted asynchronously because
+     * SQLite storage queries are asynchronous. Absence is not an empty quote.
+     */
+    private void lookupKickContext(ServerConnectionInfo connection, String channel,
+                                   String target, long kickedAt) {
+        if (target == null || target.isEmpty() ||
+                !(connection.getApiInstance() instanceof ServerConnectionApi)) return;
+        MessageFilterOptions filter = new MessageFilterOptions();
+        filter.restrictToMessageTypes = Arrays.asList(
+                MessageInfo.MessageType.NORMAL, MessageInfo.MessageType.ME);
+        try {
+            ((ServerConnectionApi) connection.getApiInstance()).getMessageStorageApi()
+                    .getMessages(channel, 200, filter, null, (MessageList history) -> {
+                        if (history == null || history.getMessages() == null) return;
+                        java.util.List<MessageInfo> messages = history.getMessages();
+                        for (int i = messages.size() - 1; i >= 0; i--) {
+                            MessageInfo previous = messages.get(i);
+                            if (previous == null || previous.getSender() == null ||
+                                    previous.getSender().getNick() == null ||
+                                    !target.equalsIgnoreCase(previous.getSender().getNick()) ||
+                                    previous.getMessage() == null || previous.getDate() == null ||
+                                    previous.getDate().getTime()/1000 > kickedAt) continue;
+                            String body = previous.getMessage();
+                            if (body.length() > 1024 ||
+                                    body.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 2048)
+                                body = body.substring(0, Math.min(512, body.length()));
+                            enqueue("kick_context", connection.getUUID().toString(), channel,
+                                    target, body, "", previous.getDate().getTime()/1000);
+                            return;
+                        }
+                    }, error -> { /* Missing history is not a moderation failure. */ });
+        } catch (RuntimeException ignored) {
+            // A disconnect or disabled message storage can invalidate the query.
+        }
     }
 
     /**
