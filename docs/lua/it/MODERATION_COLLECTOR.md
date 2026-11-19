@@ -26,8 +26,20 @@ Per l'ultimo messaggio vengono preferiti ident e host presenti nel record SQLite
 | `/lua collector on` | Riprende la raccolta su quella rete; persiste |
 | `/lua collector off` | Sospende la raccolta; conserva l'archivio esistente |
 | `/lua collector status` | Mostra ON/OFF |
-| `/lua collector export` | Condivisione Android del JSONL di quello script e rete |
+| `/lua collector export` | Condivisione non distruttiva del registro corrente |
+| `/lua collector exportreset` | Mostra come confermare l'azzeramento |
+| `/lua collector exportreset confirm` | Archivia il registro corrente, riparte da un registro vuoto e apre la condivisione Android |
+| `/lua collector archive` | Riesporta l'ultimo archivio se la condivisione era stata annullata |
+| `/lua collector channels` | Elenca i canali selezionati (inizialmente tutti) |
+| `/lua collector channels add #canale` | Passa alla selezione e aggiunge il canale |
+| `/lua collector channels del #canale` | Rimuove il canale; se la lista è vuota non ne monitora nessuno |
+| `/lua collector channels all` | Monitora di nuovo tutti i canali della rete |
+| `/lua collector channels none` | Sospende la raccolta da tutti i canali, mantenendo lo script acceso |
 | `/lua collector` | Stato; `/lua collector help` mostra i comandi |
+
+La selezione dei canali è **per rete e persistente**, indipendente dalle scelte di AutoMod. Un filtro non modifica la registrazione del nome canale negli eventi. Lo script resta acceso anche se la lista canali è vuota.
+
+L'azzeramento con conferma **non distrugge i dati precedenti**: il file corrente viene spostato in un archivio privato recuperabile, prima che Android apra la condivisione. Anche se l'utente annulla la condivisione, può richiamare `/lua collector archive`. Solo l'archivio attivo riparte da zero; l'archivio precedente non è cancellato. Nessun cambio su altre reti o script.
 
 **Disabilitare completamente lo script dalle impostazioni** interrompe callback e interrogazioni. Con `off`, la logica Lua non chiede lo storico né scrive righe. Il consenso ai dati persistenti è obbligatorio.
 
