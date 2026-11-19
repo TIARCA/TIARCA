@@ -24,20 +24,20 @@ final class LuaAutoModReport {
 
         String action;
         switch (match.group(6)) {
-            case "monitor": action = "solo monitoraggio"; break;
-            case "avviso": action = "AVVISO richiesto"; break;
-            case "kick": action = "KICK richiesto"; break;
-            case "ban": action = "BAN richiesto"; break;
-            case "tban": action = "BAN temporaneo richiesto"; break;
-            case "bankick": action = "KICK + BAN richiesti"; break;
-            case "tbankick": action = "KICK + BAN temporaneo richiesti"; break;
-            case "mute": action = "MUTE richiesto"; break;
-            default: action = "escalation richiesta"; break;
+            case "monitor": action = "MONITORAGGIO"; break;
+            case "avviso": action = "AVVISO"; break;
+            case "kick": action = "KICK"; break;
+            case "ban": action = "BAN"; break;
+            case "tban": action = "BAN TEMPORANEO"; break;
+            case "bankick": action = "KICK + BAN"; break;
+            case "tbankick": action = "KICK + BAN TEMPORANEO"; break;
+            case "mute": action = "MUTE"; break;
+            default: action = "ESCALATION"; break;
         }
         // This comes from the Lua decision. Authorization or the IRC server may
         // still reject the action; delivery is logged separately when attempted.
         return match.group(2) + " - " + match.group(3) + ": ripetizione " +
                 match.group(4) + "%, infrazione " + match.group(5) +
-                ", " + action + " (esito non confermato)";
+                ", " + action;
     }
 }
