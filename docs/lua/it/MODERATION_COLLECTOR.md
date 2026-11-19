@@ -8,7 +8,7 @@
 
 È `moderation_collector.lua` a scegliere gli eventi, interrogare lo storico e comporre le righe del file: **nessuna raccolta o correlazione Collector viene eseguita da TIARCA quando lo script è spento**.
 
-- Tutte le decisioni riconosciute di `automod_antiripetizione.lua`: **monitor**, **avviso**, **kick**, **ban**, **mute**, **tban**, **bankick**, **tbankick**. Sono classificate come *richieste*, non successi confermati.
+- Tutte le decisioni AutoMod riconosciute, anche se lo script è stato importato con un nome diverso (per esempio `automod.lua`): **monitor**, **avviso**, **kick**, **ban**, **mute**, **tban**, **bankick**, **tbankick**. Sono classificate come *richieste*, non successi confermati.
 - KICK comunicati dal server, anche di altri operatori/bot: **esecutore**, **nickname espulso**, **motivo** quando presente.
 - MODE +b comunicati dal server: **esecutore**, **mask**. La mask non trasmette una motivazione IRC; se individua esattamente un nick si associa quel nick, altrimenti si salva l'evento senza inventare un destinatario.
 - **Ultimo messaggio pubblico** di quel nick presente fra gli **ultimi 200 messaggi SQLite del canale**, quando recuperabile. La ricerca viene richiesta *dallo script solo dopo un evento di moderazione* e vale anche per tutti gli eventi AutoMod.
