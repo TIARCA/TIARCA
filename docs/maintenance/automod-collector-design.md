@@ -8,7 +8,7 @@ The moderation **collector itself is an external Lua script** at `docs/lua-examp
 
 - IRC events `kick` and `ban`: already dispatched for subscribed scripts; native runtime and isolated-service event validation now support them.
 - `moderation_log`: forwards an existing validated local moderation detection report (including AutoMod's requested action), with script source in `event.message_type`. A reported decision is not server confirmation.
-- `tiarca.last_message(channel,nick,token)`: a consent-gated, event-scoped, asynchronous request against existing channel SQLite storage (last 200 normal/ME messages); response `history` delivered only to the requesting script. Never executes with no script request.
+- `tiarca.last_message(channel,nick,token)`: a consent-gated, event-scoped, asynchronous request against existing channel SQLite storage (last 200 normal/ME messages); response `history` delivered only to the requesting script, with sender `ident`/`host` from the stored message when available. Never executes with no script request.
 - `tiarca.journal.append(json)`: validates a single JSON object and appends one line to private `lua_journals/<script UUID>/<network UUID>.jsonl`; no rotating buffer, quota on *individual* lines only. `tiarca.journal.export()` creates and shares a temporary snapshot only after a local command. These APIs require persistent-data consent.
 
 Identity values come only from observed, consented channel snapshots; unknown values are null. The Lua script caches only limited transient *identity hints*, not a duplicate chat transcript. Unidentifiable generic ban masks are recorded without invented target or message context. Last message is not evidence of causal responsibility.

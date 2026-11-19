@@ -13,7 +13,7 @@ All collection decisions, event selection, SQLite lookup requests and JSONL seri
 - Server-observed MODE +b, with actor and mask; no reason is transmitted in that protocol command. A nickname is attached only when identifiable without ambiguity.
 - The target's **latest earlier public message**, if found in the last **200 messages of the channel's existing SQLite history**. The Lua script requests this on demand after any qualifying event, including AutoMod.
 
-Each event and last-message object has channel, timestamp, nickname, observed ident/host/account (otherwise `null`). Previous chat is context, **not proof of a moderation reason**. Ambiguous ban masks do not receive guessed nicknames.
+The stored message's original ident/host take precedence when available. Each event and last-message object has channel, timestamp, nickname, observed ident/host/account (otherwise `null`). Previous chat is context, **not proof of a moderation reason**. Ambiguous ban masks do not receive guessed nicknames.
 
 ## Setup and commands
 

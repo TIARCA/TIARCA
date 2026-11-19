@@ -13,7 +13,7 @@
 - MODE +b comunicati dal server: **esecutore**, **mask**. La mask non trasmette una motivazione IRC; se individua esattamente un nick si associa quel nick, altrimenti si salva l'evento senza inventare un destinatario.
 - **Ultimo messaggio pubblico** di quel nick presente fra gli **ultimi 200 messaggi SQLite del canale**, quando recuperabile. La ricerca viene richiesta *dallo script solo dopo un evento di moderazione* e vale anche per tutti gli eventi AutoMod.
 
-Per ogni evento e ultimo messaggio si riportano **canale, timestamp, nick, ident, host, account se osservati**, altrimenti `null`. Per KICK/BAN anche operatore, mask/motivo ove comunicati. Il messaggio è contesto, non prova del motivo del provvedimento. In presenza di mask generiche ambigue non si inventa un nickname.
+Per l'ultimo messaggio vengono preferiti ident e host presenti nel record SQLite, se disponibili. Per ogni evento e ultimo messaggio si riportano **canale, timestamp, nick, ident, host, account se osservati**, altrimenti `null`. Per KICK/BAN anche operatore, mask/motivo ove comunicati. Il messaggio è contesto, non prova del motivo del provvedimento. In presenza di mask generiche ambigue non si inventa un nickname.
 
 ## Installazione e comandi
 

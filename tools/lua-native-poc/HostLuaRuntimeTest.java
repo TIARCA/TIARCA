@@ -128,6 +128,20 @@ public final class HostLuaRuntimeTest {
                 roster, false, true, automodSnapshot(), true));
     }
 
+    private static String[] historyWithStoredSender() {
+        byte[][] roster = new byte[][]{
+                bytes("Target"), bytes(""), bytes("ident"),
+                bytes("host.example"), bytes("account")
+        };
+        return collect(NativeLuaRuntime.dispatchWithIdentity(ID, "history",
+                bytes("test-server"), bytes("#room"), bytes("Target"),
+                bytes("Messaggio precedente"), bytes("1"), 1794404999L,
+                new byte[0][], new int[0], false, roster, false, true,
+                automodSnapshot(), true, new byte[][]{
+                        bytes("saved-ident"), bytes("saved.host.example")
+                }));
+    }
+
     public static void main(String[] args) throws Exception {
         String source = "local counter = 0\n"
                 + "tiarca.on('message', function(event)\n"
@@ -910,14 +924,14 @@ public final class HostLuaRuntimeTest {
                         "#room".equals(collectorKick[2]) &&
                         ("Target" + (char)9 + "1").equals(collectorKick[3]),
                 "KICK asks for the target's last stored channel message");
-        String[] kickHistory = collectorEvent("history", "Target",
-                "Messaggio precedente", "1", 1794404999L);
+        String[] kickHistory = historyWithStoredSender();
         check(kickHistory.length == 4 && "journal".equals(kickHistory[1]) &&
                         kickHistory[3].contains("\"event\":\"kick\"") &&
                         kickHistory[3].contains("\"operator\":\"ChannelOp\"") &&
                         kickHistory[3].contains("\"reason\":\"spam\"") &&
                         kickHistory[3].contains("\"last_message\":{") &&
-                        kickHistory[3].contains("\"ident\":\"ident\"") &&
+                        kickHistory[3].contains("\"ident\":\"saved-ident\"") &&
+                        kickHistory[3].contains("\"host\":\"saved.host.example\"") &&
                         kickHistory[3].contains("Messaggio precedente"),
                 "KICK JSONL must contain operator, reason and SQLite message/identity");
 
