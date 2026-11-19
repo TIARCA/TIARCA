@@ -39,7 +39,7 @@ moderation engine. Its detection rules and actions remain unchanged.
 - A preceding message is context, not proven cause. A ban does not itself
   expel a user. Generic host or extban masks may not identify a single target.
 - Events can be missed on disconnection or if Android terminates a process.
-  The archive grows with usage; export is user-initiated and contains sensitive
+  The archive grows with usage and is excluded from Android cloud/device\n  automatic backups for privacy; export is user-initiated and contains sensitive
   third-party chat and identity data.
 - Lua event delivery may drop under load; the native archive observes KICK/+b
   independent of Lua callback delivery where the host receives the IRC event.
