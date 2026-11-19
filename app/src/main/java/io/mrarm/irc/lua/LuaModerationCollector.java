@@ -11,9 +11,13 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /** Opt-in append-only moderation journal. All file operations use the dispatcher IO thread. */
 final class LuaModerationCollector {
+    private static final Pattern AUTOMOD_DECISION = Pattern.compile(
+            ".* ([0-9]{1,3}(?:\\.[0-9])?)% infrazione ([0-9]{1,6}) \\(([^)]+)\\)$");
     private final Context context;
     LuaModerationCollector(Context context) { this.context = context.getApplicationContext(); }
     boolean enabled(String server) {
@@ -30,7 +34,8 @@ final class LuaModerationCollector {
     }
     void append(String server, String event, String channel, String actor,
                 String target, String detail, long timestamp, String previous,
-                long previousTime, String origin) throws IOException {
+                long previousTime, String origin, String ident, String host,
+                String account) throws IOException {
         if (!enabled(server)) return;
         JSONObject obj = new JSONObject();
         try {
@@ -43,6 +48,17 @@ final class LuaModerationCollector {
             obj.put("detail", detail);
             obj.put("timestamp", timestamp);
             obj.put("origin", origin);
+            obj.put("ident", ident == null ? JSONObject.NULL : ident);
+            obj.put("host", host == null ? JSONObject.NULL : host);
+            obj.put("account", account == null ? JSONObject.NULL : account);
+            if ("AUTOMOD".equals(event)) {
+                Matcher match = AUTOMOD_DECISION.matcher(detail);
+                if (match.matches()) {
+                    obj.put("similarity_percent", Double.parseDouble(match.group(1)));
+                    obj.put("infraction_level", Integer.parseInt(match.group(2)));
+                    obj.put("requested_action", match.group(3));
+                }
+            }
             boolean autoMod = "AUTOMOD".equals(event);
             obj.put("prior_message", autoMod || previous == null ?
                     JSONObject.NULL : previous);
