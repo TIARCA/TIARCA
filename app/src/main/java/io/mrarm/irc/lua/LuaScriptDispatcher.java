@@ -68,6 +68,7 @@ public final class LuaScriptDispatcher {
 
     private final Context context;
     private final LuaScriptStore store;
+    private final LuaModerationCollector collector;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final HandlerThread ioThread = new HandlerThread("tiarca-lua-ipc");
     private final Handler io;
@@ -189,6 +190,7 @@ public final class LuaScriptDispatcher {
     private LuaScriptDispatcher(Context context) {
         this.context = context;
         this.store = LuaScriptStore.get(context);
+        this.collector = new LuaModerationCollector(context);
         ioThread.start();
         io = new Handler(ioThread.getLooper());
     }
@@ -396,6 +398,9 @@ public final class LuaScriptDispatcher {
                     continue;
                 enqueue("ban", connection.getUUID().toString(), channel,
                         modeSender.getNick(), mask, "", modeTime);
+                recordCollector(connection.getUUID().toString(), "BAN", channel,
+                        modeSender.getNick(), mask, "MODE +b", modeTime,
+                        null, 0L, "observed_irc");
             }
             return;
         }
@@ -432,7 +437,8 @@ public final class LuaScriptDispatcher {
         enqueue(event, connection.getUUID().toString(), channel, sender.getNick(),
                 value, messageType, timestamp);
         if ("kick".equals(event))
-            lookupKickContext(connection, channel, messageType, timestamp);
+            lookupKickContext(connection, channel, sender.getNick(),
+                    messageType, value, timestamp);
     }
 
     /**
@@ -441,16 +447,25 @@ public final class LuaScriptDispatcher {
      * SQLite storage queries are asynchronous. Absence is not an empty quote.
      */
     private void lookupKickContext(ServerConnectionInfo connection, String channel,
-                                   String target, long kickedAt) {
-        if (target == null || target.isEmpty() ||
-                !(connection.getApiInstance() instanceof ServerConnectionApi)) return;
+                                   String actor, String target, String reason, long kickedAt) {
+        if (target == null || target.isEmpty()) return;
+        String server = connection.getUUID().toString();
+        if (!(connection.getApiInstance() instanceof ServerConnectionApi)) {
+            recordCollector(server, "KICK", channel, actor, target, reason,
+                    kickedAt, null, 0L, "observed_irc");
+            return;
+        }
         MessageFilterOptions filter = new MessageFilterOptions();
         filter.restrictToMessageTypes = Arrays.asList(
                 MessageInfo.MessageType.NORMAL, MessageInfo.MessageType.ME);
         try {
             ((ServerConnectionApi) connection.getApiInstance()).getMessageStorageApi()
                     .getMessages(channel, 200, filter, null, (MessageList history) -> {
-                        if (history == null || history.getMessages() == null) return;
+                        if (history == null || history.getMessages() == null) {
+                            recordCollector(server, "KICK", channel, actor, target, reason,
+                                    kickedAt, null, 0L, "observed_irc");
+                            return;
+                        }
                         java.util.List<MessageInfo> messages = history.getMessages();
                         for (int i = messages.size() - 1; i >= 0; i--) {
                             MessageInfo previous = messages.get(i);
@@ -494,6 +509,48 @@ public final class LuaScriptDispatcher {
             return false;
         String builtin = command.trim().toLowerCase(Locale.ROOT);
         String server = connection.getUUID().toString();
+        if (builtin.startsWith("collector ")) {
+            String instruction = builtin.substring("collector ".length()).trim();
+            boolean available = false;
+            for (LuaScriptStore.Script script : store.enabledOn(server)) {
+                if ("moderation_collector.lua".equalsIgnoreCase(script.name)) {
+                    available = true;
+                    break;
+                }
+            }
+            if (!available) {
+                emitConsole(connection, "[Collector] Abilitare moderation_collector.lua sulla rete.");
+                return true;
+            }
+            if ("on".equals(instruction) || "off".equals(instruction)) {
+                boolean active = "on".equals(instruction);
+                if (collector.setEnabled(server, active))
+                    emitConsole(connection, "[Collector] " + (active ? "ON" : "OFF"));
+                else emitConsole(connection, "[Collector] Errore salvataggio impostazioni");
+            } else if ("status".equals(instruction)) {
+                emitConsole(connection, "[Collector] " + (collector.enabled(server) ? "ON" : "OFF") +
+                        "; archivio " + collector.size(server) + " byte");
+            } else if ("export".equals(instruction)) {
+                io.post(() -> {
+                    try {
+                        java.io.File snapshot = collector.snapshot(server);
+                        main.post(() -> {
+                            try { collector.share(snapshot); }
+                            catch (RuntimeException error) {
+                                emitConsole(connection, "[Collector] Esportazione non disponibile");
+                            }
+                        });
+                    } catch (IOException error) {
+                        main.post(() -> emitConsole(connection,
+                                "[Collector] Nessun dato da esportare o errore di lettura"));
+                    }
+                });
+            } else {
+                emitConsole(connection,
+                        "[Collector] /lua collector on | off | status | export");
+            }
+            return true;
+        }
         if ("stop".equals(builtin)) {
             console.stop(server);
             main.post(() -> {
@@ -852,6 +909,10 @@ public final class LuaScriptDispatcher {
                 String report = LuaAutoModReport.fromEventLog(
                         request.event, request.server, request.channel, request.nick, value);
                 if (report != null) {
+                    recordCollector(request.server, "AUTOMOD", request.channel,
+                            script.name, request.nick, report,
+                            System.currentTimeMillis() / 1000, null, 0L,
+                            "automod_decision_unconfirmed");
                     try {
                         ServerConnectionInfo connection = ServerConnectionManager
                                 .getInstance(context).getConnection(UUID.fromString(request.server));
