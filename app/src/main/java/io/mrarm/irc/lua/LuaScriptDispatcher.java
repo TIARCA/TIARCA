@@ -542,7 +542,7 @@ public final class LuaScriptDispatcher {
         if (script == null) return;
         String text = "[Lua: " + script.name + "] " + channel + " - " + action +
                 " " + nick + (detail.isEmpty() ? "" : " (" + detail + ")") +
-                " - comando inviato, esito non confermato";
+                " - comando inviato";
         main.post(() -> emitConsole(connection, text));
     }
 
