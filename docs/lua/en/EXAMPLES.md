@@ -6,12 +6,9 @@ These are UTF-8 files for manual import, **not** automatically installed plugins
 
 | Example | Purpose | Capabilities |
 |---|---|---|
-| [count_messages.lua](../../lua-examples/count_messages.lua) | Count messages in local log | None additional |
-| [auto_reply.lua](../../lua-examples/auto_reply.lua) | Reply in the same conversation | Send messages |
-| [local_command.lua](../../lua-examples/local_command.lua) | Local `/lua ping` and `/lua saluta` commands | Send only for remote greeting |
-| [persistent_results.lua](../../lua-examples/persistent_results.lua) | Persistent state and local results | Persistent data |
-| [mask_finder.lua](../../lua-examples/mask_finder.lua) | Search channel nick/ident/host | Channel members and identities |
-| [automod_antiripetizione.lua](../../lua-examples/automod_antiripetizione.lua) | Detect repetition and optionally moderate | Identities, persistence, moderation; send for warnings |
+| [automod_antiripetizione.lua](../../lua-examples/automod_antiripetizione.lua) | Moderate repetitions with per-channel scope | Identities, persistence, moderation; send for warnings |
+| [mask_finder.lua](../../lua-examples/mask_finder.lua) | Search nicknames, idents and hosts | Channel members and identities |
+| [moderation_collector.lua](../../lua-examples/moderation_collector.lua) | Record moderation events to JSONL | Identities and persistence |
 
 ### Minimal copyable example
 
