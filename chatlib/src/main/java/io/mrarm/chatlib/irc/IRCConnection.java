@@ -274,7 +274,9 @@ public class IRCConnection extends ServerConnectionApi {
                             errorCallback.onError(exception);
                         ret.setExecutionException(exception);
                     }))
-                sendCommand("WHOIS", false, nick);
+                // Query the target nick's server as well: remote servers can supply
+                // RPL_WHOISIDLE (317) even when a local WHOIS omits it.
+                sendCommand("WHOIS", false, nick, nick);
         }, errorCallback);
         return ret;
     }
