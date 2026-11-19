@@ -30,6 +30,7 @@ import io.mrarm.chatlib.dto.StatusMessageInfo;
 import java.util.Date;
 import io.mrarm.chatlib.dto.NickChangeMessageInfo;
 import io.mrarm.chatlib.dto.KickMessageInfo;
+import io.mrarm.chatlib.dto.ChannelModeMessageInfo;
 import io.mrarm.chatlib.irc.IrcIdentityCache;
 import io.mrarm.chatlib.irc.IRCConnection;
 import io.mrarm.irc.util.ChannelOperatorUtils;
@@ -375,6 +376,26 @@ public final class LuaScriptDispatcher {
                 info instanceof NickChangeMessageInfo) event = "nick";
         else if (type == MessageInfo.MessageType.KICK &&
                 info instanceof KickMessageInfo) event = "kick";
+        else if (type == MessageInfo.MessageType.MODE &&
+                info instanceof ChannelModeMessageInfo) {
+            // A MODE may contain several +b masks. Emit one event per added ban.
+            MessageSenderInfo modeSender = info.getSender();
+            if (modeSender == null || modeSender.getNick() == null) return;
+            long modeTime = info.getDate() == null ? System.currentTimeMillis()/1000 :
+                    info.getDate().getTime()/1000;
+            for (ChannelModeMessageInfo.Entry entry :
+                    ((ChannelModeMessageInfo) info).getEntries()) {
+                if (entry.getMode() != 'b' || entry.isRemoved() ||
+                        entry.getParam() == null || entry.getParam().isEmpty()) continue;
+                String mask = entry.getParam();
+                if (mask.length() > 1024 ||
+                        mask.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 2048)
+                    continue;
+                enqueue("ban", connection.getUUID().toString(), channel,
+                        modeSender.getNick(), mask, "", modeTime);
+            }
+            return;
+        }
         else return;
 
         MessageSenderInfo sender = info.getSender();
