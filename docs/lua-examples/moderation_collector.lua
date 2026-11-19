@@ -4,7 +4,8 @@
 -- The host only offers general purpose, opt-in Lua journal/history capabilities.
 local state, pending, observed = {}, {}, {}
 local seq = 0
-local LIMIT = 256
+local LIMIT = 256 -- transient identity hints
+local PENDING_LIMIT = 10 -- Lua native host accepts at most 12 actions/callback
 
 local function key(server) return "collector." .. server end
 local function active(server)
@@ -118,11 +119,18 @@ local function record(entry)
   local token = tostring(seq)
   local network = pending[entry.server]
   if not network then network = {}; pending[entry.server] = network end
-  local count = 0
-  for _ in pairs(network) do count = count + 1 end
-  if count >= LIMIT then
-    -- Keep evidence even if the host could not deliver old history replies.
-    for old, data in pairs(network) do write(data); network[old] = nil end
+  local count, oldest, oldest_entry = 0, nil, nil
+  for old, data in pairs(network) do
+    count = count + 1
+    if not oldest_entry or data.timestamp < oldest_entry.timestamp then
+      oldest, oldest_entry = old, data
+    end
+  end
+  if count >= PENDING_LIMIT and oldest then
+    -- Preserve the oldest event even if its asynchronous history never arrived.
+    -- Flush at most one line here, within the native action budget.
+    write(oldest_entry)
+    network[oldest] = nil
   end
   network[token] = entry
   local ok = pcall(tiarca.last_message, entry.channel, entry.nickname, token)
@@ -257,6 +265,14 @@ tiarca.on("command", function(e)
   if op == nil then return end
   if op == "on" or op == "off" then
     local yes = op == "on"
+    if not yes and active(e.server) and pending[e.server] then
+      -- OFF must not discard events accepted before the command. At most 10
+      -- pending journal writes + 1 storage + 1 local show action.
+      for token, entry in pairs(pending[e.server]) do
+        write(entry)
+        pending[e.server][token] = nil
+      end
+    end
     local ok = pcall(tiarca.storage.set, key(e.server), yes and "on" or "off")
     if ok then
       state[e.server] = yes
