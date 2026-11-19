@@ -6,6 +6,57 @@ local state, pending, observed = {}, {}, {}
 local seq = 0
 local LIMIT = 256 -- transient identity hints
 local PENDING_LIMIT = 10 -- Lua native host accepts at most 12 actions/callback
+local CHANNEL_LIMIT = 32
+local channels = {} -- per-network allowlists, independent of AutoMod
+
+local function channel_key(server) return "colch." .. server end
+local function channel_valid(name)
+  return type(name) == "string" and #name > 1 and #name <= 64 and
+         name:match("^[#&+!][^,%s:%c]+$") ~= nil
+end
+local function channel_config(server)
+  if channels[server] then return channels[server] end
+  local ok, value = pcall(tiarca.storage.get, channel_key(server))
+  if not ok then return nil end
+  local c = {all = true, names = {}}
+  if value == "none" then c.all = false
+  elseif value and value:sub(1,5) == "only:" then
+    c.all = false
+    local count = 0
+    for name in value:sub(6):gmatch("[^,]+") do
+      if not channel_valid(name) or name ~= name:lower() or c.names[name] or
+          count >= CHANNEL_LIMIT then return nil end
+      c.names[name] = true
+      count = count + 1
+    end
+    if count == 0 then return nil end
+  elseif value ~= nil and value ~= "all" then return nil end
+  channels[server] = c
+  return c
+end
+local function in_scope(server, channel)
+  local c = channel_config(server)
+  return c ~= nil and (c.all or c.names[channel:lower()] == true)
+end
+local function save_channels(server, c)
+  local names = {}
+  for name in pairs(c.names) do names[#names+1] = name end
+  table.sort(names)
+  local raw = c.all and "all" or (#names == 0 and "none" or
+      "only:" .. table.concat(names, ","))
+  local ok = pcall(tiarca.storage.set, channel_key(server), raw)
+  if ok then channels[server] = c end
+  return ok
+end
+local function channels_status(server)
+  local c = channel_config(server)
+  if not c then return "Configurazione canali non disponibile" end
+  if c.all then return "Tutti i canali della rete" end
+  local names = {}
+  for name in pairs(c.names) do names[#names+1] = name end
+  table.sort(names)
+  return #names == 0 and "Nessun canale" or table.concat(names, ", ")
+end
 
 local function key(server) return "collector." .. server end
 local function active(server)
@@ -110,7 +161,7 @@ local function write(entry, history)
 end
 
 local function record(entry)
-  if not active(entry.server) then return end
+  if not active(entry.server) or not in_scope(entry.server, entry.channel) then return end
   if not entry.nickname or entry.nickname == "" then
     write(entry)
     return
@@ -177,7 +228,7 @@ local function ban_target(e)
 end
 
 tiarca.on("message", function(e)
-  if active(e.server) then observe(e) end
+  if active(e.server) and in_scope(e.server, e.channel) then observe(e) end
 end)
 
 local function forget(e, nick)
@@ -214,7 +265,7 @@ local automod_actions = {monitor=true, avviso=true, kick=true, ban=true,
                        mute=true, tban=true, bankick=true, tbankick=true,
                        escalation=true}
 tiarca.on("moderation_log", function(e)
-  if not active(e.server) then return end
+  if not active(e.server) or not in_scope(e.server, e.channel) then return end
   local server, channel, nick, percent, level, action = (e.text or ""):match(
     "^AutoMod%s+([^/%s]+)/([^%s]+)%s+([^%s]+)%s+([%d%.]+)%% infrazione (%d+) %(([^%)]+)%)$")
   if not nick or server ~= e.server:sub(1, 8) or
@@ -229,7 +280,7 @@ tiarca.on("moderation_log", function(e)
 end)
 
 tiarca.on("kick", function(e)
-  if not active(e.server) then return end
+  if not active(e.server) or not in_scope(e.server, e.channel) then return end
   local nick = e.message_type -- IRC KICK target; e.nick is the actor
   if not nick or nick == "" then return end
   record({server=e.server, channel=e.channel, timestamp=e.timestamp,
@@ -240,7 +291,7 @@ tiarca.on("kick", function(e)
 end)
 
 tiarca.on("ban", function(e)
-  if not active(e.server) then return end
+  if not active(e.server) or not in_scope(e.server, e.channel) then return end
   local nick, id, matched = ban_target(e)
   record({server=e.server, channel=e.channel, timestamp=e.timestamp,
           event="ban", action="ban", nickname=nick, identity=id,
@@ -268,8 +319,42 @@ tiarca.on("timer", function(e)
 end)
 
 tiarca.on("command", function(e)
-  local op = (e.text or ""):match("^collector%s*(%S*)$")
-  if op == nil then return end
+  local raw = (e.text or ""):match("^collector%s*(.-)%s*$")
+  if raw == nil then return end
+  local op, arg = raw:match("^(%S+)%s*(.-)$")
+  op = op or ""
+  arg = arg or ""
+  if op == "channels" then
+    local c = channel_config(e.server)
+    if not c then tiarca.show("Collector", "Configurazione canali non disponibile"); return end
+    if arg == "" or arg == "list" then
+      tiarca.show("Collector: canali", channels_status(e.server))
+    elseif arg == "all" or arg == "none" then
+      local next = {all = arg == "all", names = {}}
+      tiarca.show("Collector", save_channels(e.server, next) and
+          channels_status(e.server) or "Salvataggio non disponibile")
+    else
+      local action, name = arg:match("^(add)%s+(%S+)$")
+      if not action then action, name = arg:match("^(del)%s+(%S+)$") end
+      if not action or not channel_valid(name) then
+        tiarca.show("Collector", "/lua collector channels add|del #canale; all|none|list")
+      else
+        name = name:lower()
+        local next = {all = false, names = {}}
+        for key in pairs(c.names) do next.names[key] = true end
+        local count = 0
+        for _ in pairs(next.names) do count = count + 1 end
+        if action == "add" and not next.names[name] and count >= CHANNEL_LIMIT then
+          tiarca.show("Collector", "Massimo 32 canali")
+          return
+        end
+        if action == "add" then next.names[name] = true else next.names[name] = nil end
+        tiarca.show("Collector", save_channels(e.server, next) and
+            channels_status(e.server) or "Salvataggio non disponibile")
+      end
+    end
+    return
+  end
   if op == "on" or op == "off" then
     local yes = op == "on"
     if not yes and active(e.server) and pending[e.server] then
@@ -290,10 +375,29 @@ tiarca.on("command", function(e)
     -- User-initiated Android share sheet, even if collecting is OFF.
     tiarca.journal.export()
     tiarca.show("Collector", "Esportazione richiesta")
+  elseif op == "exportreset" then
+    if arg ~= "confirm" then
+      tiarca.show("Collector", "Per azzerare: /lua collector exportreset confirm")
+      return
+    end
+    -- Flush pending accepted events before rotating the append-only journal.
+    -- Rotation preserves a durable archive even if Android sharing is cancelled.
+    local network = pending[e.server]
+    if network then
+      for token, entry in pairs(network) do
+        write(entry)
+        network[token] = nil
+      end
+    end
+    tiarca.journal.rotate()
+    tiarca.show("Collector", "Rotazione archivio richiesta; copia precedente recuperabile con archive")
+  elseif op == "archive" then
+    tiarca.journal.export_archive()
+    tiarca.show("Collector", "Esportazione ultimo archivio richiesta")
   elseif op == "status" or op == "" then
     tiarca.show("Collector", active(e.server) and
-      "ON: script attivo; archivio incrementale per questa rete" or "OFF")
+      "ON: archivio incrementale; " .. channels_status(e.server) or "OFF")
   else
-    tiarca.show("Collector", "/lua collector on|off|status|export")
+    tiarca.show("Collector", "/lua collector on|off|status|export|exportreset|archive|channels")
   end
 end)
