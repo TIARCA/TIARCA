@@ -971,6 +971,46 @@ public final class HostLuaRuntimeTest {
                         ambiguous[3].contains("\"last_message\":null"),
                 "Generic unmatched ban must not invent a victim or chat evidence");
 
+        // The imported AutoMod filename can differ from the repository example.
+        // A previously hardcoded filename silently discarded these real events.
+        String[] renamedAutoMod = collectorEvent("moderation_log", "Target",
+                "AutoMod test-ser/#room Target 100.0% infrazione 1 (avviso)",
+                "automod.lua", 1794405031L);
+        check(renamedAutoMod.length == 4 && "history".equals(renamedAutoMod[1]) &&
+                        ("Target" + (char)9 + "4").equals(renamedAutoMod[3]),
+                "Collector must capture AutoMod reports from automod.lua");
+        String[] renamedHistory = collectorEvent("history", "Target",
+                "Ultimo messaggio avvisato", "4", 1794405030L);
+        check(renamedHistory.length == 4 &&
+                        "journal".equals(renamedHistory[1]) &&
+                        renamedHistory[3].contains("\"action\":\"avviso\"") &&
+                        renamedHistory[3].contains("\"source_script\":\"automod.lua\"") &&
+                        renamedHistory[3].contains("Ultimo messaggio avvisato"),
+                "Renamed AutoMod warning must be archived with last message");
+
+        String[] customAutoMod = collectorEvent("moderation_log", "Target",
+                "AutoMod test-ser/#room Target 75.0% infrazione 2 (kick)",
+                "my_custom_script.lua", 1794405032L);
+        check(customAutoMod.length == 4 &&
+                        ("Target" + (char)9 + "5").equals(customAutoMod[3]),
+                "Collector must not rely on any AutoMod source filename");
+        String[] customHistory = collectorEvent("history", "Target",
+                "Ultima ripetizione", "5", 1794405031L);
+        check(customHistory.length == 4 &&
+                        customHistory[3].contains("\"action\":\"kick\"") &&
+                        customHistory[3].contains("\"source_script\":\"my_custom_script.lua\""),
+                "AutoMod kick is retained under a custom script name");
+
+        String[] unrelatedLog = collectorEvent("moderation_log", "Target",
+                "Other script called moderation", "automod.lua", 1794405033L);
+        check(unrelatedLog.length == 1 && "OK".equals(unrelatedLog[0]),
+                "Do not archive unrelated Lua logs as AutoMod events");
+        String[] forgedNick = collectorEvent("moderation_log", "Target",
+                "AutoMod test-ser/#room SomeoneElse 75.0% infrazione 1 (avviso)",
+                "automod.lua", 1794405034L);
+        check(forgedNick.length == 1 && "OK".equals(forgedNick[0]),
+                "Do not attribute AutoMod records to the wrong nickname");
+
         String[] off = collectorEvent("command", "self", "collector off",
                 "", 1794405040L);
         check("OK".equals(off[0]) &&
