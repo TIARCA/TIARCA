@@ -137,6 +137,8 @@ public final class LuaScriptDispatcher {
         final String nick;
         final String event;
         final String commandText;
+        final String eventText;
+        final long eventTimestamp;
         final boolean isEvent;
         final long generation;
 
@@ -153,6 +155,23 @@ public final class LuaScriptDispatcher {
             this.nick = nick;
             this.event = event;
             this.commandText = commandText;
+            this.eventText = "";
+            this.eventTimestamp = 0L;
+            this.isEvent = isEvent;
+            this.generation = generation;
+        }
+
+        Pending(String id, String server, String channel, String nick,
+                String event, boolean isEvent, long generation, String commandText,
+                String eventText, long eventTimestamp) {
+            this.scriptId = id;
+            this.server = server;
+            this.channel = channel;
+            this.nick = nick;
+            this.event = event;
+            this.commandText = commandText;
+            this.eventText = eventText;
+            this.eventTimestamp = eventTimestamp;
             this.isEvent = isEvent;
             this.generation = generation;
         }
@@ -958,7 +977,8 @@ public final class LuaScriptDispatcher {
                     data.putBoolean(LuaDiagnosticService.EXTRA_CAN_STORE, script.allowStorage);
                     request.setData(data);
                     sendMessage(request, new Pending(script.id, server, channel, nick, event, true,
-                            console.generation(server), "command".equals(event) ? text : ""));
+                            console.generation(server), "command".equals(event) ? text : "",
+                            "message".equals(event) ? text : "", time));
                 }
             } finally {
                 queuedEvents.decrementAndGet();
@@ -1039,7 +1059,7 @@ public final class LuaScriptDispatcher {
                                 new AutoModIntent(autoModAction, decidedAt));
                         recordCollector(request.server, "AUTOMOD", request.channel,
                                 script.name, request.nick, report,
-                                decidedAt, null, 0L,
+                                decidedAt, request.eventText, request.eventTimestamp,
                                 "automod_decision_unconfirmed");
                     }
                     try {
