@@ -618,10 +618,33 @@ public final class LuaScriptDispatcher {
             }
         }
         if (!installed) return;
+        String ident = null, host = null, account = null;
+        if (("KICK".equals(event) || "AUTOMOD".equals(event)) &&
+                target != null && !target.isEmpty()) {
+            try {
+                ServerConnectionInfo conn = ServerConnectionManager.getInstance(context)
+                        .getConnection(UUID.fromString(server));
+                if (conn != null && conn.getApiInstance() instanceof ServerConnectionApi) {
+                    IrcIdentityCache.Identity found = ((ServerConnectionApi)
+                            conn.getApiInstance()).getServerConnectionData()
+                                    .getIdentityCache().get(target);
+                    if (found != null) {
+                        ident = found.ident;
+                        host = found.host;
+                        account = found.accountKnown ?
+                                (found.account == null ? "*" : found.account) : null;
+                    }
+                }
+            } catch (RuntimeException ignored) {
+                // Lack of observed identity must not block event archival.
+            }
+        }
+        final String savedIdent = ident, savedHost = host, savedAccount = account;
         io.post(() -> {
             try {
                 collector.append(server, event, channel, actor, target, detail,
-                        timestamp, previous, previousTime, origin);
+                        timestamp, previous, previousTime, origin,
+                        savedIdent, savedHost, savedAccount);
             } catch (IOException error) {
                 console.log(server, "Collector", "Archive write error: " + error.getMessage());
             }
@@ -1058,7 +1081,7 @@ public final class LuaScriptDispatcher {
                                 request.channel, request.nick),
                                 new AutoModIntent(autoModAction, decidedAt));
                         recordCollector(request.server, "AUTOMOD", request.channel,
-                                script.name, request.nick, report,
+                                script.name, request.nick, value,
                                 decidedAt, request.eventText, request.eventTimestamp,
                                 "automod_decision_unconfirmed");
                     }
