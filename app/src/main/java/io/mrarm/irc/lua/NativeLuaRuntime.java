@@ -14,13 +14,29 @@ final class NativeLuaRuntime {
     private NativeLuaRuntime() { }
 
     static native byte[] load(String scriptId, byte[] source);
-    static native byte[][] dispatch(String scriptId, String event, byte[] server,
-                                    byte[] channel, byte[] nick, byte[] text,
-                                    byte[] messageType, long timestamp,
-                                    byte[][] channelNames, int[] memberCounts,
-                                    boolean channelsTruncated, byte[][] userFields,
-                                    boolean usersTruncated, boolean canReadUsers,
-                                    byte[][] storagePairs, boolean canUseStorage);
+    // Old signature retained for host regression tests and existing callers.
+    static byte[][] dispatch(String scriptId, String event, byte[] server,
+                             byte[] channel, byte[] nick, byte[] text,
+                             byte[] messageType, long timestamp,
+                             byte[][] channelNames, int[] memberCounts,
+                             boolean channelsTruncated, byte[][] userFields,
+                             boolean usersTruncated, boolean canReadUsers,
+                             byte[][] storagePairs, boolean canUseStorage) {
+        return dispatchWithIdentity(scriptId, event, server, channel, nick, text,
+                messageType, timestamp, channelNames, memberCounts, channelsTruncated,
+                userFields, usersTruncated, canReadUsers, storagePairs,
+                canUseStorage, new byte[0][]);
+    }
+
+    /** Historical message sender data retrieved from SQLite, never inferred. */
+    static native byte[][] dispatchWithIdentity(String scriptId, String event, byte[] server,
+                                                 byte[] channel, byte[] nick, byte[] text,
+                                                 byte[] messageType, long timestamp,
+                                                 byte[][] channelNames, int[] memberCounts,
+                                                 boolean channelsTruncated, byte[][] userFields,
+                                                 boolean usersTruncated, boolean canReadUsers,
+                                                 byte[][] storagePairs, boolean canUseStorage,
+                                                 byte[][] historyIdentity);
     static native void unload(String scriptId);
     static native void clear();
 

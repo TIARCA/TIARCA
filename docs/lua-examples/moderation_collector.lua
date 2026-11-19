@@ -74,8 +74,8 @@ local function last_json(entry, e)
     '"channel":' .. quote(entry.channel),
     '"timestamp":' .. number(e.timestamp),
     '"nickname":' .. quote(entry.nickname),
-    '"ident":' .. quote(id and id.ident),
-    '"host":' .. quote(id and id.host),
+    '"ident":' .. quote(e.ident or (id and id.ident)),
+    '"host":' .. quote(e.host or (id and id.host)),
     '"account":' .. quote(id and id.account),
     '"text":' .. quote(e.text),
     '"source":"sqlite_history"'

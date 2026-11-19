@@ -685,6 +685,14 @@ public final class LuaScriptDispatcher {
     private boolean enqueueOnly(String event, String server, String channel,
                                 String nick, String text, String messageType, long time,
                                 String onlyScriptId) {
+        return enqueueOnlyWithIdentity(event, server, channel, nick, text, messageType,
+                time, onlyScriptId, null, null);
+    }
+
+    /** Sender fields from the actual stored chat message, not a guessed current identity. */
+    private boolean enqueueOnlyWithIdentity(String event, String server, String channel,
+            String nick, String text, String messageType, long time, String onlyScriptId,
+            String historyIdent, String historyHost) {
         if (remote == null || console.isPaused(server) ||
                 store.enabledOn(server).isEmpty()) return false;
         long currentGeneration = console.generation(server);
@@ -745,6 +753,12 @@ public final class LuaScriptDispatcher {
                     data.putString(LuaDiagnosticService.EXTRA_NICK, nick);
                     data.putString(LuaDiagnosticService.EXTRA_TEXT, text);
                     data.putString(LuaDiagnosticService.EXTRA_MESSAGE_TYPE, messageType);
+                    if ("history".equals(event)) {
+                        data.putString(LuaDiagnosticService.EXTRA_HISTORY_IDENT,
+                                historyIdent == null ? "" : historyIdent);
+                        data.putString(LuaDiagnosticService.EXTRA_HISTORY_HOST,
+                                historyHost == null ? "" : historyHost);
+                    }
                     data.putLong(LuaDiagnosticService.EXTRA_TIME, time);
                     data.putStringArrayList(LuaDiagnosticService.EXTRA_CHANNEL_NAMES,
                             channels.names);
@@ -781,6 +795,13 @@ public final class LuaScriptDispatcher {
         });
         if (!accepted) queuedEvents.decrementAndGet();
         return accepted;
+    }
+
+    private static String safeHistoricIdentity(String value, int limit) {
+        return value != null && value.length() <= limit &&
+                value.indexOf('\\n') < 0 && value.indexOf('\\r') < 0 &&
+                value.indexOf('\\t') < 0 && value.indexOf('\\0') < 0 ?
+                value : "";
     }
 
     /** Read the bounded existing SQLite history only after an authorized Lua
@@ -830,7 +851,10 @@ public final class LuaScriptDispatcher {
                                 if (text.length() > 512 ||
                                         text.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 2048)
                                     text = text.substring(0, Math.min(512, text.length()));
-                                respond.accept(text, m.getDate().getTime() / 1000);
+                                enqueueOnlyWithIdentity("history", server, channel, nick,
+                                        text, token, m.getDate().getTime() / 1000,
+                                        script.id, safeHistoricIdentity(m.getSender().getUser(), 96),
+                                        safeHistoricIdentity(m.getSender().getHost(), 256));
                                 return;
                             }
                         }

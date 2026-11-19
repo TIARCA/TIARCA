@@ -776,12 +776,13 @@ static void set_field(lua_State *L, const char *name, const char *value) {
 }
 
 JNIEXPORT jobjectArray JNICALL
-Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatch(JNIEnv *env, jclass unused,
+Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchWithIdentity(JNIEnv *env, jclass unused,
         jstring jid, jstring jevent, jbyteArray jserver, jbyteArray jchannel,
         jbyteArray jnick, jbyteArray jtext, jbyteArray jtype, jlong timestamp,
         jobjectArray jchannels, jintArray jcounts, jboolean jtruncated,
         jobjectArray jroster, jboolean jrostertruncated,
-        jboolean jcanreadusers, jobjectArray jstorage, jboolean jcanstore) {
+        jboolean jcanreadusers, jobjectArray jstorage, jboolean jcanstore,
+        jobjectArray jhistoryidentity) {
     (void)unused;
     char server[64], channel[97], nick[97], text[2049], type[97];
     if (!jid || !jevent ||
@@ -877,6 +878,26 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatch(JNIEnv *env, jclass unused,
         if (stored_bytes > MAX_STORAGE_BYTES) return NULL;
         s->stored_count++;
     }
+    char historical_ident[97] = "", historical_host[257] = "";
+    if (jhistoryidentity) {
+        jsize histFields = (*env)->GetArrayLength(env, jhistoryidentity);
+        if (histFields != 0 && histFields != 2) return NULL;
+        if (histFields == 2) {
+            if (kind != 11 || jcanreadusers != JNI_TRUE) return NULL;
+            jbyteArray ident = (jbyteArray)(*env)->GetObjectArrayElement(
+                    env, jhistoryidentity, 0);
+            jbyteArray host = (jbyteArray)(*env)->GetObjectArrayElement(
+                    env, jhistoryidentity, 1);
+            if (!ident || !host) return NULL;
+            int ok = copy_java_bytes(env, ident, historical_ident,
+                    sizeof(historical_ident)) &&
+                    copy_java_bytes(env, host, historical_host,
+                    sizeof(historical_host));
+            (*env)->DeleteLocalRef(env, ident);
+            (*env)->DeleteLocalRef(env, host);
+            if (!ok) return NULL;
+        }
+    }
     lua_State *L = s->L;
     s->steps = 0;
     s->action_count = 0;
@@ -892,6 +913,10 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatch(JNIEnv *env, jclass unused,
         set_field(L, "nick", nick);
         set_field(L, "text", text);
         set_field(L, "message_type", type);
+        if (kind == 11) {
+            if (historical_ident[0]) set_field(L, "ident", historical_ident);
+            if (historical_host[0]) set_field(L, "host", historical_host);
+        }
         const char *event_names[] = {"message", "connected", "disconnected", "command",
                                     "join", "part", "quit", "nick", "timer",
                                     "kick", "ban", "history", "moderation_log"};
