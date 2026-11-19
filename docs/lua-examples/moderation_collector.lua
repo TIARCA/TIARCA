@@ -4,6 +4,7 @@
 -- the Android-side collector bridge and are not yet implemented.
 local enabled = {}
 local counts = {}
+local pending = {}
 local function key(e) return e.server or "" end
 local function status(e)
   local s=key(e)
@@ -27,9 +28,20 @@ local function report(e,kind,target,reason)
     "time="..tostring(e.timestamp or "")
   }," | ")
   tiarca.log(line)
+  if kind=="KICK" then
+    pending[s.."|"..(e.channel or "").."|"..(target or "")]=true
+  end
 end
 tiarca.on("kick",function(e)
   report(e,"KICK",e.message_type,e.text)
+end)
+tiarca.on("kick_context",function(e)
+  local k=key(e).."|"..(e.channel or "").."|"..(e.nick or "")
+  if not pending[k] or not status(e) then return end
+  pending[k]=nil
+  tiarca.log("Collector | PRE_KICK_MESSAGE | channel="..(e.channel or "")..
+    " | target="..(e.nick or "").." | time="..tostring(e.timestamp or "")..
+    " | text="..(e.text or ""))
 end)
 tiarca.on("ban",function(e)
   report(e,"BAN",e.text,"MODE +b")
