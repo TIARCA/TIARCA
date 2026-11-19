@@ -550,8 +550,8 @@ static int script_journal_export(lua_State *L) {
 static int script_journal_rotate(lua_State *L) {
     require_storage(L);
     ScriptVm *s = context(L);
-    if (s->event_active != 1 || strcmp(s->event_kind, "command") != 0)
-        return luaL_error(L, "tiarca.journal.rotate: local command required");
+    if (!s->event_active)
+        return luaL_error(L, "tiarca.journal.rotate: active callback required");
     if (lua_gettop(L) != 0)
         return luaL_error(L, "tiarca.journal.rotate: no arguments expected");
     add_action(L, "rotate", "", 0, "1", 1);
@@ -562,8 +562,8 @@ static int script_journal_rotate(lua_State *L) {
 static int script_journal_export_archive(lua_State *L) {
     require_storage(L);
     ScriptVm *s = context(L);
-    if (s->event_active != 1 || strcmp(s->event_kind, "command") != 0)
-        return luaL_error(L, "tiarca.journal.export_archive: local command required");
+    if (!s->event_active)
+        return luaL_error(L, "tiarca.journal.export_archive: active callback required");
     if (lua_gettop(L) != 0)
         return luaL_error(L, "tiarca.journal.export_archive: no arguments expected");
     add_action(L, "archive", "", 0, "1", 1);
