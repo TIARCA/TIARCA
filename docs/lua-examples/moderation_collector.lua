@@ -45,7 +45,10 @@ local function save_channels(server, c)
   local raw = c.all and "all" or (#names == 0 and "none" or
       "only:" .. table.concat(names, ","))
   local ok = pcall(tiarca.storage.set, channel_key(server), raw)
-  if ok then channels[server] = c end
+  if ok then
+    channels[server] = c
+    observed[server] = nil -- drop identity hints after a scope change
+  end
   return ok
 end
 local function channels_status(server)
