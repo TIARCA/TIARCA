@@ -693,8 +693,13 @@ public final class LuaScriptDispatcher {
      * False means the UI should retain the command for retry.
      */
     public boolean onCommand(ServerConnectionInfo connection, String channel, String command) {
-        if (connection == null || !connection.isConnected() ||
-                connection.getApiInstance() == null || command == null || command.isEmpty())
+        if (connection == null || command == null || command.isEmpty())
+            return false;
+        // Local archive export/status must not depend on a live IRC socket.
+        boolean collectorCommand = command.trim().toLowerCase(Locale.ROOT)
+                .startsWith("collector ");
+        if (!collectorCommand &&
+                (!connection.isConnected() || connection.getApiInstance() == null))
             return false;
         String target = channel == null ? "" : channel;
         String nick = connection.getUserNick();
