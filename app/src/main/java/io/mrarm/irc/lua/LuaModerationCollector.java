@@ -43,8 +43,15 @@ final class LuaModerationCollector {
             obj.put("detail", detail);
             obj.put("timestamp", timestamp);
             obj.put("origin", origin);
-            obj.put("prior_message", previous == null ? JSONObject.NULL : previous);
-            obj.put("prior_timestamp", previous == null ? JSONObject.NULL : previousTime);
+            boolean autoMod = "AUTOMOD".equals(event);
+            obj.put("prior_message", autoMod || previous == null ?
+                    JSONObject.NULL : previous);
+            obj.put("prior_timestamp", autoMod || previous == null ?
+                    JSONObject.NULL : previousTime);
+            obj.put("trigger_message", autoMod && previous != null ?
+                    previous : JSONObject.NULL);
+            obj.put("trigger_timestamp", autoMod && previous != null ?
+                    previousTime : JSONObject.NULL);
             obj.put("prior_message_is_proven_cause", false);
         } catch (org.json.JSONException ex) { throw new IOException(ex); }
         File f = file(server);
