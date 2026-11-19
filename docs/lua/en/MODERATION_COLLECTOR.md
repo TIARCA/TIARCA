@@ -8,7 +8,7 @@
 
 All collection decisions, event selection, SQLite lookup requests and JSONL serialization happen in **moderation_collector.lua**. The Android host only exposes generic Lua facilities; it performs no Collector-specific work when the script is disabled.
 
-- AutoMod **monitor, warning, kick, ban, mute, timed ban and combined actions**, explicitly marked as **requested, unconfirmed** decisions.
+- AutoMod **monitor, warning, kick, ban, mute, timed ban and combined actions**, recognized even when the AutoMod script was imported under a different filename (for example `automod.lua`), explicitly marked as **requested, unconfirmed** decisions.
 - Server-observed KICK from any operator/bot, with **actor**, **target nickname** and any **reason**.
 - Server-observed MODE +b, with actor and mask; no reason is transmitted in that protocol command. A nickname is attached only when identifiable without ambiguity.
 - The target's **latest earlier public message**, if found in the last **200 messages of the channel's existing SQLite history**. The Lua script requests this on demand after any qualifying event, including AutoMod.
