@@ -66,6 +66,48 @@ final class LuaScriptJournal {
         return output;
     }
 
+    /**
+     * Start a fresh journal without destroying the old one.  The previous file
+     * is renamed into a durable private archive before it is shared; cancelling
+     * the Android chooser cannot delete the previous events.
+     */
+    synchronized File rotate(String script, String server) throws IOException {
+        File current = file(script, server);
+        if (!current.isFile() || current.length() == 0)
+            throw new IOException("No journal records to rotate");
+        File directory = new File(current.getParentFile(), "archives");
+        if (!directory.isDirectory() && !directory.mkdirs())
+            throw new IOException("Cannot create journal archive directory");
+        File archive = new File(directory, server + "-" +
+                System.currentTimeMillis() + "-" + UUID.randomUUID() + ".jsonl");
+        // Same filesystem and directory tree: rename before sharing.  No truncate
+        // and no deletion; if copying to cache fails, the archive remains intact.
+        Files.move(current.toPath(), archive.toPath(), StandardCopyOption.ATOMIC_MOVE);
+        return copyForSharing(archive, "tiarca-archived-" + script + "-" + server +
+                "-" + archive.getName().substring(server.length() + 1));
+    }
+
+    /** Reopen the latest durable archive after an interrupted/aborted share. */
+    synchronized File snapshotLastArchive(String script, String server) throws IOException {
+        File directory = new File(file(script, server).getParentFile(), "archives");
+        File[] candidates = directory.listFiles((dir, name) ->
+                name.startsWith(server + "-") && name.endsWith(".jsonl"));
+        if (candidates == null || candidates.length == 0)
+            throw new IOException("No previous journal archive");
+        java.util.Arrays.sort(candidates, java.util.Comparator.comparing(File::getName));
+        File last = candidates[candidates.length - 1];
+        return copyForSharing(last, "tiarca-archived-" + script + "-" + last.getName());
+    }
+
+    private File copyForSharing(File source, String name) throws IOException {
+        File cache = new File(context.getCacheDir(), "diagnostics");
+        if (!cache.isDirectory() && !cache.mkdirs())
+            throw new IOException("Cannot create export cache");
+        File output = new File(cache, name);
+        Files.copy(source.toPath(), output.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        return output;
+    }
+
     void share(File snapshot) {
         Uri uri = FileProvider.getUriForFile(context,
                 context.getPackageName() + ".fileprovider", snapshot);
