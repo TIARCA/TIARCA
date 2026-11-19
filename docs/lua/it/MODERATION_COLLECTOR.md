@@ -8,7 +8,7 @@
 - `KICK` ricevuti dal server, anche quando eseguiti da altri operatori o bot, con esecutore, nickname espulso e motivazione.
 - `MODE +b` ricevuti dal server, con esecutore e mask; il ban non implica necessariamente l'espulsione.
 - Decisioni di `automod_antiripetizione.lua` (avviso, kick, ban, mute, ecc.), conservate come **richieste non confermate** finché non si osservano eventi IRC compatibili.
-- L'ultimo messaggio **pubblico** precedente al KICK, se recuperabile dalla cronologia SQLite TIARCA fra gli ultimi 200 messaggi del canale. Per `+b` si tenta soltanto se la mask identifica esplicitamente un nick senza wildcard. Mancanza di corrispondenza = `null`, non un messaggio inventato.
+- L'ultimo messaggio **pubblico** precedente al KICK, se recuperabile dalla cronologia SQLite TIARCA fra gli ultimi 200 messaggi del canale. Per `+b` si tenta se la mask identifica esattamente un nick oppure se corrisponde a un solo autore con identità già osservata fra i messaggi recenti; in caso di ambiguità non si associa alcun messaggio. Mancanza di corrispondenza = `null`, non un messaggio inventato. Il JSONL indica `context_match` (`nick_exact` oppure `unique_observed_mask_identity`) e `context_nick` quando la corrispondenza è disponibile.
 
 Un messaggio precedente è **contesto**, non dimostrazione della causa del provvedimento. Le identità `ident`, `host` e `account` vengono incluse soltanto se già osservate da TIARCA. Un operatore esterno non è automaticamente classificato come persona o bot.
 
@@ -29,7 +29,7 @@ Non è necessario concedere agli script accesso ai file: la scrittura avviene **
 
 Un file JSONL incrementale per UUID della rete in una directory privata dell'app. Ogni riga è un oggetto JSON con campi `schema`, `event`, `server`, `channel`, `actor`, `target`, `detail`, `timestamp`, `origin`, `ident`, `host`, `account`, `prior_message`, `prior_timestamp`, `trigger_message`, `trigger_timestamp`. Per AutoMod sono presenti, quando analizzabili, `similarity_percent`, `infraction_level`, `requested_action`.
 
-L'archivio **non è un registro circolare**: nessuna sovrascrittura dopo 32 eventi, nessuna eliminazione automatica. Questo comporta una crescita dello spazio occupato. Viene esportata una copia temporanea, non si espone direttamente il file privato.
+L'archivio **non è un registro circolare**: nessuna sovrascrittura dopo 32 eventi, nessuna eliminazione automatica. Questo comporta una crescita dello spazio occupato. Viene esportata una copia temporanea, non si espone direttamente il file privato. Gli archivi sono esclusi dai backup automatici Android: usare esplicitamente `/lua collector export` prima di trasferire o disinstallare l’app.
 
 **Privacy:** il JSONL può contenere messaggi e dati identificativi di terzi. Esportarlo soltanto quando necessario e condividerlo con destinatari fidati; valutare oscuramento prima di pubblicarlo.
 
