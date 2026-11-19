@@ -11,10 +11,11 @@ EXPECTED_API = {
     "refresh_users", "maskfind", "show", "show_list", "storage.get",
     "storage.set", "storage.delete", "kick", "ban", "mode", "mute",
     "tban", "kickban", "kicktban", "blacklist_action",
+    "last_message", "journal.append", "journal.export",
 }
 EXPECTED_EVENTS = {
     "connected", "disconnected", "message", "command", "join", "part",
-    "quit", "nick", "timer",
+    "quit", "nick", "timer", "kick", "ban", "history", "moderation_log",
 }
 
 def links_ok(path: Path, content: str) -> list[str]:
@@ -55,7 +56,7 @@ def main() -> int:
         if found != EXPECTED_API:
             problems.append(f"{lang} API mismatch: missing={sorted(EXPECTED_API-found)}, extra={sorted(found-EXPECTED_API)}")
         events = (BASE / lang / "EVENTS.md").read_text(encoding="utf-8")
-        found_events = tokens(events, r"\| `(connected|disconnected|message|command|join|part|quit|nick|timer)` \|")
+        found_events = tokens(events, r"\| `([a-z_]+)` \|")
         if found_events != EXPECTED_EVENTS:
             problems.append(f"{lang} events mismatch: missing={sorted(EXPECTED_EVENTS-found_events)}")
     if problems:

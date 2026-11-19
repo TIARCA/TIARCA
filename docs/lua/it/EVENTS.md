@@ -14,6 +14,10 @@ Registra gli eventi con `tiarca.on("nome", function(event) ... end)`. Il callbac
 | `part` | Utente lascia un canale | Evento passivo |
 | `quit` | Utente esce dalla rete | Possibili callback per più canali |
 | `nick` | Cambio nickname | `event.nick` vecchio nick, `event.text` nuovo |
+| `kick` | KICK osservato dal server | `event.nick` esecutore, `event.message_type` nickname espulso, `event.text` motivazione |
+| `history` | Risposta asincrona a `tiarca.last_message` | `event.nick` destinatario, `event.text` ultimo messaggio oppure vuoto, `event.message_type` token di richiesta, `event.timestamp` orario messaggio o 0; solo allo script richiedente; `event.ident`/`event.host` quando memorizzati nel messaggio SQLite |
+| `moderation_log` | Rapporto di moderazione riconosciuto da un altro script | `event.nick` utente, `event.text` rapporto, `event.message_type` nome dello script sorgente; non prova l'esecuzione IRC |
+| `ban` | MODE +b osservato | `event.nick` esecutore, `event.text` mask; non implica espulsione |
 | `timer` | Tick approssimativo di 60 secondi | Solo quando servizio IRC attivo e rete connessa; non è un allarme preciso |
 
 Campi comuni: `type`, `server` (UUID configurazione server, **non** hostname), `channel`, `nick`, `text`, `message_type` (`normal`, `notice`, `me`), `timestamp` (secondi Unix). I campi dipendono dall'evento e possono essere vuoti.

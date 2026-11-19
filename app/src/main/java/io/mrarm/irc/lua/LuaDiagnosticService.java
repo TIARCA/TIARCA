@@ -29,6 +29,8 @@ public final class LuaDiagnosticService extends Service {
     public static final String EXTRA_NICK = "nick";
     public static final String EXTRA_TEXT = "text";
     public static final String EXTRA_MESSAGE_TYPE = "message_type";
+    public static final String EXTRA_HISTORY_IDENT = "history_ident";
+    public static final String EXTRA_HISTORY_HOST = "history_host";
     public static final String EXTRA_TIME = "time";
     public static final String EXTRA_CHANNEL_NAMES = "channel_names";
     public static final String EXTRA_CHANNEL_COUNTS = "channel_counts";
@@ -227,7 +229,9 @@ public final class LuaDiagnosticService extends Service {
                                 "disconnected".equals(event) || "command".equals(event) ||
                                 "join".equals(event) || "part".equals(event) ||
                                 "quit".equals(event) || "nick".equals(event) ||
-                                "timer".equals(event))) {
+                                "timer".equals(event) || "kick".equals(event) ||
+                                "ban".equals(event) || "history".equals(event) ||
+                                "moderation_log".equals(event))) {
                     status = "ERROR: invalid event";
                 } else if (names == null || memberCounts == null ||
                         names.size() != memberCounts.length ||
@@ -302,7 +306,7 @@ public final class LuaDiagnosticService extends Service {
                             } else {
                                 String runtimeId = scopedRuntimeIds.getOrDefault(
                                         scriptId + ":" + server, scriptId);
-                                byte[][] nativeActions = NativeLuaRuntime.dispatch(runtimeId, event,
+                                byte[][] nativeActions = NativeLuaRuntime.dispatchWithIdentity(runtimeId, event,
                                         NativeLuaRuntime.utf8(server), NativeLuaRuntime.utf8(channel),
                                         NativeLuaRuntime.utf8(nick), NativeLuaRuntime.utf8(text),
                                         NativeLuaRuntime.utf8(messageType), request.getLong(EXTRA_TIME),
@@ -311,7 +315,13 @@ public final class LuaDiagnosticService extends Service {
                                         userFields,
                                         request.getBoolean(EXTRA_USERS_TRUNCATED, false),
                                         request.getBoolean(EXTRA_CAN_READ_USERS, false),
-                                        storagePairs, request.getBoolean(EXTRA_CAN_STORE, false));
+                                        storagePairs, request.getBoolean(EXTRA_CAN_STORE, false),
+                                        "history".equals(event) ? new byte[][]{
+                                                NativeLuaRuntime.utf8(
+                                                        request.getString(EXTRA_HISTORY_IDENT, "")),
+                                                NativeLuaRuntime.utf8(
+                                                        request.getString(EXTRA_HISTORY_HOST, ""))
+                                        } : new byte[0][]);
                         if (nativeActions == null || nativeActions.length < 1 ||
                                 (nativeActions.length - 1) % 3 != 0 ||
                                 nativeActions.length > 37) {

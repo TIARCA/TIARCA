@@ -29,6 +29,11 @@ import io.mrarm.chatlib.dto.MessageInfo;
 import io.mrarm.chatlib.dto.StatusMessageInfo;
 import java.util.Date;
 import io.mrarm.chatlib.dto.NickChangeMessageInfo;
+import io.mrarm.chatlib.dto.KickMessageInfo;
+import io.mrarm.chatlib.dto.ChannelModeMessageInfo;
+import io.mrarm.chatlib.dto.MessageList;
+import io.mrarm.chatlib.dto.MessageFilterOptions;
+import java.util.Arrays;
 import io.mrarm.chatlib.irc.IrcIdentityCache;
 import io.mrarm.chatlib.irc.IRCConnection;
 import io.mrarm.irc.util.ChannelOperatorUtils;
@@ -63,6 +68,8 @@ public final class LuaScriptDispatcher {
 
     private final Context context;
     private final LuaScriptStore store;
+    // Generic journal: no moderation rules or subscriptions in the Android host.
+    private final LuaScriptJournal journal;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final HandlerThread ioThread = new HandlerThread("tiarca-lua-ipc");
     private final Handler io;
@@ -121,6 +128,8 @@ public final class LuaScriptDispatcher {
         final String nick;
         final String event;
         final String commandText;
+        final String eventText;
+        final long eventTimestamp;
         final boolean isEvent;
         final long generation;
 
@@ -137,6 +146,23 @@ public final class LuaScriptDispatcher {
             this.nick = nick;
             this.event = event;
             this.commandText = commandText;
+            this.eventText = "";
+            this.eventTimestamp = 0L;
+            this.isEvent = isEvent;
+            this.generation = generation;
+        }
+
+        Pending(String id, String server, String channel, String nick,
+                String event, boolean isEvent, long generation, String commandText,
+                String eventText, long eventTimestamp) {
+            this.scriptId = id;
+            this.server = server;
+            this.channel = channel;
+            this.nick = nick;
+            this.event = event;
+            this.commandText = commandText;
+            this.eventText = eventText;
+            this.eventTimestamp = eventTimestamp;
             this.isEvent = isEvent;
             this.generation = generation;
         }
@@ -184,6 +210,7 @@ public final class LuaScriptDispatcher {
     private LuaScriptDispatcher(Context context) {
         this.context = context;
         this.store = LuaScriptStore.get(context);
+        this.journal = new LuaScriptJournal(context);
         ioThread.start();
         io = new Handler(ioThread.getLooper());
     }
@@ -372,6 +399,29 @@ public final class LuaScriptDispatcher {
         else if (type == MessageInfo.MessageType.QUIT) event = "quit";
         else if (type == MessageInfo.MessageType.NICK_CHANGE &&
                 info instanceof NickChangeMessageInfo) event = "nick";
+        else if (type == MessageInfo.MessageType.KICK &&
+                info instanceof KickMessageInfo) event = "kick";
+        else if (type == MessageInfo.MessageType.MODE &&
+                info instanceof ChannelModeMessageInfo) {
+            // A MODE may contain several +b masks. Emit one event per added ban.
+            MessageSenderInfo modeSender = info.getSender();
+            if (modeSender == null || modeSender.getNick() == null) return;
+            long modeTime = info.getDate() == null ? System.currentTimeMillis()/1000 :
+                    info.getDate().getTime()/1000;
+            for (ChannelModeMessageInfo.Entry entry :
+                    ((ChannelModeMessageInfo) info).getEntries()) {
+                if (entry.getMode() != 'b' || entry.isRemoved() ||
+                        entry.getParam() == null || entry.getParam().isEmpty()) continue;
+                String mask = entry.getParam();
+                if (mask.length() > 1024 ||
+                        mask.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 2048)
+                    continue;
+                enqueue("ban", connection.getUUID().toString(), channel,
+                        modeSender.getNick(), mask, "", modeTime);
+
+            }
+            return;
+        }
         else return;
 
         MessageSenderInfo sender = info.getSender();
@@ -393,7 +443,13 @@ public final class LuaScriptDispatcher {
                 channel.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 96 ||
                 sender.getNick().getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 96 ||
                 value.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 2048) return;
-        String messageType = content ? type.name().toLowerCase(java.util.Locale.ROOT) : "";
+        // For kick, message_type carries the kicked target; nick is the actor.
+        String messageType = "kick".equals(event) ?
+                ((KickMessageInfo) info).getKickedNick() :
+                content ? type.name().toLowerCase(java.util.Locale.ROOT) : "";
+        if (messageType == null || messageType.length() > 64 ||
+                messageType.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 96)
+            return;
         long timestamp = info.getDate() == null ?
                 System.currentTimeMillis()/1000 : info.getDate().getTime()/1000;
         enqueue(event, connection.getUUID().toString(), channel, sender.getNick(),
@@ -406,8 +462,9 @@ public final class LuaScriptDispatcher {
      * False means the UI should retain the command for retry.
      */
     public boolean onCommand(ServerConnectionInfo connection, String channel, String command) {
-        if (connection == null || !connection.isConnected() ||
-                connection.getApiInstance() == null || command == null || command.isEmpty())
+        if (connection == null || command == null || command.isEmpty())
+            return false;
+        if (!connection.isConnected() || connection.getApiInstance() == null)
             return false;
         String target = channel == null ? "" : channel;
         String nick = connection.getUserNick();
@@ -621,6 +678,21 @@ public final class LuaScriptDispatcher {
 
     private boolean enqueue(String event, String server, String channel,
                             String nick, String text, String messageType, long time) {
+        return enqueueOnly(event, server, channel, nick, text, messageType, time, null);
+    }
+
+    /** Optional single-script delivery for asynchronous history results. */
+    private boolean enqueueOnly(String event, String server, String channel,
+                                String nick, String text, String messageType, long time,
+                                String onlyScriptId) {
+        return enqueueOnlyWithIdentity(event, server, channel, nick, text, messageType,
+                time, onlyScriptId, null, null);
+    }
+
+    /** Sender fields from the actual stored chat message, not a guessed current identity. */
+    private boolean enqueueOnlyWithIdentity(String event, String server, String channel,
+            String nick, String text, String messageType, long time, String onlyScriptId,
+            String historyIdent, String historyHost) {
         if (remote == null || console.isPaused(server) ||
                 store.enabledOn(server).isEmpty()) return false;
         long currentGeneration = console.generation(server);
@@ -653,6 +725,7 @@ public final class LuaScriptDispatcher {
                     }
                 }
                 for (LuaScriptStore.Script script : eligible) {
+                    if (onlyScriptId != null && !onlyScriptId.equals(script.id)) continue;
                     LuaUserSnapshot users = LuaUserSnapshot.capture(null, null);
                     if (script.allowUserInfo && !"disconnected".equals(event)) {
                         try {
@@ -680,6 +753,12 @@ public final class LuaScriptDispatcher {
                     data.putString(LuaDiagnosticService.EXTRA_NICK, nick);
                     data.putString(LuaDiagnosticService.EXTRA_TEXT, text);
                     data.putString(LuaDiagnosticService.EXTRA_MESSAGE_TYPE, messageType);
+                    if ("history".equals(event)) {
+                        data.putString(LuaDiagnosticService.EXTRA_HISTORY_IDENT,
+                                historyIdent == null ? "" : historyIdent);
+                        data.putString(LuaDiagnosticService.EXTRA_HISTORY_HOST,
+                                historyHost == null ? "" : historyHost);
+                    }
                     data.putLong(LuaDiagnosticService.EXTRA_TIME, time);
                     data.putStringArrayList(LuaDiagnosticService.EXTRA_CHANNEL_NAMES,
                             channels.names);
@@ -707,7 +786,8 @@ public final class LuaScriptDispatcher {
                     data.putBoolean(LuaDiagnosticService.EXTRA_CAN_STORE, script.allowStorage);
                     request.setData(data);
                     sendMessage(request, new Pending(script.id, server, channel, nick, event, true,
-                            console.generation(server), "command".equals(event) ? text : ""));
+                            console.generation(server), "command".equals(event) ? text : "",
+                            "message".equals(event) ? text : "", time));
                 }
             } finally {
                 queuedEvents.decrementAndGet();
@@ -715,6 +795,75 @@ public final class LuaScriptDispatcher {
         });
         if (!accepted) queuedEvents.decrementAndGet();
         return accepted;
+    }
+
+    private static String safeHistoricIdentity(String value, int limit) {
+        return value != null && value.length() <= limit &&
+                value.getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= limit &&
+                value.indexOf('\n') < 0 && value.indexOf('\r') < 0 &&
+                value.indexOf('\t') < 0 && value.indexOf('\0') < 0 ?
+                value : "";
+    }
+
+    /** Read the bounded existing SQLite history only after an authorized Lua
+     * callback explicitly requests it. No automatic collector queries. */
+    private void lookupHistoryForScript(LuaScriptStore.Script script, Pending request,
+                                        String channel, String value) {
+        if (!script.allowStorage || !script.allowUserInfo ||
+                !channel.equals(request.channel) ||
+                !("kick".equals(request.event) || "ban".equals(request.event) ||
+                  "moderation_log".equals(request.event)) ||
+                channel.length() > 64 || value == null) return;
+        String[] parts = value.split("\\t", -1);
+        if (parts.length != 2 || parts[0].isEmpty() || parts[0].length() > 64 ||
+                !parts[0].matches("[^\\s,!:]+") ||
+                !parts[1].matches("[a-z0-9]{1,20}")) return;
+        final String nick = parts[0], token = parts[1];
+        final String server = request.server;
+        final long cutoff = request.eventTimestamp;
+        final java.util.function.BiConsumer<String, Long> respond = (body, when) ->
+                enqueueOnly("history", server, channel, nick,
+                        body == null ? "" : body, token, when, script.id);
+        try {
+            ServerConnectionInfo conn = ServerConnectionManager.getInstance(context)
+                    .getConnection(UUID.fromString(server));
+            if (conn == null || !(conn.getApiInstance() instanceof ServerConnectionApi)) {
+                respond.accept(null, 0L);
+                return;
+            }
+            ServerConnectionApi api = (ServerConnectionApi) conn.getApiInstance();
+            // The event already scopes the channel; the target may have just been kicked.
+            MessageFilterOptions filter = new MessageFilterOptions();
+            filter.restrictToMessageTypes = Arrays.asList(
+                    MessageInfo.MessageType.NORMAL, MessageInfo.MessageType.ME);
+            api.getMessageStorageApi().getMessages(channel, 200, filter, null,
+                    (MessageList history) -> {
+                        if (history != null && history.getMessages() != null) {
+                            List<MessageInfo> messages = history.getMessages();
+                            for (int i = messages.size() - 1; i >= 0; i--) {
+                                MessageInfo m = messages.get(i);
+                                if (m == null || m.getSender() == null ||
+                                        m.getSender().getNick() == null ||
+                                        !nick.equalsIgnoreCase(m.getSender().getNick()) ||
+                                        m.getMessage() == null || m.getDate() == null ||
+                                        m.getDate().getTime() / 1000 > cutoff) continue;
+                                String text = m.getMessage();
+                                // JNI and Binder limits: preserve a valid bounded prefix.
+                                if (text.length() > 512 ||
+                                        text.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 2048)
+                                    text = text.substring(0, Math.min(512, text.length()));
+                                enqueueOnlyWithIdentity("history", server, channel, nick,
+                                        text, token, m.getDate().getTime() / 1000,
+                                        script.id, safeHistoricIdentity(m.getSender().getUser(), 96),
+                                        safeHistoricIdentity(m.getSender().getHost(), 256));
+                                return;
+                            }
+                        }
+                        respond.accept(null, 0L);
+                    }, error -> respond.accept(null, 0L));
+        } catch (RuntimeException ignored) {
+            respond.accept(null, 0L);
+        }
     }
 
     private boolean handleReply(Message message) {
@@ -779,6 +928,11 @@ public final class LuaScriptDispatcher {
                 String report = LuaAutoModReport.fromEventLog(
                         request.event, request.server, request.channel, request.nick, value);
                 if (report != null) {
+                    // Publish a generic observed moderation report to enabled Lua
+                    // scripts; only an external script decides whether to archive it.
+                    if (!"moderation_log".equals(request.event))
+                        enqueue("moderation_log", request.server, request.channel,
+                                request.nick, value, script.name, request.eventTimestamp);
                     try {
                         ServerConnectionInfo connection = ServerConnectionManager
                                 .getInstance(context).getConnection(UUID.fromString(request.server));
@@ -801,6 +955,35 @@ public final class LuaScriptDispatcher {
                 boolean notice = "notice".equals(kind);
                 io.post(() -> main.post(() ->
                         sendDirectAuthorized(script, request, target, value, notice)));
+            } else if ("journal".equals(kind)) {
+                if (!script.allowStorage || !target.isEmpty()) continue;
+                io.post(() -> {
+                    try { journal.append(script.id, request.server, value); }
+                    catch (IOException error) {
+                        console.log(request.server, script.name,
+                                "Lua journal append failed: " + error.getMessage());
+                    }
+                });
+            } else if ("export".equals(kind)) {
+                if (!script.allowStorage || !"command".equals(request.event) ||
+                        !target.isEmpty() || !"1".equals(value)) continue;
+                io.post(() -> {
+                    try {
+                        java.io.File snapshot = journal.snapshot(script.id, request.server);
+                        main.post(() -> {
+                            try { journal.share(snapshot); }
+                            catch (RuntimeException error) {
+                                console.log(request.server, script.name,
+                                        "Lua journal export unavailable");
+                            }
+                        });
+                    } catch (IOException error) {
+                        console.log(request.server, script.name,
+                                "Lua journal export failed: " + error.getMessage());
+                    }
+                });
+            } else if ("history".equals(kind)) {
+                lookupHistoryForScript(script, request, target, value);
             } else if ("store".equals(kind) || "erase".equals(kind)) {
                 String operation = kind;
                 io.post(() -> {

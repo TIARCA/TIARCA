@@ -115,6 +115,33 @@ public final class HostLuaRuntimeTest {
                 roster, false, true, automodSnapshot(), automodActive));
     }
 
+
+    private static String[] collectorEvent(String event, String nick, String text,
+                                           String messageType, long when) {
+        byte[][] roster = new byte[][]{
+                bytes("Target"), bytes(""), bytes("ident"),
+                bytes("host.example"), bytes("account")
+        };
+        return collect(NativeLuaRuntime.dispatch(ID, event, bytes("test-server"),
+                bytes("#room"), bytes(nick), bytes(text), bytes(messageType), when,
+                new byte[0][], new int[0], false,
+                roster, false, true, automodSnapshot(), true));
+    }
+
+    private static String[] historyWithStoredSender() {
+        byte[][] roster = new byte[][]{
+                bytes("Target"), bytes(""), bytes("ident"),
+                bytes("host.example"), bytes("account")
+        };
+        return collect(NativeLuaRuntime.dispatchWithIdentity(ID, "history",
+                bytes("test-server"), bytes("#room"), bytes("Target"),
+                bytes("Messaggio precedente"), bytes("1"), 1794404999L,
+                new byte[0][], new int[0], false, roster, false, true,
+                automodSnapshot(), true, new byte[][]{
+                        bytes("saved-ident"), bytes("saved.host.example")
+                }));
+    }
+
     public static void main(String[] args) throws Exception {
         String source = "local counter = 0\n"
                 + "tiarca.on('message', function(event)\n"
@@ -878,6 +905,109 @@ public final class HostLuaRuntimeTest {
                 1794402302L, "", "*");
         check(freshWarn.length == 7 && "send".equals(freshWarn[4]),
                 "New natural-expiry window starts from first warning");
+
+
+        // Standalone Collector: load the actual shipped Lua source and exercise
+        // generic script actions, rather than a Java host-side collector.
+        automodStorage.clear();
+        automodActive = true;
+        String collectorSource = Files.readString(
+                Path.of("docs/lua-examples/moderation_collector.lua"));
+        String collectorLoad = decode(NativeLuaRuntime.load(ID, bytes(collectorSource)));
+        check("OK".equals(collectorLoad),
+                "Standalone collector Lua source must load: " + collectorLoad);
+
+        String[] collectorKick = collectorEvent("kick", "ChannelOp", "spam",
+                "Target", 1794405000L);
+        check(collectorKick.length == 4 && "OK".equals(collectorKick[0]) &&
+                        "history".equals(collectorKick[1]) &&
+                        "#room".equals(collectorKick[2]) &&
+                        ("Target" + (char)9 + "1").equals(collectorKick[3]),
+                "KICK asks for the target's last stored channel message");
+        String[] kickHistory = historyWithStoredSender();
+        check(kickHistory.length == 4 && "journal".equals(kickHistory[1]) &&
+                        kickHistory[3].contains("\"event\":\"kick\"") &&
+                        kickHistory[3].contains("\"operator\":\"ChannelOp\"") &&
+                        kickHistory[3].contains("\"reason\":\"spam\"") &&
+                        kickHistory[3].contains("\"last_message\":{") &&
+                        kickHistory[3].contains("\"ident\":\"saved-ident\"") &&
+                        kickHistory[3].contains("\"host\":\"saved.host.example\"") &&
+                        kickHistory[3].contains("Messaggio precedente"),
+                "KICK JSONL must contain operator, reason and SQLite message/identity");
+
+        String[] collectorAutoMod = collectorEvent("moderation_log", "Target",
+                "AutoMod test-ser/#room Target 78.0% infrazione 2 (mute)",
+                "automod_antiripetizione.lua", 1794405010L);
+        check(collectorAutoMod.length == 4 && "history".equals(collectorAutoMod[1]) &&
+                        ("Target" + (char)9 + "2").equals(collectorAutoMod[3]),
+                "AutoMod mute decision asks for last historical public message");
+        String[] autoHistory = collectorEvent("history", "Target",
+                "Messaggio ripetuto", "2", 1794405010L);
+        check(autoHistory.length == 4 && "journal".equals(autoHistory[1]) &&
+                        autoHistory[3].contains("\"event\":\"automod\"") &&
+                        autoHistory[3].contains("\"action\":\"mute\"") &&
+                        autoHistory[3].contains("\"similarity_percent\":78.0") &&
+                        autoHistory[3].contains("\"infraction_level\":2") &&
+                        autoHistory[3].contains("Messaggio ripetuto"),
+                "AutoMod JSONL must contain action, detection data and context");
+
+        String[] collectorBan = collectorEvent("ban", "ChannelOp",
+                "Target!*@*", "", 1794405020L);
+        check(collectorBan.length == 4 && "history".equals(collectorBan[1]) &&
+                        ("Target" + (char)9 + "3").equals(collectorBan[3]),
+                "Exact-nick ban requests target history");
+        String[] banHistory = collectorEvent("history", "Target",
+                "Ultimo ban", "3", 1794405019L);
+        check(banHistory.length == 4 && "journal".equals(banHistory[1]) &&
+                        banHistory[3].contains("\"event\":\"ban\"") &&
+                        banHistory[3].contains("\"operator\":\"ChannelOp\"") &&
+                        banHistory[3].contains("\"ban_mask\":\"Target!*@*\""),
+                "Observed ban JSONL must contain setter, mask and message context");
+
+        String[] ambiguous = collectorEvent("ban", "ChannelOp", "*!*@other.example",
+                "", 1794405030L);
+        check(ambiguous.length == 4 && "journal".equals(ambiguous[1]) &&
+                        ambiguous[3].contains("\"nickname\":null") &&
+                        ambiguous[3].contains("\"last_message\":null"),
+                "Generic unmatched ban must not invent a victim or chat evidence");
+
+        String[] off = collectorEvent("command", "self", "collector off",
+                "", 1794405040L);
+        check("OK".equals(off[0]) &&
+                        "off".equals(automodStorage.get("collector.test-server")),
+                "OFF state must be persisted by the Lua script");
+        String[] silent = collectorEvent("kick", "ChannelOp", "again",
+                "Target", 1794405050L);
+        check(silent.length == 1 && "OK".equals(silent[0]),
+                "With Collector OFF: no SQLite history request or journal action");
+        String[] on = collectorEvent("command", "self", "collector on",
+                "", 1794405060L);
+        check("OK".equals(on[0]) &&
+                        "on".equals(automodStorage.get("collector.test-server")),
+                "ON state must be persisted by the Lua script");
+        check(collectorEvent("kick", "ChannelOp", "again",
+                "Target", 1794405070L).length == 4,
+                "Collector resumes after ON");
+        String[] offWithPending = collectorEvent("command", "self", "collector off",
+                "", 1794405071L);
+        check(offWithPending.length == 7 &&
+                        "journal".equals(offWithPending[1]) &&
+                        offWithPending[3].contains("\"event\":\"kick\"") &&
+                        offWithPending[3].contains("\"last_message\":null") &&
+                        "show".equals(offWithPending[4]),
+                "OFF flushes already detected moderation events before stopping");
+        collectorEvent("command", "self", "collector on", "", 1794405072L);
+        check(collectorEvent("kick", "ChannelOp", "disconnect",
+                "Target", 1794405073L).length == 4,
+                "A pending record remains before disconnection");
+
+        String[] disconnectedCollector = collectorEvent("disconnected", "", "",
+                "", 1794405080L);
+        check(disconnectedCollector.length == 4 &&
+                        "journal".equals(disconnectedCollector[1]) &&
+                        disconnectedCollector[3].contains("\"event\":\"kick\"") &&
+                        disconnectedCollector[3].contains("\"last_message\":null"),
+                "A disconnect must flush pending moderation records without fabricating context");
 
         NativeLuaRuntime.unload(ID);
         check(NativeLuaRuntime.dispatch(ID, "message", bytes("test-server"),

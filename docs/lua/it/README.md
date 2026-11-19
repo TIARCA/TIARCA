@@ -1,6 +1,6 @@
 # Sviluppare script Lua per TIARCA
 
-[Indice bilingue](../README.md) · [API](API_REFERENCE.md) · [Eventi](EVENTS.md) · [Permessi](PERMISSIONS.md) · [Esempi](EXAMPLES.md)
+[Indice bilingue](../README.md) · [API](API_REFERENCE.md) · [Eventi](EVENTS.md) · [Permessi](PERMISSIONS.md) · [Esempi](EXAMPLES.md) · [Collector moderazione](MODERATION_COLLECTOR.md)
 
 > **Disponibilità:** funzione sperimentale nel branch di sviluppo `main`, **non presente nell'APK stabile v0.9.10**.
 

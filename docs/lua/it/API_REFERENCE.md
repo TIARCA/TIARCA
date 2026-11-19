@@ -20,6 +20,9 @@
 | `tiarca.storage.get(chiave)` | Stringa persistente o `nil` | Dati persistenti |
 | `tiarca.storage.set(chiave, valore)` | Richiede salvataggio stringa UTF-8 | Dati persistenti |
 | `tiarca.storage.delete(chiave)` | Richiede cancellazione | Dati persistenti |
+| `tiarca.journal.append(json)` | Aggiunge una riga JSONL privata dello script alla rete dell'evento, senza limite circolare | Dati persistenti; callback |
+| `tiarca.journal.export()` | Richiede selettore Android per il JSONL della rete corrente | Dati persistenti; comando locale |
+| `tiarca.last_message(canale, nick, token)` | Cerca fino a 200 messaggi pubblici SQLite e invia evento `history` solo allo script richiedente | Dati persistenti + Identità; dopo evento `kick`, `ban`, `moderation_log`; stesso canale |
 | `tiarca.kick(canale, nick, motivo)` | Richiede KICK | Moderazione; OP |
 | `tiarca.ban(canale, nick)` | Richiede ban host osservato | Moderazione; OP |
 | `tiarca.mode(canale, nick, modo)` | Solo `+o`, `-o`, `+v`, `-v` | Moderazione; OP |

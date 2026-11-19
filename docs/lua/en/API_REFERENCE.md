@@ -20,6 +20,9 @@
 | `tiarca.storage.get(key)` | Persistent string or `nil` | Persistent data |
 | `tiarca.storage.set(key, value)` | Requests UTF-8 string storage | Persistent data |
 | `tiarca.storage.delete(key)` | Requests deletion | Persistent data |
+| `tiarca.journal.append(json)` | Append one private JSONL object line on the current network, no circular event limit | Persistent data; callback |
+| `tiarca.journal.export()` | Open Android share chooser for the current network journal | Persistent data; local command |
+| `tiarca.last_message(channel, nick, token)` | Search last 200 public SQLite channel messages; return asynchronous `history` event only to requester | Persistent data + Identities; from `kick`, `ban`, `moderation_log`; same channel |
 | `tiarca.kick(channel, nick, reason)` | Requests KICK | Moderation; OP |
 | `tiarca.ban(channel, nick)` | Requests observed-host ban | Moderation; OP |
 | `tiarca.mode(channel, nick, mode)` | Only `+o`, `-o`, `+v`, `-v` | Moderation; OP |

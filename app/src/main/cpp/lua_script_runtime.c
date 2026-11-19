@@ -21,7 +21,7 @@
 #define MAX_USERS 128
 #define MAX_STORAGE 32
 #define MAX_STORAGE_BYTES (128u * 1024u)
-#define EVENT_KINDS 9
+#define EVENT_KINDS 13
 #define MAX_SOURCE 24576
 #define SCRIPT_MEMORY (2u * 1024u * 1024u)
 #define INSTRUCTION_LIMIT 200000ul
@@ -122,6 +122,10 @@ static int event_kind(const char *name) {
     if (!strcmp(name, "quit")) return 6;
     if (!strcmp(name, "nick")) return 7;
     if (!strcmp(name, "timer")) return 8;
+    if (!strcmp(name, "kick")) return 9;
+    if (!strcmp(name, "ban")) return 10;
+    if (!strcmp(name, "history")) return 11;
+    if (!strcmp(name, "moderation_log")) return 12;
     return -1;
 }
 
@@ -145,7 +149,7 @@ static void add_action(lua_State *L, const char *kind, const char *target,
     if (!s->event_active) luaL_error(L, "tiarca: action outside event handler");
     if (s->action_count >= MAX_ACTIONS) luaL_error(L, "tiarca: too many actions");
     if (target_size > 96 || value_size == 0 ||
-            value_size > (!strcmp(kind, "store") ? 8192u : 512u))
+            value_size > ((!strcmp(kind, "store") || !strcmp(kind, "journal")) ? 8192u : 512u))
         luaL_error(L, "tiarca: invalid action size");
     if (memchr(target, 0, target_size) || memchr(value, 0, value_size))
         luaL_error(L, "tiarca: NUL forbidden");
@@ -520,6 +524,55 @@ static int script_show_list(lua_State *L) {
     return 0;
 }
 
+
+/* General script-owned, append-only JSONL journal. The host validates the JSON. */
+static int script_journal_append(lua_State *L) {
+    require_storage(L);
+    size_t n;
+    const char *line = luaL_checklstring(L, 1, &n);
+    if (n == 0 || n > 8192 || memchr(line, '\n', n) ||
+            memchr(line, '\r', n))
+        return luaL_error(L, "tiarca.journal.append: invalid JSONL record");
+    add_action(L, "journal", "", 0, line, n);
+    return 0;
+}
+
+/* Explicit, user-initiated export, not a network operation. */
+static int script_journal_export(lua_State *L) {
+    require_storage(L);
+    if (lua_gettop(L) != 0)
+        return luaL_error(L, "tiarca.journal.export: no arguments expected");
+    add_action(L, "export", "", 0, "1", 1);
+    return 0;
+}
+
+/* On-demand last stored public message. Result is a later 'history' event,
+ * scoped to this script, network and channel; never sends IRC traffic. */
+static int script_last_message(lua_State *L) {
+    ScriptVm *s = context(L);
+    if (!s->event_active || !s->can_read_users || !s->can_store)
+        return luaL_error(L, "tiarca.last_message: consent required");
+    size_t cn, nn, tn;
+    const char *channel = luaL_checklstring(L, 1, &cn);
+    const char *nick = luaL_checklstring(L, 2, &nn);
+    const char *token = luaL_checklstring(L, 3, &tn);
+    if (cn == 0 || cn > 64 || strcmp(channel, s->event_channel) ||
+            nn == 0 || nn > 64 || tn == 0 || tn > 20 ||
+            memchr(nick, '\t', nn) || memchr(nick, '\n', nn) ||
+            memchr(nick, '\r', nn) || memchr(nick, 0, nn))
+        return luaL_error(L, "tiarca.last_message: invalid parameters");
+    for (size_t i = 0; i < tn; i++)
+        if ((token[i] < '0' || token[i] > '9') &&
+                (token[i] < 'a' || token[i] > 'z'))
+            return luaL_error(L, "tiarca.last_message: invalid token");
+    char value[96];
+    memcpy(value, nick, nn);
+    value[nn] = '\t';
+    memcpy(value + nn + 1, token, tn);
+    add_action(L, "history", channel, cn, value, nn + 1 + tn);
+    return 0;
+}
+
 static void install_libraries(lua_State *L) {
     const struct { const char *name; lua_CFunction fn; } permitted[] = {
         {LUA_GNAME, luaopen_base}, {LUA_TABLIBNAME, luaopen_table},
@@ -584,6 +637,14 @@ static void install_libraries(lua_State *L) {
     lua_setfield(L, -2, "show");
     lua_pushcfunction(L, script_show_list);
     lua_setfield(L, -2, "show_list");
+    lua_pushcfunction(L, script_last_message);
+    lua_setfield(L, -2, "last_message");
+    lua_newtable(L);
+    lua_pushcfunction(L, script_journal_append);
+    lua_setfield(L, -2, "append");
+    lua_pushcfunction(L, script_journal_export);
+    lua_setfield(L, -2, "export");
+    lua_setfield(L, -2, "journal");
     lua_newtable(L);
     lua_pushcfunction(L, script_storage_get);
     lua_setfield(L, -2, "get");
@@ -715,14 +776,15 @@ static void set_field(lua_State *L, const char *name, const char *value) {
 }
 
 JNIEXPORT jobjectArray JNICALL
-Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatch(JNIEnv *env, jclass unused,
+Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchWithIdentity(JNIEnv *env, jclass unused,
         jstring jid, jstring jevent, jbyteArray jserver, jbyteArray jchannel,
         jbyteArray jnick, jbyteArray jtext, jbyteArray jtype, jlong timestamp,
         jobjectArray jchannels, jintArray jcounts, jboolean jtruncated,
         jobjectArray jroster, jboolean jrostertruncated,
-        jboolean jcanreadusers, jobjectArray jstorage, jboolean jcanstore) {
+        jboolean jcanreadusers, jobjectArray jstorage, jboolean jcanstore,
+        jobjectArray jhistoryidentity) {
     (void)unused;
-    char server[64], channel[97], nick[97], text[2049], type[32];
+    char server[64], channel[97], nick[97], text[2049], type[97];
     if (!jid || !jevent ||
         !copy_java_bytes(env, jserver, server, sizeof(server)) ||
         !copy_java_bytes(env, jchannel, channel, sizeof(channel)) ||
@@ -816,6 +878,26 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatch(JNIEnv *env, jclass unused,
         if (stored_bytes > MAX_STORAGE_BYTES) return NULL;
         s->stored_count++;
     }
+    char historical_ident[97] = "", historical_host[257] = "";
+    if (jhistoryidentity) {
+        jsize histFields = (*env)->GetArrayLength(env, jhistoryidentity);
+        if (histFields != 0 && histFields != 2) return NULL;
+        if (histFields == 2) {
+            if (kind != 11 || jcanreadusers != JNI_TRUE) return NULL;
+            jbyteArray ident = (jbyteArray)(*env)->GetObjectArrayElement(
+                    env, jhistoryidentity, 0);
+            jbyteArray host = (jbyteArray)(*env)->GetObjectArrayElement(
+                    env, jhistoryidentity, 1);
+            if (!ident || !host) return NULL;
+            int ok = copy_java_bytes(env, ident, historical_ident,
+                    sizeof(historical_ident)) &&
+                    copy_java_bytes(env, host, historical_host,
+                    sizeof(historical_host));
+            (*env)->DeleteLocalRef(env, ident);
+            (*env)->DeleteLocalRef(env, host);
+            if (!ok) return NULL;
+        }
+    }
     lua_State *L = s->L;
     s->steps = 0;
     s->action_count = 0;
@@ -831,8 +913,13 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatch(JNIEnv *env, jclass unused,
         set_field(L, "nick", nick);
         set_field(L, "text", text);
         set_field(L, "message_type", type);
+        if (kind == 11) {
+            if (historical_ident[0]) set_field(L, "ident", historical_ident);
+            if (historical_host[0]) set_field(L, "host", historical_host);
+        }
         const char *event_names[] = {"message", "connected", "disconnected", "command",
-                                    "join", "part", "quit", "nick", "timer"};
+                                    "join", "part", "quit", "nick", "timer",
+                                    "kick", "ban", "history", "moderation_log"};
         set_field(L, "type", event_names[kind]);
         lua_pushinteger(L, (lua_Integer)timestamp);
         lua_setfield(L, -2, "timestamp");
