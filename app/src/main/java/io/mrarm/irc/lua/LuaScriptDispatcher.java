@@ -609,6 +609,16 @@ public final class LuaScriptDispatcher {
                                  String actor, String target, String detail,
                                  long timestamp, String previous, long previousTime,
                                  String origin) {
+        recordCollector(server, event, channel, actor, target, detail, timestamp,
+                previous, previousTime, origin,
+                "KICK".equals(event) && previous != null ? target : null,
+                "KICK".equals(event) && previous != null ? "nick_exact" : null);
+    }
+
+    private void recordCollector(String server, String event, String channel,
+                                 String actor, String target, String detail,
+                                 long timestamp, String previous, long previousTime,
+                                 String origin, String contextNick, String contextMatch) {
         if (!collector.enabled(server)) return;
         boolean installed = false;
         for (LuaScriptStore.Script script : store.enabledOn(server)) {
@@ -619,15 +629,15 @@ public final class LuaScriptDispatcher {
         }
         if (!installed) return;
         String ident = null, host = null, account = null;
-        if (("KICK".equals(event) || "AUTOMOD".equals(event)) &&
-                target != null && !target.isEmpty()) {
+        String identityNick = "BAN".equals(event) ? contextNick : target;
+        if (identityNick != null && !identityNick.isEmpty()) {
             try {
                 ServerConnectionInfo conn = ServerConnectionManager.getInstance(context)
                         .getConnection(UUID.fromString(server));
                 if (conn != null && conn.getApiInstance() instanceof ServerConnectionApi) {
                     IrcIdentityCache.Identity found = ((ServerConnectionApi)
                             conn.getApiInstance()).getServerConnectionData()
-                                    .getIdentityCache().get(target);
+                                    .getIdentityCache().get(identityNick);
                     if (found != null) {
                         ident = found.ident;
                         host = found.host;
@@ -644,7 +654,7 @@ public final class LuaScriptDispatcher {
             try {
                 collector.append(server, event, channel, actor, target, detail,
                         timestamp, previous, previousTime, origin,
-                        savedIdent, savedHost, savedAccount);
+                        savedIdent, savedHost, savedAccount, contextNick, contextMatch);
             } catch (IOException error) {
                 console.log(server, "Collector", "Archive write error: " + error.getMessage());
             }
