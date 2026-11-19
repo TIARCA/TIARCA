@@ -68,17 +68,8 @@ public final class LuaScriptDispatcher {
 
     private final Context context;
     private final LuaScriptStore store;
-    private final LuaModerationCollector collector;
-    private final Map<String, AutoModIntent> autoModIntents = new ConcurrentHashMap<>();
-
-    private static final class AutoModIntent {
-        final String action;
-        final long when;
-        AutoModIntent(String action, long when) {
-            this.action = action;
-            this.when = when;
-        }
-    }
+    // Generic journal: no moderation rules or subscriptions in the Android host.
+    private final LuaScriptJournal journal;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final HandlerThread ioThread = new HandlerThread("tiarca-lua-ipc");
     private final Handler io;
@@ -219,7 +210,7 @@ public final class LuaScriptDispatcher {
     private LuaScriptDispatcher(Context context) {
         this.context = context;
         this.store = LuaScriptStore.get(context);
-        this.collector = new LuaModerationCollector(context);
+        this.journal = new LuaScriptJournal(context);
         ioThread.start();
         io = new Handler(ioThread.getLooper());
     }
@@ -427,16 +418,7 @@ public final class LuaScriptDispatcher {
                     continue;
                 enqueue("ban", connection.getUUID().toString(), channel,
                         modeSender.getNick(), mask, "", modeTime);
-                if (LuaBanMaskMatcher.mayIdentify(mask)) {
-                    lookupBanContext(connection, channel, modeSender.getNick(),
-                            LuaBanMaskMatcher.exactNick(mask), mask, modeTime);
-                } else {
-                    recordCollector(connection.getUUID().toString(), "BAN", channel,
-                            modeSender.getNick(), mask, "MODE +b", modeTime,
-                            null, 0L, observedOrigin(connection.getUUID().toString(),
-                                    channel, modeSender.getNick(), mask, "BAN",
-                                    connection.getUserNick(), System.currentTimeMillis()/1000));
-                }
+
             }
             return;
         }
@@ -472,246 +454,6 @@ public final class LuaScriptDispatcher {
                 System.currentTimeMillis()/1000 : info.getDate().getTime()/1000;
         enqueue(event, connection.getUUID().toString(), channel, sender.getNick(),
                 value, messageType, timestamp);
-        if ("kick".equals(event))
-            lookupKickContext(connection, channel, sender.getNick(),
-                    messageType, value, timestamp);
-    }
-
-    /**
-     * Resolve context from the existing chat storage, not from a second Lua
-     * message buffer. The separate event is emitted asynchronously because
-     * SQLite storage queries are asynchronous. Absence is not an empty quote.
-     */
-    private void lookupKickContext(ServerConnectionInfo connection, String channel,
-                                   String actor, String target, String reason, long kickedAt) {
-        if (target == null || target.isEmpty()) return;
-        String server = connection.getUUID().toString();
-        final String origin = observedOrigin(server, channel, actor, target,
-                "KICK", connection.getUserNick(), System.currentTimeMillis()/1000);
-        if (!(connection.getApiInstance() instanceof ServerConnectionApi)) {
-            recordCollector(server, "KICK", channel, actor, target, reason,
-                    kickedAt, null, 0L, origin);
-            return;
-        }
-        MessageFilterOptions filter = new MessageFilterOptions();
-        filter.restrictToMessageTypes = Arrays.asList(
-                MessageInfo.MessageType.NORMAL, MessageInfo.MessageType.ME);
-        try {
-            ((ServerConnectionApi) connection.getApiInstance()).getMessageStorageApi()
-                    .getMessages(channel, 200, filter, null, (MessageList history) -> {
-                        if (history == null || history.getMessages() == null) {
-                            recordCollector(server, "KICK", channel, actor, target, reason,
-                                    kickedAt, null, 0L, origin);
-                            return;
-                        }
-                        java.util.List<MessageInfo> messages = history.getMessages();
-                        for (int i = messages.size() - 1; i >= 0; i--) {
-                            MessageInfo previous = messages.get(i);
-                            if (previous == null || previous.getSender() == null ||
-                                    previous.getSender().getNick() == null ||
-                                    !target.equalsIgnoreCase(previous.getSender().getNick()) ||
-                                    previous.getMessage() == null || previous.getDate() == null ||
-                                    previous.getDate().getTime()/1000 > kickedAt) continue;
-                            String body = previous.getMessage();
-                            if (body.length() > 1024 ||
-                                    body.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 2048)
-                                body = body.substring(0, Math.min(512, body.length()));
-                            enqueue("kick_context", server, channel,
-                                    target, body, "", previous.getDate().getTime()/1000);
-                            recordCollector(server, "KICK", channel, actor, target, reason,
-                                    kickedAt, body, previous.getDate().getTime()/1000,
-                                    origin);
-                            return;
-                        }
-                        recordCollector(server, "KICK", channel, actor, target, reason,
-                                kickedAt, null, 0L, origin);
-                    }, error -> recordCollector(server, "KICK", channel, actor, target,
-                            reason, kickedAt, null, 0L, origin));
-        } catch (RuntimeException ignored) {
-            recordCollector(server, "KICK", channel, actor, target, reason,
-                    kickedAt, null, 0L, origin);
-        }
-    }
-
-    /**
-     * A ban mask may identify a nick exactly. Otherwise the target remains
-     * unknown and no unrelated channel message is attached to the ban.
-     */
-    /**
-     * Use stored public messages and previously observed identities to find
-     * a unique message author matching a normal IRC ban mask. Never guess
-     * from merely being the most recent speaker or from a shared hostname.
-     */
-    private void lookupBanContext(ServerConnectionInfo connection, String channel,
-                                  String actor, String exactNick, String mask,
-                                  long bannedAt) {
-        String server = connection.getUUID().toString();
-        String origin = observedOrigin(server, channel, actor, mask, "BAN",
-                connection.getUserNick(), System.currentTimeMillis()/1000);
-        if (!(connection.getApiInstance() instanceof ServerConnectionApi)) {
-            recordCollector(server, "BAN", channel, actor, mask, "MODE +b",
-                    bannedAt, null, 0L, origin);
-            return;
-        }
-        ServerConnectionApi api = (ServerConnectionApi) connection.getApiInstance();
-        IrcIdentityCache identityCache = api.getServerConnectionData().getIdentityCache();
-        MessageFilterOptions filter = new MessageFilterOptions();
-        filter.restrictToMessageTypes = Arrays.asList(
-                MessageInfo.MessageType.NORMAL, MessageInfo.MessageType.ME);
-        try {
-            api.getMessageStorageApi().getMessages(channel, 200, filter, null,
-                    (MessageList history) -> {
-                        MessageInfo selected = null;
-                        String matchedNick = null;
-                        boolean ambiguous = false;
-                        java.util.HashSet<String> distinct = new java.util.HashSet<>();
-                        if (history != null && history.getMessages() != null) {
-                            java.util.List<MessageInfo> messages = history.getMessages();
-                            for (int i = messages.size()-1; i >= 0; i--) {
-                                MessageInfo previous = messages.get(i);
-                                if (previous == null || previous.getSender() == null ||
-                                        previous.getSender().getNick() == null ||
-                                        previous.getMessage() == null || previous.getDate() == null ||
-                                        previous.getDate().getTime()/1000 > bannedAt)
-                                    continue;
-                                String candidate = previous.getSender().getNick();
-                                if (exactNick != null) {
-                                    if (!exactNick.equalsIgnoreCase(candidate)) continue;
-                                } else {
-                                    IrcIdentityCache.Identity found = identityCache.get(candidate);
-                                    if (found == null || !LuaBanMaskMatcher.matches(mask,
-                                            candidate, found.ident, found.host)) continue;
-                                }
-                                if (!distinct.add(candidate.toLowerCase(Locale.ROOT))) continue;
-                                if (selected != null) {
-                                    ambiguous = true;
-                                    break;
-                                }
-                                selected = previous;
-                                matchedNick = candidate;
-                            }
-                        }
-                        if (!ambiguous && selected != null) {
-                            String body = selected.getMessage();
-                            if (body.length() > 1024 ||
-                                    body.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 2048)
-                                body = body.substring(0, Math.min(512, body.length()));
-                            recordCollector(server, "BAN", channel, actor, mask, "MODE +b",
-                                    bannedAt, body, selected.getDate().getTime()/1000,
-                                    origin, matchedNick, exactNick == null ?
-                                            "unique_observed_mask_identity" : "nick_exact");
-                        } else {
-                            recordCollector(server, "BAN", channel, actor, mask, "MODE +b",
-                                    bannedAt, null, 0L, origin);
-                        }
-                    }, error -> recordCollector(server, "BAN", channel, actor,
-                            mask, "MODE +b", bannedAt, null, 0L, origin));
-        } catch (RuntimeException ignored) {
-            recordCollector(server, "BAN", channel, actor, mask, "MODE +b",
-                    bannedAt, null, 0L, origin);
-        }
-    }
-
-    private static String autoModKey(String server, String channel, String nick) {
-        return server + "\u0000" + channel.toLowerCase(Locale.ROOT) +
-                "\u0000" + nick.toLowerCase(Locale.ROOT);
-    }
-
-    private String observedOrigin(String server, String channel, String actor,
-                                  String target, String event, String ownNick,
-                                  long timestamp) {
-        if (actor == null || ownNick == null) return "observed_irc";
-        if (!actor.equalsIgnoreCase(ownNick))
-            return "external_operator_or_bot_unclassified";
-        if ("KICK".equals(event)) {
-            AutoModIntent intent = autoModIntents.get(autoModKey(server, channel, target));
-            if (intent != null && intent.action.contains("kick") &&
-                    Math.abs(timestamp - intent.when) <= 60)
-                return "automod_correlated";
-        } else if ("BAN".equals(event)) {
-            // A unique recent AutoMod ban request is not enough: the observed
-            // mask must match the intended nick's server-observed identity.
-            try {
-                ServerConnectionInfo conn = ServerConnectionManager.getInstance(context)
-                        .getConnection(UUID.fromString(server));
-                if (conn != null && conn.getApiInstance() instanceof ServerConnectionApi) {
-                    IrcIdentityCache cache = ((ServerConnectionApi) conn.getApiInstance())
-                            .getServerConnectionData().getIdentityCache();
-                    String prefix = server + "\u0000" + channel.toLowerCase(Locale.ROOT) + "\u0000";
-                    int matched = 0;
-                    for (Map.Entry<String, AutoModIntent> entry : autoModIntents.entrySet()) {
-                        if (!entry.getKey().startsWith(prefix) ||
-                                !entry.getValue().action.contains("ban") ||
-                                Math.abs(timestamp - entry.getValue().when) > 60) continue;
-                        String nick = entry.getKey().substring(prefix.length());
-                        IrcIdentityCache.Identity identity = cache.get(nick);
-                        if (identity != null && LuaBanMaskMatcher.matches(target, nick,
-                                identity.ident, identity.host)) matched++;
-                        if (matched > 1) break;
-                    }
-                    if (matched == 1) return "automod_correlated";
-                }
-            } catch (RuntimeException ignored) {
-                // Ambiguous or unavailable identity: do not guess attribution.
-            }
-        }
-        return "observed_local_unattributed";
-    }
-
-    private void recordCollector(String server, String event, String channel,
-                                 String actor, String target, String detail,
-                                 long timestamp, String previous, long previousTime,
-                                 String origin) {
-        recordCollector(server, event, channel, actor, target, detail, timestamp,
-                previous, previousTime, origin,
-                "KICK".equals(event) && previous != null ? target : null,
-                "KICK".equals(event) && previous != null ? "nick_exact" : null);
-    }
-
-    private void recordCollector(String server, String event, String channel,
-                                 String actor, String target, String detail,
-                                 long timestamp, String previous, long previousTime,
-                                 String origin, String contextNick, String contextMatch) {
-        if (!collector.enabled(server)) return;
-        boolean installed = false;
-        for (LuaScriptStore.Script script : store.enabledOn(server)) {
-            if ("moderation_collector.lua".equalsIgnoreCase(script.name)) {
-                installed = true;
-                break;
-            }
-        }
-        if (!installed) return;
-        String ident = null, host = null, account = null;
-        String identityNick = "BAN".equals(event) ? contextNick : target;
-        if (identityNick != null && !identityNick.isEmpty()) {
-            try {
-                ServerConnectionInfo conn = ServerConnectionManager.getInstance(context)
-                        .getConnection(UUID.fromString(server));
-                if (conn != null && conn.getApiInstance() instanceof ServerConnectionApi) {
-                    IrcIdentityCache.Identity found = ((ServerConnectionApi)
-                            conn.getApiInstance()).getServerConnectionData()
-                                    .getIdentityCache().get(identityNick);
-                    if (found != null) {
-                        ident = found.ident;
-                        host = found.host;
-                        account = found.accountKnown ?
-                                (found.account == null ? "*" : found.account) : null;
-                    }
-                }
-            } catch (RuntimeException ignored) {
-                // Lack of observed identity must not block event archival.
-            }
-        }
-        final String savedIdent = ident, savedHost = host, savedAccount = account;
-        io.post(() -> {
-            try {
-                collector.append(server, event, channel, actor, target, detail,
-                        timestamp, previous, previousTime, origin,
-                        savedIdent, savedHost, savedAccount, contextNick, contextMatch);
-            } catch (IOException error) {
-                console.log(server, "Collector", "Archive write error: " + error.getMessage());
-            }
-        });
     }
 
     /**
@@ -722,11 +464,7 @@ public final class LuaScriptDispatcher {
     public boolean onCommand(ServerConnectionInfo connection, String channel, String command) {
         if (connection == null || command == null || command.isEmpty())
             return false;
-        // Local archive export/status must not depend on a live IRC socket.
-        boolean collectorCommand = command.trim().toLowerCase(Locale.ROOT)
-                .startsWith("collector ");
-        if (!collectorCommand &&
-                (!connection.isConnected() || connection.getApiInstance() == null))
+        if (!connection.isConnected() || connection.getApiInstance() == null)
             return false;
         String target = channel == null ? "" : channel;
         String nick = connection.getUserNick();
@@ -740,48 +478,6 @@ public final class LuaScriptDispatcher {
             return false;
         String builtin = command.trim().toLowerCase(Locale.ROOT);
         String server = connection.getUUID().toString();
-        if (builtin.startsWith("collector ")) {
-            String instruction = builtin.substring("collector ".length()).trim();
-            boolean available = false;
-            for (LuaScriptStore.Script script : store.enabledOn(server)) {
-                if ("moderation_collector.lua".equalsIgnoreCase(script.name)) {
-                    available = true;
-                    break;
-                }
-            }
-            if (!available) {
-                emitConsole(connection, "[Collector] Abilitare moderation_collector.lua sulla rete.");
-                return true;
-            }
-            if ("on".equals(instruction) || "off".equals(instruction)) {
-                boolean active = "on".equals(instruction);
-                if (collector.setEnabled(server, active))
-                    emitConsole(connection, "[Collector] " + (active ? "ON" : "OFF"));
-                else emitConsole(connection, "[Collector] Errore salvataggio impostazioni");
-            } else if ("status".equals(instruction)) {
-                emitConsole(connection, "[Collector] " + (collector.enabled(server) ? "ON" : "OFF") +
-                        "; archivio " + collector.size(server) + " byte");
-            } else if ("export".equals(instruction)) {
-                io.post(() -> {
-                    try {
-                        java.io.File snapshot = collector.snapshot(server);
-                        main.post(() -> {
-                            try { collector.share(snapshot); }
-                            catch (RuntimeException error) {
-                                emitConsole(connection, "[Collector] Esportazione non disponibile");
-                            }
-                        });
-                    } catch (IOException error) {
-                        main.post(() -> emitConsole(connection,
-                                "[Collector] Nessun dato da esportare o errore di lettura"));
-                    }
-                });
-            } else {
-                emitConsole(connection,
-                        "[Collector] /lua collector on | off | status | export");
-            }
-            return true;
-        }
         if ("stop".equals(builtin)) {
             console.stop(server);
             main.post(() -> {
@@ -982,6 +678,13 @@ public final class LuaScriptDispatcher {
 
     private boolean enqueue(String event, String server, String channel,
                             String nick, String text, String messageType, long time) {
+        return enqueueOnly(event, server, channel, nick, text, messageType, time, null);
+    }
+
+    /** Optional single-script delivery for asynchronous history results. */
+    private boolean enqueueOnly(String event, String server, String channel,
+                                String nick, String text, String messageType, long time,
+                                String onlyScriptId) {
         if (remote == null || console.isPaused(server) ||
                 store.enabledOn(server).isEmpty()) return false;
         long currentGeneration = console.generation(server);
@@ -1014,6 +717,7 @@ public final class LuaScriptDispatcher {
                     }
                 }
                 for (LuaScriptStore.Script script : eligible) {
+                    if (onlyScriptId != null && !onlyScriptId.equals(script.id)) continue;
                     LuaUserSnapshot users = LuaUserSnapshot.capture(null, null);
                     if (script.allowUserInfo && !"disconnected".equals(event)) {
                         try {
@@ -1079,6 +783,67 @@ public final class LuaScriptDispatcher {
         return accepted;
     }
 
+    /** Read the bounded existing SQLite history only after an authorized Lua
+     * callback explicitly requests it. No automatic collector queries. */
+    private void lookupHistoryForScript(LuaScriptStore.Script script, Pending request,
+                                        String channel, String value) {
+        if (!script.allowStorage || !script.allowUserInfo ||
+                !channel.equals(request.channel) ||
+                !("kick".equals(request.event) || "ban".equals(request.event) ||
+                  "moderation_log".equals(request.event)) ||
+                channel.length() > 64 || value == null) return;
+        String[] parts = value.split("\\t", -1);
+        if (parts.length != 2 || parts[0].isEmpty() || parts[0].length() > 64 ||
+                !parts[0].matches("[^\\s,!:]+") ||
+                !parts[1].matches("[a-z0-9]{1,20}")) return;
+        final String nick = parts[0], token = parts[1];
+        final String server = request.server;
+        final long cutoff = request.eventTimestamp;
+        final java.util.function.BiConsumer<String, Long> respond = (body, when) ->
+                enqueueOnly("history", server, channel, nick,
+                        body == null ? "" : body, token, when, script.id);
+        try {
+            ServerConnectionInfo conn = ServerConnectionManager.getInstance(context)
+                    .getConnection(UUID.fromString(server));
+            if (conn == null || !(conn.getApiInstance() instanceof ServerConnectionApi)) {
+                respond.accept(null, 0L);
+                return;
+            }
+            ServerConnectionApi api = (ServerConnectionApi) conn.getApiInstance();
+            // Require the requesting script to be on the same live channel.
+            api.getServerConnectionData().getJoinedChannelData(channel);
+            MessageFilterOptions filter = new MessageFilterOptions();
+            filter.restrictToMessageTypes = Arrays.asList(
+                    MessageInfo.MessageType.NORMAL, MessageInfo.MessageType.ME);
+            api.getMessageStorageApi().getMessages(channel, 200, filter, null,
+                    (MessageList history) -> {
+                        if (history != null && history.getMessages() != null) {
+                            List<MessageInfo> messages = history.getMessages();
+                            for (int i = messages.size() - 1; i >= 0; i--) {
+                                MessageInfo m = messages.get(i);
+                                if (m == null || m.getSender() == null ||
+                                        m.getSender().getNick() == null ||
+                                        !nick.equalsIgnoreCase(m.getSender().getNick()) ||
+                                        m.getMessage() == null || m.getDate() == null ||
+                                        m.getDate().getTime() / 1000 > cutoff) continue;
+                                String text = m.getMessage();
+                                // JNI and Binder limits: preserve a valid bounded prefix.
+                                if (text.length() > 512 ||
+                                        text.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 2048)
+                                    text = text.substring(0, Math.min(512, text.length()));
+                                respond.accept(text, m.getDate().getTime() / 1000);
+                                return;
+                            }
+                        }
+                        respond.accept(null, 0L);
+                    }, error -> respond.accept(null, 0L));
+        } catch (RuntimeException ignored) {
+            respond.accept(null, 0L);
+        } catch (NoSuchChannelException ignored) {
+            respond.accept(null, 0L);
+        }
+    }
+
     private boolean handleReply(Message message) {
         Bundle data = message.getData();
         int requestId = data.getInt(LuaDiagnosticService.EXTRA_REQUEST_ID);
@@ -1141,26 +906,11 @@ public final class LuaScriptDispatcher {
                 String report = LuaAutoModReport.fromEventLog(
                         request.event, request.server, request.channel, request.nick, value);
                 if (report != null) {
-                    if ("automod_antiripetizione.lua".equalsIgnoreCase(script.name)) {
-                        long decidedAt = System.currentTimeMillis() / 1000;
-                        String autoModAction = value.substring(value.lastIndexOf('(') + 1,
-                                value.length() - 1);
-                        if (autoModIntents.size() >= 512) {
-                            for (Map.Entry<String, AutoModIntent> entry :
-                                    autoModIntents.entrySet()) {
-                                if (decidedAt - entry.getValue().when > 120)
-                                    autoModIntents.remove(entry.getKey(), entry.getValue());
-                            }
-                            if (autoModIntents.size() >= 512) autoModIntents.clear();
-                        }
-                        autoModIntents.put(autoModKey(request.server,
-                                request.channel, request.nick),
-                                new AutoModIntent(autoModAction, decidedAt));
-                        recordCollector(request.server, "AUTOMOD", request.channel,
-                                script.name, request.nick, value,
-                                decidedAt, request.eventText, request.eventTimestamp,
-                                "automod_decision_unconfirmed");
-                    }
+                    // Publish a generic observed moderation report to enabled Lua
+                    // scripts; only an external script decides whether to archive it.
+                    if (!"moderation_log".equals(request.event))
+                        enqueue("moderation_log", request.server, request.channel,
+                                request.nick, value, script.name, request.eventTimestamp);
                     try {
                         ServerConnectionInfo connection = ServerConnectionManager
                                 .getInstance(context).getConnection(UUID.fromString(request.server));
@@ -1183,6 +933,35 @@ public final class LuaScriptDispatcher {
                 boolean notice = "notice".equals(kind);
                 io.post(() -> main.post(() ->
                         sendDirectAuthorized(script, request, target, value, notice)));
+            } else if ("journal".equals(kind)) {
+                if (!script.allowStorage || !target.isEmpty()) continue;
+                io.post(() -> {
+                    try { journal.append(script.id, request.server, value); }
+                    catch (IOException error) {
+                        console.log(request.server, script.name,
+                                "Lua journal append failed: " + error.getMessage());
+                    }
+                });
+            } else if ("export".equals(kind)) {
+                if (!script.allowStorage || !"command".equals(request.event) ||
+                        !target.isEmpty() || !"1".equals(value)) continue;
+                io.post(() -> {
+                    try {
+                        java.io.File snapshot = journal.snapshot(script.id, request.server);
+                        main.post(() -> {
+                            try { journal.share(snapshot); }
+                            catch (RuntimeException error) {
+                                console.log(request.server, script.name,
+                                        "Lua journal export unavailable");
+                            }
+                        });
+                    } catch (IOException error) {
+                        console.log(request.server, script.name,
+                                "Lua journal export failed: " + error.getMessage());
+                    }
+                });
+            } else if ("history".equals(kind)) {
+                lookupHistoryForScript(script, request, target, value);
             } else if ("store".equals(kind) || "erase".equals(kind)) {
                 String operation = kind;
                 io.post(() -> {
