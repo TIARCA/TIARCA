@@ -485,7 +485,7 @@ public final class LuaScriptDispatcher {
         if (target == null || target.isEmpty()) return;
         String server = connection.getUUID().toString();
         final String origin = observedOrigin(server, channel, actor, target,
-                "KICK", connection.getUserNick(), kickedAt);
+                "KICK", connection.getUserNick(), System.currentTimeMillis()/1000);
         if (!(connection.getApiInstance() instanceof ServerConnectionApi)) {
             recordCollector(server, "KICK", channel, actor, target, reason,
                     kickedAt, null, 0L, origin);
@@ -618,17 +618,42 @@ public final class LuaScriptDispatcher {
     private String observedOrigin(String server, String channel, String actor,
                                   String target, String event, String ownNick,
                                   long timestamp) {
-        if (actor == null || ownNick == null || !actor.equalsIgnoreCase(ownNick))
-            return "observed_irc";
+        if (actor == null || ownNick == null) return "observed_irc";
+        if (!actor.equalsIgnoreCase(ownNick))
+            return "external_operator_or_bot_unclassified";
         if ("KICK".equals(event)) {
             AutoModIntent intent = autoModIntents.get(autoModKey(server, channel, target));
             if (intent != null && intent.action.contains("kick") &&
                     Math.abs(timestamp - intent.when) <= 60)
                 return "automod_correlated";
+        } else if ("BAN".equals(event)) {
+            // A unique recent AutoMod ban request is not enough: the observed
+            // mask must match the intended nick's server-observed identity.
+            try {
+                ServerConnectionInfo conn = ServerConnectionManager.getInstance(context)
+                        .getConnection(UUID.fromString(server));
+                if (conn != null && conn.getApiInstance() instanceof ServerConnectionApi) {
+                    IrcIdentityCache cache = ((ServerConnectionApi) conn.getApiInstance())
+                            .getServerConnectionData().getIdentityCache();
+                    String prefix = server + "\u0000" + channel.toLowerCase(Locale.ROOT) + "\u0000";
+                    int matched = 0;
+                    for (Map.Entry<String, AutoModIntent> entry : autoModIntents.entrySet()) {
+                        if (!entry.getKey().startsWith(prefix) ||
+                                !entry.getValue().action.contains("ban") ||
+                                Math.abs(timestamp - entry.getValue().when) > 60) continue;
+                        String nick = entry.getKey().substring(prefix.length());
+                        IrcIdentityCache.Identity identity = cache.get(nick);
+                        if (identity != null && LuaBanMaskMatcher.matches(target, nick,
+                                identity.ident, identity.host)) matched++;
+                        if (matched > 1) break;
+                    }
+                    if (matched == 1) return "automod_correlated";
+                }
+            } catch (RuntimeException ignored) {
+                // Ambiguous or unavailable identity: do not guess attribution.
+            }
         }
-        // A +b mask is not necessarily a nickname; do not attribute it based
-        // solely on matching timing. The AutoMod decision is retained separately.
-        return "observed_irc";
+        return "observed_local_unattributed";
     }
 
     private void recordCollector(String server, String event, String channel,
@@ -1118,6 +1143,14 @@ public final class LuaScriptDispatcher {
                         long decidedAt = System.currentTimeMillis() / 1000;
                         String autoModAction = value.substring(value.lastIndexOf('(') + 1,
                                 value.length() - 1);
+                        if (autoModIntents.size() >= 512) {
+                            for (Map.Entry<String, AutoModIntent> entry :
+                                    autoModIntents.entrySet()) {
+                                if (decidedAt - entry.getValue().when > 120)
+                                    autoModIntents.remove(entry.getKey(), entry.getValue());
+                            }
+                            if (autoModIntents.size() >= 512) autoModIntents.clear();
+                        }
                         autoModIntents.put(autoModKey(request.server,
                                 request.channel, request.nick),
                                 new AutoModIntent(autoModAction, decidedAt));
