@@ -478,14 +478,44 @@ public final class LuaScriptDispatcher {
                             if (body.length() > 1024 ||
                                     body.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 2048)
                                 body = body.substring(0, Math.min(512, body.length()));
-                            enqueue("kick_context", connection.getUUID().toString(), channel,
+                            enqueue("kick_context", server, channel,
                                     target, body, "", previous.getDate().getTime()/1000);
+                            recordCollector(server, "KICK", channel, actor, target, reason,
+                                    kickedAt, body, previous.getDate().getTime()/1000,
+                                    "observed_irc");
                             return;
                         }
-                    }, error -> { /* Missing history is not a moderation failure. */ });
+                        recordCollector(server, "KICK", channel, actor, target, reason,
+                                kickedAt, null, 0L, "observed_irc");
+                    }, error -> recordCollector(server, "KICK", channel, actor, target,
+                            reason, kickedAt, null, 0L, "observed_irc"));
         } catch (RuntimeException ignored) {
-            // A disconnect or disabled message storage can invalidate the query.
+            recordCollector(server, "KICK", channel, actor, target, reason,
+                    kickedAt, null, 0L, "observed_irc");
         }
+    }
+
+    private void recordCollector(String server, String event, String channel,
+                                 String actor, String target, String detail,
+                                 long timestamp, String previous, long previousTime,
+                                 String origin) {
+        if (!collector.enabled(server)) return;
+        boolean installed = false;
+        for (LuaScriptStore.Script script : store.enabledOn(server)) {
+            if ("moderation_collector.lua".equalsIgnoreCase(script.name)) {
+                installed = true;
+                break;
+            }
+        }
+        if (!installed) return;
+        io.post(() -> {
+            try {
+                collector.append(server, event, channel, actor, target, detail,
+                        timestamp, previous, previousTime, origin);
+            } catch (IOException error) {
+                console.log(server, "Collector", "Archive write error: " + error.getMessage());
+            }
+        });
     }
 
     /**
