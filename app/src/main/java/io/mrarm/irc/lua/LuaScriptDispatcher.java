@@ -29,6 +29,7 @@ import io.mrarm.chatlib.dto.MessageInfo;
 import io.mrarm.chatlib.dto.StatusMessageInfo;
 import java.util.Date;
 import io.mrarm.chatlib.dto.NickChangeMessageInfo;
+import io.mrarm.chatlib.dto.KickMessageInfo;
 import io.mrarm.chatlib.irc.IrcIdentityCache;
 import io.mrarm.chatlib.irc.IRCConnection;
 import io.mrarm.irc.util.ChannelOperatorUtils;
@@ -372,6 +373,8 @@ public final class LuaScriptDispatcher {
         else if (type == MessageInfo.MessageType.QUIT) event = "quit";
         else if (type == MessageInfo.MessageType.NICK_CHANGE &&
                 info instanceof NickChangeMessageInfo) event = "nick";
+        else if (type == MessageInfo.MessageType.KICK &&
+                info instanceof KickMessageInfo) event = "kick";
         else return;
 
         MessageSenderInfo sender = info.getSender();
@@ -393,7 +396,13 @@ public final class LuaScriptDispatcher {
                 channel.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 96 ||
                 sender.getNick().getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 96 ||
                 value.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 2048) return;
-        String messageType = content ? type.name().toLowerCase(java.util.Locale.ROOT) : "";
+        // For kick, message_type carries the kicked target; nick is the actor.
+        String messageType = "kick".equals(event) ?
+                ((KickMessageInfo) info).getKickedNick() :
+                content ? type.name().toLowerCase(java.util.Locale.ROOT) : "";
+        if (messageType == null || messageType.length() > 64 ||
+                messageType.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 96)
+            return;
         long timestamp = info.getDate() == null ?
                 System.currentTimeMillis()/1000 : info.getDate().getTime()/1000;
         enqueue(event, connection.getUUID().toString(), channel, sender.getNick(),
