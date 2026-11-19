@@ -433,7 +433,9 @@ public final class LuaScriptDispatcher {
                 } else {
                     recordCollector(connection.getUUID().toString(), "BAN", channel,
                             modeSender.getNick(), mask, "MODE +b", modeTime,
-                            null, 0L, "observed_irc");
+                            null, 0L, observedOrigin(connection.getUUID().toString(),
+                                    channel, modeSender.getNick(), mask, "BAN",
+                                    connection.getUserNick(), System.currentTimeMillis()/1000));
                 }
             }
             return;
