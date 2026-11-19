@@ -1032,11 +1032,11 @@ public final class LuaScriptDispatcher {
                 if (report != null) {
                     if ("automod_antiripetizione.lua".equalsIgnoreCase(script.name)) {
                         long decidedAt = System.currentTimeMillis() / 1000;
-                        String kind = value.substring(value.lastIndexOf('(') + 1,
+                        String autoModAction = value.substring(value.lastIndexOf('(') + 1,
                                 value.length() - 1);
                         autoModIntents.put(autoModKey(request.server,
                                 request.channel, request.nick),
-                                new AutoModIntent(kind, decidedAt));
+                                new AutoModIntent(autoModAction, decidedAt));
                         recordCollector(request.server, "AUTOMOD", request.channel,
                                 script.name, request.nick, report,
                                 decidedAt, null, 0L,
