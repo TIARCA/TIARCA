@@ -410,7 +410,9 @@ public final class LuaScriptDispatcher {
                         modeSender.getNick(), mask, "", modeTime);
                 recordCollector(connection.getUUID().toString(), "BAN", channel,
                         modeSender.getNick(), mask, "MODE +b", modeTime,
-                        null, 0L, "observed_irc");
+                        null, 0L, observedOrigin(connection.getUUID().toString(),
+                                channel, modeSender.getNick(), mask, "BAN",
+                                connection.getUserNick(), modeTime));
             }
             return;
         }
@@ -460,9 +462,11 @@ public final class LuaScriptDispatcher {
                                    String actor, String target, String reason, long kickedAt) {
         if (target == null || target.isEmpty()) return;
         String server = connection.getUUID().toString();
+        final String origin = observedOrigin(server, channel, actor, target,
+                "KICK", connection.getUserNick(), kickedAt);
         if (!(connection.getApiInstance() instanceof ServerConnectionApi)) {
             recordCollector(server, "KICK", channel, actor, target, reason,
-                    kickedAt, null, 0L, "observed_irc");
+                    kickedAt, null, 0L, origin);
             return;
         }
         MessageFilterOptions filter = new MessageFilterOptions();
@@ -473,7 +477,7 @@ public final class LuaScriptDispatcher {
                     .getMessages(channel, 200, filter, null, (MessageList history) -> {
                         if (history == null || history.getMessages() == null) {
                             recordCollector(server, "KICK", channel, actor, target, reason,
-                                    kickedAt, null, 0L, "observed_irc");
+                                    kickedAt, null, 0L, origin);
                             return;
                         }
                         java.util.List<MessageInfo> messages = history.getMessages();
@@ -492,17 +496,38 @@ public final class LuaScriptDispatcher {
                                     target, body, "", previous.getDate().getTime()/1000);
                             recordCollector(server, "KICK", channel, actor, target, reason,
                                     kickedAt, body, previous.getDate().getTime()/1000,
-                                    "observed_irc");
+                                    origin);
                             return;
                         }
                         recordCollector(server, "KICK", channel, actor, target, reason,
-                                kickedAt, null, 0L, "observed_irc");
+                                kickedAt, null, 0L, origin);
                     }, error -> recordCollector(server, "KICK", channel, actor, target,
-                            reason, kickedAt, null, 0L, "observed_irc"));
+                            reason, kickedAt, null, 0L, origin));
         } catch (RuntimeException ignored) {
             recordCollector(server, "KICK", channel, actor, target, reason,
-                    kickedAt, null, 0L, "observed_irc");
+                    kickedAt, null, 0L, origin);
         }
+    }
+
+    private static String autoModKey(String server, String channel, String nick) {
+        return server + "\u0000" + channel.toLowerCase(Locale.ROOT) +
+                "\u0000" + nick.toLowerCase(Locale.ROOT);
+    }
+
+    private String observedOrigin(String server, String channel, String actor,
+                                  String target, String event, String ownNick,
+                                  long timestamp) {
+        if (actor == null || ownNick == null || !actor.equalsIgnoreCase(ownNick))
+            return "observed_irc";
+        if ("KICK".equals(event)) {
+            AutoModIntent intent = autoModIntents.get(autoModKey(server, channel, target));
+            if (intent != null && intent.action.contains("kick") &&
+                    Math.abs(timestamp - intent.when) <= 60)
+                return "automod_correlated";
+        }
+        // A +b mask is not necessarily a nickname; do not attribute it based
+        // solely on matching timing. The AutoMod decision is retained separately.
+        return "observed_irc";
     }
 
     private void recordCollector(String server, String event, String channel,
