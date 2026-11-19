@@ -227,7 +227,9 @@ public final class LuaDiagnosticService extends Service {
                                 "disconnected".equals(event) || "command".equals(event) ||
                                 "join".equals(event) || "part".equals(event) ||
                                 "quit".equals(event) || "nick".equals(event) ||
-                                "timer".equals(event))) {
+                                "timer".equals(event) || "kick".equals(event) ||
+                                "ban".equals(event) || "history".equals(event) ||
+                                "moderation_log".equals(event))) {
                     status = "ERROR: invalid event";
                 } else if (names == null || memberCounts == null ||
                         names.size() != memberCounts.length ||
