@@ -975,6 +975,14 @@ public final class HostLuaRuntimeTest {
                 "Target", 1794405070L).length == 4,
                 "Collector resumes after ON");
 
+        String[] disconnectedCollector = collectorEvent("disconnected", "", "",
+                "", 1794405080L);
+        check(disconnectedCollector.length == 4 &&
+                        "journal".equals(disconnectedCollector[1]) &&
+                        disconnectedCollector[3].contains("\"event\":\"kick\"") &&
+                        disconnectedCollector[3].contains("\"last_message\":null"),
+                "A disconnect must flush pending moderation records without fabricating context");
+
         NativeLuaRuntime.unload(ID);
         check(NativeLuaRuntime.dispatch(ID, "message", bytes("test-server"),
                 bytes("#x"), bytes("a"), bytes("b"), bytes("normal"), 0L,
