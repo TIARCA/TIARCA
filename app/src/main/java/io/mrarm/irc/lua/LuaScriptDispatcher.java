@@ -799,8 +799,8 @@ public final class LuaScriptDispatcher {
 
     private static String safeHistoricIdentity(String value, int limit) {
         return value != null && value.length() <= limit &&
-                value.indexOf('\\n') < 0 && value.indexOf('\\r') < 0 &&
-                value.indexOf('\\t') < 0 && value.indexOf('\\0') < 0 ?
+                value.indexOf('\n') < 0 && value.indexOf('\r') < 0 &&
+                value.indexOf('\t') < 0 && value.indexOf('\0') < 0 ?
                 value : "";
     }
 
