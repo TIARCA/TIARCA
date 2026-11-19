@@ -172,6 +172,34 @@ tiarca.on("message", function(e)
   if active(e.server) then observe(e) end
 end)
 
+local function forget(e, nick)
+  if not nick or nick == "" then return end
+  local network = observed[e.server]
+  local channel = network and network[(e.channel or ""):lower()]
+  if channel then channel[nick:lower()] = nil end
+end
+
+-- Nicknames are not stable identities. Do not reuse identity hints after a
+-- member joins/leaves, changes nick, is kicked or the network reconnects.
+for _, kind in ipairs({"join", "part", "quit", "nick"}) do
+  tiarca.on(kind, function(e) forget(e, e.nick) end)
+end
+
+tiarca.on("disconnected", function(e)
+  -- No further timer tick is guaranteed after a disconnect: preserve every
+  -- pending event, with null history rather than silently dropping it.
+  local network = pending[e.server]
+  if network then
+    for token, entry in pairs(network) do
+      if active(e.server) then write(entry) end
+      network[token] = nil
+    end
+  end
+  pending[e.server] = nil
+  observed[e.server] = nil
+end)
+
+
 tiarca.on("moderation_log", function(e)
   if not active(e.server) or e.message_type ~= "automod_antiripetizione.lua" then return end
   local channel, nick, percent, level, action = (e.text or ""):match(
@@ -193,6 +221,7 @@ tiarca.on("kick", function(e)
           event="kick", action="kick", nickname=nick,
           identity=identity(e.server, e.channel, nick), operator=e.nick,
           reason=e.text, execution="observed_irc"})
+  forget(e, nick)
 end)
 
 tiarca.on("ban", function(e)
