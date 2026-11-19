@@ -1,42 +1,46 @@
-# Collector di moderazione (sperimentale)
+# Moderation Collector — script Lua autonomo
 
-[Guida Lua](README.md) · [English](../en/MODERATION_COLLECTOR.md)
+[Guida Lua](README.md) · [English](../en/MODERATION_COLLECTOR.md) · [Codice Lua](../../lua-examples/moderation_collector.lua)
 
-**Disponibilità:** codice sul branch `feat/automod-collector-20261119`, non nella release stabile v0.9.10. Funzionamento su dispositivi reali: **non verificato**.
+**Disponibilità:** PR [#289](https://github.com/TIARCA/TIARCA/pull/289), non nella release stabile v0.9.10. Prova Android reale: **non verificato**.
 
-## Che cosa raccoglie
-- `KICK` ricevuti dal server, anche quando eseguiti da altri operatori o bot, con esecutore, nickname espulso e motivazione.
-- `MODE +b` ricevuti dal server, con esecutore e mask; il ban non implica necessariamente l'espulsione.
-- Decisioni di `automod_antiripetizione.lua` (avviso, kick, ban, mute, ecc.), conservate come **richieste non confermate** finché non si osservano eventi IRC compatibili.
-- L'ultimo messaggio **pubblico** precedente al KICK, se recuperabile dalla cronologia SQLite TIARCA fra gli ultimi 200 messaggi del canale. Per `+b` si tenta se la mask identifica esattamente un nick oppure se corrisponde a un solo autore con identità già osservata fra i messaggi recenti; in caso di ambiguità non si associa alcun messaggio. Mancanza di corrispondenza = `null`, non un messaggio inventato. Il JSONL indica `context_match` (`nick_exact` oppure `unique_observed_mask_identity`) e `context_nick` quando la corrispondenza è disponibile.
+## Che cosa registra
 
-Un messaggio precedente è **contesto**, non dimostrazione della causa del provvedimento. Le identità `ident`, `host` e `account` vengono incluse soltanto se già osservate da TIARCA. Un operatore esterno non è automaticamente classificato come persona o bot.
+È `moderation_collector.lua` a scegliere gli eventi, interrogare lo storico e comporre le righe del file: **nessuna raccolta o correlazione Collector viene eseguita da TIARCA quando lo script è spento**.
 
-## Attivazione
-Importare `docs/lua-examples/moderation_collector.lua` dalle impostazioni Script Lua, abilitarlo sulla rete scelta, quindi digitare sulla rete:
+- Tutte le decisioni riconosciute di `automod_antiripetizione.lua`: **monitor**, **avviso**, **kick**, **ban**, **mute**, **tban**, **bankick**, **tbankick**. Sono classificate come *richieste*, non successi confermati.
+- KICK comunicati dal server, anche di altri operatori/bot: **esecutore**, **nickname espulso**, **motivo** quando presente.
+- MODE +b comunicati dal server: **esecutore**, **mask**. La mask non trasmette una motivazione IRC; se individua esattamente un nick si associa quel nick, altrimenti si salva l'evento senza inventare un destinatario.
+- **Ultimo messaggio pubblico** di quel nick presente fra gli **ultimi 200 messaggi SQLite del canale**, quando recuperabile. La ricerca viene richiesta *dallo script solo dopo un evento di moderazione* e vale anche per tutti gli eventi AutoMod.
 
-| Comando | Effetto |
+Per ogni evento e ultimo messaggio si riportano **canale, timestamp, nick, ident, host, account se osservati**, altrimenti `null`. Per KICK/BAN anche operatore, mask/motivo ove comunicati. Il messaggio è contesto, non prova del motivo del provvedimento. In presenza di mask generiche ambigue non si inventa un nickname.
+
+## Installazione e comandi
+
+1. Importare il file [moderation_collector.lua](../../lua-examples/moderation_collector.lua) da **Script Lua** e abilitarlo sulle reti desiderate.
+2. Concedere **Dati persistenti** (archivio incrementale) e **Lettura utenti/identità** (ident, host, account e ricerca storica). **Non** servono permessi di invio messaggi o moderazione.
+3. Lo script **inizia a registrare quando è abilitato** sulla rete; non c'è un interruttore nascosto dentro TIARCA. I comandi locali sono:
+
+| Comando | Risultato |
 |---|---|
-| `/lua collector on` | Abilita raccolta sulla rete corrente (stato persistente) |
-| `/lua collector off` | Interrompe la raccolta; **non elimina** i dati già acquisiti |
-| `/lua collector status` | Mostra stato e dimensione dell'archivio |
-| `/lua collector export` | Apre la condivisione Android per esportare un file JSONL |
-| `/lua collector help` | Elenca i comandi |
+| `/lua collector on` | Riprende la raccolta su quella rete; persiste |
+| `/lua collector off` | Sospende la raccolta; conserva l'archivio esistente |
+| `/lua collector status` | Mostra ON/OFF |
+| `/lua collector export` | Condivisione Android del JSONL di quello script e rete |
+| `/lua collector` | Stato; `/lua collector help` mostra i comandi |
 
-Non è necessario concedere agli script accesso ai file: la scrittura avviene **nel processo Android principale**, non nella sandbox Lua. Non occorre autorizzare l'invio di messaggi o la moderazione perché lo script Collector è passivo. La raccolta è **disattivata per impostazione predefinita**.
+**Disabilitare completamente lo script dalle impostazioni** interrompe callback e interrogazioni. Con `off`, la logica Lua non chiede lo storico né scrive righe. Il consenso ai dati persistenti è obbligatorio.
 
-## Archivio e riservatezza
+## Formato e conservazione
 
-Un file JSONL incrementale per UUID della rete in una directory privata dell'app. Ogni riga è un oggetto JSON con campi `schema`, `event`, `server`, `channel`, `actor`, `target`, `detail`, `timestamp`, `origin`, `ident`, `host`, `account`, `prior_message`, `prior_timestamp`, `trigger_message`, `trigger_timestamp`. Per AutoMod sono presenti, quando analizzabili, `similarity_percent`, `infraction_level`, `requested_action`.
+Ogni evento produce un oggetto **JSONL su una riga**, con `schema`, `server`, `channel`, `timestamp`, `event`, `action`, `nickname`, `ident`, `host`, `account`, `operator`, `reason`, `ban_mask`, `source_script`, `similarity_percent`, `infraction_level`, `execution`, `identity_match` e `last_message` (oggetto con testo, autore, identità e orario, oppure `null`).
 
-L'archivio **non è un registro circolare**: nessuna sovrascrittura dopo 32 eventi, nessuna eliminazione automatica. Questo comporta una crescita dello spazio occupato. Viene esportata una copia temporanea, non si espone direttamente il file privato. Gli archivi sono esclusi dai backup automatici Android: usare esplicitamente `/lua collector export` prima di trasferire o disinstallare l’app.
+Il file è **incrementale, non circolare**, privato per UUID di script e rete, e può contenere centinaia/migliaia di eventi. Nessuna eliminazione automatica; cresce con l'uso. Il sistema Lua espone API generiche `tiarca.journal.append`, `tiarca.journal.export`, `tiarca.last_message`, non una funzione Collector incorporata nell'app.
 
-**Privacy:** il JSONL può contenere messaggi e dati identificativi di terzi. Esportarlo soltanto quando necessario e condividerlo con destinatari fidati; valutare oscuramento prima di pubblicarlo.
+Gli archivi sono esclusi dal backup automatico Android per riservatezza: esportarli prima di reinstallare o cambiare dispositivo. Contengono dati di terzi: prestare attenzione alla condivisione.
 
-## Limiti
+## Limiti e verifiche
 
-Le code Lua possono perdere eventi; non è garantita la completezza in caso di crash, sospensione o disconnessione. Le decisioni AutoMod sono distinte dai KICK/BAN osservati per evitare di considerare confermato un semplice comando inviato. L'associazione esatta tra una `+b` generica (es. host condiviso) e un singolo utente **non è verificabile** senza altre evidenze.
+Android può sospendere processi, saturare code Lua o interrompere ricerche SQLite: **completezza assoluta non garantita**. Una mask di ban generica non prova quale utente sia stato colpito. La cronologia è limitata alle ultime 200 righe di canale e il testo trasferito allo script è limitato dai vincoli IPC. La conferma IRC di un'azione AutoMod è eventualmente riportata come evento distinto.
 
-## Verifiche
-
-Compilazione e test automatici vanno controllati nella [PR #289](https://github.com/TIARCA/TIARCA/pull/289). Rimangono necessarie prove manuali su APK, inclusi più server, riconnessioni, esportazione e permessi Android. Non aumenta la versione e non pubblica release.
+Test/CI: vedere [PR #289](https://github.com/TIARCA/TIARCA/pull/289). Test su dispositivo Android, varie reti, esportazione e riavvii: **non verificato** finché non eseguiti.

@@ -1,41 +1,46 @@
-# Moderation Collector (experimental)
+# Moderation Collector — standalone Lua script
 
-[Lua guide](README.md) · [Italiano](../it/MODERATION_COLLECTOR.md)
+[Lua guide](README.md) · [Italiano](../it/MODERATION_COLLECTOR.md) · [Lua source](../../lua-examples/moderation_collector.lua)
 
-**Availability:** source branch `feat/automod-collector-20261119`; not included in the v0.9.10 stable release. Real-device operation: **not verified**.
+**Availability:** [PR #289](https://github.com/TIARCA/TIARCA/pull/289); not part of stable v0.9.10. Real-device testing: **not verified**.
 
-## What it collects
-- Server-observed channel `KICK`, including actions by other operators/bots: actor, target nickname and reason.
-- Server-observed `MODE +b`: setter and ban mask. A ban does not necessarily kick anyone.
-- Decisions produced by `automod_antiripetizione.lua`, explicitly marked **unconfirmed requests** until a compatible IRC event is observed.
-- The kicked user's latest earlier **public** message where available from TIARCA's existing SQLite channel history (up to the 200 most recent channel messages). For `+b`, lookup is attempted if a nickname is exact or if the mask matches a single author with an already-observed identity among recent channel messages; ambiguous matches produce no context.
+## Events captured
 
-The JSONL indicates `context_match` (`nick_exact` or `unique_observed_mask_identity`) and `context_nick` where available. The preceding message is contextual evidence, **not a proven reason for moderation**. Only already-observed `ident`, `host` and `account` data are saved. Other IRC actors are not assumed to be humans or bots without evidence.
+All collection decisions, event selection, SQLite lookup requests and JSONL serialization happen in **moderation_collector.lua**. The Android host only exposes generic Lua facilities; it performs no Collector-specific work when the script is disabled.
 
-## Setup
+- AutoMod **monitor, warning, kick, ban, mute, timed ban and combined actions**, explicitly marked as **requested, unconfirmed** decisions.
+- Server-observed KICK from any operator/bot, with **actor**, **target nickname** and any **reason**.
+- Server-observed MODE +b, with actor and mask; no reason is transmitted in that protocol command. A nickname is attached only when identifiable without ambiguity.
+- The target's **latest earlier public message**, if found in the last **200 messages of the channel's existing SQLite history**. The Lua script requests this on demand after any qualifying event, including AutoMod.
 
-Import `docs/lua-examples/moderation_collector.lua` in TIARCA's Lua scripting settings, enable it for the network, then issue these local commands:
+Each event and last-message object has channel, timestamp, nickname, observed ident/host/account (otherwise `null`). Previous chat is context, **not proof of a moderation reason**. Ambiguous ban masks do not receive guessed nicknames.
 
-| Command | Effect |
+## Setup and commands
+
+Import [moderation_collector.lua](../../lua-examples/moderation_collector.lua) into TIARCA's Lua scripts. Enable it on the selected network(s) and grant **Persistent data** and **Read users/identities**. Neither sending messages nor moderation authorization is necessary.
+
+**Collection starts as soon as the script is enabled.** There is no host-side Collector switch. The optional script-owned settings are:
+
+| Command | Behavior |
 |---|---|
-| `/lua collector on` | Start collecting on this network; setting persists across restarts |
-| `/lua collector off` | Stop collecting without deleting past records |
-| `/lua collector status` | Show enabled state and archive size |
-| `/lua collector export` | Invoke Android's sharing chooser for a JSONL export |
-| `/lua collector help` | Show available commands |
+| `/lua collector on` | Resume collection on this network, persisted |
+| `/lua collector off` | Pause collection without deleting archived records |
+| `/lua collector status` | Show ON/OFF |
+| `/lua collector export` | Share this script's network JSONL via Android |
+| `/lua collector` | Show state; `/lua collector help` lists commands |
 
-Collector starts **OFF**. No Lua storage, send or moderation permission is required for the passive companion script: the Android host performs the archive writes.
+Disabling the script in TIARCA stops all callbacks and history requests. With `off`, the script does not request history or append records.
 
 ## Format, retention and privacy
 
-The app writes an append-only JSONL file for each network UUID in app-private storage. Each line contains a versioned JSON object with event, server, channel, actor, target, detail, timestamps, origin, observed identity fields, previous public message where available, and AutoMod trigger/decision fields.
+One event per append-only JSONL line. Fields: `schema`, `server`, `channel`, `timestamp`, `event`, `action`, `nickname`, `ident`, `host`, `account`, `operator`, `reason`, `ban_mask`, `source_script`, `similarity_percent`, `infraction_level`, `execution`, `identity_match`, `last_message` (nested message, identity, timestamp, or `null`).
 
-This is **not** a 32-event circular log; no automatic overwrite or deletion is performed. The archive grows with usage. Export shares a temporary snapshot, not the private source file. Android automatic backup excludes collector archives; export explicitly before moving devices or uninstalling.
+The private journal is scoped by **script UUID and network UUID**, grows incrementally and has no circular truncation at 32, 128 or any other event count. Generic APIs `tiarca.journal.append/export` and `tiarca.last_message` are the only Android assistance.
 
-**Privacy:** exported archives can include third-party chat messages, hostnames and accounts. Only share with trusted recipients; redact sensitive information before publication.
+Android automatic backup excludes journal archives for privacy; export before uninstall or migration. Exports may contain third-party messages and identifying details; only share carefully.
 
-## Limits and verification
+## Limitations
 
-Lua event queues may drop callbacks; a crash, disconnection or Android suspension may cause missing events. An AutoMod request is not proof of delivery or enforcement. A generic ban mask cannot always be associated with one particular nick.
+Events may be dropped if Android interrupts Lua, a queue fills or SQLite lookup fails. IRC MODE +b does not prove a user was expelled. An AutoMod decision does not prove the server applied it; observed server actions are distinct records. The history window is limited to 200 channel messages, and message text is bounded by IPC.
 
-See [PR #289](https://github.com/TIARCA/TIARCA/pull/289) for compilation/tests. Manual device verification remains necessary for multiple networks, reconnections, export and Android permissions. No version bump or release is performed.
+See [PR #289](https://github.com/TIARCA/TIARCA/pull/289) for CI and automated tests. Device validation remains **not verified** until performed.

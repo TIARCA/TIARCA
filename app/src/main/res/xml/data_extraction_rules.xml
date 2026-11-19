@@ -26,7 +26,7 @@
         <exclude domain="sharedpref" path="tiarca_diagnostics.xml" />
         <exclude domain="file" path="diagnostics/" />
         <!-- Contains IRC identities and message context; explicit export only. -->
-        <exclude domain="file" path="moderation-collector/" />
+        <exclude domain="file" path="lua_journals/" />
     </cloud-backup>
 
     <device-transfer>
@@ -37,6 +37,6 @@
         <exclude domain="sharedpref" path="tiarca_diagnostics.xml" />
         <exclude domain="file" path="diagnostics/" />
         <!-- Contains IRC identities and message context; explicit export only. -->
-        <exclude domain="file" path="moderation-collector/" />
+        <exclude domain="file" path="lua_journals/" />
     </device-transfer>
 </data-extraction-rules>

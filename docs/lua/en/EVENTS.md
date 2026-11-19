@@ -15,7 +15,8 @@ Register events with `tiarca.on("name", function(event) ... end)`. The callback 
 | `quit` | User quits network | May yield callbacks for multiple channels |
 | `nick` | Nickname change | `event.nick` old nickname; `event.text` new nickname |
 | `kick` | Observed channel KICK | `event.nick` actor, `event.message_type` kicked nickname, `event.text` reason; no proof of who initiated an automated action |
-| `kick_context` | Asynchronous last public message from existing channel storage | `event.nick` kicked user, `event.text` previous message, `event.timestamp` message time; may be absent or delayed; bounded to latest 200 stored messages |
+| `history` | Asynchronous `tiarca.last_message` result | `event.nick` target, `event.text` latest message or empty, `event.message_type` request token, `event.timestamp` message time or 0; requester only |
+| `moderation_log` | Recognized moderation report from another script | `event.nick` target, `event.text` report, `event.message_type` originating script name; not an IRC confirmation |
 | `ban` | Observed channel MODE +b | `event.nick` setter, `event.text` ban mask; one event per added mask, not proof of an expulsion |
 | `timer` | Approximately 60-second tick | Only with running IRC service and connected network; not an accurate alarm |
 

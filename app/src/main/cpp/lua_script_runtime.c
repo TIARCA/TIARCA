@@ -783,7 +783,7 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatch(JNIEnv *env, jclass unused,
         jobjectArray jroster, jboolean jrostertruncated,
         jboolean jcanreadusers, jobjectArray jstorage, jboolean jcanstore) {
     (void)unused;
-    char server[64], channel[97], nick[97], text[2049], type[32];
+    char server[64], channel[97], nick[97], text[2049], type[97];
     if (!jid || !jevent ||
         !copy_java_bytes(env, jserver, server, sizeof(server)) ||
         !copy_java_bytes(env, jchannel, channel, sizeof(channel)) ||

@@ -15,7 +15,8 @@ Registra gli eventi con `tiarca.on("nome", function(event) ... end)`. Il callbac
 | `quit` | Utente esce dalla rete | Possibili callback per più canali |
 | `nick` | Cambio nickname | `event.nick` vecchio nick, `event.text` nuovo |
 | `kick` | KICK osservato dal server | `event.nick` esecutore, `event.message_type` nickname espulso, `event.text` motivazione |
-| `kick_context` | Ultimo messaggio pubblico recuperato in modo asincrono dallo storico TIARCA | `event.nick` utente espulso, `event.text` messaggio precedente, `event.timestamp` orario del messaggio; ricerca limitata a 200 messaggi |
+| `history` | Risposta asincrona a `tiarca.last_message` | `event.nick` destinatario, `event.text` ultimo messaggio oppure vuoto, `event.message_type` token di richiesta, `event.timestamp` orario messaggio o 0; solo allo script richiedente |
+| `moderation_log` | Rapporto di moderazione riconosciuto da un altro script | `event.nick` utente, `event.text` rapporto, `event.message_type` nome dello script sorgente; non prova l'esecuzione IRC |
 | `ban` | MODE +b osservato | `event.nick` esecutore, `event.text` mask; non implica espulsione |
 | `timer` | Tick approssimativo di 60 secondi | Solo quando servizio IRC attivo e rete connessa; non è un allarme preciso |
 

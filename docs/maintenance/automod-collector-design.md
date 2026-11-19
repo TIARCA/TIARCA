@@ -1,52 +1,20 @@
-# AutoMod Collector — implementation notes
+# Standalone Lua moderation collector — architecture
 
-Status: implementation on feature branch / PR #289; CI and real-device validation must be checked before merge.
+Status: [PR #289](https://github.com/TIARCA/TIARCA/pull/289). Do not claim real-device testing before it is performed.
 
-## Scope and reuse
-The collector reuses TIARCA's existing IRC message pipeline and SQLite channel
-history. It observes inbound KICK and +b events regardless of the actor, without
-creating a duplicate Lua chat history. AutoMod's authenticated decision log is
-captured when it is produced by the known AutoMod script, not by a second
-moderation engine. Its detection rules and actions remain unchanged.
+The moderation **collector itself is an external Lua script** at `docs/lua-examples/moderation_collector.lua`. It alone chooses which KICK, MODE +b and recognized AutoMod report events to record, requests message context, serializes JSONL and implements `/lua collector` commands. Nothing in the Android host recognizes the script filename, maintains Collector-specific preferences, or records moderation evidence when the script is disabled.
 
-## Implementation
-- `LuaScriptDispatcher` observes channel KICK and MODE +b, performs bounded,
-  asynchronous lookups of the kicked user's last public message among the most
-  recent 200 stored channel messages; exact `nick!ident@host` ban masks get the
-  same lookup, while ambiguous bans have no inferred chat context.
-- `LuaAutoModReport` validates AutoMod decisions; the dispatcher only archives
-  decisions coming from `automod_antiripetizione.lua`. The original current
-  message is passed through the existing Pending reply, not held in a second
-  persistent history. Its similarity %, infraction level and requested action
-  are stored in separate JSON fields when the input matches the defined format.
-- `LuaModerationCollector` writes app-private, append-only UTF-8 JSONL, scoped
-  by server UUID and versioned with schema=1. There is no circular event limit.
-  Observed ident/host/account values are best-effort and null when unknown.
-- `/lua collector on|off|status|export|help` is handled by the host and requires
-  the opt-in companion `moderation_collector.lua` to be enabled on that network.
-  Collection defaults to off and stays off through restarts until enabled.
-  Turning collection off does not erase existing records.
-- Explicit export copies the journal into an app cache path shared using the
-  existing `FileProvider` and the Android share chooser. No new permissions or
-  storage API are granted to the isolated Lua sandbox.
+## Generic host Lua interfaces
 
-## Interpretation / limits
-- `AUTOMOD` is a **decision/request**, never a falsely confirmed IRC action.
-  When a KICK is subsequently observed by the local IRC nick within the
-  correlation window, origin is `automod_correlated`; otherwise observed
-  actions remain `observed_irc`. Do not classify other nicknames as bot or
-  human without independent data.
-- A preceding message is context, not proven cause. A ban does not itself
-  expel a user. Generic host or extban masks may not identify a single target.
-- Events can be missed on disconnection or if Android terminates a process.
-  The archive grows with usage and is excluded from Android cloud/device\n  automatic backups for privacy; export is user-initiated and contains sensitive
-  third-party chat and identity data.
-- Lua event delivery may drop under load; the native archive observes KICK/+b
-  independent of Lua callback delivery where the host receives the IRC event.
+- IRC events `kick` and `ban`: already dispatched for subscribed scripts; native runtime and isolated-service event validation now support them.
+- `moderation_log`: forwards an existing validated local moderation detection report (including AutoMod's requested action), with script source in `event.message_type`. A reported decision is not server confirmation.
+- `tiarca.last_message(channel,nick,token)`: a consent-gated, event-scoped, asynchronous request against existing channel SQLite storage (last 200 normal/ME messages); response `history` delivered only to the requesting script. Never executes with no script request.
+- `tiarca.journal.append(json)`: validates a single JSON object and appends one line to private `lua_journals/<script UUID>/<network UUID>.jsonl`; no rotating buffer, quota on *individual* lines only. `tiarca.journal.export()` creates and shares a temporary snapshot only after a local command. These APIs require persistent-data consent.
 
-## Validation
-Automated JSONL/Robolectric tests: `LuaModerationCollectorTest`, plus
-existing `LuaAutoModReportTest` and CI (Standard and Fdroid). Also manually
-verify APK multi-network isolation, reconnect, export, privacy, and backup
-behavior. CI and device results are not assumed successful until checked.
-No automatic version increment, tag or release.
+Identity values come only from observed, consented channel snapshots; unknown values are null. The Lua script caches only limited transient *identity hints*, not a duplicate chat transcript. Unidentifiable generic ban masks are recorded without invented target or message context. Last message is not evidence of causal responsibility.
+
+Archives are excluded from Android cloud/device automatic backup due to third-party identity/chat content. Explicit sharing is user initiated. User must grant Persistent data and Read identities separately, and enable the Lua script per network; script settings persist in ordinary Lua storage. No app permissions, version, tag or release are altered.
+
+## Verification
+
+Automated tests for append-only storage and network/script isolation; CI/Android compilation; manual IRC and export validation still required. Observe original API permission behavior, bounded IPC and event delivery under load.

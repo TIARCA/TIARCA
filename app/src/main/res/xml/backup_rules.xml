@@ -22,6 +22,6 @@
         requireFlags="clientSideEncryption" />
     <exclude domain="sharedpref" path="tiarca_diagnostics.xml" />
     <exclude domain="file" path="diagnostics/" />
-    <!-- Sensitive moderation evidence: export explicitly instead of automatic cloud backup. -->
-    <exclude domain="file" path="moderation-collector/" />
+    <!-- Sensitive Lua journal evidence: export explicitly instead of automatic cloud backup. -->
+    <exclude domain="file" path="lua_journals/" />
 </full-backup-content>

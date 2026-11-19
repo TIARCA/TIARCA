@@ -810,8 +810,7 @@ public final class LuaScriptDispatcher {
                 return;
             }
             ServerConnectionApi api = (ServerConnectionApi) conn.getApiInstance();
-            // Require the requesting script to be on the same live channel.
-            api.getServerConnectionData().getJoinedChannelData(channel);
+            // The event already scopes the channel; the target may have just been kicked.
             MessageFilterOptions filter = new MessageFilterOptions();
             filter.restrictToMessageTypes = Arrays.asList(
                     MessageInfo.MessageType.NORMAL, MessageInfo.MessageType.ME);
@@ -838,8 +837,6 @@ public final class LuaScriptDispatcher {
                         respond.accept(null, 0L);
                     }, error -> respond.accept(null, 0L));
         } catch (RuntimeException ignored) {
-            respond.accept(null, 0L);
-        } catch (NoSuchChannelException ignored) {
             respond.accept(null, 0L);
         }
     }
