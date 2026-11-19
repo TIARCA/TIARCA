@@ -669,7 +669,7 @@ conferma di avvenuta moderazione.
 Separatamente, la scheda Server registra i comandi Lua KICK,
 BAN, BAN temporaneo e MUTE effettivamente inoltrati dall'app, con nickname,
 canale, eventuale motivo e durata. Questi ultimi indicano
-«comando inviato, esito non confermato»: il server può rifiutarli.
+«comando inviato»: la dicitura indica l'inoltro, non conferma l'esecuzione da parte del server.
 L'assenza della seconda registrazione dopo una richiesta può indicare che
 i controlli di autorizzazione o i prerequisiti IRC hanno impedito l'invio.
 La visualizzazione nell'APK e la conservazione delle singole righe dopo
