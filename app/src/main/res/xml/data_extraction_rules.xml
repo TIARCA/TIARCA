@@ -25,6 +25,8 @@
         <include domain="database" path="." />
         <exclude domain="sharedpref" path="tiarca_diagnostics.xml" />
         <exclude domain="file" path="diagnostics/" />
+        <!-- Contains IRC identities and message context; explicit export only. -->
+        <exclude domain="file" path="moderation-collector/" />
     </cloud-backup>
 
     <device-transfer>
@@ -34,5 +36,7 @@
         <include domain="external" path="chat-logs" />
         <exclude domain="sharedpref" path="tiarca_diagnostics.xml" />
         <exclude domain="file" path="diagnostics/" />
+        <!-- Contains IRC identities and message context; explicit export only. -->
+        <exclude domain="file" path="moderation-collector/" />
     </device-transfer>
 </data-extraction-rules>
