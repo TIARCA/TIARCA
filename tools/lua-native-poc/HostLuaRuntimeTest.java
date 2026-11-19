@@ -908,16 +908,16 @@ public final class HostLuaRuntimeTest {
         check(collectorKick.length == 4 && "OK".equals(collectorKick[0]) &&
                         "history".equals(collectorKick[1]) &&
                         "#room".equals(collectorKick[2]) &&
-                        "Target\\t1".equals(collectorKick[3]),
+                        ("Target" + (char)9 + "1").equals(collectorKick[3]),
                 "KICK asks for the target's last stored channel message");
         String[] kickHistory = collectorEvent("history", "Target",
                 "Messaggio precedente", "1", 1794404999L);
         check(kickHistory.length == 4 && "journal".equals(kickHistory[1]) &&
-                        kickHistory[3].contains("\\"event\\":\\"kick\\"") &&
-                        kickHistory[3].contains("\\"operator\\":\\"ChannelOp\\"") &&
-                        kickHistory[3].contains("\\"reason\\":\\"spam\\"") &&
-                        kickHistory[3].contains("\\"last_message\\":{") &&
-                        kickHistory[3].contains("\\"ident\\":\\"ident\\"") &&
+                        kickHistory[3].contains("\"event\":\"kick\"") &&
+                        kickHistory[3].contains("\"operator\":\"ChannelOp\"") &&
+                        kickHistory[3].contains("\"reason\":\"spam\"") &&
+                        kickHistory[3].contains("\"last_message\":{") &&
+                        kickHistory[3].contains("\"ident\":\"ident\"") &&
                         kickHistory[3].contains("Messaggio precedente"),
                 "KICK JSONL must contain operator, reason and SQLite message/identity");
 
@@ -925,36 +925,36 @@ public final class HostLuaRuntimeTest {
                 "AutoMod test-ser/#room Target 78.0% infrazione 2 (mute)",
                 "automod_antiripetizione.lua", 1794405010L);
         check(collectorAutoMod.length == 4 && "history".equals(collectorAutoMod[1]) &&
-                        "Target\\t2".equals(collectorAutoMod[3]),
+                        ("Target" + (char)9 + "2").equals(collectorAutoMod[3]),
                 "AutoMod mute decision asks for last historical public message");
         String[] autoHistory = collectorEvent("history", "Target",
                 "Messaggio ripetuto", "2", 1794405010L);
         check(autoHistory.length == 4 && "journal".equals(autoHistory[1]) &&
-                        autoHistory[3].contains("\\"event\\":\\"automod\\"") &&
-                        autoHistory[3].contains("\\"action\\":\\"mute\\"") &&
-                        autoHistory[3].contains("\\"similarity_percent\\":78.0") &&
-                        autoHistory[3].contains("\\"infraction_level\\":2") &&
+                        autoHistory[3].contains("\"event\":\"automod\"") &&
+                        autoHistory[3].contains("\"action\":\"mute\"") &&
+                        autoHistory[3].contains("\"similarity_percent\":78.0") &&
+                        autoHistory[3].contains("\"infraction_level\":2") &&
                         autoHistory[3].contains("Messaggio ripetuto"),
                 "AutoMod JSONL must contain action, detection data and context");
 
         String[] collectorBan = collectorEvent("ban", "ChannelOp",
                 "Target!*@*", "", 1794405020L);
         check(collectorBan.length == 4 && "history".equals(collectorBan[1]) &&
-                        "Target\\t3".equals(collectorBan[3]),
+                        ("Target" + (char)9 + "3").equals(collectorBan[3]),
                 "Exact-nick ban requests target history");
         String[] banHistory = collectorEvent("history", "Target",
                 "Ultimo ban", "3", 1794405019L);
         check(banHistory.length == 4 && "journal".equals(banHistory[1]) &&
-                        banHistory[3].contains("\\"event\\":\\"ban\\"") &&
-                        banHistory[3].contains("\\"operator\\":\\"ChannelOp\\"") &&
-                        banHistory[3].contains("\\"ban_mask\\":\\"Target!*@*\\""),
+                        banHistory[3].contains("\"event\":\"ban\"") &&
+                        banHistory[3].contains("\"operator\":\"ChannelOp\"") &&
+                        banHistory[3].contains("\"ban_mask\":\"Target!*@*\""),
                 "Observed ban JSONL must contain setter, mask and message context");
 
         String[] ambiguous = collectorEvent("ban", "ChannelOp", "*!*@other.example",
                 "", 1794405030L);
         check(ambiguous.length == 4 && "journal".equals(ambiguous[1]) &&
-                        ambiguous[3].contains("\\"nickname\\":null") &&
-                        ambiguous[3].contains("\\"last_message\\":null"),
+                        ambiguous[3].contains("\"nickname\":null") &&
+                        ambiguous[3].contains("\"last_message\":null"),
                 "Generic unmatched ban must not invent a victim or chat evidence");
 
         String[] off = collectorEvent("command", "self", "collector off",
