@@ -69,6 +69,16 @@ public final class LuaScriptDispatcher {
     private final Context context;
     private final LuaScriptStore store;
     private final LuaModerationCollector collector;
+    private final Map<String, AutoModIntent> autoModIntents = new ConcurrentHashMap<>();
+
+    private static final class AutoModIntent {
+        final String action;
+        final long when;
+        AutoModIntent(String action, long when) {
+            this.action = action;
+            this.when = when;
+        }
+    }
     private final Handler main = new Handler(Looper.getMainLooper());
     private final HandlerThread ioThread = new HandlerThread("tiarca-lua-ipc");
     private final Handler io;
@@ -939,10 +949,18 @@ public final class LuaScriptDispatcher {
                 String report = LuaAutoModReport.fromEventLog(
                         request.event, request.server, request.channel, request.nick, value);
                 if (report != null) {
-                    recordCollector(request.server, "AUTOMOD", request.channel,
-                            script.name, request.nick, report,
-                            System.currentTimeMillis() / 1000, null, 0L,
-                            "automod_decision_unconfirmed");
+                    if ("automod_antiripetizione.lua".equalsIgnoreCase(script.name)) {
+                        long decidedAt = System.currentTimeMillis() / 1000;
+                        String kind = value.substring(value.lastIndexOf('(') + 1,
+                                value.length() - 1);
+                        autoModIntents.put(autoModKey(request.server,
+                                request.channel, request.nick),
+                                new AutoModIntent(kind, decidedAt));
+                        recordCollector(request.server, "AUTOMOD", request.channel,
+                                script.name, request.nick, report,
+                                decidedAt, null, 0L,
+                                "automod_decision_unconfirmed");
+                    }
                     try {
                         ServerConnectionInfo connection = ServerConnectionManager
                                 .getInstance(context).getConnection(UUID.fromString(request.server));
