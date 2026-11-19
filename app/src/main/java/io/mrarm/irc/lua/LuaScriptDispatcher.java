@@ -408,11 +408,20 @@ public final class LuaScriptDispatcher {
                     continue;
                 enqueue("ban", connection.getUUID().toString(), channel,
                         modeSender.getNick(), mask, "", modeTime);
-                recordCollector(connection.getUUID().toString(), "BAN", channel,
-                        modeSender.getNick(), mask, "MODE +b", modeTime,
-                        null, 0L, observedOrigin(connection.getUUID().toString(),
-                                channel, modeSender.getNick(), mask, "BAN",
-                                connection.getUserNick(), modeTime));
+                // Only an exact nick!ident@host ban can identify a unique nick
+                // without guessing from a shared host or a broad extban mask.
+                int separator = mask.indexOf('!');
+                String bannedNick = separator > 0 ? mask.substring(0, separator) : "";
+                if (bannedNick.length() <= 64 && !bannedNick.isEmpty() &&
+                        bannedNick.indexOf('*') < 0 && bannedNick.indexOf('?') < 0 &&
+                        bannedNick.indexOf(' ') < 0) {
+                    lookupBanContext(connection, channel, modeSender.getNick(),
+                            bannedNick, mask, modeTime);
+                } else {
+                    recordCollector(connection.getUUID().toString(), "BAN", channel,
+                            modeSender.getNick(), mask, "MODE +b", modeTime,
+                            null, 0L, "observed_irc");
+                }
             }
             return;
         }
@@ -506,6 +515,53 @@ public final class LuaScriptDispatcher {
         } catch (RuntimeException ignored) {
             recordCollector(server, "KICK", channel, actor, target, reason,
                     kickedAt, null, 0L, origin);
+        }
+    }
+
+    /**
+     * A ban mask may identify a nick exactly. Otherwise the target remains
+     * unknown and no unrelated channel message is attached to the ban.
+     */
+    private void lookupBanContext(ServerConnectionInfo connection, String channel,
+                                  String actor, String nick, String mask, long bannedAt) {
+        String server = connection.getUUID().toString();
+        if (!(connection.getApiInstance() instanceof ServerConnectionApi)) {
+            recordCollector(server, "BAN", channel, actor, mask, "MODE +b",
+                    bannedAt, null, 0L, "observed_irc");
+            return;
+        }
+        MessageFilterOptions filter = new MessageFilterOptions();
+        filter.restrictToMessageTypes = Arrays.asList(
+                MessageInfo.MessageType.NORMAL, MessageInfo.MessageType.ME);
+        try {
+            ((ServerConnectionApi) connection.getApiInstance()).getMessageStorageApi()
+                    .getMessages(channel, 200, filter, null, (MessageList history) -> {
+                        if (history != null && history.getMessages() != null) {
+                            java.util.List<MessageInfo> messages = history.getMessages();
+                            for (int i = messages.size() - 1; i >= 0; i--) {
+                                MessageInfo previous = messages.get(i);
+                                if (previous == null || previous.getSender() == null ||
+                                        previous.getSender().getNick() == null ||
+                                        !nick.equalsIgnoreCase(previous.getSender().getNick()) ||
+                                        previous.getMessage() == null || previous.getDate() == null ||
+                                        previous.getDate().getTime()/1000 > bannedAt) continue;
+                                String body = previous.getMessage();
+                                if (body.length() > 1024 ||
+                                        body.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 2048)
+                                    body = body.substring(0, Math.min(512, body.length()));
+                                recordCollector(server, "BAN", channel, actor, mask, "MODE +b",
+                                        bannedAt, body, previous.getDate().getTime()/1000,
+                                        "observed_irc");
+                                return;
+                            }
+                        }
+                        recordCollector(server, "BAN", channel, actor, mask, "MODE +b",
+                                bannedAt, null, 0L, "observed_irc");
+                    }, error -> recordCollector(server, "BAN", channel, actor, mask,
+                            "MODE +b", bannedAt, null, 0L, "observed_irc"));
+        } catch (RuntimeException ignored) {
+            recordCollector(server, "BAN", channel, actor, mask, "MODE +b",
+                    bannedAt, null, 0L, "observed_irc");
         }
     }
 
