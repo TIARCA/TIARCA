@@ -208,11 +208,18 @@ tiarca.on("disconnected", function(e)
 end)
 
 
+-- AutoMod can be imported under any filename (e.g. automod.lua).
+-- Match the validated decision payload, not the local script filename.
+local automod_actions = {monitor=true, avviso=true, kick=true, ban=true,
+                       mute=true, tban=true, bankick=true, tbankick=true,
+                       escalation=true}
 tiarca.on("moderation_log", function(e)
-  if not active(e.server) or e.message_type ~= "automod_antiripetizione.lua" then return end
-  local channel, nick, percent, level, action = (e.text or ""):match(
-    "^AutoMod%s+[%w%-]+/([^%s]+)%s+([^%s]+)%s+([%d%.]+)%% infrazione (%d+) %(([^%)]+)%)$")
-  if not nick or channel ~= e.channel or nick ~= e.nick then return end
+  if not active(e.server) then return end
+  local server, channel, nick, percent, level, action = (e.text or ""):match(
+    "^AutoMod%s+([^/%s]+)/([^%s]+)%s+([^%s]+)%s+([%d%.]+)%% infrazione (%d+) %(([^%)]+)%)$")
+  if not nick or server ~= e.server:sub(1, 8) or
+      channel:lower() ~= e.channel:lower() or
+      nick:lower() ~= e.nick:lower() or not automod_actions[action] then return end
   record({server=e.server, channel=e.channel, timestamp=e.timestamp,
           event="automod", action=action, nickname=nick,
           identity=identity(e.server, e.channel, nick),
