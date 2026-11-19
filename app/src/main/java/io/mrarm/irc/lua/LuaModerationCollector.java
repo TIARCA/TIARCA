@@ -36,6 +36,14 @@ final class LuaModerationCollector {
                 String target, String detail, long timestamp, String previous,
                 long previousTime, String origin, String ident, String host,
                 String account) throws IOException {
+        append(server, event, channel, actor, target, detail, timestamp, previous,
+                previousTime, origin, ident, host, account, null, null);
+    }
+
+    void append(String server, String event, String channel, String actor,
+                String target, String detail, long timestamp, String previous,
+                long previousTime, String origin, String ident, String host,
+                String account, String contextNick, String contextMatch) throws IOException {
         if (!enabled(server)) return;
         JSONObject obj = new JSONObject();
         try {
@@ -69,6 +77,10 @@ final class LuaModerationCollector {
             obj.put("trigger_timestamp", autoMod && previous != null ?
                     previousTime : JSONObject.NULL);
             obj.put("prior_message_is_proven_cause", false);
+            obj.put("context_nick", previous == null || "AUTOMOD".equals(event) ?
+                    JSONObject.NULL : contextNick);
+            obj.put("context_match", previous == null || "AUTOMOD".equals(event) ?
+                    JSONObject.NULL : contextMatch);
         } catch (org.json.JSONException ex) { throw new IOException(ex); }
         File f = file(server);
         if (!f.getParentFile().isDirectory() && !f.getParentFile().mkdirs())
