@@ -974,6 +974,18 @@ public final class HostLuaRuntimeTest {
         check(collectorEvent("kick", "ChannelOp", "again",
                 "Target", 1794405070L).length == 4,
                 "Collector resumes after ON");
+        String[] offWithPending = collectorEvent("command", "self", "collector off",
+                "", 1794405071L);
+        check(offWithPending.length == 7 &&
+                        "journal".equals(offWithPending[1]) &&
+                        offWithPending[3].contains("\"event\":\"kick\"") &&
+                        offWithPending[3].contains("\"last_message\":null") &&
+                        "show".equals(offWithPending[4]),
+                "OFF flushes already detected moderation events before stopping");
+        collectorEvent("command", "self", "collector on", "", 1794405072L);
+        check(collectorEvent("kick", "ChannelOp", "disconnect",
+                "Target", 1794405073L).length == 4,
+                "A pending record remains before disconnection");
 
         String[] disconnectedCollector = collectorEvent("disconnected", "", "",
                 "", 1794405080L);
