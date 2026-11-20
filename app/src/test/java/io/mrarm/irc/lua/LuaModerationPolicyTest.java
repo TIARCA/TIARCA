@@ -135,7 +135,7 @@ public class LuaModerationPolicyTest {
                 "*", "registered", true, IRCCaseMapping.ASCII));
         assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
                 approved, SERVER, "message", "Nick", "Nick",
-                "acc\\r\\nMODE", "acc\\r\\nMODE", true, IRCCaseMapping.ASCII));
+                "acc\r\nMODE", "acc\r\nMODE", true, IRCCaseMapping.ASCII));
     }
 
     @Test public void ejectFromChannelOrServerTabRequiresExplicitCommandAndBothConsents() {
@@ -154,7 +154,7 @@ public class LuaModerationPolicyTest {
         assertFalse(LuaModerationPolicy.scopedEject(script(true, true), SERVER,
                 "", "message", "#room"));
         assertFalse(LuaModerationPolicy.scopedEject(script(true, true), SERVER,
-                "", "command", "#room\\r\\nMODE"));
+                "", "command", "#room\r\nMODE"));
     }
 
     @Test public void ejectCanDevoiceButCannotPunishOtherPrivilegedMembers() {
@@ -184,7 +184,7 @@ public class LuaModerationPolicyTest {
         assertNull(LuaModerationPolicy.revisedHost(
                 "SimosNap-unknowncloak.example.com"));
         assertNull(LuaModerationPolicy.revisedHost(null));
-        assertNull(LuaModerationPolicy.revisedHost("evil\\r\\nMODE #room +o attacker"));
+        assertNull(LuaModerationPolicy.revisedHost("evil\r\nMODE #room +o attacker"));
     }
 
     @Test public void revokedPermissionDisablesExistingScriptActions() {
