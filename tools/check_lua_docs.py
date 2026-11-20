@@ -9,7 +9,7 @@ PAGES = ("README.md", "API_REFERENCE.md", "EVENTS.md", "PERMISSIONS.md", "EXAMPL
 EXPECTED_API = {
     "on", "log", "send", "pm", "notice", "get_channels", "get_users",
     "refresh_users", "maskfind", "show", "show_list", "storage.get",
-    "storage.set", "storage.delete", "kick", "ban", "mode", "mute",
+    "storage.set", "storage.delete", "kick", "eject", "ban", "mode", "mute",
     "tban", "kickban", "kicktban", "blacklist_action",
     "last_message", "journal.append", "journal.export",
     "journal.rotate", "journal.export_archive",
