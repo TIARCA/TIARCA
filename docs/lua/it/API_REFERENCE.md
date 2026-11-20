@@ -26,6 +26,7 @@
 | `tiarca.journal.export_archive()` | Riesporta l'ultimo archivio privato conservato dopo la rotazione | Dati persistenti; comando locale |
 | `tiarca.last_message(canale, nick, token)` | Cerca fino a 200 messaggi pubblici SQLite e invia evento `history` solo allo script richiedente | Dati persistenti + Identità; dopo evento `kick`, `ban`, `moderation_log`; stesso canale |
 | `tiarca.kick(canale, nick, motivo)` | Richiede KICK | Moderazione; OP |
+| `tiarca.eject(canale, nick, motivo)` | Richiesta manuale di espulsione multipla: `+N`, eventuale `-v`, KICK e ban `m:U:host-ridotto`, `R:account` se osservato, `nick!*@*` e `account!*@*` se diverso. Solo InspIRCd con extban pubblicizzati; non funziona senza host osservato | Identità e Moderazione; OP; solo comando locale |
 | `tiarca.ban(canale, nick)` | Richiede ban host osservato | Moderazione; OP |
 | `tiarca.mode(canale, nick, modo)` | Solo `+o`, `-o`, `+v`, `-v` | Moderazione; OP |
 | `tiarca.mute(canale, nick)` | Richiede mute con dialetto IRC supportato | Moderazione; OP |

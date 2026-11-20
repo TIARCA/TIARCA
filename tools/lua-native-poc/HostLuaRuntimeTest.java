@@ -1127,6 +1127,33 @@ public final class HostLuaRuntimeTest {
                 1794405100L).length == 4,
                 "Persisted ALL channel scope is restored after reload");
 
+        // Explicit compound moderation API must remain one structured action,
+        // including when the command originates in the server tab.
+        byte[] ejectScript = Files.readAllBytes(
+                Path.of("docs/lua-examples/espelli.lua"));
+        check(ejectScript.length <= 24576, "Eject example fits source limit");
+        check("OK".equals(decode(NativeLuaRuntime.load(ID, ejectScript))),
+                "Exact user-facing Eject script should load");
+        String[] fromServer = event(ID, "command", "", "", "espelli #room Target");
+        check(fromServer.length == 4 && "OK".equals(fromServer[0]) &&
+                        "eject".equals(fromServer[1]) &&
+                        "#room".equals(fromServer[2]) &&
+                        "Target\tutente non gradito".equals(fromServer[3]),
+                "Server-tab eject must emit one validated compound action");
+        String[] fromChannel = event(ID, "command", "#room", "", "espelli Target");
+        check(fromChannel.length == 4 && "eject".equals(fromChannel[1]) &&
+                        "#room".equals(fromChannel[2]),
+                "Channel-tab eject should emit the same structured action");
+
+        String[] wrongTab = event(ID, "command", "#room", "",
+                "espelli #other Target");
+        check(wrongTab.length == 4 && "show".equals(wrongTab[1]),
+                "Eject may not retarget another channel from an opened channel");
+        String[] invalidNickname = event(ID, "command", "#room", "",
+                "espelli Bad!Nick");
+        check(invalidNickname.length == 4 && "show".equals(invalidNickname[1]),
+                "Eject must reject malformed nicknames locally");
+
         NativeLuaRuntime.unload(ID);
         check(NativeLuaRuntime.dispatch(ID, "message", bytes("test-server"),
                 bytes("#x"), bytes("a"), bytes("b"), bytes("normal"), 0L,

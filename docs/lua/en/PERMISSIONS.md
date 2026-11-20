@@ -9,7 +9,7 @@ Imported scripts start **disabled**. Users explicitly select networks and grant 
 | No additional consent | Events, logs, channel summaries, local output | `tiarca.on`, `log`, `get_channels`, `show` |
 | Send messages | Replies in the approved conversation; PM/NOTICE only to the allowed event sender | `send`, `pm`, `notice` |
 | Channel members and identities | Member snapshots, consented WHO, mask search | `get_users`, `refresh_users`, `maskfind` |
-| Moderation | Structured actions subject to operator privileges and host validation | `kick`, `ban`, `mute`, `tban`, `kickban` |
+| Moderation | Structured actions subject to operator privileges and host validation | `kick`, `ban`, `mute`, `tban`, `kickban`, `eject` |
 | Persistent script data | Private per-script text state | `storage.get/set/delete` |
 | Script JSONL journal | Incremental private storage per script/network; historic last-message lookup additionally needs Identities | `journal.append/export/rotate/export_archive`, `last_message` |
 
