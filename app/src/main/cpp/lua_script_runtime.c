@@ -388,6 +388,26 @@ static int script_kick(lua_State *L) {
     return 0;
 }
 
+/* Single structured operator request. Android revalidates the live target and
+ * derives every host/account mask before emitting any IRC command. */
+static int script_eject(lua_State *L) {
+    size_t n, reason_len;
+    const char *nick = luaL_checklstring(L, 2, &n);
+    const char *reason = luaL_optlstring(L, 3, "utente non gradito", &reason_len);
+    if (n == 0 || n > 64 || reason_len == 0 || reason_len > 160 ||
+            memchr(nick, 0, n) || memchr(reason, 0, reason_len) ||
+            memchr(nick, '\t', n) || memchr(reason, '\t', reason_len) ||
+            memchr(nick, '\r', n) || memchr(nick, '\n', n) ||
+            memchr(reason, '\r', reason_len) || memchr(reason, '\n', reason_len))
+        return luaL_error(L, "tiarca.eject: invalid nick or reason");
+    char payload[228];
+    memcpy(payload, nick, n);
+    payload[n] = '\t';
+    memcpy(payload + n + 1, reason, reason_len);
+    channel_action(L, "eject", payload, n + 1 + reason_len);
+    return 0;
+}
+
 /* Only standard user modes, never arbitrary /MODE or raw IRC. */
 static int script_mode(lua_State *L) {
     size_t n, m;
@@ -617,6 +637,8 @@ static void install_libraries(lua_State *L) {
     lua_setfield(L, -2, "maskfind");
     lua_pushcfunction(L, script_kick);
     lua_setfield(L, -2, "kick");
+    lua_pushcfunction(L, script_eject);
+    lua_setfield(L, -2, "eject");
     lua_pushcfunction(L, script_kickban);
     lua_setfield(L, -2, "kickban");
     lua_pushcfunction(L, script_blacklist_action);
