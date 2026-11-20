@@ -14,7 +14,7 @@ tiarca.on("command", function(event)
     tiarca.show("Espelli / multi-ban",
       "Nel canale: /lua espelli nick\n" ..
       "Scheda server: /lua espelli #canale nick\n" ..
-      "Esegue +N, eventuale -v, KICK e 3-4 ban. " ..
+      "Esegue +N, eventuale -v, KICK e 2-4 ban. " ..
       "Il suffisso host coinvolge potenzialmente altri utenti.")
     return
   end
