@@ -7,6 +7,7 @@ Gli esempi sono file UTF-8 da importare manualmente: **non** sono plugin install
 | Esempio | Scopo | Autorizzazioni |
 |---|---|---|
 | [automod_antiripetizione.lua](../../lua-examples/automod_antiripetizione.lua) | Modera ripetizioni con filtri per canale | Identità, persistenza, moderazione; invio per avvisi |
+| [espelli.lua](../../lua-examples/espelli.lua) | Espulsione manuale con multi-ban su reti compatibili; abilita +N sul canale | Membri e identità, moderazione; OP |
 | [mask_finder.lua](../../lua-examples/mask_finder.lua) | Cerca nickname, ident e host | Membri e identità |
 | [moderation_collector.lua](../../lua-examples/moderation_collector.lua) | Registra eventi di moderazione in JSONL | Identità e persistenza |
 
