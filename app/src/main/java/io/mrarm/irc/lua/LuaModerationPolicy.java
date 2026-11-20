@@ -1,6 +1,7 @@
 package io.mrarm.irc.lua;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import io.mrarm.chatlib.irc.IRCCaseMapping;
 import io.mrarm.chatlib.dto.NickWithPrefix;
 
@@ -130,6 +131,62 @@ final class LuaModerationPolicy {
     static boolean unprivilegedTarget(NickWithPrefix member) {
         return member != null && (member.getNickPrefixes() == null
                 || member.getNickPrefixes().length() == 0);
+    }
+
+    /** An explicitly typed /lua command may target a joined channel from
+     * its own tab or the server tab, but never from another conversation. */
+    static boolean scopedEject(LuaScriptStore.Script script, String server,
+                               String sourceChannel, String event, String targetChannel) {
+        return script != null && script.isEnabledOn(server) &&
+                script.allowModeration && script.allowUserInfo &&
+                "command".equals(event) && sourceChannel != null &&
+                (sourceChannel.isEmpty() || sourceChannel.equals(targetChannel)) &&
+                validAtom(targetChannel, 64, 96) &&
+                "#&+!".indexOf(targetChannel.charAt(0)) >= 0;
+    }
+
+    /** The only prefixed member that can be expelled is a voice (+v).
+     * Never allow an operator, halfop, owner or other privileged prefix. */
+    static boolean ejectableTarget(NickWithPrefix member) {
+        if (member == null) return false;
+        String prefixes = member.getNickPrefixes() == null ? "" :
+                member.getNickPrefixes().toString();
+        return prefixes.isEmpty() || "+".equals(prefixes);
+    }
+
+    static boolean targetHasVoice(NickWithPrefix member) {
+        return member != null && member.getNickPrefixes() != null &&
+                "+".equals(member.getNickPrefixes().toString());
+    }
+
+    /** Deliberately broad suffix requested for a manual SimosNap moderation.
+     * Unknown cloaks, malformed IPs and short domains fail closed. */
+    static String revisedHost(String host) {
+        if (!validBanHost(host)) return null;
+        String lower = host.toLowerCase(Locale.ROOT);
+        if (lower.startsWith("simosnap-")) {
+            int firstDot = lower.indexOf('.');
+            int net = firstDot < 0 ? -1 : lower.lastIndexOf("net.", firstDot);
+            return net > "simosnap-".length() && firstDot > net + 3 &&
+                    firstDot < host.length() - 2 ? "*" + host.substring(net) : null;
+        }
+        if (host.matches("[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+")) {
+            String[] parts = host.split("\\.", -1);
+            try {
+                for (String part : parts) {
+                    if (part.length() > 3 || Integer.parseInt(part) > 255)
+                        return null;
+                }
+            } catch (NumberFormatException ex) {
+                return null;
+            }
+            return "*" + host.substring(host.indexOf('.') + 1);
+        }
+        if (host.matches("[0-9.]+")) return null;
+        int firstDot = host.indexOf('.');
+        if (firstDot < 1 || firstDot == host.lastIndexOf('.') ||
+                host.endsWith(".")) return null;
+        return "*." + host.substring(firstDot + 1);
     }
 
     static boolean permittedMode(String mode) {
