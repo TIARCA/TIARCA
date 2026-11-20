@@ -1009,6 +1009,24 @@ public final class HostLuaRuntimeTest {
                         disconnectedCollector[3].contains("\"last_message\":null"),
                 "A disconnect must flush pending moderation records without fabricating context");
 
+        // Explicit compound moderation API must remain one structured action,
+        // including when the command originates in the server tab.
+        String ejectScript = "tiarca.on('command', function(e) "
+                + "if e.text == 'eject-test' then "
+                + "tiarca.eject('#room', 'Target', 'utente non gradito') end end)";
+        check("OK".equals(decode(NativeLuaRuntime.load(ID, bytes(ejectScript)))),
+                "Eject script should load");
+        String[] fromServer = event(ID, "command", "", "", "eject-test");
+        check(fromServer.length == 4 && "OK".equals(fromServer[0]) &&
+                        "eject".equals(fromServer[1]) &&
+                        "#room".equals(fromServer[2]) &&
+                        "Target\\tutente non gradito".equals(fromServer[3]),
+                "Server-tab eject must emit one validated compound action");
+        String[] fromChannel = event(ID, "command", "#room", "", "eject-test");
+        check(fromChannel.length == 4 && "eject".equals(fromChannel[1]) &&
+                        "#room".equals(fromChannel[2]),
+                "Channel-tab eject should emit the same structured action");
+
         NativeLuaRuntime.unload(ID);
         check(NativeLuaRuntime.dispatch(ID, "message", bytes("test-server"),
                 bytes("#x"), bytes("a"), bytes("b"), bytes("normal"), 0L,
