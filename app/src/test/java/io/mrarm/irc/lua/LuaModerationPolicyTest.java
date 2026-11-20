@@ -135,7 +135,56 @@ public class LuaModerationPolicyTest {
                 "*", "registered", true, IRCCaseMapping.ASCII));
         assertFalse(LuaModerationPolicy.blacklistOverrideAllowed(
                 approved, SERVER, "message", "Nick", "Nick",
-                "acc\\r\\nMODE", "acc\\r\\nMODE", true, IRCCaseMapping.ASCII));
+                "acc\r\nMODE", "acc\r\nMODE", true, IRCCaseMapping.ASCII));
+    }
+
+    @Test public void ejectFromChannelOrServerTabRequiresExplicitCommandAndBothConsents() {
+        assertTrue(LuaModerationPolicy.scopedEject(script(true, true), SERVER,
+                "#room", "command", "#room"));
+        assertTrue(LuaModerationPolicy.scopedEject(script(true, true), SERVER,
+                "", "command", "#room"));
+        assertFalse(LuaModerationPolicy.scopedEject(script(false, true), SERVER,
+                "", "command", "#room"));
+        assertFalse(LuaModerationPolicy.scopedEject(script(true, false), SERVER,
+                "", "command", "#room"));
+        assertFalse(LuaModerationPolicy.scopedEject(script(true, true), SERVER,
+                "#other", "command", "#room"));
+        assertFalse(LuaModerationPolicy.scopedEject(script(true, true), SERVER,
+                "friend", "command", "#room"));
+        assertFalse(LuaModerationPolicy.scopedEject(script(true, true), SERVER,
+                "", "message", "#room"));
+        assertFalse(LuaModerationPolicy.scopedEject(script(true, true), SERVER,
+                "", "command", "#room\r\nMODE"));
+    }
+
+    @Test public void ejectCanDevoiceButCannotPunishOtherPrivilegedMembers() {
+        assertTrue(LuaModerationPolicy.ejectableTarget(
+                new NickWithPrefix("voice", new NickPrefixList("+"))));
+        assertTrue(LuaModerationPolicy.targetHasVoice(
+                new NickWithPrefix("voice", new NickPrefixList("+"))));
+        assertTrue(LuaModerationPolicy.ejectableTarget(
+                new NickWithPrefix("user", null)));
+        assertFalse(LuaModerationPolicy.targetHasVoice(
+                new NickWithPrefix("user", null)));
+        assertFalse(LuaModerationPolicy.ejectableTarget(
+                new NickWithPrefix("op", new NickPrefixList("@"))));
+        assertFalse(LuaModerationPolicy.ejectableTarget(
+                new NickWithPrefix("op-voice", new NickPrefixList("@+"))));
+        assertFalse(LuaModerationPolicy.ejectableTarget(null));
+    }
+
+    @Test public void revisedHostRequiresValidAndRecognizedSuffix() {
+        assertEquals("*net.vodafone.it", LuaModerationPolicy.revisedHost(
+                "SimosNap-u0sqs9net.vodafone.it"));
+        assertEquals("*45.67.89", LuaModerationPolicy.revisedHost("123.45.67.89"));
+        assertNull(LuaModerationPolicy.revisedHost("123.456.789.012"));
+        assertEquals("*.example.com", LuaModerationPolicy.revisedHost(
+                "user.example.com"));
+        assertNull(LuaModerationPolicy.revisedHost("example.com"));
+        assertNull(LuaModerationPolicy.revisedHost(
+                "SimosNap-unknowncloak.example.com"));
+        assertNull(LuaModerationPolicy.revisedHost(null));
+        assertNull(LuaModerationPolicy.revisedHost("evil\r\nMODE #room +o attacker"));
     }
 
     @Test public void revokedPermissionDisablesExistingScriptActions() {
