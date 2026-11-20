@@ -26,6 +26,7 @@
 | `tiarca.journal.export_archive()` | Re-share the latest durable archive if sharing was dismissed | Persistent data; local command |
 | `tiarca.last_message(channel, nick, token)` | Search last 200 public SQLite channel messages; return asynchronous `history` event only to requester | Persistent data + Identities; from `kick`, `ban`, `moderation_log`; same channel |
 | `tiarca.kick(channel, nick, reason)` | Requests KICK | Moderation; OP |
+| `tiarca.eject(channel, nick, reason)` | Manual compound removal: `+N`, optional `-v`, KICK, plus `m:U:reduced-host`, `R:account` when known, `nick!*@*`, and `account!*@*` when distinct. Requires advertised InspIRCd extbans and a known host | Identities and Moderation; OP; local command only |
 | `tiarca.ban(channel, nick)` | Requests observed-host ban | Moderation; OP |
 | `tiarca.mode(channel, nick, mode)` | Only `+o`, `-o`, `+v`, `-v` | Moderation; OP |
 | `tiarca.mute(channel, nick)` | Requests mute with supported IRC dialect | Moderation; OP |
