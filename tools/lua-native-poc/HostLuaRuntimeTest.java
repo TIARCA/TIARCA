@@ -1020,7 +1020,7 @@ public final class HostLuaRuntimeTest {
         check(fromServer.length == 4 && "OK".equals(fromServer[0]) &&
                         "eject".equals(fromServer[1]) &&
                         "#room".equals(fromServer[2]) &&
-                        "Target\\tutente non gradito".equals(fromServer[3]),
+                        "Target\tutente non gradito".equals(fromServer[3]),
                 "Server-tab eject must emit one validated compound action");
         String[] fromChannel = event(ID, "command", "#room", "", "eject-test");
         check(fromChannel.length == 4 && "eject".equals(fromChannel[1]) &&
