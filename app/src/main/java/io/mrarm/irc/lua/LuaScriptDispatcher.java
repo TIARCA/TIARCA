@@ -1051,7 +1051,7 @@ public final class LuaScriptDispatcher {
                     "ban".equals(kind) || "mode".equals(kind) ||
                     "mute".equals(kind) || "tban".equals(kind) ||
                     "kban".equals(kind) || "ktban".equals(kind) ||
-                    "blkmod".equals(kind)) {
+                    "blkmod".equals(kind) || "eject".equals(kind)) {
                 final String operation = kind;
                 if ("who".equals(operation)) {
                     io.post(() -> performIrcAction(script.id, request, operation, target, value));
@@ -1192,8 +1192,11 @@ public final class LuaScriptDispatcher {
         if (console.isPaused(request.server) ||
                 console.generation(request.server) != request.generation) return;
         LuaScriptStore.Script script = store.find(scriptId);
-        if (!LuaModerationPolicy.scoped(script, request.server, request.channel,
-                request.event, channel, true)) return;
+        if ("eject".equals(kind) ?
+                !LuaModerationPolicy.scopedEject(script, request.server, request.channel,
+                        request.event, channel) :
+                !LuaModerationPolicy.scoped(script, request.server, request.channel,
+                        request.event, channel, true)) return;
         LuaModerationPacer.Slot slot = moderationPacer.reserve(
                 request.server, scriptId, SystemClock.elapsedRealtime());
         if (slot == null) {
@@ -1219,6 +1222,77 @@ public final class LuaScriptDispatcher {
         if (!accepted) moderationPacer.complete(slot);
     }
 
+    /**
+     * Manual, atomic preflight of a multi-ban. All masks are derived from the
+     * currently observed identity while the target is still present; after KICK
+     * another membership lookup would lose the user.
+     */
+    private void performEject(ServerConnectionInfo connection, IRCConnection api,
+                              LuaScriptStore.Script script, String channel, String value) {
+        if (value == null) return;
+        String[] parts = value.split("\\t", -1);
+        if (parts.length != 2) return;
+        String nick = parts[0], reason = parts[1];
+        if (!LuaModerationPolicy.validNick(nick) ||
+                !LuaModerationPolicy.validReason(reason)) return;
+        NickWithPrefix member = ChannelOperatorUtils.findMember(connection, channel, nick);
+        if (!LuaModerationPolicy.liveTargetAllowed(connection.isConnected(),
+                ChannelOperatorUtils.hasOperatorPrivileges(connection, channel, false),
+                member != null,
+                LuaModerationPolicy.isSelf(
+                        api.getServerConnectionData().getSupportList().getCaseMapping(),
+                        nick, connection.getUserNick()), nick) ||
+                !LuaModerationPolicy.ejectableTarget(member)) return;
+
+        IrcIdentityCache.Identity identity =
+                api.getServerConnectionData().getIdentityCache().get(nick);
+        String suffix = identity == null ? null :
+                LuaModerationPolicy.revisedHost(identity.host);
+        if (suffix == null) {
+            store.recordLog(script.id, "Eject rejected: target host absent or not safely parseable");
+            return;
+        }
+        String account = identity.accountKnown ? identity.account : null;
+        if (account != null && ("*".equals(account) || "0".equals(account)))
+            account = null;
+        if (account != null && !LuaModerationPolicy.validNick(account)) {
+            store.recordLog(script.id, "Eject rejected: invalid account");
+            return;
+        }
+        OperatorCommandComposer.Dialect dialect = new OperatorCommandComposer.Dialect(
+                api.getServerConnectionData().getSupportList().getExtban(),
+                api.getServerConnectionData().getSupportList().getAccountExtban());
+        if (!dialect.isInspStyle() || !"m:".equals(dialect.acting('m')) ||
+                !"U:".equals(dialect.matching('U')) ||
+                (account != null && !"R:".equals(dialect.matching('R')))) {
+            store.recordLog(script.id, "Eject rejected: network extban syntax unsupported");
+            return;
+        }
+        // Explicitly requested: U: matching unauthenticated users,
+        // m: acting mute; R: targets authenticated NickServ accounts.
+        List<String> masks = new ArrayList<>();
+        masks.add("m:U:*!*@" + suffix);
+        if (account != null) masks.add("R:" + account);
+        masks.add(nick + "!*@*");
+        if (account != null && !account.equalsIgnoreCase(nick))
+            masks.add(account + "!*@*");
+
+        // Do not send ANY command before the live privileges, host, account,
+        // prefixes and extban dialect have passed validation.
+        api.sendCommand("MODE", false, new String[]{channel, "+N"}, null, null);
+        boolean hadVoice = LuaModerationPolicy.targetHasVoice(member);
+        if (hadVoice) api.sendCommand("MODE", false,
+                new String[]{channel, "-v", nick}, null, null);
+        api.sendCommand("KICK", true, new String[]{channel, nick, reason}, null, null);
+        for (String mask : masks)
+            api.sendCommand("MODE", false,
+                    new String[]{channel, "+b", mask}, null, null);
+        String result = "[Lua: " + script.name + "] " + channel + " - " +
+                nick + ": +N" + (hadVoice ? ", -v" : "") + ", KICK (" + reason +
+                "), ban " + String.join(" / ", masks) + " - comandi inviati";
+        main.post(() -> emitConsole(connection, result));
+    }
+
     /** Runs off the UI and IRC reader threads and rechecks consent at execution. */
     private void performIrcAction(String scriptId, Pending request, String kind,
                                   String channel, String value) {
@@ -1226,8 +1300,11 @@ public final class LuaScriptDispatcher {
                 console.generation(request.server) != request.generation) return;
         LuaScriptStore.Script script = store.find(scriptId);
         boolean who = "who".equals(kind);
-        if (!LuaModerationPolicy.scoped(script, request.server, request.channel,
-                request.event, channel, !who)) return;
+        if ("eject".equals(kind) ?
+                !LuaModerationPolicy.scopedEject(script, request.server, request.channel,
+                        request.event, channel) :
+                !LuaModerationPolicy.scoped(script, request.server, request.channel,
+                        request.event, channel, !who)) return;
         try {
             ServerConnectionInfo connection = ServerConnectionManager.getInstance(context)
                     .getConnection(UUID.fromString(request.server));
@@ -1254,6 +1331,11 @@ public final class LuaScriptDispatcher {
                         new String[]{channel, "%tnuhaf," + IrcIdentityCache.whoxToken()} :
                         new String[]{channel}, null, null);
                 lastWho.put(scriptNetwork, now);
+                return;
+            }
+
+            if ("eject".equals(kind)) {
+                performEject(connection, api, script, channel, value);
                 return;
             }
 
