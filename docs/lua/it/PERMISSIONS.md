@@ -9,7 +9,7 @@ Gli script importati sono **disabilitati**. L'utente sceglie esplicitamente le r
 | Nessuna aggiuntiva | Eventi, log, riepilogo canali e output locale | `tiarca.on`, `log`, `get_channels`, `show` |
 | Invio messaggi | Risposta nella conversazione consentita; PM/NOTICE solo al mittente dell'evento ammesso | `send`, `pm`, `notice` |
 | Membri e identità | Snapshot membri, WHO autorizzato, ricerca mask | `get_users`, `refresh_users`, `maskfind` |
-| Moderazione | Azioni strutturate solo con privilegi operatore e controlli host | `kick`, `ban`, `mute`, `tban`, `kickban` |
+| Moderazione | Azioni strutturate solo con privilegi operatore e controlli host | `kick`, `ban`, `mute`, `tban`, `kickban`, `eject` |
 | Dati persistenti | Testo salvato privatamente per script | `storage.get/set/delete` |
 | Archivio JSONL Lua | Scrittura incrementale per script/rete, export esplicito; lettura ultimo messaggio storico richiede anche Identità | `journal.append/export`, `last_message` |
 
