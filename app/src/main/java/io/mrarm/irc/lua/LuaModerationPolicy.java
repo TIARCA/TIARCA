@@ -167,7 +167,7 @@ final class LuaModerationPolicy {
         if (lower.startsWith("simosnap-")) {
             int firstDot = lower.indexOf('.');
             int net = firstDot < 0 ? -1 : lower.lastIndexOf("net.", firstDot);
-            return net > "simosnap-".length() && firstDot > net + 3 &&
+            return net > "simosnap-".length() && firstDot == net + 3 &&
                     firstDot < host.length() - 2 ? "*" + host.substring(net) : null;
         }
         if (host.matches("[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+")) {
