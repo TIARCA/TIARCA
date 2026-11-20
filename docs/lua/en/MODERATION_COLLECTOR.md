@@ -8,7 +8,7 @@
 
 All collection decisions, event selection, SQLite lookup requests and JSONL serialization happen in **moderation_collector.lua**. The Android host only exposes generic Lua facilities; it performs no Collector-specific work when the script is disabled.
 
-- AutoMod **monitor, warning, kick, ban, mute, timed ban and combined actions**, explicitly marked as **requested, unconfirmed** decisions.
+- AutoMod **monitor, warning, kick, ban, mute, timed ban and combined actions**, recognized even when the AutoMod script was imported under a different filename (for example `automod.lua`), explicitly marked as **requested, unconfirmed** decisions.
 - Server-observed KICK from any operator/bot, with **actor**, **target nickname** and any **reason**.
 - Server-observed MODE +b, with actor and mask; no reason is transmitted in that protocol command. A nickname is attached only when identifiable without ambiguity.
 - The target's **latest earlier public message**, if found in the last **200 messages of the channel's existing SQLite history**. The Lua script requests this on demand after any qualifying event, including AutoMod.
@@ -26,8 +26,20 @@ Import [moderation_collector.lua](../../lua-examples/moderation_collector.lua) i
 | `/lua collector on` | Resume collection on this network, persisted |
 | `/lua collector off` | Pause collection without deleting archived records |
 | `/lua collector status` | Show ON/OFF |
-| `/lua collector export` | Share this script's network JSONL via Android |
+| `/lua collector export` | Share the current journal without clearing it |
+| `/lua collector exportreset` | Show the required explicit confirmation syntax |
+| `/lua collector exportreset confirm` | Archive the active journal, start a new one and open Android sharing |
+| `/lua collector archive` | Re-share the previous archive after a cancelled share |
+| `/lua collector channels` | Display monitored channels (all by default) |
+| `/lua collector channels add #channel` | Add a channel and switch to an allowlist |
+| `/lua collector channels del #channel` | Remove a channel; empty selection means no channels |
+| `/lua collector channels all` | Restore all-channel monitoring |
+| `/lua collector channels none` | Monitor no channels while script remains enabled |
 | `/lua collector` | Show state; `/lua collector help` lists commands |
+
+Channel selection is **persistent per network** and independent of AutoMod. Every recorded event retains the actual IRC channel, including with a filter.
+
+Confirmed journal rotation **does not destroy prior records**: the active JSONL is moved into a durable private archive before Android sharing begins. If the chooser is cancelled, `/lua collector archive` can share the latest archive again. The active journal alone starts fresh, without affecting other networks.
 
 Disabling the script in TIARCA stops all callbacks and history requests. With `off`, the script does not request history or append records.
 

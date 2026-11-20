@@ -542,7 +542,7 @@ public final class LuaScriptDispatcher {
         if (script == null) return;
         String text = "[Lua: " + script.name + "] " + channel + " - " + action +
                 " " + nick + (detail.isEmpty() ? "" : " (" + detail + ")") +
-                " - comando inviato, esito non confermato";
+                " - comando inviato";
         main.post(() -> emitConsole(connection, text));
     }
 
@@ -980,6 +980,28 @@ public final class LuaScriptDispatcher {
                     } catch (IOException error) {
                         console.log(request.server, script.name,
                                 "Lua journal export failed: " + error.getMessage());
+                    }
+                });
+            } else if ("rotate".equals(kind) || "archive".equals(kind)) {
+                // Explicit, script-controlled local command; no Collector-specific
+                // moderation or collection logic runs in the Android host.
+                if (!script.allowStorage || !"command".equals(request.event) ||
+                        !target.isEmpty() || !"1".equals(value)) continue;
+                io.post(() -> {
+                    try {
+                        java.io.File snapshot = "rotate".equals(kind)
+                                ? journal.rotate(script.id, request.server)
+                                : journal.snapshotLastArchive(script.id, request.server);
+                        main.post(() -> {
+                            try { journal.share(snapshot); }
+                            catch (RuntimeException error) {
+                                console.log(request.server, script.name,
+                                        "Lua archived journal share unavailable; archive retained");
+                            }
+                        });
+                    } catch (IOException error) {
+                        console.log(request.server, script.name,
+                                "Lua archived journal operation failed: " + error.getMessage());
                     }
                 });
             } else if ("history".equals(kind)) {

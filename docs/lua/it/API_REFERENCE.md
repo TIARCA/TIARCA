@@ -22,6 +22,8 @@
 | `tiarca.storage.delete(chiave)` | Richiede cancellazione | Dati persistenti |
 | `tiarca.journal.append(json)` | Aggiunge una riga JSONL privata dello script alla rete dell'evento, senza limite circolare | Dati persistenti; callback |
 | `tiarca.journal.export()` | Richiede selettore Android per il JSONL della rete corrente | Dati persistenti; comando locale |
+| `tiarca.journal.rotate()` | Archivia senza distruggere il JSONL attivo e richiede la condivisione Android; le nuove righe partono da un registro vuoto | Dati persistenti; comando locale |
+| `tiarca.journal.export_archive()` | Riesporta l'ultimo archivio privato conservato dopo la rotazione | Dati persistenti; comando locale |
 | `tiarca.last_message(canale, nick, token)` | Cerca fino a 200 messaggi pubblici SQLite e invia evento `history` solo allo script richiedente | Dati persistenti + Identità; dopo evento `kick`, `ban`, `moderation_log`; stesso canale |
 | `tiarca.kick(canale, nick, motivo)` | Richiede KICK | Moderazione; OP |
 | `tiarca.ban(canale, nick)` | Richiede ban host osservato | Moderazione; OP |

@@ -907,6 +907,32 @@ public final class HostLuaRuntimeTest {
                 "New natural-expiry window starts from first warning");
 
 
+        // Reset statistics independently of active infraction histories and settings.
+        automodOn("stats-only-server", "command", "me",
+                "mod canali add #room", 1794406000L);
+        automodOn("stats-only-server", "command", "me",
+                "mod azione escalation", 1794406000L);
+        for (int i = 0; i < 3; i++)
+            automodOn("stats-only-server", "message", "RepeatUser",
+                    "hello hello world", 1794406001L + i);
+        String statsBefore = automodStorage.get("amst.stats-only-server");
+        check(statsBefore != null && statsBefore.contains("\n#room\t") &&
+                        !statsBefore.startsWith("v3;0;0;0;0;0;0;0;0;0"),
+                "AutoMod has cumulative counters and active infraction history");
+        String historicalRows = statsBefore.substring(statsBefore.indexOf('\n'));
+        String configBefore = automodStorage.get("automod.stats-only-server");
+        automodOn("stats-only-server", "command", "me",
+                "mod stats reset", 1794406004L);
+        String statsAfter = automodStorage.get("amst.stats-only-server");
+        check(statsAfter.startsWith("v3;0;0;0;0;0;0;0;0;0") &&
+                        statsAfter.substring(statsAfter.indexOf('\n')).equals(historicalRows) &&
+                        configBefore.equals(automodStorage.get("automod.stats-only-server")),
+                "Stats-only reset must preserve all persisted messages, escalation and config");
+        String[] afterReset = automodOn("stats-only-server", "message",
+                "RepeatUser", "hello hello world", 1794406005L);
+        check(java.util.Arrays.toString(afterReset).contains("(kick)"),
+                "Next repeated message after stats reset must retain escalation level");
+
         // Standalone Collector: load the actual shipped Lua source and exercise
         // generic script actions, rather than a Java host-side collector.
         automodStorage.clear();
@@ -971,6 +997,46 @@ public final class HostLuaRuntimeTest {
                         ambiguous[3].contains("\"last_message\":null"),
                 "Generic unmatched ban must not invent a victim or chat evidence");
 
+        // The imported AutoMod filename can differ from the repository example.
+        // A previously hardcoded filename silently discarded these real events.
+        String[] renamedAutoMod = collectorEvent("moderation_log", "Target",
+                "AutoMod test-ser/#room Target 100.0% infrazione 1 (avviso)",
+                "automod.lua", 1794405031L);
+        check(renamedAutoMod.length == 4 && "history".equals(renamedAutoMod[1]) &&
+                        ("Target" + (char)9 + "4").equals(renamedAutoMod[3]),
+                "Collector must capture AutoMod reports from automod.lua");
+        String[] renamedHistory = collectorEvent("history", "Target",
+                "Ultimo messaggio avvisato", "4", 1794405030L);
+        check(renamedHistory.length == 4 &&
+                        "journal".equals(renamedHistory[1]) &&
+                        renamedHistory[3].contains("\"action\":\"avviso\"") &&
+                        renamedHistory[3].contains("\"source_script\":\"automod.lua\"") &&
+                        renamedHistory[3].contains("Ultimo messaggio avvisato"),
+                "Renamed AutoMod warning must be archived with last message");
+
+        String[] customAutoMod = collectorEvent("moderation_log", "Target",
+                "AutoMod test-ser/#room Target 75.0% infrazione 2 (kick)",
+                "my_custom_script.lua", 1794405032L);
+        check(customAutoMod.length == 4 &&
+                        ("Target" + (char)9 + "5").equals(customAutoMod[3]),
+                "Collector must not rely on any AutoMod source filename");
+        String[] customHistory = collectorEvent("history", "Target",
+                "Ultima ripetizione", "5", 1794405031L);
+        check(customHistory.length == 4 &&
+                        customHistory[3].contains("\"action\":\"kick\"") &&
+                        customHistory[3].contains("\"source_script\":\"my_custom_script.lua\""),
+                "AutoMod kick is retained under a custom script name");
+
+        String[] unrelatedLog = collectorEvent("moderation_log", "Target",
+                "Other script called moderation", "automod.lua", 1794405033L);
+        check(unrelatedLog.length == 1 && "OK".equals(unrelatedLog[0]),
+                "Do not archive unrelated Lua logs as AutoMod events");
+        String[] forgedNick = collectorEvent("moderation_log", "Target",
+                "AutoMod test-ser/#room SomeoneElse 75.0% infrazione 1 (avviso)",
+                "automod.lua", 1794405034L);
+        check(forgedNick.length == 1 && "OK".equals(forgedNick[0]),
+                "Do not attribute AutoMod records to the wrong nickname");
+
         String[] off = collectorEvent("command", "self", "collector off",
                 "", 1794405040L);
         check("OK".equals(off[0]) &&
@@ -1008,6 +1074,58 @@ public final class HostLuaRuntimeTest {
                         disconnectedCollector[3].contains("\"event\":\"kick\"") &&
                         disconnectedCollector[3].contains("\"last_message\":null"),
                 "A disconnect must flush pending moderation records without fabricating context");
+
+        // Scope defaults to all channels, then persists per-network selection.
+        String[] filtered = collectorEvent("command", "self",
+                "collector channels add #room", "", 1794405090L);
+        check("only:#room".equals(automodStorage.get("colch.test-server")) &&
+                        java.util.Arrays.toString(filtered).contains("show"),
+                "Adding one channel persists an allowlist");
+        String[] otherChannel = collect(NativeLuaRuntime.dispatch(ID, "kick",
+                bytes("test-server"), bytes("#elsewhere"), bytes("Operator"),
+                bytes("spam"), bytes("Target"), 1794405091L,
+                new byte[0][], new int[0], false, new byte[0][], false,
+                true, automodSnapshot(), true));
+        check(otherChannel.length == 1 && "OK".equals(otherChannel[0]),
+                "Collector ignores KICK outside selected channels");
+        collectorEvent("command", "self", "collector channels del #room",
+                "", 1794405092L);
+        check("none".equals(automodStorage.get("colch.test-server")),
+                "Removing the last channel must not silently enable all channels");
+        check(collectorEvent("kick", "Operator", "spam", "Target",
+                1794405093L).length == 1,
+                "Empty selection excludes every channel");
+        collectorEvent("command", "self", "collector channels all",
+                "", 1794405094L);
+        check("all".equals(automodStorage.get("colch.test-server")),
+                "Explicit all mode restores original monitoring behavior");
+        check(collectorEvent("kick", "Operator", "spam", "Target",
+                1794405095L).length == 4,
+                "All channels mode still requests SQLite context");
+
+        String[] awaitingConfirmation = collectorEvent("command", "self",
+                "collector exportreset", "", 1794405096L);
+        check(awaitingConfirmation.length == 4 &&
+                        "show".equals(awaitingConfirmation[1]),
+                "Collector reset must require an explicit confirm command");
+        String[] confirmed = collectorEvent("command", "self",
+                "collector exportreset confirm", "", 1794405097L);
+        check(confirmed.length == 10 &&
+                        "journal".equals(confirmed[1]) &&
+                        "rotate".equals(confirmed[4]) &&
+                        "show".equals(confirmed[7]),
+                "Confirmed rotation flushes pending events before rotating");
+        String[] recoveredArchive = collectorEvent("command", "self",
+                "collector archive", "", 1794405098L);
+        check(recoveredArchive.length == 7 &&
+                        "archive".equals(recoveredArchive[1]),
+                "A cancelled archive share can be re-requested");
+        NativeLuaRuntime.unload(ID);
+        check("OK".equals(decode(NativeLuaRuntime.load(ID, bytes(collectorSource)))),
+                "Collector source reloads cleanly after channel changes");
+        check(collectorEvent("kick", "Operator", "spam", "Target",
+                1794405100L).length == 4,
+                "Persisted ALL channel scope is restored after reload");
 
         NativeLuaRuntime.unload(ID);
         check(NativeLuaRuntime.dispatch(ID, "message", bytes("test-server"),

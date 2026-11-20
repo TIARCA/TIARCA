@@ -12,6 +12,7 @@ EXPECTED_API = {
     "storage.set", "storage.delete", "kick", "ban", "mode", "mute",
     "tban", "kickban", "kicktban", "blacklist_action",
     "last_message", "journal.append", "journal.export",
+    "journal.rotate", "journal.export_archive",
 }
 EXPECTED_EVENTS = {
     "connected", "disconnected", "message", "command", "join", "part",

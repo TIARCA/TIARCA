@@ -33,6 +33,10 @@ public class LuaScriptJournalTest {
             for (String network : new String[]{A, B})
                 new File(new File(new File(app.getFilesDir(), "lua_journals"), s),
                         network + ".jsonl").delete();
+            File archives = new File(new File(new File(app.getFilesDir(), "lua_journals"), s),
+                    "archives");
+            File[] old = archives.listFiles();
+            if (old != null) for (File entry : old) entry.delete();
         }
     }
 
@@ -63,6 +67,47 @@ public class LuaScriptJournalTest {
         assertEquals(2, lines.size());
         assertEquals("first", new JSONObject(lines.get(0)).getString("event"));
         assertEquals("second", new JSONObject(lines.get(1)).getString("event"));
+    }
+
+    @Test public void rotationKeepsRecoverableArchiveAndStartsFreshJournal() throws Exception {
+        journal.append(SCRIPT, A, "{\"event\":\"before\"}");
+        journal.append(SCRIPT, A, "{\"event\":\"older\"}");
+        journal.append(SCRIPT, B, "{\"event\":\"unrelated-network\"}");
+
+        File exported = journal.rotate(SCRIPT, A);
+        assertEquals(0, journal.size(SCRIPT, A));
+        assertEquals(2, Files.readAllLines(exported.toPath()).size());
+        File recovered = journal.snapshotLastArchive(SCRIPT, A);
+        assertEquals(2, Files.readAllLines(recovered.toPath()).size());
+
+        journal.append(SCRIPT, A, "{\"event\":\"after\"}");
+        assertEquals(1, Files.readAllLines(journal.snapshot(SCRIPT, A).toPath()).size());
+        assertEquals("before", new JSONObject(
+                Files.readAllLines(journal.snapshotLastArchive(SCRIPT, A).toPath())
+                        .get(0)).getString("event"));
+        assertEquals("unrelated-network", new JSONObject(
+                Files.readAllLines(journal.snapshot(SCRIPT, B).toPath())
+                        .get(0)).getString("event"));
+
+        journal = new LuaScriptJournal(ApplicationProvider.getApplicationContext());
+        assertEquals(2, Files.readAllLines(
+                journal.snapshotLastArchive(SCRIPT, A).toPath()).size());
+        File latest = journal.rotate(SCRIPT, A);
+        assertEquals("after", new JSONObject(
+                Files.readAllLines(latest.toPath()).get(0)).getString("event"));
+        assertEquals(0, journal.size(SCRIPT, A));
+    }
+
+    @Test public void rotationRejectsEmptyJournalWithoutErasingArchives() throws Exception {
+        journal.append(SCRIPT, A, "{\"event\":\"keep\"}");
+        journal.rotate(SCRIPT, A);
+        try {
+            journal.rotate(SCRIPT, A);
+            fail("Rotated an empty journal");
+        } catch (IOException expected) { }
+        assertEquals("keep", new JSONObject(
+                Files.readAllLines(journal.snapshotLastArchive(SCRIPT, A).toPath())
+                        .get(0)).getString("event"));
     }
 
     @Test public void rejectsNonJsonMultilineOversizeAndPathTraversal() throws Exception {

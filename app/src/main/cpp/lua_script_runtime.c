@@ -546,6 +546,30 @@ static int script_journal_export(lua_State *L) {
     return 0;
 }
 
+/* User-confirmed generic journal rotation: durable archive + new active journal. */
+static int script_journal_rotate(lua_State *L) {
+    require_storage(L);
+    ScriptVm *s = context(L);
+    if (!s->event_active)
+        return luaL_error(L, "tiarca.journal.rotate: active callback required");
+    if (lua_gettop(L) != 0)
+        return luaL_error(L, "tiarca.journal.rotate: no arguments expected");
+    add_action(L, "rotate", "", 0, "1", 1);
+    return 0;
+}
+
+/* Re-share the previous archive if Android sharing was dismissed or failed. */
+static int script_journal_export_archive(lua_State *L) {
+    require_storage(L);
+    ScriptVm *s = context(L);
+    if (!s->event_active)
+        return luaL_error(L, "tiarca.journal.export_archive: active callback required");
+    if (lua_gettop(L) != 0)
+        return luaL_error(L, "tiarca.journal.export_archive: no arguments expected");
+    add_action(L, "archive", "", 0, "1", 1);
+    return 0;
+}
+
 /* On-demand last stored public message. Result is a later 'history' event,
  * scoped to this script, network and channel; never sends IRC traffic. */
 static int script_last_message(lua_State *L) {
@@ -644,6 +668,10 @@ static void install_libraries(lua_State *L) {
     lua_setfield(L, -2, "append");
     lua_pushcfunction(L, script_journal_export);
     lua_setfield(L, -2, "export");
+    lua_pushcfunction(L, script_journal_rotate);
+    lua_setfield(L, -2, "rotate");
+    lua_pushcfunction(L, script_journal_export_archive);
+    lua_setfield(L, -2, "export_archive");
     lua_setfield(L, -2, "journal");
     lua_newtable(L);
     lua_pushcfunction(L, script_storage_get);

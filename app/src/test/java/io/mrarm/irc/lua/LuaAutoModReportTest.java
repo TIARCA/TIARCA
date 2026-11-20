@@ -18,19 +18,20 @@ public class LuaAutoModReportTest {
                 "AutoMod test-ser/#room Nick-2 100.0% infrazione 1 (avviso)");
         assertNotNull(message);
         assertTrue(message.contains("#room - Nick-2"));
-        assertTrue(message.contains("AVVISO richiesto"));
-        assertTrue(message.contains("esito non confermato"));
+        assertTrue(message.endsWith(", AVVISO"));
+        assertFalse(message.contains("richiesto"));
+        assertFalse(message.contains("esito non confermato"));
     }
 
     @Test public void escalationDecisionsAreDistinguishedFromSentCommands() {
         assertTrue(render("AutoMod test-ser/#room Nick-2 85.2% infrazione 2 (kick)")
-                .contains("KICK richiesto"));
+                .contains("KICK"));
         assertTrue(render("AutoMod test-ser/#room Nick-2 100.0% infrazione 3 (tbankick)")
-                .contains("KICK + BAN temporaneo richiesti"));
+                .contains("KICK + BAN TEMPORANEO"));
         assertTrue(render("AutoMod test-ser/#room Nick-2 99.9% infrazione 4 (bankick)")
-                .contains("KICK + BAN richiesti"));
+                .contains("KICK + BAN"));
         assertTrue(render("AutoMod test-ser/#room Nick-2 80.0% infrazione 1 (monitor)")
-                .contains("solo monitoraggio"));
+                .contains("MONITORAGGIO"));
     }
 
     @Test public void unrelatedOrForgedLogsAreNotInjectedIntoServerTab() {

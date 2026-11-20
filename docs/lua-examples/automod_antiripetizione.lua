@@ -549,7 +549,7 @@ end
 local function help(topic)
 if topic=="" or topic=="generale" then
   show("AutoMod: comandi",
-    "/lua mod help [canali|liste|azione|parametri]; /lua mod stato; /lua mod on|off; /lua mod reset; /lua mod close")
+    "/lua mod help [canali|liste|azione|parametri]; /lua mod stato; /lua mod stats reset; /lua mod on|off; /lua mod reset; /lua mod close")
 end
 if topic=="" or topic=="canali" then
   show("AutoMod: canali",
@@ -571,7 +571,7 @@ if topic=="" or topic=="parametri" then
   show("AutoMod: parametri",
     "/lua mod occorrenze 3; ultimi 8 (incluso nuovo); soglia 75; minuti 30; minparole 3; pausa 0; durata 10m")
   show("AutoMod: sicurezza",
-    "Consensi: Dati persistenti; Lettura utenti; Moderazione. /lua restart conserva lo storico; /lua mod reset lo cancella.")
+    "Consensi: storage, utenti, moderazione. /lua restart conserva storico; /lua mod stats reset azzera contatori; /lua mod reset cancella storico.")
 end
 end
 
@@ -602,6 +602,21 @@ local changed,clear=false,nil
 local msg
 if key=="stato" then
   stato(e.server,c);return
+elseif key=="stats" then
+  if val~="reset" then
+    msg="Uso: /lua mod stats reset"
+  else
+    -- Reset only cumulative counters. Keep every active message and infraction
+    -- window, escalation state, lists, configuration and ON/OFF unchanged.
+    local previous=statistiche[e.server]
+    statistiche[e.server]={0,0,0,0,0,0,0,0,0}
+    if not persist(e.server) then
+      statistiche[e.server]=previous
+      msg="Azzeramento statistiche non salvato"
+    else
+      msg="Statistiche azzerate; storico e infrazioni conservati"
+    end
+  end
 elseif key=="on" or key=="off" then
   c.on=key=="on"
   changed=true

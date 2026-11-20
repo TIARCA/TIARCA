@@ -130,16 +130,13 @@ A script error disables that script; normal IRC continues.
 
 ## Example scripts
 
-Four manually importable sources are included in the repository:
-- [Count messages](lua-examples/count_messages.lua), log-only.
-- [Same-conversation reply](lua-examples/auto_reply.lua), which requires the
-  optional per-script `tiarca.send` permission.
-- [Local Lua commands](lua-examples/local_command.lua), `/lua ping` updates the
-  script log; `/lua saluta` sends to the current conversation only if approved.
-- [Private "ciao bello" reply](lua-examples/ciao_bello_pvt.lua), which responds
-  "bello ciao" only to incoming private messages matching "ciao bello"
-  (case-insensitive, ignoring outer whitespace). Requires send consent.
-  It checks that the event's conversation target equals its sender nick.
+Only these three maintained examples are shipped in the repository:
+- [AutoMod](lua-examples/automod_antiripetizione.lua), repetition monitoring and moderation.
+- [Mask Finder](lua-examples/mask_finder.lua), IRC identity search.
+- [Moderation Collector](lua-examples/moderation_collector.lua), optional incremental JSONL logging.
+
+Older proof-of-concept and phase D probe files were retired; the engine API
+remains documented so equivalent test scripts can be written when needed.
 
 Download the `.lua` file explicitly and select it in the Android document
 picker. These examples are **not** downloaded or executed automatically.
@@ -299,7 +296,7 @@ recreation; this is not a physical update. For a real update, use two
 **Candidate** APKs signed with the same key and application ID:
 
 1. On the older Candidate, import
-   [upgrade_persistence_probe.lua](lua-examples/upgrade_persistence_probe.lua).
+   `upgrade_persistence_probe.lua` (legacy example removed).
    Enable it with **Persistent script data**, run `/lua upgrade add` twice,
    then `/lua upgrade status`; note the persistent count.
 2. Import another unrelated script but leave it disabled. Record both
@@ -340,7 +337,7 @@ Lua cannot open arbitrary activities, load web pages or define raw
 Android widgets. Limits and isolation from earlier phases still apply.
 
 A sample for manual import is included in
-[Persistent storage and UI results](lua-examples/persistent_results.lua).
+`persistent_results.lua` (legacy example removed).
 Test \`/lua c6 set\`, \`/lua c6 read\`, \`/lua c7 list\` and \`/lua c6 clear\`.
 Repeat \`/lua c6 read\` after terminating/restarting TIARCA, then
 test backup/restore and explicitly reapprove storage before running scripts.
@@ -469,31 +466,7 @@ or release was created.
   mapping (no assumption that an '@' glyph always means operator), and
   nickname membership/self-protection uses ISUPPORT CASEMAPPING (RFC1459,
   strict RFC1459, or ASCII). This prevents unsafe operator actions where
-  nicknames such as `Operator[` and `Operator{` denote the same user.
-- Regression tests check lost operator status, disconnected sessions,
-  absent targets, invalid IRC tokens, and network-specific policy scope.
-
-
-- Filenames imported from Android SAF and read from ZIP metadata are now
-  validated consistently; control characters, Unicode line separators and
-  path separators cannot be inserted into Lua's local server-tab notices.
-- Automated regression tests simulate the absent no-backup approval marker
-  after an Android device transfer and assert persistent data survives while
-  script execution and each privileged capability stay disabled.
-- Automated green CI proves compilation and the tested paths, **not** device
-  behavior, the completeness of an independent security audit or F-Droid
-  publication approval.
-
-
-### Phase D manual multi-network and operator tests
-
-Use a new Candidate built from the latest phase D commit. The following tests
-must be recorded separately from the automated policy tests.
-
-**Two networks (non-destructive):**
-1. Connect to two distinct configured IRC networks A and B at the same time.
-   Ideally join a channel of the same name on both, with different members.
-2. Import [phase D network probe](lua-examples/phase_d_network_probe.lua),
+  nicknames such as `Operator`phase_d_network_probe.lua` (legacy example removed),
    enable it **only for A**, without any additional send/moderation permissions.
 3. On A run `/lua d rete`: the local C7 result must show only A's UUID and
    channel names/counts (not B's). Run `/lua d eventi` and record the count.
@@ -669,7 +642,7 @@ conferma di avvenuta moderazione.
 Separatamente, la scheda Server registra i comandi Lua KICK,
 BAN, BAN temporaneo e MUTE effettivamente inoltrati dall'app, con nickname,
 canale, eventuale motivo e durata. Questi ultimi indicano
-«comando inviato, esito non confermato»: il server può rifiutarli.
+«comando inviato»: la dicitura indica l'inoltro, non conferma l'esecuzione da parte del server.
 L'assenza della seconda registrazione dopo una richiesta può indicare che
 i controlli di autorizzazione o i prerequisiti IRC hanno impedito l'invio.
 La visualizzazione nell'APK e la conservazione delle singole righe dopo
