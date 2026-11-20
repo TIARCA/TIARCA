@@ -10,6 +10,7 @@ These are UTF-8 files for manual import, **not** automatically installed plugins
 | [auto_reply.lua](../../lua-examples/auto_reply.lua) | Reply in the same conversation | Send messages |
 | [local_command.lua](../../lua-examples/local_command.lua) | Local `/lua ping` and `/lua saluta` commands | Send only for remote greeting |
 | [persistent_results.lua](../../lua-examples/persistent_results.lua) | Persistent state and local results | Persistent data |
+| [espelli.lua](../../lua-examples/espelli.lua) | Manual multi-ban and kick for compatible InspIRCd networks; enables channel +N | Identities, moderation; OP |
 | [mask_finder.lua](../../lua-examples/mask_finder.lua) | Search channel nick/ident/host | Channel members and identities |
 | [automod_antiripetizione.lua](../../lua-examples/automod_antiripetizione.lua) | Detect repetition and optionally moderate | Identities, persistence, moderation; send for warnings |
 
