@@ -7,6 +7,7 @@ These are UTF-8 files for manual import, **not** automatically installed plugins
 | Example | Purpose | Capabilities |
 |---|---|---|
 | [automod_antiripetizione.lua](../../lua-examples/automod_antiripetizione.lua) | Moderate repetitions with per-channel scope | Identities, persistence, moderation; send for warnings |
+| [espelli.lua](../../lua-examples/espelli.lua) | Manual multi-ban and kick for compatible InspIRCd networks; enables channel +N | Identities, moderation; OP |
 | [mask_finder.lua](../../lua-examples/mask_finder.lua) | Search nicknames, idents and hosts | Channel members and identities |
 | [moderation_collector.lua](../../lua-examples/moderation_collector.lua) | Record moderation events to JSONL | Identities and persistence |
 
