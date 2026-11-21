@@ -19,11 +19,13 @@ Per l'ultimo messaggio vengono preferiti ident e host presenti nel record SQLite
 
 La **V2 resta uno script Lua esterno**: non modifica AutoMod, non invia avvisi, non applica mute, kick o ban, e non registra ogni messaggio su disco. Quando è ON conserva in **RAM** gli ultimi **5 messaggi** NORMAL/ME per identità nick+canale+rete, fino a **96 identità complessive**, con scadenza a **30 minuti** e un massimo di **320 byte UTF-8 di testo per messaggio**. La memoria temporanea viene svuotata a script spento, disconnessione e riavvio; è quindi possibile che manchino messaggi precedenti. Per un evento di moderazione, i messaggi ancora disponibili vengono inseriti in `context_messages` (nell'ordine originale); resta anche la ricerca SQLite dell'ultimo messaggio.
 
-La V2 esegue un **controllo sperimentale in sola osservazione** sui messaggi NORMAL. Con almeno 3 parole normalizzate e somiglianza del **75%** (sovrapposizione delle parole, senza considerarne l'ordine), confronta il nuovo messaggio con quelli precedenti dell'utente ancora in memoria, nell'arco dei 30 minuti. Registra una riga `event: "candidate"` soltanto se trova:
+La V2 esegue un **controllo sperimentale in sola osservazione** sui messaggi NORMAL. Con almeno 2 parole normalizzate e somiglianza del **75%** (sovrapposizione delle parole, senza considerarne l'ordine), confronta il nuovo messaggio con quelli precedenti dell'utente ancora in memoria, nell'arco dei 30 minuti. Registra una riga `event: "candidate"` soltanto se trova:
 
 - **2 messaggi simili**: `candidate_stage: "repeat_2"` (prima ripetizione osservata);
 - **3 messaggi simili**: `candidate_stage: "would_warn"` (terzo messaggio, avviso ipotetico);
 - **4 messaggi simili**: `candidate_stage: "would_mute_120s"` (quarto messaggio, mute ipotetico di 120 secondi).
+
+La soglia minima riguarda **solo il Collector**: AutoMod mantiene la propria impostazione. Esempi come `cerco f` e `m 08` vengono osservati se ripetuti; i numeri rimangono nel testo originale. Una parola isolata non produce eventi `candidate`.
 
 Queste sono **simulazioni**, non provvedimenti. Il test non filtra per parole specifiche e **non replica esattamente** la logica AutoMod, che ha proprie esenzioni, parametri e trattamento delle menzioni. Le etichette servono a valutare eventuali regole future, non a stabilire chi debba essere sanzionato.
 
