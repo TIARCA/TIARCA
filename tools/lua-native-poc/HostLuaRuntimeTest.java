@@ -1127,6 +1127,68 @@ public final class HostLuaRuntimeTest {
                 1794405100L).length == 4,
                 "Persisted ALL channel scope is restored after reload");
 
+        // Collector V2: source must remain importable within native Lua limit.
+        check(bytes(collectorSource).length <= 24576,
+                "Collector V2 must fit the Lua 24 KiB source limit");
+        check(collectorEvent("message", "Target",
+                "cerco persone in privato", "normal", 1794405110L).length == 1,
+                "The first ordinary message stays only in bounded memory");
+        String[] repeatTwo = collectorEvent("message", "Target",
+                "cerco persone in privato", "normal", 1794405111L);
+        check(repeatTwo.length == 4 && "journal".equals(repeatTwo[1]) &&
+                        repeatTwo[3].contains("\"schema\":2") &&
+                        repeatTwo[3].contains("\"event\":\"candidate\"") &&
+                        repeatTwo[3].contains("\"candidate_stage\":\"repeat_2\"") &&
+                        repeatTwo[3].contains("\"execution\":\"shadow_only\"") &&
+                        repeatTwo[3].contains("\"context_messages\":[{"),
+                "Second matching message is logged as shadow-only evidence");
+        String[] repeatThree = collectorEvent("message", "Target",
+                "cerco persone in privato", "normal", 1794405112L);
+        check(repeatThree.length == 4 &&
+                        repeatThree[3].contains("\"candidate_stage\":\"would_warn\"") &&
+                        repeatThree[3].contains("\"candidate_occurrences\":3"),
+                "Third matching message simulates a warning, never sends one");
+        String[] repeatFour = collectorEvent("message", "Target",
+                "cerco persone in privato", "normal", 1794405113L);
+        check(repeatFour.length == 4 &&
+                        "journal".equals(repeatFour[1]) &&
+                        repeatFour[3].contains("would_mute_120s") &&
+                        repeatFour[3].contains("shadow_only"),
+                "Fourth matching message is audit-only, no IRC moderation request");
+        String[] kickWithContext = collectorEvent("kick", "ChannelOp",
+                "spam", "Target", 1794405114L);
+        check(kickWithContext.length == 4 && "history".equals(kickWithContext[1]),
+                "Observed kick still requests SQLite history");
+        String contextToken = kickWithContext[3].substring(
+                kickWithContext[3].lastIndexOf('\t') + 1);
+        String[] missingSql = collectorEvent("history", "Target",
+                "", contextToken, 0L);
+        check(missingSql.length == 4 &&
+                        missingSql[3].contains("\"history_status\":\"not_found_in_last_200\"") &&
+                        missingSql[3].contains("\"context_messages\":[{") &&
+                        missingSql[3].contains("\"source\":\"live_buffer\"") &&
+                        missingSql[3].contains("\"message_age_seconds\":1"),
+                "SQLite miss retains observed context and an explicit reason");
+
+        // A separate observed IRC KICK may be associated with a recent
+        // AutoMod request, but only as a temporal correlation, not proof.
+        String[] request = collectorEvent("moderation_log", "Target",
+                "AutoMod test-ser/#room Target 81.0% infrazione 2 (kick)",
+                "automod.lua", 1794405120L);
+        check(request.length == 4 && "history".equals(request[1]),
+                "AutoMod request remains an independent history-bearing event");
+        String[] observedKick = collectorEvent("kick", "ChannelOp",
+                "non ripetere", "Target", 1794405122L);
+        String kickToken = observedKick[3].substring(
+                observedKick[3].lastIndexOf('\t') + 1);
+        String[] linked = collectorEvent("history", "Target",
+                "", kickToken, 0L);
+        check(linked.length == 4 &&
+                        linked[3].contains("\"correlation\":\"same_nick_10s\"") &&
+                        linked[3].contains("\"case_id\":\""),
+                "Correlate same-channel/nick nearby KICK, without confirming cause");
+
+
         // Explicit compound moderation API must remain one structured action,
         // including when the command originates in the server tab.
         byte[] ejectScript = Files.readAllBytes(

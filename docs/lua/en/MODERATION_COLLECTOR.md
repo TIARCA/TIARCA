@@ -1,4 +1,4 @@
-# Moderation Collector — standalone Lua script
+# Moderation Collector V2 — standalone Lua script
 
 [Lua guide](README.md) · [Italiano](../it/MODERATION_COLLECTOR.md) · [Lua source](../../lua-examples/moderation_collector.lua)
 
@@ -15,6 +15,21 @@ All collection decisions, event selection, SQLite lookup requests and JSONL seri
 
 The stored message's original ident/host take precedence when available. Each event and last-message object has channel, timestamp, nickname, observed ident/host/account (otherwise `null`). Previous chat is context, **not proof of a moderation reason**. Ambiguous ban masks do not receive guessed nicknames.
 
+## Collector V2: context and repetition shadow analysis
+
+V2 remains an **external Lua script**. It does not modify AutoMod or send moderation actions. While ON, it keeps up to **5 NORMAL/ME messages** per network/channel/nickname in **RAM**, for up to **96 identities globally**, for a **30-minute window** (maximum **320 UTF-8 bytes of text** per message). It saves this context to disk only when a moderation event or a shadow candidate occurs. The temporary buffer is cleared on script shutdown, disconnection and restart.
+
+An experimental **shadow-only detector** compares NORMAL messages containing at least **3 normalized words** with the author's five most recent buffered messages. It uses **75% word overlap**, without taking order into account. It appends `event: "candidate"` with one of these stages:
+
+- **2 similar messages:** `candidate_stage: "repeat_2"` (first repetition observed).
+- **3 similar messages:** `candidate_stage: "would_warn"` (hypothetical warning on message 3).
+- **4 similar messages:** `candidate_stage: "would_mute_120s"` (hypothetical 120-second mute on message 4).
+
+These events **never send IRC commands**. No vocabulary filters are active yet; this detector is only an exploratory approximation, not AutoMod's exact algorithm (which also handles mentions, exemptions and custom settings). The buffer may undercount earlier repetitions.
+
+The JSONL schema is now `schema: 2`; all V1 fields are kept. New fields: `context_messages` (the messages available at event time), `history_status` (e.g. `sqlite_found`, `not_found_in_last_200`, `target_unresolved`, `history_timeout`, `history_request_failed`, `not_queried_shadow`), `message_age_seconds`, `event_id`, `case_id`, `correlation`, `candidate_stage`, `candidate_occurrences`, `candidate_similarity_percent`. If SQLite has no match, `last_message` falls back to buffered context when available, with `source: "live_buffer"`. The status remains explicit.
+
+An observed KICK within **10 seconds** of a request from AutoMod for the same nickname/channel may share its `case_id`, with `correlation: "same_nick_10s"`. This means **temporal association, not confirmed server execution**. Ambiguous ban masks are never linked to an invented nickname.
 ## Setup and commands
 
 Import [moderation_collector.lua](../../lua-examples/moderation_collector.lua) into TIARCA's Lua scripts. Enable it on the selected network(s) and grant **Persistent data** and **Read users/identities**. Neither sending messages nor moderation authorization is necessary.
@@ -45,7 +60,7 @@ Disabling the script in TIARCA stops all callbacks and history requests. With `o
 
 ## Format, retention and privacy
 
-One event per append-only JSONL line. Fields: `schema`, `server`, `channel`, `timestamp`, `event`, `action`, `nickname`, `ident`, `host`, `account`, `operator`, `reason`, `ban_mask`, `source_script`, `similarity_percent`, `infraction_level`, `execution`, `identity_match`, `last_message` (nested message, identity, timestamp, or `null`).
+One append-only JSONL record per event (`schema: 2`). Fields: `schema`, `server`, `channel`, `timestamp`, `event`, `action`, `nickname`, `ident`, `host`, `account`, `operator`, `reason`, `ban_mask`, `source_script`, `similarity_percent`, `infraction_level`, `execution`, `identity_match`, `last_message` (nested message, identity, timestamp, or `null`).
 
 The private journal is scoped by **script UUID and network UUID**, grows incrementally and has no circular truncation at 32, 128 or any other event count. Generic APIs `tiarca.journal.append/export` and `tiarca.last_message` are the only Android assistance.
 
