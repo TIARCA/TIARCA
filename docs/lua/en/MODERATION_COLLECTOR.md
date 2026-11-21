@@ -19,11 +19,13 @@ The stored message's original ident/host take precedence when available. Each ev
 
 V2 remains an **external Lua script**. It does not modify AutoMod or send moderation actions. While ON, it keeps up to **5 NORMAL/ME messages** per network/channel/nickname in **RAM**, for up to **96 identities globally**, for a **30-minute window** (maximum **320 UTF-8 bytes of text** per message). It saves this context to disk only when a moderation event or a shadow candidate occurs. The temporary buffer is cleared on script shutdown, disconnection and restart.
 
-An experimental **shadow-only detector** compares NORMAL messages containing at least **3 normalized words** with the author's five most recent buffered messages. It uses **75% word overlap**, without taking order into account. It appends `event: "candidate"` with one of these stages:
+An experimental **shadow-only detector** compares NORMAL messages containing at least **2 normalized words** with the author's five most recent buffered messages. It uses **75% word overlap**, without taking order into account. It appends `event: "candidate"` with one of these stages:
 
 - **2 similar messages:** `candidate_stage: "repeat_2"` (first repetition observed).
 - **3 similar messages:** `candidate_stage: "would_warn"` (hypothetical warning on message 3).
 - **4 similar messages:** `candidate_stage: "would_mute_120s"` (hypothetical 120-second mute on message 4).
+
+The two-word minimum applies **only to Collector**: AutoMod keeps its own setting. Repeats of `cerco f` or `m 08` are observed, with original numbers preserved. A single word does not generate `candidate` records.
 
 These events **never send IRC commands**. No vocabulary filters are active yet; this detector is only an exploratory approximation, not AutoMod's exact algorithm (which also handles mentions, exemptions and custom settings). The buffer may undercount earlier repetitions.
 
