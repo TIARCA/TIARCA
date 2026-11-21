@@ -3,6 +3,9 @@
 -- It immediately starts collecting; /lua collector off|on|status|export controls it.
 -- The host only offers general purpose, opt-in Lua journal/history capabilities.
 local state, pending, observed = {}, {}, {}
+local messages, recent_actions = {}, {} -- transient and bounded
+local MAX_TRACKED, CONTEXT_LIMIT = 96, 5
+local CONTEXT_SECONDS, SHADOW_SIMILARITY = 1800, 75
 local seq = 0
 local LIMIT = 256 -- transient identity hints
 local PENDING_LIMIT = 10 -- Lua native host accepts at most 12 actions/callback
@@ -121,25 +124,60 @@ local function observe(e)
   users[e.nick:lower()] = user
 end
 
-local function last_json(entry, e)
-  if not e or not e.text or e.text == "" or e.timestamp <= 0 then return "null" end
-  local id = identity(entry.server, entry.channel, entry.nickname) or entry.identity
-  return "{" .. table.concat({
-    '"channel":' .. quote(entry.channel),
-    '"timestamp":' .. number(e.timestamp),
-    '"nickname":' .. quote(entry.nickname),
-    '"ident":' .. quote(e.ident or (id and id.ident)),
-    '"host":' .. quote(e.host or (id and id.host)),
-    '"account":' .. quote(id and id.account),
-    '"text":' .. quote(e.text),
-    '"source":"sqlite_history"'
-  }, ",") .. "}"
+local function user_key(server, channel, nick)
+  return server .. "\0" .. channel:lower() .. "\0" .. nick:lower()
 end
 
-local function write(entry, history)
-  local id = entry.identity or {}
+local function message_context(server, channel, nick, now)
+  if not nick or nick=="" then return {} end
+  local group=messages[user_key(server,channel,nick)]
+  local result={}
+  if group then
+    for _,m in ipairs(group.list) do
+      if now>=m.timestamp and now-m.timestamp<=CONTEXT_SECONDS then
+        result[#result+1]=m
+      end
+    end
+  end
+  return result
+end
+
+local function message_json(entry, item, source)
+  local id=entry.identity or {}
+  return "{" .. table.concat({
+    '"channel":'..quote(entry.channel), '"timestamp":'..number(item.timestamp),
+    '"nickname":'..quote(entry.nickname), '"ident":'..quote(item.ident or id.ident),
+    '"host":'..quote(item.host or id.host),
+    '"account":'..quote(item.account or id.account),
+    '"text":'..quote(item.text), '"source":'..quote(source)
+  },",") .. "}"
+end
+
+local function context_json(entry)
+  local items={}
+  for _,m in ipairs(entry.context or {}) do
+    items[#items+1]=message_json(entry,m,"live_buffer")
+  end
+  return "["..table.concat(items,",").."]"
+end
+
+local function last_json(entry,e)
+  if e and e.text and e.text~="" and e.timestamp>0 then
+    return message_json(entry,e,"sqlite_history")
+  end
+  local ctx=entry.context or {}
+  return #ctx>0 and message_json(entry,ctx[#ctx],"live_buffer") or "null"
+end
+
+local function write(entry, history, status)
+  local id=entry.identity or {}
+  local sql=history and history.text and history.text~="" and history.timestamp>0
+  local context=entry.context or {}
+  local last=sql and history or context[#context]
+  local age=last and entry.timestamp>=last.timestamp and entry.timestamp-last.timestamp or nil
+  status=status or (sql and "sqlite_found" or "not_found_in_last_200")
   local line = "{" .. table.concat({
-    '"schema":1',
+    '"schema":2',
     '"server":' .. quote(entry.server),
     '"channel":' .. quote(entry.channel),
     '"timestamp":' .. number(entry.timestamp),
@@ -157,20 +195,37 @@ local function write(entry, history)
     '"infraction_level":' .. number(entry.infraction),
     '"execution":' .. quote(entry.execution),
     '"identity_match":' .. quote(entry.identity_match),
-    '"last_message":' .. last_json(entry, history)
+    '"last_message":' .. last_json(entry,history),
+    '"context_messages":' .. context_json(entry),
+    '"history_status":' .. quote(status),
+    '"message_age_seconds":' .. number(age),
+    '"event_id":' .. quote(entry.event_id),
+    '"case_id":' .. quote(entry.case_id),
+    '"correlation":' .. quote(entry.correlation),
+    '"candidate_stage":' .. quote(entry.candidate_stage),
+    '"candidate_occurrences":' .. number(entry.candidate_occurrences),
+    '"candidate_similarity_percent":' .. number(entry.candidate_similarity)
   }, ",") .. "}"
   local ok, err = pcall(tiarca.journal.append, line)
   if not ok then tiarca.log("Collector: scrittura fallita: " .. tostring(err)) end
 end
 
 local function record(entry)
-  if not active(entry.server) or not in_scope(entry.server, entry.channel) then return end
-  if not entry.nickname or entry.nickname == "" then
-    write(entry)
+  if not active(entry.server) or not in_scope(entry.server,entry.channel) then return end
+  seq=seq%2147483646+1
+  local token=tostring(seq)
+  entry.event_id=tostring(entry.timestamp).."-"..token
+  entry.context=message_context(entry.server,entry.channel,entry.nickname,entry.timestamp)
+  if entry.event=="automod" and
+      ({kick=true,bankick=true,tbankick=true,ban=true,tban=true})[entry.action] then
+    entry.case_id=entry.event_id
+    recent_actions[user_key(entry.server,entry.channel,entry.nickname)]=
+      {timestamp=entry.timestamp,case_id=entry.case_id}
+  end
+  if not entry.nickname or entry.nickname=="" then
+    write(entry,nil,"target_unresolved")
     return
   end
-  seq = seq % 2147483646 + 1
-  local token = tostring(seq)
   local network = pending[entry.server]
   if not network then network = {}; pending[entry.server] = network end
   local count, oldest, oldest_entry = 0, nil, nil
@@ -183,14 +238,14 @@ local function record(entry)
   if count >= PENDING_LIMIT and oldest then
     -- Preserve the oldest event even if its asynchronous history never arrived.
     -- Flush at most one line here, within the native action budget.
-    write(oldest_entry)
+    write(oldest_entry,nil,"history_queue_overflow")
     network[oldest] = nil
   end
   network[token] = entry
   local ok = pcall(tiarca.last_message, entry.channel, entry.nickname, token)
   if not ok then
     network[token] = nil
-    write(entry)
+    write(entry,nil,"history_request_failed")
   end
 end
 
