@@ -1152,8 +1152,8 @@ public final class HostLuaRuntimeTest {
                 "cerco persone in privato", "normal", 1794405113L);
         check(repeatFour.length == 4 &&
                         repeatFour[3].contains("\"candidate_stage\":\"would_mute_120s\"") &&
-                        !java.util.Arrays.toString(repeatFour).contains("send") &&
-                        !java.util.Arrays.toString(repeatFour).contains("mute"),
+                        "journal".equals(repeatFour[1]) &&
+                        "observed_only".equals(repeatFour[2]),
                 "Fourth matching message is audit-only, no IRC moderation request");
         String[] kickWithContext = collectorEvent("kick", "ChannelOp",
                 "spam", "Target", 1794405114L);
