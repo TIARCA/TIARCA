@@ -142,14 +142,32 @@ public class NotificationManager {
 
     /** A 718 is a private-message request, independent of the selected conversation. */
     public void processCallerIdRequest(ServerConnectionInfo connection, String nick) {
-        InAppAlertListener listener = mInAppAlertListener;
-        if (listener == null || nick == null || nick.isEmpty())
+        if (nick == null || nick.isEmpty())
             return;
+        enqueueInAppAlert(connection, InAppAlertQueue.Alert.callerId(connection.getUUID(), nick));
+    }
+
+    /**
+     * Retain alerts received while the activity is paused. Only the currently resumed
+     * activity may suppress a message from its visible chat or play the arrival sound.
+     * Capturing the listener also prevents a background arrival processed after resume
+     * from being mistaken for a message that was already visible to the user.
+     */
+    void enqueueInAppAlert(ServerConnectionInfo connection, InAppAlertQueue.Alert alert) {
+        InAppAlertListener listenerAtArrival = mInAppAlertListener;
         mUiHandler.post(() -> {
-            if (mInAppAlertListener == listener && InAppAlertSettings.isEnabled() &&
-                    InAppAlertSettings.isPrivateMessagesEnabled() &&
-                    mInAppAlerts.add(InAppAlertQueue.Alert.callerId(connection.getUUID(), nick)))
-                listener.onInAppAlertsChanged(true);
+            if (!InAppAlertSettings.isEnabled() ||
+                    (alert.privateMessage ? !InAppAlertSettings.isPrivateMessagesEnabled()
+                            : !InAppAlertSettings.isMentionsEnabled()))
+                return;
+
+            InAppAlertListener listener = mInAppAlertListener;
+            if (!alert.callerId && listener != null && listener == listenerAtArrival &&
+                    listener.isConversationVisible(connection, alert.target))
+                return;
+
+            if (mInAppAlerts.add(alert) && listener != null)
+                listener.onInAppAlertsChanged(listener == listenerAtArrival);
         });
     }
 
@@ -172,10 +190,9 @@ public class NotificationManager {
         if (!messageFromOtherUser)
             return;
 
-        // Foreground banners are independent of Android's notification permission and channels.
-        // Discard history replay to avoid a burst of banners after reconnecting.
-        InAppAlertListener listener = mInAppAlertListener;
-        if (listener != null && InAppAlertSettings.isEnabled()) {
+        // In-app alerts do not depend on Android notification permission or a visible
+        // activity. Ignore history replay to avoid a burst of old alerts after reconnecting.
+        if (InAppAlertSettings.isEnabled()) {
             String normalizedChannel = normalizeRuleChannel(connection, channel);
             boolean playback = NotificationRuleManager.sZNCPlaybackRule.appliesTo(
                     connection.getNotificationManager(), normalizedChannel, info);
@@ -185,16 +202,9 @@ public class NotificationManager {
                     InAppAlertSettings.isMentionsEnabled())) {
                 String sender = info.getSender().getNick();
                 String target = direct ? sender : normalizedChannel;
-                String message = info.getMessage();
-                mUiHandler.post(() -> {
-                    if (mInAppAlertListener == listener && InAppAlertSettings.isEnabled()
-                            && !listener.isConversationVisible(connection, target)
-                            && mInAppAlerts.add(new InAppAlertQueue.Alert(
-                                    connection.getUUID(), target, sender, message, direct,
-                                    messageId == null ? null : messageId.toString(), mention))) {
-                        listener.onInAppAlertsChanged(true);
-                    }
-                });
+                enqueueInAppAlert(connection, new InAppAlertQueue.Alert(
+                        connection.getUUID(), target, sender, info.getMessage(), direct,
+                        messageId == null ? null : messageId.toString(), mention));
             }
         }
 
