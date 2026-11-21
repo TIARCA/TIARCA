@@ -5,7 +5,7 @@
 local state, pending, observed = {}, {}, {}
 local messages, recent_actions = {}, {} -- transient and bounded
 local MAX_TRACKED, CONTEXT_LIMIT = 96, 5
-local CONTEXT_SECONDS, SHADOW_SIMILARITY = 1800, 75
+local CONTEXT_SECONDS, SHADOW_SIMILARITY, SHADOW_MIN_WORDS = 1800, 75, 2
 local seq, unresolved_seq = 0, 0
 local LIMIT = 256 -- transient identity hints
 local PENDING_LIMIT = 10 -- Lua native host accepts at most 12 actions/callback
@@ -282,9 +282,9 @@ local function remember_message(e)
   local previous=message_context(e.server,e.channel,e.nick,e.timestamp)
   local sig,n=signature(e.text)
   local matches,maximum=1,0
-  if n>=3 then
+  if n>=SHADOW_MIN_WORDS then
     for _,m in ipairs(previous) do
-      if m.words and m.words>=3 then
+      if m.words and m.words>=SHADOW_MIN_WORDS then
         local pct=similarity(sig,n,m.signature,m.words)
         if pct>maximum then maximum=pct end
         if pct>=SHADOW_SIMILARITY then matches=matches+1 end
@@ -313,7 +313,7 @@ local function remember_message(e)
   group.list[#group.list+1]={timestamp=e.timestamp,text=body,
     ident=id.ident,host=id.host,account=id.account,signature=sig,words=n}
   while #group.list>CONTEXT_LIMIT do table.remove(group.list,1) end
-  if e.message_type=="normal" and n>=3 and matches>=2 and matches<=4 then
+  if e.message_type=="normal" and n>=SHADOW_MIN_WORDS and matches>=2 and matches<=4 then
     seq=seq%2147483646+1
     local stage=matches==2 and "repeat_2" or
         (matches==3 and "would_warn" or "would_mute_120s")
