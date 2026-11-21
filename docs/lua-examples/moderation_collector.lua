@@ -249,6 +249,81 @@ local function record(entry)
   end
 end
 
+local function signature(text)
+  local parts, bytes={},0
+  for word in text:lower():gsub("[%c%p]"," "):gmatch("%S+") do
+    if #parts>=32 or bytes+#word+1>160 then break end
+    parts[#parts+1]=word
+    bytes=bytes+#word+1
+  end
+  return table.concat(parts," "),#parts
+end
+
+local function similarity(a,na,b,nb)
+  local counts,shared={},0
+  for w in a:gmatch("%S+") do counts[w]=(counts[w] or 0)+1 end
+  for w in b:gmatch("%S+") do
+    if (counts[w] or 0)>0 then
+      shared=shared+1
+      counts[w]=counts[w]-1
+    end
+  end
+  return 200*shared/(na+nb)
+end
+
+-- Collect text only in bounded RAM; persist it only on moderation or
+-- repetition events. The shadow detector can NEVER issue moderation actions.
+local function remember_message(e)
+  if not e.nick or e.nick=="" or not e.text or e.text=="" then return end
+  local key=user_key(e.server,e.channel,e.nick)
+  local previous=message_context(e.server,e.channel,e.nick,e.timestamp)
+  local sig,n=signature(e.text)
+  local matches,maximum=1,0
+  if n>=3 then
+    for _,m in ipairs(previous) do
+      if m.words and m.words>=3 then
+        local pct=similarity(sig,n,m.signature,m.words)
+        if pct>maximum then maximum=pct end
+        if pct>=SHADOW_SIMILARITY then matches=matches+1 end
+      end
+    end
+  end
+  local group=messages[key]
+  if not group then
+    local count,oldest,old_time=0,nil,nil
+    for k,g in pairs(messages) do
+      count=count+1
+      if not old_time or g.seen<old_time then oldest,old_time=k,g.seen end
+    end
+    if count>=MAX_TRACKED and oldest then messages[oldest]=nil end
+    group={list={},seen=e.timestamp}
+    messages[key]=group
+  end
+  group.seen=e.timestamp
+  local body=e.text
+  if #body>320 then
+    local cut=320
+    while cut>1 and body:byte(cut)>=128 and body:byte(cut)<192 do cut=cut-1 end
+    body=body:sub(1,cut-1)
+  end
+  local id=identity(e.server,e.channel,e.nick) or {}
+  group.list[#group.list+1]={timestamp=e.timestamp,text=body,
+    ident=id.ident,host=id.host,account=id.account,signature=sig,words=n}
+  while #group.list>CONTEXT_LIMIT do table.remove(group.list,1) end
+  if e.message_type=="normal" and n>=3 and matches>=2 and matches<=4 then
+    seq=seq%2147483646+1
+    local stage=matches==2 and "repeat_2" or
+        (matches==3 and "would_warn" or "would_mute_120s")
+    write({server=e.server,channel=e.channel,timestamp=e.timestamp,
+      event="candidate",action="observed_only",nickname=e.nick,identity=id,
+      execution="shadow_only",candidate_stage=stage,
+      candidate_occurrences=matches,candidate_similarity=maximum,
+      event_id=tostring(e.timestamp).."-"..seq,
+      context=message_context(e.server,e.channel,e.nick,e.timestamp)},
+      nil,"not_queried_shadow")
+  end
+end
+
 local function mask_matches(mask, name, id)
   if not id or not id.ident or not id.host then return false end
   if mask:find(":", 1, true) then return false end -- extban cannot infer a nick
@@ -286,7 +361,10 @@ local function ban_target(e)
 end
 
 tiarca.on("message", function(e)
-  if active(e.server) and in_scope(e.server, e.channel) then observe(e) end
+  if not active(e.server) or not in_scope(e.server,e.channel) then return end
+  observe(e)
+  if (e.message_type=="normal" or e.message_type=="me") and
+      e.channel:match("^[#&+!]") then remember_message(e) end
 end)
 
 local function forget(e, nick)
@@ -294,6 +372,8 @@ local function forget(e, nick)
   local network = observed[e.server]
   local channel = network and network[(e.channel or ""):lower()]
   if channel then channel[nick:lower()] = nil end
+  messages[user_key(e.server,e.channel or "",nick)]=nil
+  recent_actions[user_key(e.server,e.channel or "",nick)]=nil
 end
 
 -- Nicknames are not stable identities. Do not reuse identity hints after a
@@ -308,12 +388,14 @@ tiarca.on("disconnected", function(e)
   local network = pending[e.server]
   if network then
     for token, entry in pairs(network) do
-      if active(e.server) then write(entry) end
+      if active(e.server) then write(entry,nil,"disconnected_before_history") end
       network[token] = nil
     end
   end
   pending[e.server] = nil
   observed[e.server] = nil
+  for k in pairs(messages) do if k:sub(1,#e.server+1)==e.server.."\0" then messages[k]=nil end end
+  for k in pairs(recent_actions) do if k:sub(1,#e.server+1)==e.server.."\0" then recent_actions[k]=nil end end
 end)
 
 
@@ -341,10 +423,15 @@ tiarca.on("kick", function(e)
   if not active(e.server) or not in_scope(e.server, e.channel) then return end
   local nick = e.message_type -- IRC KICK target; e.nick is the actor
   if not nick or nick == "" then return end
+  local match=recent_actions[user_key(e.server,e.channel,nick)]
+  local linked=match and e.timestamp>=match.timestamp and
+      e.timestamp-match.timestamp<=10
   record({server=e.server, channel=e.channel, timestamp=e.timestamp,
           event="kick", action="kick", nickname=nick,
           identity=identity(e.server, e.channel, nick), operator=e.nick,
-          reason=e.text, execution="observed_irc"})
+          reason=e.text, execution="observed_irc",
+          case_id=linked and match.case_id or nil,
+          correlation=linked and "same_nick_10s" or nil})
   forget(e, nick)
 end)
 
@@ -370,7 +457,7 @@ tiarca.on("timer", function(e)
   if not network then return end
   for token, entry in pairs(network) do
     if e.timestamp - entry.timestamp >= 120 then
-      if active(e.server) then write(entry) end
+      if active(e.server) then write(entry,nil,"history_timeout") end
       network[token] = nil
     end
   end
@@ -419,14 +506,18 @@ tiarca.on("command", function(e)
       -- OFF must not discard events accepted before the command. At most 10
       -- pending journal writes + 1 storage + 1 local show action.
       for token, entry in pairs(pending[e.server]) do
-        write(entry)
+        write(entry,nil,"collector_stopped")
         pending[e.server][token] = nil
       end
     end
     local ok = pcall(tiarca.storage.set, key(e.server), yes and "on" or "off")
     if ok then
       state[e.server] = yes
-      if not yes then pending[e.server] = nil; observed[e.server] = nil end
+      if not yes then
+        pending[e.server]=nil; observed[e.server]=nil
+        for k in pairs(messages) do if k:sub(1,#e.server+1)==e.server.."\0" then messages[k]=nil end end
+        for k in pairs(recent_actions) do if k:sub(1,#e.server+1)==e.server.."\0" then recent_actions[k]=nil end end
+      end
     end
     tiarca.show("Collector", ok and (yes and "ON" or "OFF") or "Storage non disponibile")
   elseif op == "export" then
@@ -443,7 +534,7 @@ tiarca.on("command", function(e)
     local network = pending[e.server]
     if network then
       for token, entry in pairs(network) do
-        write(entry)
+        write(entry,nil,"collector_rotated")
         network[token] = nil
       end
     end
@@ -454,7 +545,7 @@ tiarca.on("command", function(e)
     tiarca.show("Collector", "Esportazione ultimo archivio richiesta")
   elseif op == "status" or op == "" then
     tiarca.show("Collector", active(e.server) and
-      "ON: archivio incrementale; " .. channels_status(e.server) or "OFF")
+      "ON: Collector V2 (5 messaggi, shadow 75%); " .. channels_status(e.server) or "OFF")
   else
     tiarca.show("Collector", "/lua collector on|off|status|export|exportreset|archive|channels")
   end
