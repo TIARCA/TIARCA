@@ -1153,7 +1153,7 @@ public final class HostLuaRuntimeTest {
         check(repeatFour.length == 4 &&
                         repeatFour[3].contains("\"candidate_stage\":\"would_mute_120s\"") &&
                         "journal".equals(repeatFour[1]) &&
-                        "observed_only".equals(repeatFour[2]),
+                        repeatFour[3].contains("\\"execution\\":\\"shadow_only\\""),
                 "Fourth matching message is audit-only, no IRC moderation request");
         String[] kickWithContext = collectorEvent("kick", "ChannelOp",
                 "spam", "Target", 1794405114L);
