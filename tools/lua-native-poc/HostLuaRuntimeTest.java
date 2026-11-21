@@ -1189,6 +1189,42 @@ public final class HostLuaRuntimeTest {
                 "Correlate same-channel/nick nearby KICK, without confirming cause");
 
 
+        // Collector V2 must also log very short repeated phrases.
+        check(collectorEvent("message", "Target", "ciao",
+                "normal", 1794405130L).length == 1 &&
+                collectorEvent("message", "Target", "ciao",
+                "normal", 1794405131L).length == 1,
+                "One-word repetitions must remain below the minimum");
+        check(collectorEvent("message", "Target", "cerco f",
+                "normal", 1794405132L).length == 1,
+                "First two-word message is buffered, not archived");
+        String[] twoWords = collectorEvent("message", "Target", "cerco f",
+                "normal", 1794405133L);
+        check(twoWords.length == 4 &&
+                "journal".equals(twoWords[1]) &&
+                twoWords[3].contains("repeat_2") &&
+                twoWords[3].contains("cerco f"),
+                "Repeated two-word messages must produce shadow-only evidence");
+        String[] twoWordWarning = collectorEvent("message", "Target", "cerco f",
+                "normal", 1794405134L);
+        check(twoWordWarning.length == 4 &&
+                twoWordWarning[3].contains("would_warn"),
+                "Three repeated two-word messages simulate a warning");
+        String[] twoWordMute = collectorEvent("message", "Target", "cerco f",
+                "normal", 1794405135L);
+        check(twoWordMute.length == 4 &&
+                twoWordMute[3].contains("would_mute_120s"),
+                "Four repeated two-word messages simulate a mute");
+        check(collectorEvent("message", "Target", "m 08",
+                "normal", 1794405136L).length == 1,
+                "First short message containing numbers is buffered");
+        String[] numericShort = collectorEvent("message", "Target", "m 08",
+                "normal", 1794405137L);
+        check(numericShort.length == 4 &&
+                numericShort[3].contains("repeat_2") &&
+                numericShort[3].contains("m 08"),
+                "Repeated two-word numeric message preserves digits in evidence");
+
         // Explicit compound moderation API must remain one structured action,
         // including when the command originates in the server tab.
         byte[] ejectScript = Files.readAllBytes(
