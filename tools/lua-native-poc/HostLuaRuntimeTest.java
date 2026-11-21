@@ -1151,7 +1151,7 @@ public final class HostLuaRuntimeTest {
         String[] repeatFour = collectorEvent("message", "Target",
                 "cerco persone in privato", "normal", 1794405113L);
         check(repeatFour.length == 4 &&
-                        repeatFour[3].contains("shadow_only"),
+                        repeatFour[3].contains("would_mute_120s"),
                         "journal".equals(repeatFour[1]) &&
                         repeatFour[3].contains("\\"execution\\":\\"shadow_only\\""),
                 "Fourth matching message is audit-only, no IRC moderation request");
