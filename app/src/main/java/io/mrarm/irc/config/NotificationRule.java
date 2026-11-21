@@ -86,6 +86,8 @@ public class NotificationRule {
     }
 
     public void updateRegex() {
+        // A previously static pattern must not remain active after editing this rule.
+        mCompiledPattern = null;
         if (regex == null)
             return;
         Matcher matcher = CommandAliasManager.mMatchVariablesRegex.matcher(regex);
@@ -93,18 +95,23 @@ public class NotificationRule {
             mCompiledPattern = Pattern.compile(regex, regexCaseInsensitive ? Pattern.CASE_INSENSITIVE : 0);
     }
 
-    public Pattern createSpecificRegex(NotificationManager.ConnectionManager conn) {
+    private String resolveSpecificRegex(String currentNick) {
         Matcher matcher = CommandAliasManager.mMatchVariablesRegex.matcher(regex);
         StringBuffer buf = new StringBuffer();
         while (matcher.find()) {
             String type = matcher.group(1);
             String replaceWith = "";
-            if (type.equals("nick"))
-                replaceWith = conn.getConnection().getUserNick();
+            if (type.equals("nick") && currentNick != null)
+                replaceWith = currentNick;
             matcher.appendReplacement(buf, Matcher.quoteReplacement(Pattern.quote(replaceWith)));
         }
         matcher.appendTail(buf);
-        return Pattern.compile(buf.toString(), regexCaseInsensitive ? Pattern.CASE_INSENSITIVE : 0);
+        return buf.toString();
+    }
+
+    public Pattern createSpecificRegex(NotificationManager.ConnectionManager conn) {
+        return Pattern.compile(resolveSpecificRegex(conn.getConnection().getUserNick()),
+                regexCaseInsensitive ? Pattern.CASE_INSENSITIVE : 0);
     }
 
     public Pattern getCompiledPattern(NotificationManager.ConnectionManager conn) {
@@ -112,9 +119,28 @@ public class NotificationRule {
             return mCompiledPattern;
         if (regex == null)
             return null;
-        if (!conn.getCompiledPatterns().containsKey(this))
-            conn.getCompiledPatterns().put(this, createSpecificRegex(conn));
-        return conn.getCompiledPatterns().get(this);
+        return getCompiledPattern(conn, conn.getConnection().getUserNick());
+    }
+
+    /** Package-private for tests: a nickname change must invalidate a resolved ${nick} rule. */
+    Pattern getCompiledPattern(NotificationManager.ConnectionManager conn, String currentNick) {
+        if (mCompiledPattern != null)
+            return mCompiledPattern;
+        if (regex == null)
+            return null;
+
+        String resolved = resolveSpecificRegex(currentNick);
+        int flags = regexCaseInsensitive ? Pattern.CASE_INSENSITIVE : 0;
+        // The cache belongs to the connection, so simultaneous servers with different
+        // nicks cannot overwrite each other's matching rules.
+        synchronized (conn.getCompiledPatterns()) {
+            Pattern cached = conn.getCompiledPatterns().get(this);
+            if (cached == null || !cached.pattern().equals(resolved) || cached.flags() != flags) {
+                cached = Pattern.compile(resolved, flags);
+                conn.getCompiledPatterns().put(this, cached);
+            }
+            return cached;
+        }
     }
 
     public boolean appliesTo(NotificationManager.ConnectionManager conn, String channel, MessageInfo message) {

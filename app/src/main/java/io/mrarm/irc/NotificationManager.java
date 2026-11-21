@@ -242,12 +242,17 @@ public class NotificationManager {
             if (rule.settings.enabled && rule.appliesTo(connData, channel, message))
                 return rule.settings.mentionFormatting;
         }
+        // A direct TAB of our nick must still be recognized when an unrelated
+        // custom notification rule matches the message with mentionFormatting off.
+        // The in-app mention preference remains the user's opt-out control.
+        if (NotificationRuleManager.sNickMentionRule.appliesTo(connData, channel, message))
+            return true;
         for (NotificationRule rule : NotificationRuleManager.getUserRules(
                 connection.getConnectionManager().getContext())) {
             if (rule.settings.enabled && rule.appliesTo(connData, channel, message))
                 return rule.settings.mentionFormatting;
         }
-        return NotificationRuleManager.sNickMentionRule.appliesTo(connData, channel, message);
+        return false;
     }
 
     public void clearAllNotifications(Context context, ServerConnectionInfo connection) {

@@ -159,6 +159,31 @@ public class InAppAlertDeliveryTest {
     }
 
     @Test
+    public void foregroundMentionInAnotherChannelIsDisplayedWithoutAffectingCurrentChat() {
+        Listener active = new Listener();
+        active.conversationVisible = false; // Reading #chatitaly, TAB received on #amicizia.
+        manager.setInAppAlertListener(active);
+        active.callbacks.clear();
+
+        InAppAlertQueue.Alert otherChannel = mention();
+        manager.enqueueInAppAlert(null, otherChannel);
+        flushMainThread();
+        assertSame(otherChannel, manager.getCurrentInAppAlert());
+        assertEquals(1, active.callbacks.size());
+        assertTrue(active.callbacks.get(0));
+
+        manager.dismissCurrentInAppAlert();
+        assertNull(manager.getCurrentInAppAlert());
+        active.conversationVisible = true; // Reading the channel that receives the TAB.
+        active.callbacks.clear();
+
+        manager.enqueueInAppAlert(null, mention());
+        flushMainThread();
+        assertNull(manager.getCurrentInAppAlert());
+        assertTrue(active.callbacks.isEmpty());
+    }
+
+    @Test
     public void backgroundCallerIdRequestsAreRetained() {
         InAppAlertQueue.Alert request = InAppAlertQueue.Alert.callerId(SERVER, "alice");
         manager.enqueueInAppAlert(null, request);
