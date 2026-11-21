@@ -6,7 +6,7 @@ local state, pending, observed = {}, {}, {}
 local messages, recent_actions = {}, {} -- transient and bounded
 local MAX_TRACKED, CONTEXT_LIMIT = 96, 5
 local CONTEXT_SECONDS, SHADOW_SIMILARITY = 1800, 75
-local seq = 0
+local seq, unresolved_seq = 0, 0
 local LIMIT = 256 -- transient identity hints
 local PENDING_LIMIT = 10 -- Lua native host accepts at most 12 actions/callback
 local CHANNEL_LIMIT = 32
@@ -212,6 +212,13 @@ end
 
 local function record(entry)
   if not active(entry.server) or not in_scope(entry.server,entry.channel) then return end
+  if not entry.nickname or entry.nickname=="" then
+    unresolved_seq=unresolved_seq%2147483646+1
+    entry.event_id=tostring(entry.timestamp).."-u"..unresolved_seq
+    entry.context={}
+    write(entry,nil,"target_unresolved")
+    return
+  end
   seq=seq%2147483646+1
   local token=tostring(seq)
   entry.event_id=tostring(entry.timestamp).."-"..token
@@ -221,10 +228,6 @@ local function record(entry)
     entry.case_id=entry.event_id
     recent_actions[user_key(entry.server,entry.channel,entry.nickname)]=
       {timestamp=entry.timestamp,case_id=entry.case_id}
-  end
-  if not entry.nickname or entry.nickname=="" then
-    write(entry,nil,"target_unresolved")
-    return
   end
   local network = pending[entry.server]
   if not network then network = {}; pending[entry.server] = network end
