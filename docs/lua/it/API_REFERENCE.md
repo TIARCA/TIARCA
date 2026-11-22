@@ -31,6 +31,7 @@
 | `tiarca.mode(canale, nick, modo)` | Solo `+o`, `-o`, `+v`, `-v` | Moderazione; OP |
 | `tiarca.mute(canale, nick)` | Richiede mute con dialetto IRC supportato | Moderazione; OP |
 | `tiarca.tban(canale, nick, durata)` | Richiede ban temporaneo (es. `"3h"`) | Moderazione; OP; dialetto supportato |
+| `tiarca.tmute(canale, nick, durata)` | Richiede mute temporaneo del solo host corrente (`TBAN` con `m:` su InspIRCd); nessun timer lato app | Moderazione; OP; dialetto supportato |
 | `tiarca.kickban(canale, nick, motivo)` | KICK + ban come unica richiesta convalidata | Moderazione; OP |
 | `tiarca.kicktban(canale, nick, durata, motivo)` | KICK + ban temporaneo convalidati insieme | Moderazione; OP |
 | `tiarca.blacklist_action(canale, nick, account, azione, durata)` | Azioni `kick`, `ban`, `mute`, `tban`, `bankick`, `tbankick`; account verificato dal client | Moderazione e identità; vincoli aggiuntivi |
