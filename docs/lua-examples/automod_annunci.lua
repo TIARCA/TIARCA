@@ -56,15 +56,14 @@ end
 -- Una sola categoria per messaggio, con priorita alle regole piu specifiche.
 -- B11-B13 sono osservazione, NON contribuiscono alla concentrazione.
 local rules={
- {"A","B01",function(s) return s:find("%f[%a]f%s+[pxe][er]?%s+m%d+")~=nil or
+ {"A","B01",function(s) return s:find("%f[%a]f%s+per%s+m%d+")~=nil or
                                      s:find("%f[%a]f%s+x%s+m%d+")~=nil end},
  {"B","B02",function(s,w) return mcode(w) and (s:find("cerco f",1,true) or
  s:find("cerca f",1,true) or s:find("per f",1,true) or
  s:find("x f",1,true)) end},
- {"C","B03",function(s,w) return mcode(w) and nearby(w,{},{},1)==true or
- (mcode(w) and nearby(w,(function()
+ {"C","B03",function(s,w) return mcode(w) and nearby(w,(function()
    local t={} for _,x in ipairs(w) do if x:match("^m%d+$") then t[x]=true end end
-   return t end)(),invite,4)) end},
+   return t end)(),invite,4) end},
  {"D","B04",function(s,w) return nearby(w,target,private,7) end},
  {"E","B05",function(s,w) return nearby(w,target,chat,4) or
  (has(w,{maturo=true,maturi=true}) and has(w,chat)) end},
@@ -272,8 +271,11 @@ local function resolve(e,account,host,ident)
   -- Un ident identico su due connessioni simultanee discordanti non basta.
   if not a and not h and i and i~=false and host~="" and
       not contains(i.hosts,host) and e.timestamp-i.seen<900 then
-    local own=sessions[nickKey(e.server,e.nick)]
-    if own~=i.id then r=nil end
+    local concurrent=false
+    for nick,sid in pairs(sessions) do
+      if sid==i.id and nick~=nickKey(e.server,e.nick) then concurrent=true;break end
+    end
+    if concurrent then r=nil end
   end
   if not r then
     if users>=MAX_USERS then return nil end
@@ -331,9 +333,8 @@ local function action(e,level)
 end
 local function log(e,level,found,total,rule,mode)
   local pct=100*found/total
-  local label=level==1 and "avviso" or level==2 or level==4 and "tmute" or
-    level==3 and "kick" or "bankick"
-  if level==2 or level==4 then label="tmute" end
+  local label=level==1 and "avviso" or ((level==2 or level==4) and "tmute") or
+    (level==3 and "kick") or "bankick"
   local logged=mode=="live" and label or "monitor"
   -- L'evento è una richiesta, non la prova che il server abbia eseguito la sanzione.
   tiarca.log(string.format("AutoModB %s/%s %s %.1f%% infrazione %d (%s)",
