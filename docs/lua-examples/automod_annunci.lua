@@ -404,6 +404,13 @@ tiarca.on("command",function(e)
   end
   if not load() then show("AutoMod B","Storage indisponibile o stato corrotto: nessuna moderazione.");return end
   local c=cfgFor(e.server)
+  local old={on=c.on,mode=c.mode,epoch=c.epoch,channels={}}
+  for ch in pairs(c.channels) do old.channels[ch]=true end
+  local function commit(message)
+    if saveConfig() then show("AutoMod B",message);return end
+    c.on,c.mode,c.epoch,c.channels=old.on,old.mode,old.epoch,old.channels
+    show("AutoMod B","Salvataggio non riuscito: modifica annullata")
+  end
   if op=="stato" then
     local count=0 for _ in pairs(c.channels) do count=count+1 end
     show("AutoMod B",string.format("%s; modo %s; canali %d; utenti %d; 20m, 2 occorrenze; 10 messaggi, soglia 2/3; escalation 24h.",
@@ -420,19 +427,18 @@ tiarca.on("command",function(e)
       show("AutoMod B","Massimo 16 canali");return end
     if command=="add" then c.channels[ch:lower()]=true
     else c.channels[ch:lower()]=nil end
-    show("AutoMod B",saveConfig() and "Canali aggiornati" or "Salvataggio non riuscito")
+    commit("Canali aggiornati")
   elseif op=="on" or op=="off" then
     c.on=op=="on"
-    show("AutoMod B",saveConfig() and ("Motore "..op) or "Salvataggio non riuscito")
+    commit("Motore "..op)
   elseif op=="modo" then
     if rest~="monitor" and rest~="live" then
       show("AutoMod B","Uso: /lua b modo monitor|live");return end
     if c.mode~=rest then c.epoch=c.epoch+1;c.mode=rest end
-    show("AutoMod B",saveConfig() and ("Modo "..rest.." (storico infrazioni resettato per il nuovo modo)") or
-        "Salvataggio non riuscito")
+    commit("Modo "..rest.." (storico infrazioni resettato per il nuovo modo)")
   elseif op=="reset" then
     -- Cambia epoca: non eredita infrazioni o messaggi di un vecchio test.
     c.epoch=c.epoch+1
-    show("AutoMod B",saveConfig() and "Cronologia operativa azzerata" or "Salvataggio non riuscito")
+    commit("Cronologia operativa azzerata")
   end
 end)
