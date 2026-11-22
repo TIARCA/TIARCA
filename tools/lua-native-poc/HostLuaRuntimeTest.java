@@ -1168,6 +1168,13 @@ public final class HostLuaRuntimeTest {
                 "f per m05", 1794406060L + 86401L, "", "*");
         check(!java.util.Arrays.asList(expiredB).contains("kban"),
                 "Old escalation expires after 24h without further infractions");
+        // A new authenticated person behind the same host cannot inherit
+        // anonymous history from a different nickname.
+        String[] differentUser = eventAs(OTHER, "message", "#room", "Second",
+                "f per m011", 1794406070L, "", "different-account");
+        check(!java.util.Arrays.asList(differentUser).contains("kban") &&
+                        !java.util.Arrays.asList(differentUser).contains("tmute"),
+                "A distinct account on the same host must not inherit a ban");
         automodActive = false;
 
         NativeLuaRuntime.unload(ID);
