@@ -3,6 +3,7 @@ package io.mrarm.irc.lua;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import io.mrarm.chatlib.irc.IRCCaseMapping;
+import io.mrarm.irc.dialog.OperatorCommandComposer;
 import io.mrarm.chatlib.dto.NickWithPrefix;
 
 /**
