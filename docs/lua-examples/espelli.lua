@@ -2,8 +2,11 @@
 -- Importa come script autonomo; autorizza "Membri e identità" e "Moderazione".
 -- Da un canale: /lua espelli nickname
 -- Dalla scheda server: /lua espelli #canale nickname
--- N.B. +N resta attivo sul canale. Il ban sul suffisso host può coinvolgere
--- altre persone dello stesso provider: usare solo quando intenzionale.
+-- I due extban host N: (no nick change) e m:U: (mute utenti non
+-- autenticati) sono TBAN da 6h. Non imposta +N sull'intero canale.
+-- I ban nickname e account restano senza scadenza.
+-- ATTENZIONE: il suffisso host può coinvolgere altri utenti del provider.
+-- Un vecchio +N già impostato sul canale NON viene rimosso automaticamente.
 -- La funzionalità tiarca.eject richiede una build TIARCA che la includa.
 
 tiarca.on("command", function(event)
@@ -14,8 +17,9 @@ tiarca.on("command", function(event)
     tiarca.show("Espelli / multi-ban",
       "Nel canale: /lua espelli nick\n" ..
       "Scheda server: /lua espelli #canale nick\n" ..
-      "Esegue +N, eventuale -v, KICK e 2-4 ban. " ..
-      "Il suffisso host coinvolge potenzialmente altri utenti.")
+      "Esegue TBAN 6h N: e m:U: sul suffisso host, " ..
+      "eventuale -v, KICK e ban nickname/account. " ..
+      "Non modifica il +N globale del canale.")
     return
   end
 

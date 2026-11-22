@@ -4,6 +4,9 @@ import org.junit.Test;
 import io.mrarm.chatlib.irc.IRCCaseMapping;
 import io.mrarm.chatlib.dto.NickWithPrefix;
 import io.mrarm.chatlib.dto.NickPrefixList;
+import io.mrarm.irc.dialog.OperatorCommandComposer;
+import java.util.Arrays;
+import java.util.List;
 import static org.junit.Assert.*;
 
 public class LuaModerationPolicyTest {
@@ -185,6 +188,38 @@ public class LuaModerationPolicyTest {
                 "SimosNap-unknowncloak.example.com"));
         assertNull(LuaModerationPolicy.revisedHost(null));
         assertNull(LuaModerationPolicy.revisedHost("evil\r\nMODE #room +o attacker"));
+    }
+
+    @Test public void ejectHostRestrictionsAreScopedAndTimeLimited() {
+        OperatorCommandComposer.Dialect insp =
+                new OperatorCommandComposer.Dialect(",NmUR", "");
+        List<String> masks = LuaModerationPolicy.timedEjectHostMasks(
+                insp, "*net.vodafone.it");
+        assertEquals(Arrays.asList(
+                "N:*!*@*net.vodafone.it",
+                "m:U:*!*@*net.vodafone.it"), masks);
+        assertEquals("6h", LuaModerationPolicy.EJECT_HOST_DURATION);
+        assertEquals("TBAN #room 6h N:*!*@*net.vodafone.it",
+                insp.timedCommand("#room", LuaModerationPolicy.EJECT_HOST_DURATION,
+                        masks.get(0)));
+        assertEquals("TBAN #room 6h m:U:*!*@*net.vodafone.it",
+                insp.timedCommand("#room", LuaModerationPolicy.EJECT_HOST_DURATION,
+                        masks.get(1)));
+        assertEquals(Arrays.asList("N:*!*@*45.67.89", "m:U:*!*@*45.67.89"),
+                LuaModerationPolicy.timedEjectHostMasks(insp, "*45.67.89"));
+
+        // Do not fall back to global +N or an ordinary permanent host ban.
+        assertNull(LuaModerationPolicy.timedEjectHostMasks(
+                new OperatorCommandComposer.Dialect(",mUR", ""), "*net.vodafone.it"));
+        assertNull(LuaModerationPolicy.timedEjectHostMasks(
+                new OperatorCommandComposer.Dialect(",NUR", ""), "*net.vodafone.it"));
+        assertNull(LuaModerationPolicy.timedEjectHostMasks(
+                new OperatorCommandComposer.Dialect(",NmR", ""), "*net.vodafone.it"));
+        assertNull(LuaModerationPolicy.timedEjectHostMasks(
+                new OperatorCommandComposer.Dialect(null, null), "*net.vodafone.it"));
+        assertNull(LuaModerationPolicy.timedEjectHostMasks(insp, null));
+        assertNull(LuaModerationPolicy.timedEjectHostMasks(
+                insp, "*net.vodafone.it\r\nMODE #room +N"));
     }
 
     @Test public void revokedPermissionDisablesExistingScriptActions() {
