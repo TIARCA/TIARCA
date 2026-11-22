@@ -223,8 +223,8 @@ local function record(entry)
   local token=tostring(seq)
   entry.event_id=tostring(entry.timestamp).."-"..token
   entry.context=message_context(entry.server,entry.channel,entry.nickname,entry.timestamp)
-  if entry.event=="automod" and
-      ({kick=true,bankick=true,tbankick=true,ban=true,tban=true})[entry.action] then
+  if (entry.event=="automod" or entry.event=="automod_b") and
+      ({kick=true,bankick=true,tbankick=true,ban=true,tban=true,tmute=true})[entry.action] then
     entry.case_id=entry.event_id
     recent_actions[user_key(entry.server,entry.channel,entry.nickname)]=
       {timestamp=entry.timestamp,case_id=entry.case_id}
@@ -405,19 +405,20 @@ end)
 -- AutoMod can be imported under any filename (e.g. automod.lua).
 -- Match the validated decision payload, not the local script filename.
 local automod_actions = {monitor=true, avviso=true, kick=true, ban=true,
-                       mute=true, tban=true, bankick=true, tbankick=true,
+                       mute=true, tmute=true, tban=true, bankick=true, tbankick=true,
                        escalation=true}
 tiarca.on("moderation_log", function(e)
   if not active(e.server) or not in_scope(e.server, e.channel) then return end
-  local server, channel, nick, percent, level, action = (e.text or ""):match(
-    "^AutoMod%s+([^/%s]+)/([^%s]+)%s+([^%s]+)%s+([%d%.]+)%% infrazione (%d+) %(([^%)]+)%)$")
+  local engine, server, channel, nick, percent, level, action = (e.text or ""):match(
+    "^AutoMod(B?)%s+([^/%s]+)/([^%s]+)%s+([^%s]+)%s+([%d%.]+)%% infrazione (%d+) %(([^%)]+)%)$")
   if not nick or server ~= e.server:sub(1, 8) or
       channel:lower() ~= e.channel:lower() or
       nick:lower() ~= e.nick:lower() or not automod_actions[action] then return end
   record({server=e.server, channel=e.channel, timestamp=e.timestamp,
-          event="automod", action=action, nickname=nick,
+          event=engine=="B" and "automod_b" or "automod", action=action, nickname=nick,
           identity=identity(e.server, e.channel, nick),
-          operator="AutoMod", reason=(action ~= "monitor" and "non ripetere" or nil),
+          operator=engine=="B" and "AutoMod B" or "AutoMod",
+          reason=(action ~= "monitor" and "non ripetere" or nil),
           source_script=e.message_type, similarity=tonumber(percent),
           infraction=tonumber(level), execution="requested"})
 end)
