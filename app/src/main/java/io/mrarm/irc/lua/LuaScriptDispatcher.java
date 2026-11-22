@@ -1262,24 +1262,31 @@ public final class LuaScriptDispatcher {
         OperatorCommandComposer.Dialect dialect = new OperatorCommandComposer.Dialect(
                 api.getServerConnectionData().getSupportList().getExtban(),
                 api.getServerConnectionData().getSupportList().getAccountExtban());
-        if (!dialect.isInspStyle() || !"m:".equals(dialect.acting('m')) ||
-                !"U:".equals(dialect.matching('U')) ||
-                (account != null && !"R:".equals(dialect.matching('R')))) {
-            store.recordLog(script.id, "Eject rejected: network extban syntax unsupported");
+        // The two host-wide restrictions are scoped acting extbans, each
+        // expiring after 6h. Never toggle the channel-wide +N mode.
+        List<String> timedHostMasks = LuaModerationPolicy.timedEjectHostMasks(
+                dialect, suffix);
+        final String hostDuration = LuaModerationPolicy.EJECT_HOST_DURATION;
+        if (timedHostMasks == null ||
+                (account != null && !"R:".equals(dialect.matching('R'))) ||
+                timedHostMasks.size() != 2 ||
+                dialect.timedCommand(channel, hostDuration, timedHostMasks.get(0)) == null ||
+                dialect.timedCommand(channel, hostDuration, timedHostMasks.get(1)) == null) {
+            store.recordLog(script.id, "Eject rejected: timed host extbans unsupported");
             return;
         }
-        // Explicitly requested: U: matching unauthenticated users,
-        // m: acting mute; R: targets authenticated NickServ accounts.
+        // R: targets the observed NickServ account. These identity-based bans
+        // are intentionally permanent, unlike the two host-scoped TBANs.
         List<String> masks = new ArrayList<>();
-        masks.add("m:U:*!*@" + suffix);
         if (account != null) masks.add("R:" + account);
         masks.add(nick + "!*@*");
         if (account != null && !account.equalsIgnoreCase(nick))
             masks.add(account + "!*@*");
 
-        // Do not send ANY command before the live privileges, host, account,
-        // prefixes and extban dialect have passed validation.
-        api.sendCommand("MODE", false, new String[]{channel, "+N"}, null, null);
+        // Validate the complete plan before any IRC command is emitted.
+        for (String mask : timedHostMasks)
+            api.sendCommand("TBAN", false,
+                    new String[]{channel, hostDuration, mask}, null, null);
         boolean hadVoice = LuaModerationPolicy.targetHasVoice(member);
         if (hadVoice) api.sendCommand("MODE", false,
                 new String[]{channel, "-v", nick}, null, null);
@@ -1288,7 +1295,9 @@ public final class LuaScriptDispatcher {
             api.sendCommand("MODE", false,
                     new String[]{channel, "+b", mask}, null, null);
         String result = "[Lua: " + script.name + "] " + channel + " - " +
-                nick + ": +N" + (hadVoice ? ", -v" : "") + ", KICK (" + reason +
+                nick + ": TBAN " + hostDuration + " " +
+                String.join(" / ", timedHostMasks) +
+                (hadVoice ? ", -v" : "") + ", KICK (" + reason +
                 "), ban " + String.join(" / ", masks) + " - comandi inviati";
         main.post(() -> emitConsole(connection, result));
     }

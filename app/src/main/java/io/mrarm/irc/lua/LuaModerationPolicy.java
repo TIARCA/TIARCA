@@ -1,9 +1,11 @@
 package io.mrarm.irc.lua;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
-import io.mrarm.chatlib.irc.IRCCaseMapping;
 import io.mrarm.irc.dialog.OperatorCommandComposer;
+import io.mrarm.chatlib.irc.IRCCaseMapping;
 import io.mrarm.chatlib.dto.NickWithPrefix;
 
 /**
@@ -12,6 +14,7 @@ import io.mrarm.chatlib.dto.NickWithPrefix;
  * operator status, and enforce a per-script/server action rate limit.
  */
 final class LuaModerationPolicy {
+    static final String EJECT_HOST_DURATION = "6h";
     private LuaModerationPolicy() { }
 
     static boolean scoped(LuaScriptStore.Script script, String server, String sourceChannel,
@@ -198,6 +201,22 @@ final class LuaModerationPolicy {
         String acting = dialect.acting('m');
         if (acting == null) return null;
         return dialect.timedCommand(channel, duration, acting + "*!*@" + host);
+    }
+
+    /** Only this host suffix gets temporary no-nick and mute restrictions.
+     * No channel-wide +N; permanent nickname/account bans remain separate. */
+    static List<String> timedEjectHostMasks(OperatorCommandComposer.Dialect dialect,
+                                            String hostSuffix) {
+        if (dialect == null || hostSuffix == null ||
+                hostSuffix.length() < 4 || !hostSuffix.startsWith("*") ||
+                !validBanHost(hostSuffix.substring(1)) ||
+                !dialect.isInspStyle() || !dialect.supportsTimed() ||
+                !"N:".equals(dialect.acting('N')) ||
+                !"m:".equals(dialect.acting('m')) ||
+                !"U:".equals(dialect.matching('U')))
+            return null;
+        String hostMask = "*!*@" + hostSuffix;
+        return Arrays.asList("N:" + hostMask, "m:U:" + hostMask);
     }
 
     static boolean permittedMode(String mode) {
