@@ -14,6 +14,7 @@ import io.mrarm.chatlib.dto.NickWithPrefix;
  * operator status, and enforce a per-script/server action rate limit.
  */
 final class LuaModerationPolicy {
+    static final String EJECT_HOST_DURATION = "6h";
     private LuaModerationPolicy() { }
 
     static boolean scoped(LuaScriptStore.Script script, String server, String sourceChannel,
