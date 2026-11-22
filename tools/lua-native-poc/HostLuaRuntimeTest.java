@@ -1151,6 +1151,23 @@ public final class HostLuaRuntimeTest {
         check(java.util.Arrays.asList(nextB).contains("tmute") &&
                         java.util.Arrays.asList(nextB).contains("Target\t2m"),
                 "After the warning, one B message must request a 2m timed mute");
+        String[] thirdB = eventAs(OTHER, "message", "#room", "Target",
+                "f per m08", 1794406040L, "", "*");
+        check(java.util.Arrays.asList(thirdB).contains("kick"),
+                "Third B infraction must request kick");
+        String[] fourthB = eventAs(OTHER, "message", "#room", "Target",
+                "f per m07", 1794406050L, "", "*");
+        check(java.util.Arrays.asList(fourthB).contains("tmute") &&
+                        java.util.Arrays.asList(fourthB).contains("Target\t3h"),
+                "Fourth B infraction must request 3h server-managed mute");
+        String[] fifthB = eventAs(OTHER, "message", "#room", "Target",
+                "f per m06", 1794406060L, "", "*");
+        check(java.util.Arrays.asList(fifthB).contains("kban"),
+                "Fifth B infraction must request atomic kick and ban");
+        String[] expiredB = eventAs(OTHER, "message", "#room", "Target",
+                "f per m05", 1794406060L + 86401L, "", "*");
+        check(!java.util.Arrays.asList(expiredB).contains("kban"),
+                "Old escalation expires after 24h without further infractions");
         automodActive = false;
 
         NativeLuaRuntime.unload(ID);
