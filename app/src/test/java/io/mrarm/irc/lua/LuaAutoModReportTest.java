@@ -34,6 +34,16 @@ public class LuaAutoModReportTest {
                 .contains("MONITORAGGIO"));
     }
 
+    @Test public void autoModBUsesConcentrationAndTimedMuteLabel() {
+        String notice = render("AutoModB test-ser/#room Nick-2 66.7% infrazione 1 (avviso)");
+        assertNotNull(notice);
+        assertTrue(notice.contains("concentrazione 66.7%"));
+        assertTrue(notice.endsWith("AVVISO"));
+        assertTrue(render("AutoModB test-ser/#room Nick-2 80.0% infrazione 2 (tmute)")
+                .contains("MUTE TEMPORANEO"));
+        assertNull(render("AutoModB wrong-id/#room Nick-2 80.0% infrazione 2 (tmute)"));
+    }
+
     @Test public void unrelatedOrForgedLogsAreNotInjectedIntoServerTab() {
         assertNull(render("AutoMod: storico persistente pieno"));
         assertNull(render("Other script called moderation"));
