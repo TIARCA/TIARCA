@@ -189,6 +189,16 @@ final class LuaModerationPolicy {
         return "*." + host.substring(firstDot + 1);
     }
 
+    /** A timed mute must use the server-advertised quiet extban; never a plain ban. */
+    static String timedMuteCommand(OperatorCommandComposer.Dialect dialect,
+                                   String channel, String duration, String host) {
+        if (dialect == null || !validBanHost(host) ||
+                !duration.matches("(?i)[1-9][0-9]?[hmd]")) return null;
+        String acting = dialect.acting('m');
+        if (acting == null) return null;
+        return dialect.timedCommand(channel, duration, acting + "*!*@" + host);
+    }
+
     static boolean permittedMode(String mode) {
         return "+o".equals(mode) || "-o".equals(mode) ||
                 "+v".equals(mode) || "-v".equals(mode);
