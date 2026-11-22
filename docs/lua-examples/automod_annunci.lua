@@ -376,6 +376,23 @@ tiarca.on("disconnected",function(e)
     if k:sub(1,#e.server+1)==e.server.."\0" then sessions[k]=nil end
   end
 end)
+-- Elimina solo identita scadute: l'escalation entro 24h non si perde.
+tiarca.on("timer",function(e)
+  if not load() then return end
+  local dirty={}
+  for id,t in pairs(state) do
+    if t.server==e.server and e.timestamp-t.seen>TTL and
+        (t.infraction==0 or e.timestamp-t.infraction>TTL) then
+      dirty[shardNum(t.id)]=true
+      state[id]=nil
+      users=users-1
+    end
+  end
+  for n in pairs(dirty) do
+    if not persist(n) then return end
+  end
+  if next(dirty) then rebuild() end
+end)
 local function show(title,msg) tiarca.show(title,msg) end
 tiarca.on("command",function(e)
   local op,rest=(e.text or ""):match("^%s*b%s*(%S*)%s*(.-)%s*$")
