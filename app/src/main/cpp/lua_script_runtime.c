@@ -306,6 +306,21 @@ static int script_tban(lua_State *L) {
     return 0;
 }
 
+static int script_tmute(lua_State *L) {
+    size_t n, duration_len;
+    const char *nick = luaL_checklstring(L, 2, &n);
+    const char *duration = luaL_checklstring(L, 3, &duration_len);
+    if (n == 0 || n > 64 || duration_len == 0 || duration_len > 4 ||
+            memchr(nick, '\t', n) || memchr(duration, '\t', duration_len))
+        return luaL_error(L, "tiarca.tmute: invalid nick or duration");
+    char payload[72];
+    memcpy(payload, nick, n);
+    payload[n] = '\t';
+    memcpy(payload + n + 1, duration, duration_len);
+    channel_action(L, "tmute", payload, n + 1 + duration_len);
+    return 0;
+}
+
 /* Atomic kick-then-ban request; host validates all conditions before KICK. */
 /* Blacklist override: Android must independently verify the observed
  * sender account and all ordinary moderation permissions. */
@@ -677,6 +692,8 @@ static void install_libraries(lua_State *L) {
     lua_setfield(L, -2, "mute");
     lua_pushcfunction(L, script_tban);
     lua_setfield(L, -2, "tban");
+    lua_pushcfunction(L, script_tmute);
+    lua_setfield(L, -2, "tmute");
     lua_pushcfunction(L, script_mode);
     lua_setfield(L, -2, "mode");
     lua_pushcfunction(L, script_show);
