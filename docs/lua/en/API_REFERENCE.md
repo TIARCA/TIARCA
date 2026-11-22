@@ -31,6 +31,7 @@
 | `tiarca.mode(channel, nick, mode)` | Only `+o`, `-o`, `+v`, `-v` | Moderation; OP |
 | `tiarca.mute(channel, nick)` | Requests mute with supported IRC dialect | Moderation; OP |
 | `tiarca.tban(channel, nick, duration)` | Requests timed ban (e.g. `"3h"`) | Moderation; OP; supported dialect |
+| `tiarca.tmute(channel, nick, duration)` | Requests server-managed timed mute of current observed host (`TBAN` + `m:` on InspIRCd); no app-side timer | Moderation; OP; supported dialect |
 | `tiarca.kickban(channel, nick, reason)` | KICK + ban as one validated request | Moderation; OP |
 | `tiarca.kicktban(channel, nick, duration, reason)` | KICK + timed ban validated together | Moderation; OP |
 | `tiarca.blacklist_action(channel, nick, account, action, duration)` | `kick`, `ban`, `mute`, `tban`, `bankick`, `tbankick`; client verifies account | Moderation and identities; additional constraints |
