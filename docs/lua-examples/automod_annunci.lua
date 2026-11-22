@@ -355,7 +355,11 @@ tiarca.on("message",function(e)
   if not t then return end
   local letter,rule=classify(e.text or "")
   local level,n,d
-  if letter=="0" then recordPlain(t,c)
+  if letter=="0" then
+    recordPlain(t,c)
+    if rule then
+      tiarca.log("AutoModB osservazione "..e.channel.." "..e.nick.." "..rule)
+    end
   else level,n,d=decide(e,t,c,letter,rule) end
   if not persist(shardNum(t.id)) then return end
   if level then
