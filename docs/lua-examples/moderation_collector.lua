@@ -192,6 +192,7 @@ local function write(entry, history, status)
     '"ban_mask":' .. quote(entry.ban_mask),
     '"source_script":' .. quote(entry.source_script),
     '"similarity_percent":' .. number(entry.similarity),
+    '"concentration_percent":' .. number(entry.concentration),
     '"infraction_level":' .. number(entry.infraction),
     '"execution":' .. quote(entry.execution),
     '"identity_match":' .. quote(entry.identity_match),
@@ -419,7 +420,9 @@ tiarca.on("moderation_log", function(e)
           identity=identity(e.server, e.channel, nick),
           operator=engine=="B" and "AutoMod B" or "AutoMod",
           reason=(action ~= "monitor" and "non ripetere" or nil),
-          source_script=e.message_type, similarity=tonumber(percent),
+          source_script=e.message_type,
+          similarity=engine=="B" and nil or tonumber(percent),
+          concentration=engine=="B" and tonumber(percent) or nil,
           infraction=tonumber(level), execution="requested"})
 end)
 
