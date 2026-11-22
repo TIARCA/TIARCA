@@ -252,7 +252,9 @@ local function observed(e)
     if u.nick and u.nick:lower()==e.nick:lower() then
       local prefix=u.prefix or ""
       if prefix~="" then return nil end -- Ops, voice, halfop e simili: esenti.
-      return safe(u.account=="*" and "" or u.account),safe(u.host),safe(u.ident)
+      local account=u.account
+      if account=="*" or account=="0" then account="" end
+      return safe(account),safe(u.host),safe(u.ident)
     end
   end
   return nil
