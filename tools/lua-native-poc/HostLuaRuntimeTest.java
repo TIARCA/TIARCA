@@ -1128,6 +1128,31 @@ public final class HostLuaRuntimeTest {
         check(recoveredArchive.length == 7 &&
                         "archive".equals(recoveredArchive[1]),
                 "A cancelled archive share can be re-requested");
+        // AutoMod B: two recognized announcements within 20m, then one more
+        // recognized announcement immediately advances the shared escalation.
+        automodStorage.clear();
+        automodActive = true;
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER,
+                        Files.readAllBytes(Path.of("docs/lua-examples/automod_annunci.lua"))))),
+                "AutoMod B must reload with isolated persistent state");
+        eventAt(OTHER, "command", "#room", "self", "b canali add #room", 1794406000L);
+        eventAt(OTHER, "command", "#room", "self", "b on", 1794406001L);
+        eventAt(OTHER, "command", "#room", "self", "b modo live", 1794406002L);
+        String[] firstB = eventAs(OTHER, "message", "#room", "Target",
+                "f per m011", 1794406010L, "", "*");
+        check(!java.util.Arrays.asList(firstB).contains("pm"),
+                "First B occurrence must not warn");
+        String[] repeatedB = eventAs(OTHER, "message", "#room", "Target",
+                "f per m010", 1794406020L, "", "*");
+        check(java.util.Arrays.asList(repeatedB).contains("pm"),
+                "Second recognized B occurrence must trigger first-level warning");
+        String[] nextB = eventAs(OTHER, "message", "#room", "Target",
+                "f per m09", 1794406030L, "", "*");
+        check(java.util.Arrays.asList(nextB).contains("tmute") &&
+                        java.util.Arrays.asList(nextB).contains("Target\t2m"),
+                "After the warning, one B message must request a 2m timed mute");
+        automodActive = false;
+
         NativeLuaRuntime.unload(ID);
         check("OK".equals(decode(NativeLuaRuntime.load(ID, bytes(collectorSource)))),
                 "Collector source reloads cleanly after channel changes");
