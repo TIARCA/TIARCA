@@ -264,10 +264,15 @@ local function resolve(e,account,host,ident)
   local i=distinctIdent(ident) and index.ident[k..ident] or nil
   local r=a or h or i
   if a==false or (not a and h==false and not i) then r=nil end
-  -- Credenziali registrate differenti NON condividono una cronologia.
-  if r and (r.account=="" or account=="" or r.account==account) then
-    if account~="" and r.account=="" then r.account=account end
-  else r=nil end
+  -- Un account appena identificato non eredita una cronologia anonima
+  -- di un altro nick solo perche' usa il medesimo host/ident.
+  local sameSession=r and sessions[nickKey(e.server,e.nick)]==r.id
+  if r and account~="" and r.account~="" and r.account~=account then
+    r=nil
+  elseif r and account~="" and r.account=="" and not sameSession then
+    r=nil
+  end
+  if r and account~="" and r.account=="" then r.account=account end
   -- Un ident identico su due connessioni simultanee discordanti non basta.
   if not a and not h and i and i~=false and host~="" and
       not contains(i.hosts,host) and e.timestamp-i.seen<900 then
