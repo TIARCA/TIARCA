@@ -1049,7 +1049,7 @@ public final class LuaScriptDispatcher {
                 }
             } else if ("who".equals(kind) || "kick".equals(kind) ||
                     "ban".equals(kind) || "mode".equals(kind) ||
-                    "mute".equals(kind) || "tban".equals(kind) ||
+                    "mute".equals(kind) || "tban".equals(kind) || "tmute".equals(kind) ||
                     "kban".equals(kind) || "ktban".equals(kind) ||
                     "blkmod".equals(kind) || "eject".equals(kind)) {
                 final String operation = kind;
@@ -1377,7 +1377,7 @@ public final class LuaScriptDispatcher {
                 } else reason = fields[1];
                 if (!LuaModerationPolicy.validReason(reason)) return;
             } else if ("kick".equals(kind) || "mode".equals(kind) ||
-                    "tban".equals(kind)) {
+                    "tban".equals(kind) || "tmute".equals(kind)) {
                 int tab = value == null ? -1 : value.indexOf('\t');
                 if (tab <= 0) return;
                 nick = value.substring(0, tab);
@@ -1478,6 +1478,22 @@ public final class LuaScriptDispatcher {
                     api.sendCommand("MODE", false,
                             new String[]{channel, "+b", token + baseMask}, null, null);
                     logModerationSent(connection, script, channel, "MUTE", nick, "");
+                } else if ("tmute".equals(kind)) {
+                    String timed = LuaModerationPolicy.timedMuteCommand(
+                            dialect, channel, mode, identity.host);
+                    if (timed == null) return;
+                    String mask = dialect.acting('m') + baseMask;
+                    if (dialect.isInspStyle()) {
+                        api.sendCommand("TBAN", false,
+                                new String[]{channel, mode, mask}, null, null);
+                    } else if (dialect.isUnrealStyle()) {
+                        api.sendCommand("MODE", false,
+                                new String[]{channel, "+b",
+                                        timed.substring(timed.lastIndexOf(' ') + 1)},
+                                null, null);
+                    } else return;
+                    logModerationSent(connection, script, channel, "MUTE temporaneo",
+                            nick, "durata: " + mode);
                 } else if ("tban".equals(kind)) {
                     if (!mode.matches("(?i)[1-9][0-9]?[hmd]")) return;
                     String timed = dialect.timedCommand(channel, mode, baseMask);
