@@ -245,6 +245,7 @@ public final class HostLuaRuntimeTest {
                 + "tiarca.ban(e.channel, 'Target') "
                 + "tiarca.mute(e.channel, 'Target') "
                 + "tiarca.tban(e.channel, 'Target', '3h') "
+                + "tiarca.tmute(e.channel, 'Target', '2m') "
                 + "tiarca.mode(e.channel, 'Target', '+v') end)";
         check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes(rosterScript)))),
                 "Advanced scripting callbacks should register");
@@ -254,7 +255,7 @@ public final class HostLuaRuntimeTest {
                 bytes("test-server"), bytes("#example"), bytes("self"), bytes("mod"),
                 bytes(""), 1794400000L, new byte[0][], new int[0], false,
                 userValues, false, true, new byte[0][], false);
-        check(rosterActions != null && rosterActions.length == 22 &&
+        check(rosterActions != null && rosterActions.length == 25 &&
                         "OK".equals(decode(rosterActions[0])) &&
                         "Target:Target!ident@host.example:account".equals(decode(rosterActions[3])) &&
                         "who".equals(decode(rosterActions[4])) &&
@@ -262,7 +263,9 @@ public final class HostLuaRuntimeTest {
                         "ban".equals(decode(rosterActions[10])) &&
                         "mute".equals(decode(rosterActions[13])) &&
                         "tban".equals(decode(rosterActions[16])) &&
-                        "mode".equals(decode(rosterActions[19])),
+                        "tmute".equals(decode(rosterActions[19])) &&
+                        "Target\t2m".equals(decode(rosterActions[21])) &&
+                        "mode".equals(decode(rosterActions[22])),
                 "C3 roster and C5 structured actions should reach the JNI host");
         byte[][] noUsers = NativeLuaRuntime.dispatch(OTHER, "command",
                 bytes("test-server"), bytes("#example"), bytes("self"), bytes("mod"),
@@ -271,6 +274,11 @@ public final class HostLuaRuntimeTest {
         check(noUsers != null && noUsers.length == 1 &&
                         decode(noUsers[0]).contains("not authorized"),
                 "C3 must reject missing user-data permission");
+        byte[] announcements = Files.readAllBytes(
+                Path.of("docs/lua-examples/automod_annunci.lua"));
+        check(announcements.length <= 24576 &&
+                        "OK".equals(decode(NativeLuaRuntime.load(OTHER, announcements))),
+                "AutoMod B must load under source size and runtime limits");
         String presence = "tiarca.on('join', function(e) tiarca.log('joined:'..e.nick) end) "
                 + "tiarca.on('timer', function(e) tiarca.log('tick:'..e.type) end)";
         check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes(presence)))),
@@ -1120,6 +1128,55 @@ public final class HostLuaRuntimeTest {
         check(recoveredArchive.length == 7 &&
                         "archive".equals(recoveredArchive[1]),
                 "A cancelled archive share can be re-requested");
+        // AutoMod B: two recognized announcements within 20m, then one more
+        // recognized announcement immediately advances the shared escalation.
+        automodStorage.clear();
+        automodActive = true;
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER,
+                        Files.readAllBytes(Path.of("docs/lua-examples/automod_annunci.lua"))))),
+                "AutoMod B must reload with isolated persistent state");
+        eventAt(OTHER, "command", "#room", "self", "b canali add #room", 1794406000L);
+        eventAt(OTHER, "command", "#room", "self", "b on", 1794406001L);
+        eventAt(OTHER, "command", "#room", "self", "b modo live", 1794406002L);
+        String[] firstB = eventAs(OTHER, "message", "#room", "Target",
+                "f per m011", 1794406010L, "", "*");
+        check(!java.util.Arrays.asList(firstB).contains("pm"),
+                "First B occurrence must not warn");
+        String[] repeatedB = eventAs(OTHER, "message", "#room", "Target",
+                "f per m010", 1794406020L, "", "*");
+        check(java.util.Arrays.asList(repeatedB).contains("pm"),
+                "Second recognized B occurrence must trigger first-level warning");
+        String[] nextB = eventAs(OTHER, "message", "#room", "Target",
+                "f per m09", 1794406030L, "", "*");
+        check(java.util.Arrays.asList(nextB).contains("tmute") &&
+                        java.util.Arrays.asList(nextB).contains("Target\t2m"),
+                "After the warning, one B message must request a 2m timed mute");
+        String[] thirdB = eventAs(OTHER, "message", "#room", "Target",
+                "ragazze in privato", 1794406040L, "", "*");
+        check(java.util.Arrays.asList(thirdB).contains("kick"),
+                "Third B infraction must request kick");
+        String[] fourthB = eventAs(OTHER, "message", "#room", "Target",
+                "f per m07", 1794406050L, "", "*");
+        check(java.util.Arrays.asList(fourthB).contains("tmute") &&
+                        java.util.Arrays.asList(fourthB).contains("Target\t3h"),
+                "Fourth B infraction must request 3h server-managed mute");
+        String[] fifthB = eventAs(OTHER, "message", "#room", "Target",
+                "f per m06", 1794406060L, "", "*");
+        check(java.util.Arrays.asList(fifthB).contains("kban"),
+                "Fifth B infraction must request atomic kick and ban");
+        String[] expiredB = eventAs(OTHER, "message", "#room", "Target",
+                "f per m05", 1794406060L + 86401L, "", "*");
+        check(!java.util.Arrays.asList(expiredB).contains("kban"),
+                "Old escalation expires after 24h without further infractions");
+        // A new authenticated person behind the same host cannot inherit
+        // anonymous history from a different nickname.
+        String[] differentUser = eventAs(OTHER, "message", "#room", "Second",
+                "f per m011", 1794406070L, "", "different-account");
+        check(!java.util.Arrays.asList(differentUser).contains("kban") &&
+                        !java.util.Arrays.asList(differentUser).contains("tmute"),
+                "A distinct account on the same host must not inherit a ban");
+        automodActive = false;
+
         NativeLuaRuntime.unload(ID);
         check("OK".equals(decode(NativeLuaRuntime.load(ID, bytes(collectorSource)))),
                 "Collector source reloads cleanly after channel changes");

@@ -7,6 +7,7 @@ These are UTF-8 files for manual import, **not** automatically installed plugins
 | Example | Purpose | Capabilities |
 |---|---|---|
 | [automod_antiripetizione.lua](../../lua-examples/automod_antiripetizione.lua) | Moderate repetitions with per-channel scope | Identities, persistence, moderation; send for warnings |
+| [automod_annunci.lua](../../lua-examples/automod_annunci.lua) | [AutoMod B](AUTOMOD_B.md): announcement patterns, lookback concentration and escalation | Identities, persistence, send and moderation in live mode |
 | [espelli.lua](../../lua-examples/espelli.lua) | Manual kick: host-scoped `N:` and `m:U:` TBAN for 6h, nick/account bans; no global +N | Identities, moderation; OP |
 | [mask_finder.lua](../../lua-examples/mask_finder.lua) | Search nicknames, idents and hosts | Channel members and identities |
 | [moderation_collector.lua](../../lua-examples/moderation_collector.lua) | Record moderation events to JSONL | Identities and persistence |

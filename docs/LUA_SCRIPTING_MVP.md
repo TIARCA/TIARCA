@@ -132,6 +132,7 @@ A script error disables that script; normal IRC continues.
 
 Only these three maintained examples are shipped in the repository:
 - [AutoMod](lua-examples/automod_antiripetizione.lua), repetition monitoring and moderation.
+- [AutoMod B](lua-examples/automod_annunci.lua), independent announcement detection and 24-hour escalation (see [Italiano](lua/it/AUTOMOD_B.md) / [English](lua/en/AUTOMOD_B.md)).
 - [Mask Finder](lua-examples/mask_finder.lua), IRC identity search.
 - [Moderation Collector](lua-examples/moderation_collector.lua), optional incremental JSONL logging.
 
@@ -253,6 +254,8 @@ Android Doze and reconnect timing, operator status changes, removal of
 consent while actions are pending, attempt to moderate another network
 or PVT, empty/unknown hostmask, backup/restore revocation and device
 crash isolation. Never enable moderation for untrusted scripts.
+
+AutoMod B additionally uses `tiarca.tmute(channel, nick, "2m")` or `"3h"`: a structured, server-managed timed mute. InspIRCd emits `TBAN #channel 2m m:*!*@host` only when the observed host and advertised acting extban are safe; it never falls back to an ordinary access ban. No local expiration timer is needed.
 
 Additional C5 actions (only if separately approved, while operator and with an observed host): `tiarca.mute(channel, nick)` uses the existing network dialect's advertised acting-quiet extban (`m:` on known InspIRCd syntax, `~quiet:` on known UnrealIRCd syntax), and `tiarca.tban(channel, nick, "3h")` uses only the dialect's verified timed ban construction, restricted to 1–99 units of `m`, `h`, or `d`. Unsupported dialects reject the request without emitting any IRC command. These requests have the same rate limits and current-channel checks as `ban`.
 
