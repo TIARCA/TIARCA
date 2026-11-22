@@ -245,6 +245,7 @@ public final class HostLuaRuntimeTest {
                 + "tiarca.ban(e.channel, 'Target') "
                 + "tiarca.mute(e.channel, 'Target') "
                 + "tiarca.tban(e.channel, 'Target', '3h') "
+                + "tiarca.tmute(e.channel, 'Target', '2m') "
                 + "tiarca.mode(e.channel, 'Target', '+v') end)";
         check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes(rosterScript)))),
                 "Advanced scripting callbacks should register");
@@ -254,7 +255,7 @@ public final class HostLuaRuntimeTest {
                 bytes("test-server"), bytes("#example"), bytes("self"), bytes("mod"),
                 bytes(""), 1794400000L, new byte[0][], new int[0], false,
                 userValues, false, true, new byte[0][], false);
-        check(rosterActions != null && rosterActions.length == 22 &&
+        check(rosterActions != null && rosterActions.length == 25 &&
                         "OK".equals(decode(rosterActions[0])) &&
                         "Target:Target!ident@host.example:account".equals(decode(rosterActions[3])) &&
                         "who".equals(decode(rosterActions[4])) &&
@@ -262,7 +263,9 @@ public final class HostLuaRuntimeTest {
                         "ban".equals(decode(rosterActions[10])) &&
                         "mute".equals(decode(rosterActions[13])) &&
                         "tban".equals(decode(rosterActions[16])) &&
-                        "mode".equals(decode(rosterActions[19])),
+                        "tmute".equals(decode(rosterActions[19])) &&
+                        "Target\t2m".equals(decode(rosterActions[21])) &&
+                        "mode".equals(decode(rosterActions[22])),
                 "C3 roster and C5 structured actions should reach the JNI host");
         byte[][] noUsers = NativeLuaRuntime.dispatch(OTHER, "command",
                 bytes("test-server"), bytes("#example"), bytes("self"), bytes("mod"),
@@ -271,6 +274,11 @@ public final class HostLuaRuntimeTest {
         check(noUsers != null && noUsers.length == 1 &&
                         decode(noUsers[0]).contains("not authorized"),
                 "C3 must reject missing user-data permission");
+        byte[] announcements = Files.readAllBytes(
+                Path.of("docs/lua-examples/automod_annunci.lua"));
+        check(announcements.length <= 24576 &&
+                        "OK".equals(decode(NativeLuaRuntime.load(OTHER, announcements))),
+                "AutoMod B must load under source size and runtime limits");
         String presence = "tiarca.on('join', function(e) tiarca.log('joined:'..e.nick) end) "
                 + "tiarca.on('timer', function(e) tiarca.log('tick:'..e.type) end)";
         check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes(presence)))),
