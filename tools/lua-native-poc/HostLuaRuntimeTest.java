@@ -1152,7 +1152,7 @@ public final class HostLuaRuntimeTest {
                         java.util.Arrays.asList(nextB).contains("Target\t2m"),
                 "After the warning, one B message must request a 2m timed mute");
         String[] thirdB = eventAs(OTHER, "message", "#room", "Target",
-                "f per m08", 1794406040L, "", "*");
+                "ragazze in privato", 1794406040L, "", "*");
         check(java.util.Arrays.asList(thirdB).contains("kick"),
                 "Third B infraction must request kick");
         String[] fourthB = eventAs(OTHER, "message", "#room", "Target",
