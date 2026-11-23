@@ -508,12 +508,30 @@ public final class LuaScriptStore {
         }
     }
 
-    /** Storage is read only in the main process and copied to each isolated dispatch. */
+    /** Storage snapshots stay isolated, except the explicit read-only AutoMod
+     * account allowlist exposed to Collector V3. The source remains the AutoMod
+     * script's backed-up storage; Collector has no ability to change it.
+     */
     synchronized ArrayList<String> storageSnapshot(String id) throws IOException {
         ArrayList<String> pairs = new ArrayList<>();
         for (Map.Entry<String, String> entry : storage.read(id).entrySet()) {
             pairs.add(entry.getKey());
             pairs.add(entry.getValue());
+        }
+        Script consumer = find(id);
+        if (consumer != null && consumer.name.equals("moderation_collector_v3.lua") &&
+                pairs.size() < LuaScriptStorage.MAX_KEYS * 2) {
+            for (Script owner : scripts) {
+                if (owner.id.equals(id) || !owner.name.equals("automod_unificato.lua"))
+                    continue;
+                String allowlist = storage.read(owner.id).get("u1.allow");
+                if (allowlist != null && !allowlist.isEmpty() &&
+                        allowlist.length() <= LuaScriptStorage.MAX_VALUE_BYTES) {
+                    pairs.add("u1.shared");
+                    pairs.add(allowlist);
+                }
+                break;
+            }
         }
         return pairs;
     }
