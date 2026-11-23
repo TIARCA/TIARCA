@@ -295,6 +295,16 @@ public class ChatFragmentSendMessageHelper implements SendMessageHelper.Callback
                 onClientCommandError(mContext.getString(R.string.lua_command_empty));
                 return;
             }
+            if ("mod close".equalsIgnoreCase(command) &&
+                    mContext instanceof MainActivity) {
+                LuaScriptDispatcher.get(mContext)
+                        .showPrivateCloseDialog((MainActivity) mContext);
+                mFragment.getConnectionInfo().getChatUIData()
+                        .getOrCreateChannelData(mFragment.getCurrentChannel())
+                        .addHistoryMessage(text);
+                onMessageSent();
+                return;
+            }
             if (!LuaScriptDispatcher.get(mContext).onCommand(
                     mFragment.getConnectionInfo(), mFragment.getCurrentChannel(), command)) {
                 onClientCommandError(mContext.getString(R.string.lua_command_unavailable));
