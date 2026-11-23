@@ -87,8 +87,14 @@ local observations={
 local function classify(text)
   local s=norm(text)
   local w=words(s)
-  if s:match("^(ciao|salve|buongiorno|buonasera|buonanotte) a tutti$") or
-     s=="ciao" or s=="buongiorno" or s=="buonasera" or s=="salve" then
+  -- Remove only trailing non-ASCII pictographs for greeting matching,
+  -- keeping full text for every other classifier.
+  local greet=s:gsub("[\128-\255]",""):gsub("%s+$","")
+  if greet=="ciao a tutti" or greet=="salve a tutti" or
+     greet=="buongiorno a tutti" or greet=="buonasera a tutti" or
+     greet=="buonanotte a tutti" or greet=="ciao" or
+     greet=="buongiorno" or greet=="buonasera" or
+     greet=="buonanotte" or greet=="salve" then
     return "Z","NEUTRAL"
   end
   if s=="f" or s=="donne" or s=="mxm" or s=="qualcuna" then
@@ -348,6 +354,7 @@ local function detectA(e,t,eligible)
   for i=#h.list,1,-1 do
     if e.timestamp-h.list[i].t>1800 then table.remove(h.list,i) end
   end
+  if #h.list==0 then h.triggered=false end
   local sig,n=imprint(e.text or "")
   if not eligible or n<3 then return false end
   local matches=0
