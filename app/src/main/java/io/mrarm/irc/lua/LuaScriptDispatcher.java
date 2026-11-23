@@ -1165,6 +1165,85 @@ public final class LuaScriptDispatcher {
             watcher.connection.removeOnChannelListChangeListener(watcher.listener);
     }
 
+    /** User-approved close selection across all networks; no IRC commands are sent. */
+    public void showPrivateCloseDialog(android.app.Activity activity) {
+        main.post(() -> {
+            if (activity.isFinishing() || activity.isDestroyed()) return;
+            final List<ServerConnectionInfo> owners = new ArrayList<>();
+            final List<String> nicks = new ArrayList<>();
+            final List<String> labels = new ArrayList<>();
+            for (ServerConnectionInfo conn : ServerConnectionManager
+                    .getInstance(context).getConnections()) {
+                List<String> channels = conn.getChannels();
+                if (channels == null) continue;
+                for (String nick : channels) {
+                    if (nick == null || nick.isEmpty() ||
+                            "#&+!".indexOf(nick.charAt(0)) >= 0) continue;
+                    owners.add(conn);
+                    nicks.add(nick);
+                    labels.add(nick + "  ·  " + conn.getUUID().toString().substring(0, 8) +
+                            (privateTabs.isOwned(conn.getUUID().toString(), nick)
+                                    ? "  (Lua)" : ""));
+                }
+            }
+            if (nicks.isEmpty()) {
+                new androidx.appcompat.app.AlertDialog.Builder(activity)
+                        .setTitle("Chiudi conversazioni private")
+                        .setMessage("Nessuna conversazione privata aperta")
+                        .setPositiveButton("OK", null).show();
+                return;
+            }
+            final boolean[] selection = new boolean[nicks.size()];
+            for (int i = 0; i < selection.length; i++)
+                selection[i] = privateTabs.isOwned(
+                        owners.get(i).getUUID().toString(), nicks.get(i));
+            androidx.appcompat.app.AlertDialog dialog =
+                    new androidx.appcompat.app.AlertDialog.Builder(activity)
+                    .setTitle("Chiudi conversazioni private")
+                    .setMultiChoiceItems(labels.toArray(new String[0]), selection,
+                            (d, which, checked) -> selection[which] = checked)
+                    .setNegativeButton("Annulla", null)
+                    .setNeutralButton("Seleziona tutto", null)
+                    .setPositiveButton("Chiudi selezionati", (d, which) -> {
+                        int attempted = 0, closed = 0;
+                        for (int i = 0; i < selection.length; i++) {
+                            if (!selection[i]) continue;
+                            attempted++;
+                            ServerConnectionInfo conn = owners.get(i);
+                            String nick = nicks.get(i);
+                            try {
+                                if (conn.hasOpenConversation(nick)) {
+                                    conn.closePrivateConversation(nick, "");
+                                    if (!conn.hasOpenConversation(nick)) closed++;
+                                }
+                            } catch (RuntimeException ignored) {
+                                // Continue with the remaining user-approved tabs.
+                            }
+                        }
+                        for (ServerConnectionInfo conn : owners) {
+                            privateTabs.prune(conn.getUUID().toString(), conn.getChannels());
+                        }
+                        android.widget.Toast.makeText(activity,
+                                "PVT chiusi: " + closed + "; non chiusi: " +
+                                        (attempted - closed), android.widget.Toast.LENGTH_LONG)
+                                .show();
+                    }).create();
+            dialog.setOnShowListener(d -> dialog.getButton(
+                    androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL)
+                    .setOnClickListener(v -> {
+                        boolean all = true;
+                        for (boolean item : selection) if (!item) { all = false; break; }
+                        for (int i = 0; i < selection.length; i++) {
+                            selection[i] = !all;
+                            dialog.getListView().setItemChecked(i, !all);
+                        }
+                        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL)
+                                .setText(all ? "Seleziona tutto" : "Deseleziona tutto");
+                    }));
+            dialog.show();
+        });
+    }
+
     /** Local-only cleanup. Does not send IRC messages or touch moderation history. */
     private void closeScriptPrivateTabs(LuaScriptStore.Script script, String server) {
         try {
