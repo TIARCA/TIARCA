@@ -93,8 +93,18 @@ public class LuaModerationPolicyTest {
                 new NickWithPrefix("regular", new NickPrefixList(""))));
         assertFalse(LuaModerationPolicy.unprivilegedTarget(
                 new NickWithPrefix("operator", new NickPrefixList("@"))));
-        assertTrue(LuaModerationPolicy.unprivilegedTarget(
+        assertFalse(LuaModerationPolicy.unprivilegedTarget(
                 new NickWithPrefix("voice", new NickPrefixList("+"))));
+        LuaScriptStore.Script unified = new LuaScriptStore.Script(
+                "0a14a509-49e4-4d79-8884-9504e76a252f",
+                "automod_unificato.lua", "hash", SERVER,
+                true, false, true, true, "");
+        assertTrue(LuaModerationPolicy.automaticTarget(unified,
+                new NickWithPrefix("voice", new NickPrefixList("+"))));
+        assertFalse(LuaModerationPolicy.automaticTarget(script(true, true),
+                new NickWithPrefix("voice", new NickPrefixList("+"))));
+        assertFalse(LuaModerationPolicy.automaticTarget(unified,
+                new NickWithPrefix("halfop", new NickPrefixList("%"))));
         assertFalse(LuaModerationPolicy.unprivilegedTarget(
                 new NickWithPrefix("halfop", new NickPrefixList("%"))));
         assertFalse(LuaModerationPolicy.unprivilegedTarget(
