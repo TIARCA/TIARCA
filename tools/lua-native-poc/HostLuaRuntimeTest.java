@@ -1353,6 +1353,38 @@ public final class HostLuaRuntimeTest {
         check(java.util.Arrays.toString(thirdGeneric).contains("motore A"),
                 "Third generic repetition triggers A with common escalation");
 
+        String[] setLive = event(ID, "command", "#room", "me", "mod modo live");
+        check(java.util.Arrays.toString(setLive).contains("Modo live"),
+                "Unified AutoMod changes to live mode only on explicit command");
+        eventAt(ID, "message", "#room", "Target", "F?", 1794406100L);
+        String[] levelOne = eventAt(ID, "message", "#room", "Target",
+                "donne?", 1794406101L);
+        check(java.util.Arrays.toString(levelOne).contains("pm") &&
+                        !java.util.Arrays.toString(levelOne).contains("tmute"),
+                "Unified first infraction only requests a private warning");
+        String[] levelTwo = eventAt(ID, "message", "#room", "Target",
+                "mxm", 1794406102L);
+        check(java.util.Arrays.toString(levelTwo).contains("tmute") &&
+                        java.util.Arrays.toString(levelTwo).contains("2m"),
+                "Unified second infraction requests a 2-minute timed mute");
+        String[] levelThree = eventAt(ID, "message", "#room", "Target",
+                "F?", 1794406103L);
+        check(java.util.Arrays.toString(levelThree).contains("tmute") &&
+                        java.util.Arrays.toString(levelThree).contains("15m"),
+                "Unified third infraction requests a 15-minute timed mute");
+        String[] levelFour = eventAt(ID, "message", "#room", "Target",
+                "donne?", 1794406104L);
+        check(java.util.Arrays.toString(levelFour).contains("3h") &&
+                        java.util.Arrays.toString(levelFour).contains("kick") &&
+                        java.util.Arrays.toString(levelFour).contains("Messaggi ripetuti"),
+                "Unified fourth infraction requests kick and 3-hour mute");
+        String[] levelFive = eventAt(ID, "message", "#room", "Target",
+                "mxm", 1794406105L);
+        check(java.util.Arrays.toString(levelFive).contains("24h") &&
+                        java.util.Arrays.toString(levelFive).contains("tban") &&
+                        java.util.Arrays.toString(levelFive).contains("kick"),
+                "Unified fifth infraction requests kick and 24-hour ban");
+
         automodStorage.clear();
         byte[] collectorV3 = Files.readAllBytes(
                 Path.of("docs/lua-examples/moderation_collector_v3.lua"));
