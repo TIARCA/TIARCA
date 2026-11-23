@@ -1175,6 +1175,42 @@ public final class HostLuaRuntimeTest {
         check(!java.util.Arrays.asList(differentUser).contains("kban") &&
                         !java.util.Arrays.asList(differentUser).contains("tmute"),
                 "A distinct account on the same host must not inherit a ban");
+        // A repeated announcement is a B infraction even if its B rule differs.
+        // Keep the persisted per-category timestamps for backward compatibility.
+        automodStorage.clear();
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, announcements))),
+                "AutoMod B mixed-rule regression script must load");
+        eventAt(OTHER, "command", "#room", "self", "b canali add #room", 1794407000L);
+        eventAt(OTHER, "command", "#room", "self", "b on", 1794407001L);
+        eventAt(OTHER, "command", "#room", "self", "b modo live", 1794407002L);
+        String[] mixedFirst = eventAs(OTHER, "message", "#room", "Mixed",
+                "ragazze in privato", 1794407010L, "", "mixed-account");
+        check(!java.util.Arrays.asList(mixedFirst).contains("pm"),
+                "First B04 announcement alone must not warn");
+        String[] mixedSecond = eventAs(OTHER, "message", "#room", "Mixed",
+                "qualcuna di roma", 1794407020L, "", "mixed-account");
+        check(java.util.Arrays.asList(mixedSecond).contains("pm"),
+                "B04 followed by B06 must trigger an initial warning");
+        // Ordinary conversation lowers the announcement ratio below 2/3.
+        eventAs(OTHER, "message", "#room", "Conversing",
+                "ragazze in privato", 1794407030L, "", "talker-account");
+        eventAs(OTHER, "message", "#room", "Conversing",
+                "ciao a tutti", 1794407031L, "", "talker-account");
+        eventAs(OTHER, "message", "#room", "Conversing",
+                "come stai oggi", 1794407032L, "", "talker-account");
+        eventAs(OTHER, "message", "#room", "Conversing",
+                "che bella giornata", 1794407033L, "", "talker-account");
+        String[] diluted = eventAs(OTHER, "message", "#room", "Conversing",
+                "qualcuna di roma", 1794407040L, "", "talker-account");
+        check(!java.util.Arrays.asList(diluted).contains("pm"),
+                "Two announcements out of five messages must not warn");
+        // A cross-rule pair beyond 20m must not trigger a first infraction.
+        eventAs(OTHER, "message", "#room", "Late",
+                "ragazze in privato", 1794407050L, "", "late-account");
+        String[] latePair = eventAs(OTHER, "message", "#room", "Late",
+                "qualcuna di roma", 1794407050L + 1201L, "", "late-account");
+        check(!java.util.Arrays.asList(latePair).contains("pm"),
+                "Mixed B categories beyond the 20-minute window must not warn");
         automodActive = false;
 
         NativeLuaRuntime.unload(ID);
