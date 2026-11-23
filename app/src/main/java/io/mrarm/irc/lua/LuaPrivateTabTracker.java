@@ -57,10 +57,11 @@ final class LuaPrivateTabTracker {
         return result;
     }
 
-    boolean isOwned(String server, String nick) {
+    String ownerScriptId(String server, String nick) {
         Map<String, Owned> tabs = byServer.get(server);
-        return tabs != null && nick != null &&
-                tabs.containsKey(nick.toLowerCase(Locale.ROOT));
+        Owned entry = tabs == null || nick == null ? null :
+                tabs.get(nick.toLowerCase(Locale.ROOT));
+        return entry == null ? null : entry.scriptId;
     }
 
     boolean hasTracked(String server) {
