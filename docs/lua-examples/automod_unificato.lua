@@ -444,6 +444,7 @@ b,found,total=detectB(e,t,letter)
 else mark(t,letter=="Z" and "Z" or "0") end
 local a=c.a and detectA(e,t,letter~="Z",c) or false
 local engine=b and "B" or (a and "A" or nil)
+local rising=engine and t.level<5
 if engine then
 t.level=math.min(5,t.level+1)
 t.infraction=e.timestamp
@@ -453,8 +454,8 @@ if engine then
 local label=t.level==1 and "avviso" or (t.level==4 or t.level==5) and "kick" or "tmute"
 tiarca.log(string.format("AutoModU %s/%s %s %.1f%% infrazione %d (%s) motore %s",
 e.server:sub(1,8),e.channel,e.nick,total>0 and 100*found/total or 0,
-t.level,c.mode=="live" and label or "monitor",engine))
-if c.mode=="live" then sanction(e,t.level,engine) end
+t.level,c.mode=="live" and rising and label or "monitor",engine))
+if c.mode=="live" and rising then sanction(e,t.level,engine) end
 end
 end)
 tiarca.on("nick",function(e)
