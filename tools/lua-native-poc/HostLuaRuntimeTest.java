@@ -1310,6 +1310,8 @@ public final class HostLuaRuntimeTest {
                 "Eject must reject malformed nicknames locally");
 
         // Unified AutoMod and Collector V3 must import into the real native sandbox.
+        automodStorage.clear();
+        automodActive = true;
         byte[] unified = Files.readAllBytes(
                 Path.of("docs/lua-examples/automod_unificato.lua"));
         check(unified.length <= 24576, "Unified AutoMod fits Lua source limit");
@@ -1351,6 +1353,7 @@ public final class HostLuaRuntimeTest {
         check(java.util.Arrays.toString(thirdGeneric).contains("motore A"),
                 "Third generic repetition triggers A with common escalation");
 
+        automodStorage.clear();
         byte[] collectorV3 = Files.readAllBytes(
                 Path.of("docs/lua-examples/moderation_collector_v3.lua"));
         check(collectorV3.length <= 24576, "Collector V3 fits Lua source limit");
