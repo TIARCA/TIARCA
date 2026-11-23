@@ -19,7 +19,7 @@ Da una scheda server della rete scelta:
 
 ## Regole operative
 
-Il motore B identifica una **prima ripetizione** quando uno stesso utente invia almeno due messaggi riconosciuti dallo stesso schema entro **20 minuti**, anche con sole **due parole**. Solo in quel momento valuta retroattivamente fino agli ultimi **10 messaggi** dell'utente (inclusi quelli che hanno attivato il controllo). La concentrazione è sufficiente quando i messaggi riconosciuti sono almeno **2/3**, calcolati senza arrotondare. Dopo la prima infrazione, ogni nuovo messaggio riconosciuto può avanzare di livello se la concentrazione resta sufficiente. Non serve una seconda coppia.
+Il motore B identifica una **prima ripetizione** quando uno stesso utente invia almeno due annunci riconosciuti, **anche appartenenti a schemi diversi**, entro **20 minuti**, anche con sole **due parole**. Solo in quel momento valuta retroattivamente fino agli ultimi **10 messaggi** dell'utente (inclusi quelli che hanno attivato il controllo). La concentrazione è sufficiente quando i messaggi riconosciuti sono almeno **2/3**, calcolati senza arrotondare. Dopo la prima infrazione, ogni nuovo messaggio riconosciuto può avanzare di livello se la concentrazione resta sufficiente. Non serve una seconda coppia.
 
 La memoria dell'escalation dura **24 ore dall'ultima infrazione** ed è unica per l'utente sulla stessa rete e sui canali abilitati. La categoria di annuncio può cambiare senza azzerare il livello.
 
