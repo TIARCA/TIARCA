@@ -1165,6 +1165,13 @@ public final class LuaScriptDispatcher {
             watcher.connection.removeOnChannelListChangeListener(watcher.listener);
     }
 
+    private boolean isAutoModPrivateTab(String networkId, String nick) {
+        String scriptId = privateTabs.ownerScriptId(networkId, nick);
+        LuaScriptStore.Script owner = scriptId == null ? null : store.find(scriptId);
+        return owner != null && ("automod_unificato.lua".equals(owner.name) ||
+                "automod_antiripetizione.lua".equals(owner.name));
+    }
+
     /** User-approved close selection across all networks; no IRC commands are sent. */
     public void showPrivateCloseDialog(android.app.Activity activity) {
         main.post(() -> {
@@ -1182,8 +1189,8 @@ public final class LuaScriptDispatcher {
                     owners.add(conn);
                     nicks.add(nick);
                     labels.add(nick + "  ·  " + conn.getName() +
-                            (privateTabs.isOwned(conn.getUUID().toString(), nick)
-                                    ? "  (Lua)" : ""));
+                            (isAutoModPrivateTab(conn.getUUID().toString(), nick)
+                                    ? "  (AutoMod)" : ""));
                 }
             }
             if (nicks.isEmpty()) {
@@ -1195,7 +1202,7 @@ public final class LuaScriptDispatcher {
             }
             final boolean[] selection = new boolean[nicks.size()];
             for (int i = 0; i < selection.length; i++)
-                selection[i] = privateTabs.isOwned(
+                selection[i] = isAutoModPrivateTab(
                         owners.get(i).getUUID().toString(), nicks.get(i));
             androidx.appcompat.app.AlertDialog dialog =
                     new androidx.appcompat.app.AlertDialog.Builder(activity)
