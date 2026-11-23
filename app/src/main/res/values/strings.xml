@@ -1180,4 +1180,10 @@
     <string name="operator_composer_ident">Ident</string>
     <string name="operator_composer_host">Host</string>
     <string name="operator_composer_country_invalid">Enter a two-letter ISO country code (e.g. IT).</string>
+    <string name="lua_close_pvt_title">Close private conversations</string>
+    <string name="lua_close_pvt_empty">No private conversations are open</string>
+    <string name="lua_close_pvt_select_all">Select all</string>
+    <string name="lua_close_pvt_deselect_all">Deselect all</string>
+    <string name="lua_close_pvt_selected">Close selected</string>
+    <string name="lua_close_pvt_result">Private chats closed: %1$d; not closed: %2$d</string>
 </resources>
