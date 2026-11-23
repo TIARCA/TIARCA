@@ -1499,7 +1499,7 @@ public final class LuaScriptDispatcher {
                             api.getServerConnectionData().getSupportList()
                                     .getCaseMapping())) return;
             if (!"mode".equals(kind) && !blacklistOverride &&
-                    !LuaModerationPolicy.unprivilegedTarget(targetMember)) return;
+                    !LuaModerationPolicy.automaticTarget(script, targetMember)) return;
             if (compound) {
                 // Validate both commands while the target is still in the channel.
                 // The cached host is captured BEFORE the KICK.
