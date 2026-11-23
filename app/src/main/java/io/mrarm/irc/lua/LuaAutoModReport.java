@@ -6,9 +6,9 @@ import java.util.regex.Pattern;
 /** Formats actual AutoMod detection logs as bounded local-only server-tab notices. */
 final class LuaAutoModReport {
     private static final Pattern DETECTION = Pattern.compile(
-            "^AutoMod(B?) ([^\\s/]{1,12})/([^\\s]{1,64}) ([^\\s]{1,64}) " +
+            "^AutoMod(B|U)? ([^\\s/]{1,12})/([^\\s]{1,64}) ([^\\s]{1,64}) " +
             "([0-9]{1,3}(?:\\.[0-9])?)% infrazione ([0-9]{1,6}) " +
-            "\\((monitor|avviso|kick|ban|mute|tmute|tban|bankick|tbankick|escalation)\\)$");
+            "\\((monitor|avviso|kick|ban|mute|tmute|tban|bankick|tbankick|escalation)\\)(?: motore ([AB]))?$");
 
     private LuaAutoModReport() { }
 
@@ -38,7 +38,8 @@ final class LuaAutoModReport {
         // This comes from the Lua decision. Authorization or the IRC server may
         // still reject the action; delivery is logged separately when attempted.
         return match.group(3) + " - " + match.group(4) +
-                ("B".equals(match.group(1)) ? ": annunci, concentrazione " : ": ripetizione ") +
+                (("B".equals(match.group(1)) || "B".equals(match.group(8))) ?
+                        ": annunci, concentrazione " : ": ripetizione ") +
                 match.group(5) + "%, infrazione " + match.group(6) +
                 ", " + action;
     }
