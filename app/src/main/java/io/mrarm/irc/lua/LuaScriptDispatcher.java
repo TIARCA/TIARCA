@@ -36,6 +36,7 @@ import io.mrarm.chatlib.dto.MessageFilterOptions;
 import java.util.Arrays;
 import io.mrarm.chatlib.irc.IrcIdentityCache;
 import io.mrarm.chatlib.irc.IRCConnection;
+import io.mrarm.irc.R;
 import io.mrarm.irc.util.ChannelOperatorUtils;
 import io.mrarm.irc.dialog.OperatorCommandComposer;
 import io.mrarm.chatlib.dto.MessageSenderInfo;
@@ -1195,8 +1196,8 @@ public final class LuaScriptDispatcher {
             }
             if (nicks.isEmpty()) {
                 new androidx.appcompat.app.AlertDialog.Builder(activity)
-                        .setTitle(io.mrarm.irc.R.string.lua_close_pvt_title)
-                        .setMessage(io.mrarm.irc.R.string.lua_close_pvt_empty)
+                        .setTitle(R.string.lua_close_pvt_title)
+                        .setMessage(R.string.lua_close_pvt_empty)
                         .setPositiveButton("OK", null).show();
                 return;
             }
@@ -1206,12 +1207,12 @@ public final class LuaScriptDispatcher {
                         owners.get(i).getUUID().toString(), nicks.get(i));
             androidx.appcompat.app.AlertDialog dialog =
                     new androidx.appcompat.app.AlertDialog.Builder(activity)
-                    .setTitle(io.mrarm.irc.R.string.lua_close_pvt_title)
+                    .setTitle(R.string.lua_close_pvt_title)
                     .setMultiChoiceItems(labels.toArray(new String[0]), selection,
                             (d, which, checked) -> selection[which] = checked)
-                    .setNegativeButton(io.mrarm.irc.R.string.action_cancel, null)
-                    .setNeutralButton(io.mrarm.irc.R.string.lua_close_pvt_select_all, null)
-                    .setPositiveButton(io.mrarm.irc.R.string.lua_close_pvt_selected, (d, which) -> {
+                    .setNegativeButton(R.string.action_cancel, null)
+                    .setNeutralButton(R.string.lua_close_pvt_select_all, null)
+                    .setPositiveButton(R.string.lua_close_pvt_selected, (d, which) -> {
                         int attempted = 0, closed = 0;
                         for (int i = 0; i < selection.length; i++) {
                             if (!selection[i]) continue;
@@ -1231,7 +1232,7 @@ public final class LuaScriptDispatcher {
                             privateTabs.prune(conn.getUUID().toString(), conn.getChannels());
                         }
                         android.widget.Toast.makeText(activity,
-                                activity.getString(io.mrarm.irc.R.string.lua_close_pvt_result,
+                                activity.getString(R.string.lua_close_pvt_result,
                                         closed, attempted - closed), android.widget.Toast.LENGTH_LONG)
                                 .show();
                     }).create();
@@ -1245,8 +1246,8 @@ public final class LuaScriptDispatcher {
                             dialog.getListView().setItemChecked(i, !all);
                         }
                         dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL)
-                                .setText(all ? io.mrarm.irc.R.string.lua_close_pvt_select_all :
-                                        io.mrarm.irc.R.string.lua_close_pvt_deselect_all);
+                                .setText(all ? R.string.lua_close_pvt_select_all :
+                                        R.string.lua_close_pvt_deselect_all);
                     }));
             dialog.show();
         });
