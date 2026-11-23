@@ -442,7 +442,7 @@ tiarca.on("message",function(e)
   if not persist(shardNum(t.id)) then return end
   if engine then
     local label=t.level==1 and "avviso" or (t.level==4 or t.level==5) and "kick" or "tmute"
-    tiarca.log(string.format("AutoModB %s/%s %s %.1f%% infrazione %d (%s) motore %s",
+    tiarca.log(string.format("AutoModU %s/%s %s %.1f%% infrazione %d (%s) motore %s",
        e.server:sub(1,8),e.channel,e.nick,total>0 and 100*found/total or 0,
        t.level,c.mode=="live" and label or "monitor",engine))
     if c.mode=="live" then sanction(e,t.level,engine) end
