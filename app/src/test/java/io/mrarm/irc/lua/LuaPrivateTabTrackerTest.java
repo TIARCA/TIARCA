@@ -23,6 +23,16 @@ public class LuaPrivateTabTrackerTest {
         assertFalse(tracker.hasTracked("network-b"));
     }
 
+    @Test public void scriptOwnershipCanBeQueriedWithoutClosing() {
+        LuaPrivateTabTracker tracker = new LuaPrivateTabTracker();
+        tracker.track("network", "automod-id", "Alice");
+        tracker.track("network", "other-script", "Bob");
+        assertEquals("automod-id", tracker.ownerScriptId("network", "alice"));
+        assertEquals("other-script", tracker.ownerScriptId("network", "BOB"));
+        assertNull(tracker.ownerScriptId("network", "Charlie"));
+        assertNull(tracker.ownerScriptId("different-network", "Alice"));
+    }
+
     @Test public void manualCloseRemovesOwnershipBeforeReopeningSameNick() {
         LuaPrivateTabTracker tracker = new LuaPrivateTabTracker();
         tracker.track("server", "auto", "Nick");
