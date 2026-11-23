@@ -93,10 +93,8 @@ final class LuaModerationPolicy {
     }
 
     /**
-     * Automatic punitive actions must not target ops, halfops or voiced users.
-     * A null prefix list represents an ordinary (unprefixed) IRC member;
-     * only an unknown member must fail closed. MODE remains exempt to allow
-     * existing Lua voice/devoice actions.
+     * Automatic punitive actions may target ordinary users and +v voiced users.
+     * Halfops and above remain protected. Unknown membership fails closed.
      */
     /**
      * Exception for an explicitly targeted, authenticated account on the same
@@ -133,8 +131,14 @@ final class LuaModerationPolicy {
     }
 
     static boolean unprivilegedTarget(NickWithPrefix member) {
-        return member != null && (member.getNickPrefixes() == null
-                || member.getNickPrefixes().length() == 0);
+        if (member == null) return false;
+        if (member.getNickPrefixes() == null) return true;
+        String prefixes = member.getNickPrefixes().toString();
+        return prefixes.isEmpty() || "+".equals(prefixes);
+    }
+
+    static boolean validObservedAccount(String account, boolean accountKnown) {
+        return accountKnown && validAccount(account);
     }
 
     /** An explicitly typed /lua command may target a joined channel from
