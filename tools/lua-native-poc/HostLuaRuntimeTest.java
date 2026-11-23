@@ -1323,11 +1323,44 @@ public final class HostLuaRuntimeTest {
         check(unifiedClose.length>=4 &&
                         java.util.Arrays.toString(unifiedClose).contains("closepm"),
                 "Unified AutoMod keeps the close command for UI routing");
+        String[] setUnifiedChannel = event(ID, "command", "#room", "me",
+                "mod canali add #room");
+        check(setUnifiedChannel.length >= 4 && "show".equals(setUnifiedChannel[1]),
+                "Unified channel configuration is accepted");
+        check(eventAt(ID, "message", "#room", "Target", "ciao a tutti",
+                1794406000L).length == 1,
+                "Neutral greeting does not trigger unified moderation");
+        check(eventAt(ID, "message", "#room", "Target", "F?",
+                1794406001L).length == 1,
+                "First short announcement is only observed");
+        String[] crossCategory = eventAt(ID, "message", "#room", "Target",
+                "donne?", 1794406002L);
+        check(java.util.Arrays.toString(crossCategory).contains("motore B") &&
+                        java.util.Arrays.toString(crossCategory).contains("(monitor)"),
+                "Second micro announcement from a different category triggers B in monitor");
+        check(eventAt(ID, "message", "#room", "Target", "grazie per la risposta",
+                1794406003L).length == 1 &&
+                eventAt(ID, "message", "#room", "Target", "grazie per la risposta",
+                1794406004L).length == 1,
+                "Two generic repetitions do not trigger A");
+        String[] thirdGeneric = eventAt(ID, "message", "#room", "Target",
+                "grazie per la risposta", 1794406005L);
+        check(java.util.Arrays.toString(thirdGeneric).contains("motore A"),
+                "Third generic repetition triggers A with common escalation");
+
         byte[] collectorV3 = Files.readAllBytes(
                 Path.of("docs/lua-examples/moderation_collector_v3.lua"));
         check(collectorV3.length <= 24576, "Collector V3 fits Lua source limit");
         check("OK".equals(decode(NativeLuaRuntime.load(ID, collectorV3))),
                 "Collector V3 compiles and loads in official Lua runtime");
+        String[] microOn = event(ID, "command", "#room", "me", "collector micro on");
+        check(java.util.Arrays.toString(microOn).contains("ON per 24 ore"),
+                "Collector micro mode starts with an explicit local command");
+        String[] numericMicro = collectorEvent("message", "Target",
+                "06/07/08/09/010", "normal", 1794406200L);
+        check(java.util.Arrays.toString(numericMicro).contains("\\"event\\":\\"micro\\"") &&
+                        java.util.Arrays.toString(numericMicro).contains("\\"micro_words\\":5"),
+                "Numeric-only messages exceed three words but remain included");
         String[] microHelp = event(ID, "command", "#room", "me", "collector micro status");
         check(microHelp.length >= 4 && "show".equals(microHelp[1]),
                 "Collector V3 exposes opt-in micro discovery");
