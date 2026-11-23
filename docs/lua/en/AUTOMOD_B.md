@@ -16,7 +16,7 @@ From the selected network's server tab:
 
 ## Detection and escalation
 
-Two messages matching the **same B rule** within **20 minutes** trigger evaluation, including messages as short as **two words**. The script then uses the user's **last 10 observed normal messages**, including the triggering one, to calculate announcement concentration. At least **2/3** must be recognized, with no floating-point rounding. After the first infraction each further recognized message advances escalation if the concentration still qualifies, without requiring another pair.
+Two recognized announcements within **20 minutes** trigger evaluation, **even when they match different B rules**, including messages as short as **two words**. The script then uses the user's **last 10 observed normal messages**, including the triggering one, to calculate announcement concentration. At least **2/3** must be recognized, with no floating-point rounding. After the first infraction each further recognized message advances escalation if the concentration still qualifies, without requiring another pair.
 
 Escalation state is shared across B rule categories and enabled channels on the same network for **24 hours from the latest infraction**.
 
