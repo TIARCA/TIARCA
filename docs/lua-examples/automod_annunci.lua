@@ -307,7 +307,12 @@ local function decide(e,t,c,letter,rule)
     t.level=0;t.infraction=0;t.marks={};t.last={};t.epoch=c.epoch
   end
   if t.level>0 and e.timestamp-t.infraction>=TTL then t.level=0;t.infraction=0 end
-  local earlier=t.last[letter]
+  -- Any previously recognized announcement may start a 20-minute pair,
+  -- even when the two messages belong to different B categories.
+  local earlier=nil
+  for _,seen in pairs(t.last) do
+    if not earlier or seen>earlier then earlier=seen end
+  end
   t.last[letter]=e.timestamp
   -- Il controllo e' retroattivo sui 10 messaggi, incluso quello corrente.
   t.marks[#t.marks+1]=letter
