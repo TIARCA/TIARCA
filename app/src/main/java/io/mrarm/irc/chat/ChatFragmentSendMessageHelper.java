@@ -296,9 +296,9 @@ public class ChatFragmentSendMessageHelper implements SendMessageHelper.Callback
                 return;
             }
             if ("mod close".equalsIgnoreCase(command) &&
-                    mContext instanceof MainActivity) {
+                    mFragment.getActivity() instanceof MainActivity) {
                 LuaScriptDispatcher.get(mContext)
-                        .showPrivateCloseDialog((MainActivity) mContext);
+                        .showPrivateCloseDialog((MainActivity) mFragment.getActivity());
                 mFragment.getConnectionInfo().getChatUIData()
                         .getOrCreateChannelData(mFragment.getCurrentChannel())
                         .addHistoryMessage(text);
