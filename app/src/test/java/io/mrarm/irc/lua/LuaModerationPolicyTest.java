@@ -93,8 +93,15 @@ public class LuaModerationPolicyTest {
                 new NickWithPrefix("regular", new NickPrefixList(""))));
         assertFalse(LuaModerationPolicy.unprivilegedTarget(
                 new NickWithPrefix("operator", new NickPrefixList("@"))));
-        assertFalse(LuaModerationPolicy.unprivilegedTarget(
+        assertTrue(LuaModerationPolicy.unprivilegedTarget(
                 new NickWithPrefix("voice", new NickPrefixList("+"))));
+        assertFalse(LuaModerationPolicy.unprivilegedTarget(
+                new NickWithPrefix("halfop", new NickPrefixList("%"))));
+        assertFalse(LuaModerationPolicy.unprivilegedTarget(
+                new NickWithPrefix("owner", new NickPrefixList("~"))));
+        assertTrue(LuaModerationPolicy.validObservedAccount("Registered_42", true));
+        assertFalse(LuaModerationPolicy.validObservedAccount("*", true));
+        assertFalse(LuaModerationPolicy.validObservedAccount("Registered_42", false));
         // NAMES parses an ordinary, unprefixed nickname as a null prefix list.
         assertTrue(LuaModerationPolicy.unprivilegedTarget(
                 new NickWithPrefix("ordinary", null)));
