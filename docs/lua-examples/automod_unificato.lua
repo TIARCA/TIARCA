@@ -342,9 +342,8 @@ end
 local function detectA(e,t,eligible)
   local key=t.id.."\0"..e.channel:lower()
   local h=repeats[key]
-  if not h then
-    if users>MAX_USERS then return false end
-    h={list={},triggered=false};repeats[key]=h
+  if not h or h.epoch~=t.epoch then
+    h={list={},triggered=false,epoch=t.epoch};repeats[key]=h
   end
   for i=#h.list,1,-1 do
     if e.timestamp-h.list[i].t>1800 then table.remove(h.list,i) end
@@ -547,6 +546,18 @@ tiarca.on("command",function(e)
       table.sort(names)
       show(#names>0 and table.concat(names,", "):sub(1,480) or "Whitelist vuota")
     elseif (cmd=="add" or cmd=="drop") and nick~="" and #nick<=64 then
+      if cmd=="drop" then
+        local changed={}
+        for k,v in pairs(whitelist) do
+          if v==nick:lower() then changed[#changed+1]=k end
+        end
+        if #changed==0 then show("Nickname non presente in whitelist");return end
+        for _,k in ipairs(changed) do whitelist[k]=nil end
+        if allowSave() then show("Esclusione eliminata per "..nick)
+        else for _,k in ipairs(changed) do whitelist[k]=nick:lower() end
+          show("Impossibile salvare la modifica") end
+        return
+      end
       local account
       for ch in pairs(c.channels) do
         local ok,roster=pcall(tiarca.get_users,ch)
