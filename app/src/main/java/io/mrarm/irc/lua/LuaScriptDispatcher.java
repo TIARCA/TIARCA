@@ -1560,6 +1560,12 @@ public final class LuaScriptDispatcher {
                         new OperatorCommandComposer.Dialect(
                                 api.getServerConnectionData().getSupportList().getExtban(),
                                 api.getServerConnectionData().getSupportList().getAccountExtban());
+                // Prefer a server-verified account extban on compatible networks.
+                // Fall back to the exact observed host; never widen to a suffix.
+                String banMask = LuaModerationPolicy.validObservedAccount(
+                        identity.account, identity.accountKnown) &&
+                        "R:".equals(dialect.matching('R')) ?
+                        "R:" + identity.account : baseMask;
                 if ("mute".equals(kind)) {
                     String token = dialect.acting('m');
                     if (token == null) return; // Network has no known mute extban.
@@ -1567,10 +1573,11 @@ public final class LuaScriptDispatcher {
                             new String[]{channel, "+b", token + baseMask}, null, null);
                     logModerationSent(connection, script, channel, "MUTE", nick, "");
                 } else if ("tmute".equals(kind)) {
-                    String timed = LuaModerationPolicy.timedMuteCommand(
-                            dialect, channel, mode, identity.host);
+                    String acting = dialect.acting('m');
+                    if (acting == null || !mode.matches("(?i)[1-9][0-9]?[hmd]")) return;
+                    String mask = acting + banMask;
+                    String timed = dialect.timedCommand(channel, mode, mask);
                     if (timed == null) return;
-                    String mask = dialect.acting('m') + baseMask;
                     if (dialect.isInspStyle()) {
                         api.sendCommand("TBAN", false,
                                 new String[]{channel, mode, mask}, null, null);
@@ -1584,11 +1591,11 @@ public final class LuaScriptDispatcher {
                             nick, "durata: " + mode);
                 } else if ("tban".equals(kind)) {
                     if (!mode.matches("(?i)[1-9][0-9]?[hmd]")) return;
-                    String timed = dialect.timedCommand(channel, mode, baseMask);
+                    String timed = dialect.timedCommand(channel, mode, banMask);
                     if (timed == null) return; // Do not invent an unsupported syntax.
                     if (dialect.isInspStyle()) {
                         api.sendCommand("TBAN", false,
-                                new String[]{channel, mode, baseMask}, null, null);
+                                new String[]{channel, mode, banMask}, null, null);
                     } else if (dialect.isUnrealStyle()) {
                         String timedMask = timed.substring(timed.lastIndexOf(' ') + 1);
                         api.sendCommand("MODE", false,
