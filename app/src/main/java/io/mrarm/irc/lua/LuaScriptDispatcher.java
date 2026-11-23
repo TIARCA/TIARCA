@@ -1195,8 +1195,8 @@ public final class LuaScriptDispatcher {
             }
             if (nicks.isEmpty()) {
                 new androidx.appcompat.app.AlertDialog.Builder(activity)
-                        .setTitle("Chiudi conversazioni private")
-                        .setMessage("Nessuna conversazione privata aperta")
+                        .setTitle(io.mrarm.irc.R.string.lua_close_pvt_title)
+                        .setMessage(io.mrarm.irc.R.string.lua_close_pvt_empty)
                         .setPositiveButton("OK", null).show();
                 return;
             }
@@ -1209,9 +1209,9 @@ public final class LuaScriptDispatcher {
                     .setTitle("Chiudi conversazioni private")
                     .setMultiChoiceItems(labels.toArray(new String[0]), selection,
                             (d, which, checked) -> selection[which] = checked)
-                    .setNegativeButton("Annulla", null)
-                    .setNeutralButton("Seleziona tutto", null)
-                    .setPositiveButton("Chiudi selezionati", (d, which) -> {
+                    .setNegativeButton(io.mrarm.irc.R.string.action_cancel, null)
+                    .setNeutralButton(io.mrarm.irc.R.string.lua_close_pvt_select_all, null)
+                    .setPositiveButton(io.mrarm.irc.R.string.lua_close_pvt_selected, (d, which) -> {)
                         int attempted = 0, closed = 0;
                         for (int i = 0; i < selection.length; i++) {
                             if (!selection[i]) continue;
@@ -1231,8 +1231,8 @@ public final class LuaScriptDispatcher {
                             privateTabs.prune(conn.getUUID().toString(), conn.getChannels());
                         }
                         android.widget.Toast.makeText(activity,
-                                "PVT chiusi: " + closed + "; non chiusi: " +
-                                        (attempted - closed), android.widget.Toast.LENGTH_LONG)
+                                activity.getString(io.mrarm.irc.R.string.lua_close_pvt_result,
+                                        closed, attempted - closed), android.widget.Toast.LENGTH_LONG)
                                 .show();
                     }).create();
             dialog.setOnShowListener(d -> dialog.getButton(
@@ -1245,7 +1245,8 @@ public final class LuaScriptDispatcher {
                             dialog.getListView().setItemChecked(i, !all);
                         }
                         dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL)
-                                .setText(all ? "Seleziona tutto" : "Deseleziona tutto");
+                                .setText(all ? io.mrarm.irc.R.string.lua_close_pvt_select_all :
+                                        io.mrarm.irc.R.string.lua_close_pvt_deselect_all);
                     }));
             dialog.show();
         });
