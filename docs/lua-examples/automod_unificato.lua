@@ -170,7 +170,7 @@ local function decode(line)
     for x in p[10]:gmatch(".") do t.marks[#t.marks+1]=x end
   end
   if p[11]~="-" then for chunk in p[11]:gmatch("[^;]+") do
-    local code,stamp=chunk:match("^([A-P]):(%d+)$")
+    local code,stamp=chunk:match("^([A-Q]):(%d+)$")
     if not code or not stamp then return nil end
     t.last[code]=tonumber(stamp)
   end end
@@ -320,6 +320,7 @@ local function allowSave()
   table.sort(entries)
   local raw=table.concat(entries,"\n")
   if #raw>8192 then return false end
+  if raw=="" then return pcall(tiarca.storage.delete,"u1.allow") end
   return pcall(tiarca.storage.set,"u1.allow",raw)
 end
 local function imprint(text)
@@ -482,7 +483,7 @@ tiarca.on("timer",function(e)
 end)
 local function show(msg) tiarca.show("AutoMod unificato",msg) end
 tiarca.on("command",function(e)
-  local root,op,rest=(e.text or ""):match("^%s*(mod|b)%s*(%S*)%s*(.-)%s*$")
+  local root,op,rest
   -- Lua patterns have no alternation: parse either accepted legacy command.
   if not root then
     local raw=e.text or ""
