@@ -1358,8 +1358,8 @@ public final class HostLuaRuntimeTest {
                 "Collector micro mode starts with an explicit local command");
         String[] numericMicro = collectorEvent("message", "Target",
                 "06/07/08/09/010", "normal", 1794406200L);
-        check(java.util.Arrays.toString(numericMicro).contains("\\"event\\":\\"micro\\"") &&
-                        java.util.Arrays.toString(numericMicro).contains("\\"micro_words\\":5"),
+        check(java.util.Arrays.toString(numericMicro).contains("\"event\":\"micro\"") &&
+                        java.util.Arrays.toString(numericMicro).contains("\"micro_words\":5"),
                 "Numeric-only messages exceed three words but remain included");
         String[] microHelp = event(ID, "command", "#room", "me", "collector micro status");
         check(microHelp.length >= 4 && "show".equals(microHelp[1]),
