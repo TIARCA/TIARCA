@@ -288,10 +288,11 @@ if network==e.server and user==account then return true end
 end
 return false
 end
+local function micro_key(server) return "colm." .. server end
 local function microActive(server,now)
 local untilTime=microUntil[server]
 if untilTime==nil then
-local ok,raw=pcall(tiarca.storage.get,"collector.micro."..server)
+local ok,raw=pcall(tiarca.storage.get,micro_key(server))
 if not ok then return false end
 untilTime=tonumber(raw) or 0
 microUntil[server]=untilTime
@@ -529,11 +530,11 @@ arg = arg or ""
 if op=="micro" then
 if arg=="on" then
 local expires=e.timestamp+86400
-local ok=pcall(tiarca.storage.set,"collector.micro."..e.server,tostring(expires))
+local ok=pcall(tiarca.storage.set,micro_key(e.server),tostring(expires))
 if ok then microUntil[e.server]=expires end
 tiarca.show("Collector Micro",ok and "ON per 24 ore; solo osservazione" or "Storage indisponibile")
 elseif arg=="off" then
-local ok=pcall(tiarca.storage.set,"collector.micro."..e.server,"0")
+local ok=pcall(tiarca.storage.set,micro_key(e.server),"0")
 if ok then microUntil[e.server]=0 end
 tiarca.show("Collector Micro",ok and "OFF" or "Storage indisponibile")
 else
