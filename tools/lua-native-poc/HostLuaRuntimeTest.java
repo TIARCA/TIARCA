@@ -1309,6 +1309,29 @@ public final class HostLuaRuntimeTest {
         check(invalidNickname.length == 4 && "show".equals(invalidNickname[1]),
                 "Eject must reject malformed nicknames locally");
 
+        // Unified AutoMod and Collector V3 must import into the real native sandbox.
+        byte[] unified = Files.readAllBytes(
+                Path.of("docs/lua-examples/automod_unificato.lua"));
+        check(unified.length <= 24576, "Unified AutoMod fits Lua source limit");
+        check("OK".equals(decode(NativeLuaRuntime.load(ID, unified))),
+                "Unified AutoMod compiles and loads in official Lua runtime");
+        String[] unifiedHelp = event(ID, "command", "#room", "me", "mod help");
+        check(unifiedHelp.length >= 4 && "show".equals(unifiedHelp[1]) &&
+                        java.util.Arrays.toString(unifiedHelp).contains("motore a"),
+                "Unified AutoMod exposes independent A/B settings");
+        String[] unifiedClose = event(ID, "command", "#room", "me", "mod close");
+        check(unifiedClose.length>=4 &&
+                        java.util.Arrays.toString(unifiedClose).contains("closepm"),
+                "Unified AutoMod keeps the close command for UI routing");
+        byte[] collectorV3 = Files.readAllBytes(
+                Path.of("docs/lua-examples/moderation_collector_v3.lua"));
+        check(collectorV3.length <= 24576, "Collector V3 fits Lua source limit");
+        check("OK".equals(decode(NativeLuaRuntime.load(ID, collectorV3))),
+                "Collector V3 compiles and loads in official Lua runtime");
+        String[] microHelp = event(ID, "command", "#room", "me", "collector micro status");
+        check(microHelp.length >= 4 && "show".equals(microHelp[1]),
+                "Collector V3 exposes opt-in micro discovery");
+
         NativeLuaRuntime.unload(ID);
         check(NativeLuaRuntime.dispatch(ID, "message", bytes("test-server"),
                 bytes("#x"), bytes("a"), bytes("b"), bytes("normal"), 0L,
