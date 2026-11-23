@@ -1337,7 +1337,10 @@ public final class HostLuaRuntimeTest {
                 "donne?", 1794406002L);
         check(java.util.Arrays.toString(crossCategory).contains("motore B") &&
                         java.util.Arrays.toString(crossCategory).contains("(monitor)"),
-                "Second micro announcement from a different category triggers B in monitor");
+                "Second micro announcement from a different category triggers B in monitor: "
+                        + java.util.Arrays.toString(crossCategory)
+                        + "; status=" + java.util.Arrays.toString(
+                                event(ID, "command", "#room", "me", "mod stato")));
         check(eventAt(ID, "message", "#room", "Target", "grazie per la risposta",
                 1794406003L).length == 1 &&
                 eventAt(ID, "message", "#room", "Target", "grazie per la risposta",
