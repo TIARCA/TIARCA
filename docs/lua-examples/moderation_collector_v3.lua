@@ -455,8 +455,13 @@ mute=true, tmute=true, tban=true, bankick=true, tbankick=true,
 escalation=true}
 tiarca.on("moderation_log", function(e)
 if not active(e.server) or not in_scope(e.server, e.channel) then return end
-local engine, server, channel, nick, percent, level, action = (e.text or ""):match(
+local engine,server,channel,nick,percent,level,action
+server,channel,nick,percent,level,action,engine=(e.text or ""):match(
+"^AutoModU%s+([^/%s]+)/([^%s]+)%s+([^%s]+)%s+([%d%.]+)%% infrazione (%d+) %(([^%)]+)%) motore ([AB])$")
+if not nick then
+engine,server,channel,nick,percent,level,action=(e.text or ""):match(
 "^AutoMod(B?)%s+([^/%s]+)/([^%s]+)%s+([^%s]+)%s+([%d%.]+)%% infrazione (%d+) %(([^%)]+)%)$")
+end
 if not nick or server ~= e.server:sub(1, 8) or
 channel:lower() ~= e.channel:lower() or
 nick:lower() ~= e.nick:lower() or not automod_actions[action] then return end
