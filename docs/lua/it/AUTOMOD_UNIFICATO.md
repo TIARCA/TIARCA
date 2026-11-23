@@ -12,11 +12,11 @@ Script: [automod_unificato.lua](../../lua-examples/automod_unificato.lua).
 4. Verificare `/lua mod stato`. Il sistema parte in modalità **monitor**; A e B sono attivi per impostazione predefinita.
 5. **Soltanto dopo i test:** `/lua mod modo live` abilita avvisi e provvedimenti.
 
-Comandi: `/lua mod on|off`; `/lua mod modo monitor|live`; `/lua mod motore a|b on|off`; `/lua mod canali add|drop #canale`; `/lua mod stato`; `/lua mod reset`; `/lua mod close`. I comandi `/lua b` sono mantenuti come alias per le opzioni supportate.
+Comandi: `/lua mod on|off`; `/lua mod modo monitor|live`; `/lua mod motore a|b on|off`; `/lua mod canali add|drop #canale`; `/lua mod parametro soglia|occorrenze|ultimi|minuti|minparole N`; `/lua mod stato`; `/lua mod reset`; `/lua mod close`. I comandi `/lua b` sono mantenuti come alias per le opzioni supportate.
 
 ## Rilevamento
 
-- **A**: messaggi di almeno tre parole, somiglianza >=75% e tre occorrenze negli ultimi otto messaggi conservati, nell'arco di 30 minuti; dopo la prima infrazione A può segnalare un'altra ripetizione.
+- **A**: messaggi di almeno tre parole, somiglianza >=75% e tre occorrenze negli ultimi otto messaggi conservati, nell'arco di 30 minuti; dopo la prima infrazione A può segnalare un'altra ripetizione. I parametri di A sono configurabili per rete con il comando `parametro`: default `soglia 75`, `occorrenze 3`, `ultimi 8`, `minuti 30`, `minparole 3`.
 - **B**: annunci riconosciuti anche con categorie differenti. Dal secondo annuncio in 20 minuti, soltanto con concentrazione >=2/3 sugli ultimi dieci messaggi valutati.
 - **Micro-annunci** iniziali: `F?`, `donne?`, `mxm`, `qualcuna?`. Le espressioni ambigue `cerco` e `ho voglia` non bastano da sole.
 - **Saluti neutri** come `ciao a tutti`, `buongiorno a tutti`, `buonasera a tutti` sono esclusi da A e non diluiscono la concentrazione di B.
@@ -32,7 +32,7 @@ Comandi: `/lua mod on|off`; `/lua mod modo monitor|live`; `/lua mod motore a|b o
 4. Mute temporaneo 3 ore, kick e spiegazione in PVT.
 5. Ban temporaneo 24 ore, kick e spiegazione in PVT.
 
-Motivazione di ogni kick: **`Messaggi ripetuti`**. Con rete compatibile e account NickServ verificato il ban/mute temporaneo preferisce l'account esatto; altrimenti si usa l'host completo. Le azioni sono **richieste** all'IRCd: un comando inviato non dimostra l'avvenuta esecuzione.
+Motivazione di ogni kick: **`Messaggi ripetuti`**. Il livello 5 è il massimo: nuove violazioni entro 24 ore possono prolungare la memoria dell'escalation, ma non emettono ripetutamente nuovi kick/ban. Con rete compatibile e account NickServ verificato il ban/mute temporaneo preferisce l'account esatto; altrimenti si usa l'host completo. Le azioni sono **richieste** all'IRCd: un comando inviato non dimostra l'avvenuta esecuzione.
 
 Di default, utenti registrati e `+v` sono monitorati; halfop `%` e privilegi superiori sono esclusi.
 
