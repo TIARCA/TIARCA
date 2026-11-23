@@ -93,8 +93,8 @@ final class LuaModerationPolicy {
     }
 
     /**
-     * Automatic punitive actions may target ordinary users and +v voiced users.
-     * Halfops and above remain protected. Unknown membership fails closed.
+     * Legacy automatic actions target only unprefixed users; the unified
+     * AutoMod may additionally target +v users. Halfops and above are protected.
      */
     /**
      * Exception for an explicitly targeted, authenticated account on the same
@@ -131,10 +131,19 @@ final class LuaModerationPolicy {
     }
 
     static boolean unprivilegedTarget(NickWithPrefix member) {
-        if (member == null) return false;
-        if (member.getNickPrefixes() == null) return true;
-        String prefixes = member.getNickPrefixes().toString();
-        return prefixes.isEmpty() || "+".equals(prefixes);
+        return member != null && (member.getNickPrefixes() == null ||
+                member.getNickPrefixes().length() == 0);
+    }
+
+    /** The +v exception applies only to the approved unified moderator.
+     * Legacy and unrelated Lua scripts retain the previous stricter gate.
+     */
+    static boolean automaticTarget(LuaScriptStore.Script script,
+                                   NickWithPrefix member) {
+        return unprivilegedTarget(member) ||
+                (script != null &&
+                 "automod_unificato.lua".equals(script.name) &&
+                 targetHasVoice(member));
     }
 
     static boolean validObservedAccount(String account, boolean accountKnown) {
