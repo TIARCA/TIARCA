@@ -128,6 +128,14 @@ public final class HostLuaRuntimeTest {
                 roster, false, true, automodSnapshot(), true));
     }
 
+    private static String[] collectorUuidEvent(String uuid, String event,
+                                               String nick, String text, long when) {
+        return collect(NativeLuaRuntime.dispatch(ID, event, bytes(uuid),
+                bytes("#room"), bytes(nick), bytes(text), bytes("normal"), when,
+                new byte[0][], new int[0], false, new byte[0][], false, true,
+                automodSnapshot(), true));
+    }
+
     private static String[] historyWithStoredSender() {
         byte[][] roster = new byte[][]{
                 bytes("Target"), bytes(""), bytes("ident"),
@@ -1394,6 +1402,38 @@ public final class HostLuaRuntimeTest {
         String[] microOn = event(ID, "command", "#room", "me", "collector micro on");
         check(java.util.Arrays.toString(microOn).contains("ON per 24 ore"),
                 "Collector micro mode starts with an explicit local command");
+        // Real IRC networks use 36-character UUIDs, not the short "test-server"
+        // identifier. Storage keys must remain within the host's 48-byte limit.
+        String networkUuid = "a1234567-1234-4123-8123-123456789abc";
+        String[] uuidMicroOn = collectorUuidEvent(networkUuid, "command",
+                "me", "collector micro on", 1794406200L);
+        String microKey = "colm." + networkUuid;
+        check(java.util.Arrays.toString(uuidMicroOn).contains("ON per 24 ore") &&
+                        microKey.length() <= 48 &&
+                        "1794492600".equals(automodStorage.get(microKey)),
+                "Collector V3 must persist Micro Discovery for a real network UUID");
+        String[] oneWord = collectorUuidEvent(networkUuid, "message",
+                "Target", "ciao", 1794406201L);
+        check(oneWord.length == 4 && "journal".equals(oneWord[1]) &&
+                        oneWord[3].contains("\"event\":\"micro\"") &&
+                        oneWord[3].contains("\"micro_words\":1"),
+                "Micro Discovery records a one-word message without repetition");
+        NativeLuaRuntime.unload(ID);
+        check("OK".equals(decode(NativeLuaRuntime.load(ID, collectorV3))),
+                "Collector V3 reloads after persisting its micro setting");
+        String[] restoredMicro = collectorUuidEvent(networkUuid, "command",
+                "me", "collector micro status", 1794406202L);
+        check(java.util.Arrays.toString(restoredMicro).contains("ON;"),
+                "Micro Discovery remains active after Lua VM reload");
+        String[] uuidMicroOff = collectorUuidEvent(networkUuid, "command",
+                "me", "collector micro off", 1794406203L);
+        check(java.util.Arrays.toString(uuidMicroOff).contains("OFF") &&
+                        "0".equals(automodStorage.get(microKey)),
+                "Collector V3 can persistently disable micro recording for the UUID");
+        check(collectorUuidEvent(networkUuid, "message",
+                "Target", "grazie", 1794406204L).length == 1,
+                "Collector V3 emits no standalone micro record after OFF");
+
         String[] numericMicro = collectorEvent("message", "Target",
                 "06/07/08/09/010", "normal", 1794406200L);
         check(java.util.Arrays.toString(numericMicro).contains("\"event\":\"micro\"") &&
