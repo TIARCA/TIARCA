@@ -1181,7 +1181,7 @@ public final class LuaScriptDispatcher {
                             "#&+!".indexOf(nick.charAt(0)) >= 0) continue;
                     owners.add(conn);
                     nicks.add(nick);
-                    labels.add(nick + "  ·  " + conn.getUUID().toString().substring(0, 8) +
+                    labels.add(nick + "  ·  " + conn.getName() +
                             (privateTabs.isOwned(conn.getUUID().toString(), nick)
                                     ? "  (Lua)" : ""));
                 }
