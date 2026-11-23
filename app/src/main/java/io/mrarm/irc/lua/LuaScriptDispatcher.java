@@ -1206,12 +1206,12 @@ public final class LuaScriptDispatcher {
                         owners.get(i).getUUID().toString(), nicks.get(i));
             androidx.appcompat.app.AlertDialog dialog =
                     new androidx.appcompat.app.AlertDialog.Builder(activity)
-                    .setTitle("Chiudi conversazioni private")
+                    .setTitle(io.mrarm.irc.R.string.lua_close_pvt_title)
                     .setMultiChoiceItems(labels.toArray(new String[0]), selection,
                             (d, which, checked) -> selection[which] = checked)
                     .setNegativeButton(io.mrarm.irc.R.string.action_cancel, null)
                     .setNeutralButton(io.mrarm.irc.R.string.lua_close_pvt_select_all, null)
-                    .setPositiveButton(io.mrarm.irc.R.string.lua_close_pvt_selected, (d, which) -> {)
+                    .setPositiveButton(io.mrarm.irc.R.string.lua_close_pvt_selected, (d, which) -> {
                         int attempted = 0, closed = 0;
                         for (int i = 0; i < selection.length; i++) {
                             if (!selection[i]) continue;
