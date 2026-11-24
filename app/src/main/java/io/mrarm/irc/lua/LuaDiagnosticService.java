@@ -30,6 +30,7 @@ public final class LuaDiagnosticService extends Service {
     public static final String EXTRA_TEXT = "text";
     public static final String EXTRA_MESSAGE_TYPE = "message_type";
     public static final String EXTRA_HISTORY_IDENT = "history_ident";
+    public static final String EXTRA_SENDER = "sender";
     public static final String EXTRA_HISTORY_HOST = "history_host";
     public static final String EXTRA_TIME = "time";
     public static final String EXTRA_CHANNEL_NAMES = "channel_names";
@@ -234,7 +235,7 @@ public final class LuaDiagnosticService extends Service {
                                 "quit".equals(event) || "nick".equals(event) ||
                                 "timer".equals(event) || "kick".equals(event) ||
                                 "ban".equals(event) || "history".equals(event) ||
-                                "moderation_log".equals(event))) {
+                                "moderation_log".equals(event) || "identity".equals(event))) {
                     status = "ERROR: invalid event";
                 } else if (names == null || memberCounts == null ||
                         names.size() != memberCounts.length ||
@@ -309,6 +310,28 @@ public final class LuaDiagnosticService extends Service {
                             } else {
                                 String runtimeId = scopedRuntimeIds.getOrDefault(
                                         scriptId + ":" + server, scriptId);
+                                byte[][] observedIdentity = new byte[0][];
+                                if (request.getBoolean(EXTRA_CAN_READ_USERS, false)) {
+                                    if ("history".equals(event)) {
+                                        observedIdentity = new byte[][] {
+                                            NativeLuaRuntime.utf8(request.getString(EXTRA_HISTORY_IDENT, "")),
+                                            NativeLuaRuntime.utf8(request.getString(EXTRA_HISTORY_HOST, ""))
+                                        };
+                                    } else {
+                                        String[] sender = request.getStringArray(EXTRA_SENDER);
+                                        if (sender != null && sender.length == 4) {
+                                            int[] caps = {95, 255, 31, 95};
+                                            observedIdentity = new byte[4][];
+                                            for (int i = 0; i < 4; i++) {
+                                                if (!LuaIdentityQuery.valid(sender[i], caps[i])) {
+                                                    observedIdentity = new byte[0][];
+                                                    break;
+                                                }
+                                                observedIdentity[i] = NativeLuaRuntime.utf8(sender[i]);
+                                            }
+                                        }
+                                    }
+                                }
                                 byte[][] nativeActions = NativeLuaRuntime.dispatchWithIdentity(runtimeId, event,
                                         NativeLuaRuntime.utf8(server), NativeLuaRuntime.utf8(channel),
                                         NativeLuaRuntime.utf8(nick), NativeLuaRuntime.utf8(text),
@@ -319,12 +342,7 @@ public final class LuaDiagnosticService extends Service {
                                         request.getBoolean(EXTRA_USERS_TRUNCATED, false),
                                         request.getBoolean(EXTRA_CAN_READ_USERS, false),
                                         storagePairs, request.getBoolean(EXTRA_CAN_STORE, false),
-                                        "history".equals(event) ? new byte[][]{
-                                                NativeLuaRuntime.utf8(
-                                                        request.getString(EXTRA_HISTORY_IDENT, "")),
-                                                NativeLuaRuntime.utf8(
-                                                        request.getString(EXTRA_HISTORY_HOST, ""))
-                                        } : new byte[0][]);
+                                        observedIdentity);
                         if (nativeActions == null || nativeActions.length < 1 ||
                                 (nativeActions.length - 1) % 3 != 0 ||
                                 nativeActions.length > 37) {
