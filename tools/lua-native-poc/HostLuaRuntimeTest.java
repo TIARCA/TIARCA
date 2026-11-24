@@ -1662,17 +1662,17 @@ public final class HostLuaRuntimeTest {
         // The same account crosses nickname changes; each channel has its own score.
         eventAs(ID, "message", "#room", "FirstNick", "f",
                 1794410030L, "", "shared-account");
-        String[] renamed = eventAs(ID, "message", "#room", "SecondNick",
+        String[] v4Renamed = eventAs(ID, "message", "#room", "SecondNick",
                 "cerco f", 1794410031L, "", "shared-account");
-        check(java.util.Arrays.toString(renamed).contains("motore B"),
+        check(java.util.Arrays.toString(v4Renamed).contains("motore B"),
                 "Watchdog recognizes same NickServ account under a new nickname");
         event(ID, "command", "#room", "me", "mod canali add #other");
         check(eventAs(ID, "message", "#other", "FirstNick", "f",
                 1794410032L, "", "shared-account").length==1,
                 "Separate channel starts with an independent Watchdog score");
-        String[] otherChannel = eventAs(ID, "message", "#other", "SecondNick",
+        String[] v4OtherChannel = eventAs(ID, "message", "#other", "SecondNick",
                 "cerco f", 1794410033L, "", "shared-account");
-        check(java.util.Arrays.toString(otherChannel).contains("motore B"),
+        check(java.util.Arrays.toString(v4OtherChannel).contains("motore B"),
                 "The second ad in the new channel triggers its own detection");
 
         eventAs(ID, "message", "#room", "Late", "mxm reale",
