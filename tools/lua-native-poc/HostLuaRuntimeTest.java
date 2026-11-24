@@ -172,8 +172,55 @@ public final class HostLuaRuntimeTest {
         NativeLuaRuntime.clear();
     }
 
+    private static String[] v4Event(String event, String nick, String text, long time,
+                                    String prefix, String account) {
+        byte[][] sender = prefix == null ? new byte[0][] :
+                new byte[][]{bytes("ident"), bytes("host.example"), bytes(prefix), bytes(account)};
+        return collect(NativeLuaRuntime.dispatchWithIdentity(OTHER, event,
+                bytes("test-server"), bytes("#room"), bytes(nick), bytes(text), bytes("normal"), time,
+                new byte[0][], new int[0], false, new byte[0][], false, true,
+                automodSnapshot(), true, sender));
+    }
+
+    private static void checkV4Identity() throws Exception {
+        byte[] source = Files.readAllBytes(Path.of("docs/lua-examples/automod_v4.lua"));
+        check(source.length <= 24576, "V4 source quota");
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, source))), "V4 loads");
+        check((NativeLuaRuntime.eventMask(OTHER) & (1 << 20)) != 0, "V4 opts in");
+        automodStorage.clear();
+        automodActive = true;
+        long t = 1794400000L;
+        check("OK".equals(v4Event("command", "me", "mod canali add #room", t, null, "")[0]),
+                "Configure V4");
+        String[] first = v4Event("message", "Voice", "cerco ragazza", t+1, "+", "voiceacct");
+        String[] second = v4Event("message", "Voice", "cerco donna", t+2, "+", "voiceacct");
+        check(first.length == 1 && java.util.Arrays.toString(second).contains("AutoModV4"),
+                "Voice detection works without roster or query");
+        check(v4Event("message", "Operator", "cerco ragazza", t+3, "@+", "opacct").length == 1 &&
+                v4Event("message", "Operator", "cerco donna", t+4, "@+", "opacct").length == 1,
+                "Higher prefixes excluded");
+        String[] unknown = v4Event("message", "Unknown", "cerco ragazza", t+5, null, "");
+        check(java.util.Arrays.toString(unknown).contains("UNKNOWN"), "No sender fails closed");
+        String[] request = v4Event("command", "me", "mod whitelist add Voice", t+6, null, "");
+        check(java.util.Arrays.toString(request).contains("u\tv4w1\tVoice"),
+                "Whitelist uses single point query");
+        String[] result = collect(NativeLuaRuntime.dispatch(OTHER, "identity",
+                bytes("test-server"), bytes("#room"), bytes(""), bytes("u ok 1 -1 1"),
+                bytes("v4w1"), t+6, new byte[0][], new int[0], false,
+                new byte[][]{bytes("Voice"), bytes("+"), bytes("ident"), bytes("host.example"), bytes("voiceacct")},
+                false, true, automodSnapshot(), true));
+        check(java.util.Arrays.toString(result).contains("Whitelist aggiornata") &&
+                automodStorage.get("v4.allow").contains("voiceacct"), "Verified result persists");
+        check(v4Event("message", "Voice", "cerco ragazza", t+7, "+", "voiceacct").length == 1,
+                "Whitelist applies immediately");
+        NativeLuaRuntime.unload(OTHER);
+        automodStorage.clear();
+        automodActive = false;
+    }
+
     public static void main(String[] args) throws Exception {
         checkStorageRevisions();
+        checkV4Identity();
         // Read subscriptions from the actual loaded VM, not Lua source text.
         check(NativeLuaRuntime.eventMask(OTHER) == -1, "Absent VM has no known mask");
         check("OK".equals(decode(NativeLuaRuntime.load(OTHER,

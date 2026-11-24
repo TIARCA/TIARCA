@@ -101,6 +101,23 @@ public class LuaModerationPolicyTest {
         assertFalse(LuaModerationPolicy.unprivilegedTarget(null));
     }
 
+    @Test public void v4VoiceExceptionDoesNotApplyToLegacyOrHigherPrefixes() {
+        LuaScriptStore.Script v4 = new LuaScriptStore.Script(
+                "0a14a509-49e4-4d79-8884-9504e76a252f",
+                "automod_v4.lua", "hash", SERVER, true, false, true, true, "");
+        NickWithPrefix voice = new NickWithPrefix("voice", new NickPrefixList("+"));
+        assertTrue(LuaModerationPolicy.v4VoiceTarget(v4, voice));
+        assertFalse(LuaModerationPolicy.v4VoiceTarget(script(true, true), voice));
+        assertFalse(LuaModerationPolicy.v4VoiceTarget(v4,
+                new NickWithPrefix("halfop", new NickPrefixList("%"))));
+        assertFalse(LuaModerationPolicy.v4VoiceTarget(v4,
+                new NickWithPrefix("op", new NickPrefixList("@+"))));
+        assertFalse(LuaModerationPolicy.v4VoiceTarget(v4, null));
+        assertTrue(LuaModerationPolicy.validObservedAccount("account", true));
+        assertFalse(LuaModerationPolicy.validObservedAccount("account", false));
+        assertFalse(LuaModerationPolicy.validObservedAccount("*", true));
+    }
+
     @Test public void blacklistOverrideRequiresVerifiedCurrentSenderAccount() {
         LuaScriptStore.Script approved = script(true, true);
         assertTrue(LuaModerationPolicy.blacklistOverrideAllowed(

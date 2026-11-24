@@ -7,8 +7,8 @@ Decisione del 24 novembre 2026. Obiettivo: trasferire solo i dati necessari, man
 | A | Cache identità IRC: membri condivisi, JOIN/NAMES/PRIVMSG/NICK/ACCOUNT/CHGHOST/PART/KICK/QUIT/disconnessione; limiti espliciti e identità ignote | CI #1181 e reproducibilità #390 superate; test reali da verificare |
 | B | Dispatcher: consegna solo eventi sottoscritti; evitare snapshot inutili, senza bloccare IRC/UI | CI #1188 e reproducibilità #397 superate; test reali da verificare |
 | C | API: event.sender acquisito al ricevimento; get_user puntuale; get_users filtrato prima della paginazione e asincrono, con indicazione completezza; get_channels su richiesta | CI #1206 e reproducibilità #415 superate; test reali da verificare |
-| D | Storage in memoria, aggiornamenti atomici solo al cambiamento, sincronizzazione/versioni tra processi, backup e ripristino; commit prima delle sanzioni | Implementata sullo stesso branch; CI da verificare |
-| E | Adeguare AutoMod V4, mantenere crediti e logica; correggere integrazione voice; Mask Finder ed Espelli invariati funzionalmente | Pianificata |
+| D | Storage in memoria, aggiornamenti atomici solo al cambiamento, sincronizzazione/versioni tra processi, backup e ripristino; commit prima delle sanzioni | CI #1218 superata; reproducibilità #427 in corso al momento della migrazione |
+| E | Adeguare AutoMod V4, mantenere crediti e logica; correggere integrazione voice; Mask Finder ed Espelli invariati funzionalmente | Migrazione implementata; CI e test reali da verificare |
 | F | Diagnostica motore (eventi ricevuti/elaborati/scartati, latenza, memoria, scritture, richieste roster) e stress test 1000 membri/500 attivi, 5/10/25/50 msg/s; statistiche AutoMod separate da valutare dopo | Pianificata |
 | G | Guida scripting IT/EN, contratto API e compatibilità script terzi | Pianificata |
 | H | CI, reproducibilità, Candidate firmata e test reali; nessun merge/release automatico | Pianificata |
@@ -96,3 +96,10 @@ end)
 - Tutte le mutazioni di un evento sono validate e applicate insieme. Stato finale identico = nessuna scrittura. In caso di modifica, un solo commit AtomicFile, sync e verifica dei byte; gli effetti dell'evento vengono rilasciati soltanto dopo successo. Una revisione obsoleta o un errore di persistenza blocca gli effetti e disabilita lo script. Non è una transazione distribuita con il server IRC: un crash dopo il commit e prima dell'invio può lasciare lo stato aggiornato senza sanzione effettivamente inviata.
 - Backup esporta soltanto lo stato commesso, restore e cancellazione invalidano la cache; le approvazioni restano revocate al ripristino. Nessuna migrazione di file o API Lua.
 - Test aggiunti: 1000 accessi alla stessa revisione, batch/no-op, errore e revisione obsoleta, restore/reset, mirror IPC, coda FIFO multirete, invalidazione VM dopo mutazione non commessa e callback fallita. Test Android reali, throughput e latenza del commit ancora da misurare.
+
+## Fase E — migrazione AutoMod V4
+
+- Portato V4 dalla PR #302 (commit 0554a56), inclusa la revisione dei saluti. Classificazione, crediti, soglie, escalation e formato persistente invariati. Nessun roster per messaggio: usa il mittente osservato, senza WHO; se manca sospende la decisione.
+- Whitelist: lookup puntuale asincrono, senza scansione. Dal canale monitorato: `/lua mod whitelist add NICK`; dalla scheda server con più canali: `/lua mod whitelist add NICK #canale`. Con un unico canale monitorato il parametro resta facoltativo. Solo account osservato e risposta correlata alla richiesta.
+- Il gate live permette il voice soltanto per V4, sul mittente dell'evento e con i consensi richiesti. Halfop e superiori restano protetti. Mute/ban temporanei V4 privilegiano l'account osservato con extban R: compatibile, altrimenti host esatto. Log V4 riconosciuti nella scheda server. Mask Finder, Espelli e Collector non modificati.
+- Test host aggiunti per sender senza roster, voice, prefissi superiori, identità mancante e whitelist asincrona; test Java del gate. PR #302 separata: selezione multipla PVT e altre modifiche non pertinenti non portate qui; riconciliare i file comuni prima del merge. CI, reproducibilità, prestazioni e prova reale da verificare.

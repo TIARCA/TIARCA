@@ -1619,8 +1619,8 @@ public final class LuaScriptDispatcher {
                             api.getServerConnectionData().getSupportList().getCaseMapping(),
                             nick, connection.getUserNick()),
                     nick)) return;
-            // Ordinary scripts cannot moderate prefixed users. An explicit
-            // account blacklist request is the sole exception, and only when
+            // V4 may moderate its own voiced sender. Other ordinary scripts
+            // cannot moderate prefixed users. An explicit blacklist requires that
             // the target is the event sender AND a live observed IRC account
             // matches the claim, with user-info and moderation consent.
             IrcIdentityCache.Identity liveIdentity =
@@ -1633,7 +1633,12 @@ public final class LuaScriptDispatcher {
                             liveIdentity.accountKnown,
                             api.getServerConnectionData().getSupportList()
                                     .getCaseMapping())) return;
-            if (!"mode".equals(kind) && !blacklistOverride &&
+            boolean v4Voice = LuaModerationPolicy.v4VoiceTarget(script, targetMember) &&
+                    "message".equals(request.event) &&
+                    LuaModerationPolicy.isSelf(
+                            api.getServerConnectionData().getSupportList().getCaseMapping(),
+                            nick, request.nick);
+            if (!"mode".equals(kind) && !blacklistOverride && !v4Voice &&
                     !LuaModerationPolicy.unprivilegedTarget(targetMember)) return;
             if (compound) {
                 // Validate both commands while the target is still in the channel.
@@ -1695,6 +1700,10 @@ public final class LuaScriptDispatcher {
                         new OperatorCommandComposer.Dialect(
                                 api.getServerConnectionData().getSupportList().getExtban(),
                                 api.getServerConnectionData().getSupportList().getAccountExtban());
+                String timedMaskBase = LuaModerationPolicy.v4Script(script) &&
+                        LuaModerationPolicy.validObservedAccount(identity.account, identity.accountKnown) &&
+                        "R:".equals(dialect.matching('R')) ?
+                        "R:" + identity.account : baseMask;
                 if ("mute".equals(kind)) {
                     String token = dialect.acting('m');
                     if (token == null) return; // Network has no known mute extban.
@@ -1702,10 +1711,13 @@ public final class LuaScriptDispatcher {
                             new String[]{channel, "+b", token + baseMask}, null, null);
                     logModerationSent(connection, script, channel, "MUTE", nick, "");
                 } else if ("tmute".equals(kind)) {
-                    String timed = LuaModerationPolicy.timedMuteCommand(
-                            dialect, channel, mode, identity.host);
+                    String acting = dialect.acting('m');
+                    if (acting == null || !mode.matches("(?i)[1-9][0-9]?[hmd]")) return;
+                    String mask = acting + timedMaskBase;
+                    String timed = LuaModerationPolicy.v4Script(script) ?
+                            dialect.timedCommand(channel, mode, mask) :
+                            LuaModerationPolicy.timedMuteCommand(dialect, channel, mode, identity.host);
                     if (timed == null) return;
-                    String mask = dialect.acting('m') + baseMask;
                     if (dialect.isInspStyle()) {
                         api.sendCommand("TBAN", false,
                                 new String[]{channel, mode, mask}, null, null);
@@ -1719,11 +1731,11 @@ public final class LuaScriptDispatcher {
                             nick, "durata: " + mode);
                 } else if ("tban".equals(kind)) {
                     if (!mode.matches("(?i)[1-9][0-9]?[hmd]")) return;
-                    String timed = dialect.timedCommand(channel, mode, baseMask);
+                    String timed = dialect.timedCommand(channel, mode, timedMaskBase);
                     if (timed == null) return; // Do not invent an unsupported syntax.
                     if (dialect.isInspStyle()) {
                         api.sendCommand("TBAN", false,
-                                new String[]{channel, mode, baseMask}, null, null);
+                                new String[]{channel, mode, timedMaskBase}, null, null);
                     } else if (dialect.isUnrealStyle()) {
                         String timedMask = timed.substring(timed.lastIndexOf(' ') + 1);
                         api.sendCommand("MODE", false,
