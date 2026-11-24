@@ -22,6 +22,7 @@ final class LuaIdentityQuery {
     final String kind, token, channel;
     final int offset, limit;
     final String nick, ident, host, account, prefix, auth;
+    private int pageNumber = 1;
 
     private LuaIdentityQuery(String kind, String token, String channel, int offset, int limit,
                              String nick, String ident, String host, String account,
@@ -72,6 +73,18 @@ final class LuaIdentityQuery {
         return "u".equals(kind) && sameChannel && ("message".equals(event) ||
                 "join".equals(event) || "part".equals(event) || "quit".equals(event) ||
                 "nick".equals(event) || "kick".equals(event) || "ban".equals(event));
+    }
+
+    /** A local command may authorize at most 256 pages; no self-triggered query loops. */
+    boolean continues(LuaIdentityQuery previous) {
+        if (previous == null || previous.pageNumber >= 256 ||
+                !"r".equals(previous.kind) || offset <= previous.offset ||
+                !channel.equalsIgnoreCase(previous.channel) || !token.equals(previous.token) ||
+                limit != previous.limit || !nick.equals(previous.nick) || !ident.equals(previous.ident) ||
+                !host.equals(previous.host) || !account.equals(previous.account) ||
+                !prefix.equals(previous.prefix) || !auth.equals(previous.auth)) return false;
+        pageNumber = previous.pageNumber + 1;
+        return true;
     }
 
     static final class Result {
