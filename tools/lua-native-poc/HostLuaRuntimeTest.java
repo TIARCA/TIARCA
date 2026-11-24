@@ -1520,9 +1520,11 @@ public final class HostLuaRuntimeTest {
                 "Unified AutoMod reloads for storage quota test");
         event(ID, "command", "#room", "me", "mod canali add #room");
         for (int i = 0; i < 500; i++) {
-            check("OK".equals(eventWithLongIdentity("Guest" + i, "acct" + i,
-                    "sono qui per parlare", 1794409000L + i)[0]),
-                    "Quota churn must not crash AutoMod: " + i);
+            String[] quotaResult = eventWithLongIdentity("Guest" + i, "acct" + i,
+                    "sono qui per parlare", 1794409000L + i);
+            check("OK".equals(quotaResult[0]),
+                    "Quota churn must not crash AutoMod: " + i + " " +
+                            java.util.Arrays.toString(quotaResult));
         }
         for (java.util.Map.Entry<String, String> stored : automodStorage.entrySet()) {
             if (stored.getKey().startsWith("u1.s"))
