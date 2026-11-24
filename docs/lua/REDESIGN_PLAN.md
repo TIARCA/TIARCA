@@ -6,8 +6,8 @@ Decisione del 24 novembre 2026. Obiettivo: trasferire solo i dati necessari, man
 | --- | --- | --- |
 | A | Cache identità IRC: membri condivisi, JOIN/NAMES/PRIVMSG/NICK/ACCOUNT/CHGHOST/PART/KICK/QUIT/disconnessione; limiti espliciti e identità ignote | CI #1181 e reproducibilità #390 superate; test reali da verificare |
 | B | Dispatcher: consegna solo eventi sottoscritti; evitare snapshot inutili, senza bloccare IRC/UI | CI #1188 e reproducibilità #397 superate; test reali da verificare |
-| C | API: event.sender acquisito al ricevimento; get_user puntuale; get_users filtrato prima della paginazione e asincrono, con indicazione completezza; get_channels su richiesta | Implementata sullo stesso branch; CI da verificare |
-| D | Storage in memoria, aggiornamenti atomici solo al cambiamento, sincronizzazione/versioni tra processi, backup e ripristino; commit prima delle sanzioni | Pianificata |
+| C | API: event.sender acquisito al ricevimento; get_user puntuale; get_users filtrato prima della paginazione e asincrono, con indicazione completezza; get_channels su richiesta | CI #1206 e reproducibilità #415 superate; test reali da verificare |
+| D | Storage in memoria, aggiornamenti atomici solo al cambiamento, sincronizzazione/versioni tra processi, backup e ripristino; commit prima delle sanzioni | Implementata sullo stesso branch; CI da verificare |
 | E | Adeguare AutoMod V4, mantenere crediti e logica; correggere integrazione voice; Mask Finder ed Espelli invariati funzionalmente | Pianificata |
 | F | Diagnostica motore (eventi ricevuti/elaborati/scartati, latenza, memoria, scritture, richieste roster) e stress test 1000 membri/500 attivi, 5/10/25/50 msg/s; statistiche AutoMod separate da valutare dopo | Pianificata |
 | G | Guida scripting IT/EN, contratto API e compatibilità script terzi | Pianificata |
@@ -87,3 +87,12 @@ end)
 - Compatibilità: script legacy invariati; migrazione AutoMod V4 e altri script nella fase E. La documentazione bilingue completa è fase G.
 - Test aggiunti: 1000 membri/130 voice (100+30 risultati, tutti oltre il vecchio limite), lookup puntuale, account ignoto, logout successivo al messaggio, scope, continuazione, opt-in per rete, callback JNI dirette e asincrone. Compilazione/CI/benchmark Android ancora da verificare per C.
 
+
+## Fase D — storage persistente
+
+- Stato autorevole nel processo principale, cache in RAM caricata al primo uso e limitata a 8 script. Lo storage resta globale per script (con chiavi eventualmente separate per rete), come prima. Formato JSON e quote di 32 chiavi/128 KiB invariati.
+- Revisione monotona locale al processo; snapshot completo via IPC solo al primo invio, dopo reset o quando cambia la revisione. Il servizio isolato conserva solo copie convalidate di revisioni già commesse; i VM nativi riutilizzano lo stato invariato e invalidano le copie in caso di scritture speculative. Non viene ampliato l'accesso del sandbox.
+- Eventi degli script con consenso storage serializzati per script, anche tra reti; gli altri script non aspettano la transazione di quello script. Le richieste in attesa condividono il limite esistente di 32 eventi preparati; la coda di ingresso resta limitata a 32. A saturazione si possono ancora perdere eventi: misurare nella fase F.
+- Tutte le mutazioni di un evento sono validate e applicate insieme. Stato finale identico = nessuna scrittura. In caso di modifica, un solo commit AtomicFile, sync e verifica dei byte; gli effetti dell'evento vengono rilasciati soltanto dopo successo. Una revisione obsoleta o un errore di persistenza blocca gli effetti e disabilita lo script. Non è una transazione distribuita con il server IRC: un crash dopo il commit e prima dell'invio può lasciare lo stato aggiornato senza sanzione effettivamente inviata.
+- Backup esporta soltanto lo stato commesso, restore e cancellazione invalidano la cache; le approvazioni restano revocate al ripristino. Nessuna migrazione di file o API Lua.
+- Test aggiunti: 1000 accessi alla stessa revisione, batch/no-op, errore e revisione obsoleta, restore/reset, mirror IPC, coda FIFO multirete, invalidazione VM dopo mutazione non commessa e callback fallita. Test Android reali, throughput e latenza del commit ancora da misurare.
