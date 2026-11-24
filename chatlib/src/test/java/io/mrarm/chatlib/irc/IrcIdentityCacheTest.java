@@ -183,5 +183,35 @@ public class IrcIdentityCacheTest {
         assertNotNull(data.getIdentityCache().get("Bob"));
         handler.handleLine(":Bob!ident2@host2 PART #other :bye");
         assertNull(data.getIdentityCache().get("Bob"));
+
+        // A nickname reused after leaving must not inherit an old account,
+        // even if an unrelated recent WHOIS had the same visible mask.
+        data.getIdentityCache().note("Bob", "ident2", "host2", "oldAccount");
+        handler.handleLine(":Bob!ident2@host2 JOIN #room");
+        assertFalse(data.getIdentityCache().get("Bob").accountKnown);
+        handler.handleLine(":Bob!ident2@host2 JOIN #other newAccount :Bob");
+        handler.handleLine(":Op!ident@host KICK #room Bob :bye");
+        assertEquals("newAccount", data.getIdentityCache().get("Bob").account);
+        handler.handleLine(":Bob!ident2@host2 QUIT :bye");
+        assertNull(data.getIdentityCache().get("Bob"));
+    }
+
+    @Test public void namesCompletionDoesNotRecreateOldNickAfterRename() throws Exception {
+        ServerConnectionData data = new ServerConnectionData();
+        data.setUserNick("me");
+        data.setUserInfoApi(new io.mrarm.chatlib.user.SimpleUserInfoApi());
+        data.setMessageStorageApi(new io.mrarm.chatlib.message.SimpleMessageStorageApi());
+        data.onChannelJoined("#room");
+        MessageHandler handler = new MessageHandler(data);
+        handler.handleLine(":Bob!ident@host JOIN #room accountBob :Bob");
+        handler.handleLine(":irc.example 353 me = #room :Bob");
+        handler.handleLine(":Bob!ident@host NICK :Bobby");
+        handler.handleLine(":irc.example 366 me #room :End of NAMES");
+        for (int i = 0; i < IrcIdentityCache.MAX_RECENT + 10; i++)
+            data.getIdentityCache().note("noise" + i, "ident", "host", "*");
+        assertNull(data.getIdentityCache().get("Bob"));
+        assertEquals("accountBob", data.getIdentityCache().get("Bobby").account);
+        data.onChannelLeft("#room");
+        assertNull(data.getIdentityCache().get("Bobby"));
     }
 }
