@@ -31,14 +31,27 @@ final class NativeLuaRuntime {
     }
 
     /** Historical message sender data retrieved from SQLite, never inferred. */
-    static native byte[][] dispatchWithIdentity(String scriptId, String event, byte[] server,
+    static byte[][] dispatchWithIdentity(String scriptId, String event, byte[] server,
                                                  byte[] channel, byte[] nick, byte[] text,
                                                  byte[] messageType, long timestamp,
                                                  byte[][] channelNames, int[] memberCounts,
                                                  boolean channelsTruncated, byte[][] userFields,
                                                  boolean usersTruncated, boolean canReadUsers,
                                                  byte[][] storagePairs, boolean canUseStorage,
-                                                 byte[][] historyIdentity);
+                                                 byte[][] historyIdentity) {
+        return dispatchVersioned(scriptId, event, server, channel, nick, text,
+                messageType, timestamp, channelNames, memberCounts, channelsTruncated,
+                userFields, usersTruncated, canReadUsers, storagePairs,
+                canUseStorage, historyIdentity, 0);
+    }
+
+    /** Version zero forces a fresh snapshot (legacy host tests). */
+    static native byte[][] dispatchVersioned(String scriptId, String event, byte[] server,
+            byte[] channel, byte[] nick, byte[] text, byte[] messageType, long timestamp,
+            byte[][] channelNames, int[] memberCounts, boolean channelsTruncated,
+            byte[][] userFields, boolean usersTruncated, boolean canReadUsers,
+            byte[][] storagePairs, boolean canUseStorage, byte[][] historyIdentity,
+            long storageVersion);
     static native void unload(String scriptId);
     static native void clear();
 
