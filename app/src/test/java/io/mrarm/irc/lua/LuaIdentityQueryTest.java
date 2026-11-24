@@ -137,4 +137,29 @@ public class LuaIdentityQueryTest {
         assertNull(LuaIdentityQuery.parse("#room", roster(0, 129, "+", "")));
         assertNull(LuaIdentityQuery.parse("#room", roster(0, 100, "+", "invalid")));
     }
+
+    @Test public void rawIrcMessageKeepsItsAccountAfterSubsequentLogout() throws Exception {
+        ServerConnectionData data = new ServerConnectionData();
+        data.setUserNick("me");
+        data.setUserInfoApi(new SimpleUserInfoApi());
+        io.mrarm.chatlib.message.SimpleMessageStorageApi messages =
+                new io.mrarm.chatlib.message.SimpleMessageStorageApi();
+        data.setMessageStorageApi(messages);
+        data.onChannelJoined("#room");
+        io.mrarm.chatlib.irc.MessageHandler handler =
+                new io.mrarm.chatlib.irc.MessageHandler(data);
+        handler.handleLine(":Alice!ident@host JOIN #room oldAccount :Alice");
+        java.util.concurrent.atomic.AtomicReference<MessageSenderInfo> observed =
+                new java.util.concurrent.atomic.AtomicReference<>();
+        messages.subscribeChannelMessages("#room", (channel, message, id) ->
+                observed.set(message.getSender()), null, null).get();
+        handler.handleLine("@account=oldAccount :Alice!ident@host PRIVMSG #room :hello");
+        MessageSenderInfo original = observed.get();
+        assertNotNull(original);
+        assertTrue(original.hasLiveIdentityObservation());
+        assertTrue(original.wasLiveChannelMember());
+        data.getIdentityCache().note("Alice", null, null, "*");
+        assertArrayEquals(new String[]{"ident", "host", "", "oldAccount"},
+                LuaIdentityQuery.sender(data, "#room", original));
+    }
 }
