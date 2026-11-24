@@ -2,6 +2,7 @@ package io.mrarm.chatlib.irc.handlers;
 
 import io.mrarm.chatlib.NoSuchChannelException;
 import io.mrarm.chatlib.dto.MessageInfo;
+import io.mrarm.chatlib.dto.MessageSenderInfo;
 import io.mrarm.chatlib.dto.StatusMessageInfo;
 import io.mrarm.chatlib.irc.*;
 import io.mrarm.chatlib.irc.dcc.DCCClientManager;
