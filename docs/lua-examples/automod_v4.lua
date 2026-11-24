@@ -428,7 +428,6 @@ tiarca.on("command",function(e)
    if n<3 or n>12 then show("Minparole: 3..12");return end
    c.minwords=n
   else help("parametri");return end
-  c.epoch=c.epoch+1
   finish()
  elseif op=="canali" then
   if rest=="list" then
