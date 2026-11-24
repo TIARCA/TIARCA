@@ -1599,6 +1599,49 @@ public final class HostLuaRuntimeTest {
         check(java.util.Arrays.toString(noCredit).contains("motore B"),
                 "Bot commands and two-word conversations give no credit");
 
+        // Personalized greetings must remain neutral, even when repeated.
+        String[] greetingsV4 = {
+                "GIANNAGIANNA felice pomeriggio a te",
+                "Rossatatuata03 felice pomeriggio a te",
+                "Sarah_ felice pomeriggio a te",
+                "felice pomeriggio", "felice serata", "felice nottata", "felice giornata",
+                "Felice pomeriggio Sarah 😊", "Auguro a tutti una felice giornata",
+                "Serena nottata a tutti", "Buona serata, un abbraccio",
+                "Ciao Sarah, tutto bene?", "Sarah ti auguro una buona serata",
+                "Buonasera a te Sarah", "Felice serata!!!",
+                "Buona giornata Nick_Name", "Dolce notte", "Ottimo fine settimana"
+        };
+        for (int i = 0; i < greetingsV4.length; i++) {
+            for (int j = 0; j < 3; j++) {
+                String[] result = eventAs(ID, "message", "#room", "Greeter",
+                        greetingsV4[i], 1794410008L + i * 3 + j, "", "greeter");
+                check(result.length == 1 && "OK".equals(result[0]),
+                        "Greeting must not trigger Watchdog: " + greetingsV4[i]);
+            }
+        }
+        eventAs(ID, "message", "#room", "GreetingAd", "cerco ragazze",
+                1794410010L, "", "greeting-ad");
+        for (String greeting : greetingsV4) {
+            check(eventAs(ID, "message", "#room", "GreetingAd", greeting,
+                    1794410011L, "", "greeting-ad").length == 1,
+                    "Greeting must remain neutral between ads");
+        }
+        String[] greetingAd = eventAs(ID, "message", "#room", "GreetingAd",
+                "Buona serata, donne in pvt?", 1794410012L, "", "greeting-ad");
+        check(java.util.Arrays.toString(greetingAd).contains("motore B"),
+                "Greetings neither offset ads nor hide ads with a greeting prefix");
+        eventAs(ID, "message", "#room", "GreetingAd2", "Felice pomeriggio, cerco ragazze",
+                1794410010L, "", "greeting-ad2");
+        check(java.util.Arrays.toString(eventAs(ID, "message", "#room", "GreetingAd2",
+                "Buon pomeriggio, qualcuna di Roma?", 1794410011L, "", "greeting-ad2"))
+                .contains("motore B"), "Ad rules take precedence over greeting grammar");
+        for (int j = 0; j < 3; j++) {
+            String[] result = eventAs(ID, "message", "#room", "GreetingRepeat",
+                    "Ciao a tutti oggi vendo il mio telefono", 1794410010L+j, "", "greeting-repeat");
+            check(j < 2 ? result.length == 1 : java.util.Arrays.toString(result).contains("motore A"),
+                    "Greeting prefix does not exempt ordinary repeated messages");
+        }
+
         eventAs(ID, "message", "#room", "Repeater", "oggi sono andato al mare",
                 1794410012L, "", "repeater");
         String[] v4Second = eventAs(ID, "message", "#room", "Repeater",

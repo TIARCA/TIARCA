@@ -48,11 +48,55 @@ local function code(w)
  for _,v in ipairs(w) do if v:match("^[mf]%d%d?%d?%d?$") then return true end end
  return false
 end
+-- Recognize a whole greeting, not a greeting word inside an announcement.
+local wish=dict("buon buona felice sereno serena splendido splendida ottimo ottima dolce bellissimo bellissima")
+local periods=dict("giorno giornata mattina mattinata pomeriggio sera serata notte nottata weekend")
+local greetPrefix={"ti auguro","vi auguro","auguro a tutti","auguro a tutte","auguro a te","auguro a voi","auguro"}
+local greetSuffix={"a te","a voi","a tutti","a tutte","tutti","tutte","un abbraccio","tutto bene"}
+local notNick=dict("a te voi tutti tutte io tu mi ti vi un una il la che di da per con si no anche e o bene sesso sexy sex info numero numeri")
+local function greetingCore(s)
+ if greetings[s] then return true end
+ for _,p in ipairs(greetPrefix) do
+  if s:sub(1,#p+1)==p.." " then
+   s=s:sub(#p+2):gsub("^un ",""):gsub("^una ","");break
+  end
+ end
+ for i=1,2 do
+  for _,p in ipairs(greetSuffix) do
+   if s:sub(-#p-1)==" "..p then s=s:sub(1,-#p-2);break end
+  end
+ end
+ if greetings[s] then return true end
+ local a,b=s:match("^(%S+) (.+)$")
+ return a and wish[a] and (periods[b] or b=="fine settimana")
+end
+local function greetingNick(n)
+ return n and n:match("^[a-z][%w]*$") and not notNick[n]
+  and not people[n] and not search[n] and not chatting[n]
+  and not contact[n] and not encounter[n] and not media[n]
+  and not places[n] and not code({n})
+end
+local function isGreeting(raw)
+ -- Remove common emoji only for greeting recognition; keep ad matching unchanged.
+ local s=normalize(raw:gsub("\240\159[\128-\191][\128-\191]"," ")
+  :gsub("\226[\152\153\157][\128-\191]"," ")
+  :gsub("\239\184\143",""):gsub("\226\128\141","")
+  :gsub("([%w])[_%-]+%f[%w]","%1"))
+ if greetingCore(s) then return true end
+ local n,tail=s:match("^(%S+) (.+)$")
+ if greetingNick(n) and greetingCore(tail) then return true end
+ local head,last=s:match("^(.+) (%S+)$")
+ if greetingNick(last) and greetingCore(head) then return true end
+ local first,middle,rest=s:match("^(%S+) (%S+) (.+)$")
+ if greetings[first] and greetingNick(middle) and greetingCore(first.." "..rest) then
+  return true end
+ return false
+end
 local function category(raw)
  if raw:match("^%s*!") then return "ignore","BOT" end
  local s=normalize(raw)
  if s=="" then return "ignore","EMPTY" end
- if greetings[s] or s:match("^ciao da [%w_]+$") then return "ignore","GREETING" end
+ if greetings[s] then return "ignore","GREETING" end
  local w=words(s)
  local numeric=true
  for _,v in ipairs(w) do if not v:match("^%d+$") then numeric=false;break end end
@@ -73,6 +117,7 @@ local function category(raw)
  if has(w,{ospito=true,ospitare=true}) and has(w,places) then return "ad","HOST" end
  if has(w,people) and (s:find("qualsiasi eta",1,true) or
   s:find("qualunque eta",1,true)) then return "ad","AGE" end
+ if isGreeting(raw) or s:match("^ciao da [%w_]+$") then return "ignore","GREETING" end
  if #w<=2 then return "short","SHORT" end
  if not s:find("[a-z]") then return "ignore","SYMBOLS" end
  if raw:match("^%s*https?://") and #w<=4 then return "ignore","URL" end
