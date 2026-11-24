@@ -208,9 +208,16 @@ final class LuaIdentityQuery {
         try {
             if (channel == null || channel.isEmpty() ||
                     !data.getSupportList().getSupportedChannelTypes().contains(channel.charAt(0))) return null;
-            ChannelData.Member member = data.getJoinedChannelData(channel).getMember(sender.getUserUUID());
-            if (member == null) return null; // Never imply an absent user's privilege is known.
+            ChannelData target = data.getJoinedChannelData(channel);
             String ident = safe(sender.getUser(), 95), host = safe(sender.getHost(), 255);
+            if (sender.hasLiveIdentityObservation()) {
+                if (!sender.wasLiveChannelMember()) return null;
+                String prefix = sender.getNickPrefixes() == null ? "" :
+                        safe(sender.getNickPrefixes().toString(), 31);
+                return new String[]{ident, host, prefix, safe(sender.getObservedAccount(), 95)};
+            }
+            ChannelData.Member member = target.getMember(sender.getUserUUID());
+            if (member == null) return null; // Never imply an absent user's privilege is known.
             IrcIdentityCache.Identity i = data.getIdentityCache().get(sender.getNick());
             String acct = i != null && !ident.isEmpty() && !host.isEmpty() &&
                     ident.equals(i.ident) && host.equalsIgnoreCase(i.host) ? account(i) : "";
