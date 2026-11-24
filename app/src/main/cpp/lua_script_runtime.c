@@ -295,6 +295,8 @@ static int script_get_channels(lua_State *L) {
         return luaL_error(L, "tiarca.get_channels: only available in a callback");
     if (s->identity_v2) {
         query_allowed(L, 0, 1);
+        if (s->current_kind != 3)
+            return luaL_error(L, "tiarca.get_channels: local command required");
         const char *token = query_string(L, 1, 64);
         if (!token[0]) return luaL_error(L, "tiarca.get_channels: token required");
         char value[68];
@@ -349,6 +351,8 @@ static void push_users(lua_State *L) {
         if (u->ident[0]) set_field(L, "ident", u->ident);
         if (u->host[0]) set_field(L, "host", u->host);
         if (u->account[0]) set_field(L, "account", u->account);
+        lua_pushboolean(L, u->account[0] != 0);
+        lua_setfield(L, -2, "account_known");
         if (u->ident[0] && u->host[0]) {
             lua_pushfstring(L, "%s!%s@%s", u->nick, u->ident, u->host);
             lua_setfield(L, -2, "mask");
@@ -1137,6 +1141,10 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchWithIdentity(JNIEnv *env, jclass 
             if (historical_ident[0]) set_field(L, "ident", historical_ident);
             if (historical_host[0]) set_field(L, "host", historical_host);
             if (sender_account[0]) set_field(L, "account", sender_account);
+            if (historical_ident[0] && historical_host[0]) {
+                lua_pushfstring(L, "%s!%s@%s", nick, historical_ident, historical_host);
+                lua_setfield(L, -2, "mask");
+            }
             lua_pushboolean(L, sender_account[0] != 0);
             lua_setfield(L, -2, "account_known");
             lua_setfield(L, -2, "sender");
@@ -1150,7 +1158,8 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchWithIdentity(JNIEnv *env, jclass 
                 total = 0; next = -1; complete = 0;
             }
             set_field(L, "token", type);
-            set_field(L, "query", query_kind);
+            set_field(L, "query", query_kind[0] == 'u' ? "user" :
+                    query_kind[0] == 'r' ? "users" : query_kind[0] == 'c' ? "channels" : "");
             set_field(L, "status", status);
             lua_pushinteger(L, total); lua_setfield(L, -2, "total");
             if (next >= 0) { lua_pushinteger(L, next); lua_setfield(L, -2, "next_offset"); }
