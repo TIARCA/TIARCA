@@ -188,7 +188,8 @@ end
 local genericIdent=dict("guest webirc android user ident unknown anonymous irccloud mibbit")
 local function identify(e,now,window)
  local ok,roster=pcall(tiarca.get_users,e.channel)
- if not ok or type(roster)~="table" or roster.truncated then return nil,"ROSTER" end
+ if not ok or type(roster)~="table" then return nil,"ROSTER" end
+ -- TIARCA includes the event sender in a truncated snapshot whenever observed.
  for _,u in ipairs(roster) do
   if u.nick and u.nick:lower()==e.nick:lower() then
    local prefix=u.prefix or ""
@@ -216,7 +217,7 @@ local function identify(e,now,window)
    return key
   end
  end
- return nil,"UNKNOWN"
+ return nil,roster.truncated and "ROSTER_TRUNCATED" or "UNKNOWN"
 end
 local function getWatch(id,channel,now,window)
  local key=id.."\0"..channel:lower()
@@ -289,7 +290,7 @@ tiarca.on("message",function(e)
  local window=c.minutes*60
  local id,why=identify(e,now,window)
  if not id then
-  if why=="HOST_SHARED" or why=="ROSTER" then
+  if why=="HOST_SHARED" or why=="ROSTER" or why=="ROSTER_TRUNCATED" then
    tiarca.log("AutoMod V4: identita non affidabile "..why.."; controllo sospeso")
   end
   return
