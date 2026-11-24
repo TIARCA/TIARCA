@@ -1443,6 +1443,63 @@ public final class HostLuaRuntimeTest {
         check(microHelp.length >= 4 && "show".equals(microHelp[1]),
                 "Collector V3 exposes opt-in micro discovery");
 
+        // Unified AutoMod: protect the agreed exceptions and survive heavy user churn.
+        automodStorage.clear();
+        automodActive = true;
+        check("OK".equals(decode(NativeLuaRuntime.load(ID, unified))),
+                "Unified AutoMod must reload for capacity regression");
+        event(ID, "command", "#room", "me", "mod canali add #room");
+        for (int i = 0; i < 3; i++) {
+            check(eventAs(ID, "message", "#room", "Crys",
+                    "f per conoscenza", 1794407000L + i, "", "Micaela").length == 1,
+                    "Authenticated Crys/Micaela must be protected by default");
+            check(eventAs(ID, "message", "#room", "MusicBox",
+                    "f per conoscenza", 1794407000L + i, "%", "musicbox").length == 1,
+                    "Halfop MusicBox must not enter moderation");
+        }
+        check(java.util.Arrays.toString(event(ID, "command", "#room", "me",
+                "mod stato")).contains("identita 0;"),
+                "Protected accounts and halfops must not occupy identity slots");
+        eventAs(ID, "message", "#room", "Sanctioned",
+                "f per conoscenza", 1794407010L, "", "preserved");
+        String[] firstDetection = eventAs(ID, "message", "#room", "Sanctioned",
+                "f per conoscenza", 1794407011L, "", "preserved");
+        check(java.util.Arrays.toString(firstDetection).contains("motore B") &&
+                        java.util.Arrays.toString(firstDetection).contains("infrazione 1"),
+                "Escalation must start before capacity churn");
+
+        for (int i = 0; i < 1000; i++) {
+            String nick = "NewUser" + i;
+            String[] result = eventAs(ID, "message", "#room", nick,
+                    "sono qui per parlare", 1794407012L + i, "", "acct" + i);
+            check("OK".equals(result[0]),
+                    "AutoMod must handle each of 1000 sequential identities: " + i);
+        }
+        String[] status = event(ID, "command", "#room", "me", "mod stato");
+        check(java.util.Arrays.toString(status).contains("cache 360/360") &&
+                        java.util.Arrays.toString(status).contains("ricambi ") &&
+                        java.util.Arrays.toString(status).contains("blocchi 0"),
+                "Bounded cache must recycle idle non-sanctioned identities");
+        for (java.util.Map.Entry<String, String> stored : automodStorage.entrySet()) {
+            if (stored.getKey().startsWith("u1.s"))
+                check(bytes(stored.getValue()).length <= 8192,
+                        "Persisted identity shard must not exceed C6 quota");
+        }
+        eventAs(ID, "message", "#room", "FreshUser",
+                "f per conoscenza", 1794408020L, "", "fresh");
+        String[] freshDetection = eventAs(ID, "message", "#room", "FreshUser",
+                "f per conoscenza", 1794408021L, "", "fresh");
+        check(java.util.Arrays.toString(freshDetection).contains("motore B") &&
+                        java.util.Arrays.toString(freshDetection).contains("infrazione 1"),
+                "New arrivals must remain moderated after 1000 identities");
+        check("OK".equals(decode(NativeLuaRuntime.load(ID, unified))),
+                "Unified AutoMod must reload with cache rotations");
+        String[] preservedDetection = eventAs(ID, "message", "#room", "Sanctioned",
+                "f per conoscenza", 1794408030L, "", "preserved");
+        check(java.util.Arrays.toString(preservedDetection).contains("motore B") &&
+                        java.util.Arrays.toString(preservedDetection).contains("infrazione 2"),
+                "Unexpired escalation survives eviction and a VM restart");
+
         NativeLuaRuntime.unload(ID);
         check(NativeLuaRuntime.dispatch(ID, "message", bytes("test-server"),
                 bytes("#x"), bytes("a"), bytes("b"), bytes("normal"), 0L,
