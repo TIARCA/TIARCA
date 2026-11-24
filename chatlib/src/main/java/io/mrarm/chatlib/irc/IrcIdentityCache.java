@@ -197,6 +197,18 @@ public final class IrcIdentityCache {
             for (String id : members) release(id);
     }
 
+    /** A fresh JOIN outside known shared channels cannot prove continuity of a nick. */
+    public synchronized void prepareJoin(String nick) {
+        String id = key(nick);
+        if (id != null && !memberships.containsKey(id))
+            recent.remove(id);
+    }
+
+    /** Record incomplete membership evidence without losing known good identities. */
+    public synchronized void markMembershipIncomplete() {
+        membershipOverflow = true;
+    }
+
     /** Sticky for the connection; callers must not assume an exhaustive cache. */
     public synchronized boolean membershipTrackingComplete() {
         return !membershipOverflow;
