@@ -52,4 +52,20 @@ public class LuaEventSubscriptionsTest {
         assertFalse(routes.accepts("script", "a", "message"));
         assertTrue(routes.accepts("script", "a", "future_event"));
     }
+
+    @Test public void v2OptInIsNetworkScopedAndUnknownRetainsLegacySnapshots() {
+        LuaEventSubscriptions routes = new LuaEventSubscriptions();
+        assertTrue(routes.mayUseIdentityV2("script", "a"));
+        assertFalse(routes.usesIdentityV2("script", "a"));
+        routes.begin("script", "", 1);
+        routes.complete("script", "", 1, 1);
+        assertFalse(routes.mayUseIdentityV2("script", "a"));
+        routes.begin("script", "a", 2);
+        routes.complete("script", "a", 2, (1 << 20) | 1 | (1 << 13));
+        assertTrue(routes.usesIdentityV2("script", "a"));
+        assertTrue(routes.accepts("script", "a", "identity"));
+        assertFalse(routes.usesIdentityV2("script", "b"));
+        routes.clear();
+        assertFalse(routes.usesIdentityV2("script", "a"));
+    }
 }
