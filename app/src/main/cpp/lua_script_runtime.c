@@ -21,7 +21,8 @@
 #define MAX_USERS 128
 #define MAX_STORAGE 32
 #define MAX_STORAGE_BYTES (128u * 1024u)
-#define EVENT_KINDS 13
+#define EVENT_KINDS 14
+#define IDENTITY_V2_FLAG (1 << 20)
 #define MAX_SOURCE 24576
 #define SCRIPT_MEMORY (2u * 1024u * 1024u)
 #define INSTRUCTION_LIMIT 200000ul
@@ -58,6 +59,9 @@ typedef struct ScriptVm {
     int callbacks[EVENT_KINDS][MAX_HANDLERS];
     int count[EVENT_KINDS];
     int event_active;
+    int current_kind;
+    int identity_v2;
+    int query_requested;
     int action_count;
     ScriptAction actions[MAX_ACTIONS];
     ChannelSnapshot channels[MAX_CHANNELS];
@@ -126,6 +130,7 @@ static int event_kind(const char *name) {
     if (!strcmp(name, "ban")) return 10;
     if (!strcmp(name, "history")) return 11;
     if (!strcmp(name, "moderation_log")) return 12;
+    if (!strcmp(name, "identity")) return 13;
     return -1;
 }
 
@@ -202,11 +207,107 @@ static int script_notice(lua_State *L) {
     return 0;
 }
 
+/* Opt in at initialization; legacy scripts retain their synchronous snapshots. */
+static int script_identity_v2(lua_State *L) {
+    ScriptVm *s = context(L);
+    if (s->event_active || lua_gettop(L) != 0)
+        return luaL_error(L, "tiarca.identity_v2: initialization only");
+    s->identity_v2 = 1;
+    return 0;
+}
+
+static const char *query_string(lua_State *L, int index, size_t max) {
+    size_t len;
+    const char *v = luaL_checklstring(L, index, &len);
+    if (len > max || memchr(v, 0, len) || memchr(v, '\t', len) ||
+            memchr(v, '\r', len) || memchr(v, '\n', len))
+        luaL_error(L, "tiarca: invalid identity query field");
+    return v;
+}
+
+static void query_allowed(lua_State *L, int needs_users, int bulk) {
+    ScriptVm *s = context(L);
+    if (!s->event_active || !s->identity_v2 || (needs_users && !s->can_read_users) ||
+            s->count[13] == 0 || s->query_requested ||
+            (bulk && s->current_kind != 3 && s->current_kind != 13) ||
+            (!bulk && s->current_kind != 0 && s->current_kind != 3 &&
+                    s->current_kind != 4 && s->current_kind != 5 &&
+                    s->current_kind != 6 && s->current_kind != 7 &&
+                    s->current_kind != 9 && s->current_kind != 10))
+        luaL_error(L, "tiarca: identity query unavailable or not authorized");
+}
+
+static void submit_query(lua_State *L, const char *channel, const char *value) {
+    add_action(L, "query", channel, strlen(channel), value, strlen(value));
+    context(L)->query_requested = 1;
+}
+
+static int script_get_user(lua_State *L) {
+    query_allowed(L, 1, 0);
+    const char *channel = query_string(L, 1, 96);
+    const char *nick = query_string(L, 2, 95);
+    const char *token = query_string(L, 3, 64);
+    if (!channel[0] || !nick[0] || !token[0])
+        return luaL_error(L, "tiarca.get_user: missing field");
+    char value[512];
+    snprintf(value, sizeof(value), "u\t%s\t%s", token, nick);
+    submit_query(L, channel, value);
+    return 0;
+}
+
+static int script_query_users(lua_State *L) {
+    query_allowed(L, 1, 1);
+    const char *channel = query_string(L, 1, 96);
+    luaL_checktype(L, 2, LUA_TTABLE);
+    const char *names[] = {"token", "nick", "ident", "host", "account", "prefix", "auth"};
+    const size_t maxima[] = {64, 95, 95, 255, 95, 31, 16};
+    char fields[7][256];
+    for (int i = 0; i < 7; i++) {
+        lua_getfield(L, 2, names[i]);
+        const char *v = lua_isnil(L, -1) ? "" : query_string(L, -1, maxima[i]);
+        snprintf(fields[i], sizeof(fields[i]), "%s", v);
+        lua_pop(L, 1);
+    }
+    lua_getfield(L, 2, "offset");
+    lua_Integer offset = luaL_optinteger(L, -1, 0);
+    lua_pop(L, 1);
+    lua_getfield(L, 2, "limit");
+    lua_Integer limit = luaL_optinteger(L, -1, 100);
+    lua_pop(L, 1);
+    if (!channel[0] || !fields[0][0] || offset < 0 || offset > 65536 ||
+            limit < 1 || limit > MAX_USERS)
+        return luaL_error(L, "tiarca.get_users: invalid token or page");
+    char value[513];
+    int n = snprintf(value, sizeof(value), "r\t%s\t%lld\t%lld\t%s\t%s\t%s\t%s\t%s\t%s",
+            fields[0], (long long)offset, (long long)limit, fields[1], fields[2],
+            fields[3], fields[4], fields[5], fields[6]);
+    if (n < 0 || n >= (int)sizeof(value))
+        return luaL_error(L, "tiarca.get_users: query too large");
+    submit_query(L, channel, value);
+    return 0;
+}
+
 /* No WHO request, socket or private-tab access; event-scoped cached data. */
+static void push_channels(lua_State *L);
 static int script_get_channels(lua_State *L) {
     ScriptVm *s = context(L);
     if (!s->event_active)
         return luaL_error(L, "tiarca.get_channels: only available in a callback");
+    if (s->identity_v2) {
+        query_allowed(L, 0, 1);
+        const char *token = query_string(L, 1, 64);
+        if (!token[0]) return luaL_error(L, "tiarca.get_channels: token required");
+        char value[68];
+        snprintf(value, sizeof(value), "c\t%s", token);
+        submit_query(L, "", value);
+        return 0;
+    }
+    push_channels(L);
+    return 1;
+}
+
+static void push_channels(lua_State *L) {
+    ScriptVm *s = context(L);
     lua_createtable(L, s->channel_count, 1);
     for (int i = 0; i < s->channel_count; i++) {
         lua_createtable(L, 0, 2);
@@ -218,18 +319,25 @@ static int script_get_channels(lua_State *L) {
     }
     lua_pushboolean(L, s->channels_truncated);
     lua_setfield(L, -2, "truncated");
-    return 1;
 }
 
 static void set_field(lua_State *L, const char *name, const char *value);
 
 /* Roster is limited to the event's joined channel and a separate user consent. */
+static void push_users(lua_State *L);
 static int script_get_users(lua_State *L) {
     ScriptVm *s = context(L);
+    if (s->identity_v2) return script_query_users(L);
     const char *channel = luaL_checkstring(L, 1);
     if (!s->event_active || !s->can_read_users ||
             strcmp(channel, s->event_channel) != 0 || !channel[0])
         return luaL_error(L, "tiarca.get_users: unavailable or not authorized");
+    push_users(L);
+    return 1;
+}
+
+static void push_users(lua_State *L) {
+    ScriptVm *s = context(L);
     lua_createtable(L, s->user_count, 1);
     for (int i = 0; i < s->user_count; i++) {
         const UserSnapshot *u = &s->users[i];
@@ -249,7 +357,6 @@ static int script_get_users(lua_State *L) {
     }
     lua_pushboolean(L, s->users_truncated);
     lua_setfield(L, -2, "truncated");
-    return 1;
 }
 
 static void channel_action(lua_State *L, const char *kind,
@@ -666,6 +773,10 @@ static void install_libraries(lua_State *L) {
     lua_setfield(L, -2, "notice");
     lua_pushcfunction(L, script_close_pms);
     lua_setfield(L, -2, "close_pms");
+    lua_pushcfunction(L, script_identity_v2);
+    lua_setfield(L, -2, "identity_v2");
+    lua_pushcfunction(L, script_get_user);
+    lua_setfield(L, -2, "get_user");
     lua_pushcfunction(L, script_get_channels);
     lua_setfield(L, -2, "get_channels");
     lua_pushcfunction(L, script_get_users);
@@ -822,7 +933,7 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_eventMask(JNIEnv *env, jclass unused, jst
     jint mask = 0;
     for (int kind = 0; kind < EVENT_KINDS; kind++)
         if (g_scripts[slot]->count[kind] > 0) mask |= (1 << kind);
-    return mask;
+    return mask | (g_scripts[slot]->identity_v2 ? IDENTITY_V2_FLAG : 0);
 }
 
 JNIEXPORT void JNICALL
@@ -963,10 +1074,26 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchWithIdentity(JNIEnv *env, jclass 
         s->stored_count++;
     }
     char historical_ident[97] = "", historical_host[257] = "";
+    char sender_prefix[33] = "", sender_account[97] = "";
+    int sender_present = 0;
     if (jhistoryidentity) {
         jsize histFields = (*env)->GetArrayLength(env, jhistoryidentity);
-        if (histFields != 0 && histFields != 2) return NULL;
-        if (histFields == 2) {
+        if (histFields != 0 && histFields != 2 && histFields != 4) return NULL;
+        if (histFields == 4) {
+            if (jcanreadusers != JNI_TRUE || (kind != 0 && kind != 4 && kind != 5 &&
+                    kind != 6 && kind != 7 && kind != 9 && kind != 10)) return NULL;
+            char *dest[] = {historical_ident, historical_host, sender_prefix, sender_account};
+            size_t caps[] = {sizeof(historical_ident), sizeof(historical_host),
+                    sizeof(sender_prefix), sizeof(sender_account)};
+            for (int i = 0; i < 4; i++) {
+                jbyteArray field = (jbyteArray)(*env)->GetObjectArrayElement(env, jhistoryidentity, i);
+                if (!field) return NULL;
+                int ok = copy_java_bytes(env, field, dest[i], caps[i]);
+                (*env)->DeleteLocalRef(env, field);
+                if (!ok) return NULL;
+            }
+            sender_present = 1;
+        } else if (histFields == 2) {
             if (kind != 11 || jcanreadusers != JNI_TRUE) return NULL;
             jbyteArray ident = (jbyteArray)(*env)->GetObjectArrayElement(
                     env, jhistoryidentity, 0);
@@ -986,6 +1113,8 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchWithIdentity(JNIEnv *env, jclass 
     s->steps = 0;
     s->action_count = 0;
     s->event_active = 1;
+    s->current_kind = kind;
+    s->query_requested = 0;
     lua_sethook(L, budget_hook, LUA_MASKCOUNT, 100);
 
     char error[320] = "OK";
@@ -1001,9 +1130,45 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchWithIdentity(JNIEnv *env, jclass 
             if (historical_ident[0]) set_field(L, "ident", historical_ident);
             if (historical_host[0]) set_field(L, "host", historical_host);
         }
+        if (sender_present) {
+            lua_createtable(L, 0, 6);
+            set_field(L, "nick", nick);
+            set_field(L, "prefix", sender_prefix);
+            if (historical_ident[0]) set_field(L, "ident", historical_ident);
+            if (historical_host[0]) set_field(L, "host", historical_host);
+            if (sender_account[0]) set_field(L, "account", sender_account);
+            lua_pushboolean(L, sender_account[0] != 0);
+            lua_setfield(L, -2, "account_known");
+            lua_setfield(L, -2, "sender");
+        }
+        if (kind == 13) {
+            char query_kind[2] = "", status[32] = "";
+            int total = 0, next = -1, complete = 0;
+            if (sscanf(text, "%1s %31s %d %d %d", query_kind, status,
+                    &total, &next, &complete) != 5) {
+                strcpy(status, "unavailable");
+                total = 0; next = -1; complete = 0;
+            }
+            set_field(L, "token", type);
+            set_field(L, "query", query_kind);
+            set_field(L, "status", status);
+            lua_pushinteger(L, total); lua_setfield(L, -2, "total");
+            if (next >= 0) { lua_pushinteger(L, next); lua_setfield(L, -2, "next_offset"); }
+            lua_pushboolean(L, complete); lua_setfield(L, -2, "complete");
+            if (query_kind[0] == 'c') {
+                push_channels(L); lua_setfield(L, -2, "channels");
+            } else if (s->can_read_users) {
+                push_users(L);
+                if (query_kind[0] == 'u' && s->user_count == 1) {
+                    lua_rawgeti(L, -1, 1);
+                    lua_setfield(L, -3, "user");
+                }
+                lua_setfield(L, -2, "users");
+            }
+        }
         const char *event_names[] = {"message", "connected", "disconnected", "command",
                                     "join", "part", "quit", "nick", "timer",
-                                    "kick", "ban", "history", "moderation_log"};
+                                    "kick", "ban", "history", "moderation_log", "identity"};
         set_field(L, "type", event_names[kind]);
         lua_pushinteger(L, (lua_Integer)timestamp);
         lua_setfield(L, -2, "timestamp");
