@@ -210,6 +210,13 @@ public final class IrcIdentityCache {
     }
 
     /** Sticky for the connection; callers must not assume an exhaustive cache. */
+    /** Local membership evidence only; a negative result can be incomplete. */
+    public synchronized boolean hasSharedMember(String channel, String nick) {
+        String ch = channelKey(channel), id = key(nick);
+        Set<String> members = ch == null ? null : channelMembers.get(ch);
+        return id != null && members != null && members.contains(id);
+    }
+
     public synchronized boolean membershipTrackingComplete() {
         return !membershipOverflow;
     }
