@@ -1539,6 +1539,118 @@ public final class HostLuaRuntimeTest {
                         java.util.Arrays.toString(quotaDetection).contains("infrazione 1"),
                 "B must continue detecting after persistent-shard eviction");
 
+        // AutoMod V4: real official Lua VM, no 360-user capacity ceiling for
+        // Watchdog; the only persisted identity records are actual infractions.
+        automodStorage.clear();
+        automodActive = true;
+        byte[] v4 = Files.readAllBytes(Path.of("docs/lua-examples/automod_v4.lua"));
+        check(v4.length <= 24576, "AutoMod V4 fits 24 KiB native source quota");
+        check("OK".equals(decode(NativeLuaRuntime.load(ID, v4))),
+                "AutoMod V4 must compile in the native official Lua runtime");
+        String[] v4Help = event(ID, "command", "#room", "me", "mod help");
+        check(java.util.Arrays.toString(v4Help).contains("help watchdog"),
+                "AutoMod V4 exposes grouped help under /lua mod");
+        check(java.util.Arrays.toString(event(ID, "command", "#room", "me",
+                "mod close")).contains("closepm"),
+                "AutoMod V4 preserves the selective PVT close command");
+        event(ID, "command", "#room", "me", "mod canali add #room");
+        String[] v4Status = event(ID, "command", "#room", "me", "mod stato");
+        check(java.util.Arrays.toString(v4Status).contains("somiglianza 75%") &&
+                        java.util.Arrays.toString(v4Status).contains("finestra 15m") &&
+                        java.util.Arrays.toString(v4Status).contains("credito -2"),
+                "V4 defaults match agreed Watchdog settings");
+
+        check(eventAs(ID, "message", "#room", "Annonce",
+                "mxm reale", 1794410000L, "", "annonce").length == 1,
+                "First recognized ad cannot trigger Mod");
+        String[] v4Ad = eventAs(ID, "message", "#room", "Annonce",
+                "cerco m", 1794410001L, "", "annonce");
+        check(java.util.Arrays.toString(v4Ad).contains("motore B") &&
+                        java.util.Arrays.toString(v4Ad).contains("(monitor)"),
+                "Different ad expressions share a counter and trigger at second occurrence");
+
+        eventAs(ID, "message", "#room", "Numeric", "08 09",
+                1794410002L, "", "numeric");
+        String[] v4Numeric = eventAs(ID, "message", "#room", "Numeric",
+                "07 08 09", 1794410003L, "", "numeric");
+        check(java.util.Arrays.toString(v4Numeric).contains("motore B"),
+                "All-numeric short and long expressions count as micro-ads");
+        eventAs(ID, "message", "#room", "Credit",
+                "ciao a tutti mi presento sono matteo",
+                1794410004L, "", "credit");
+        eventAs(ID, "message", "#room", "Credit", "mxm reale",
+                1794410005L, "", "credit");
+        String[] creditTwo = eventAs(ID, "message", "#room", "Credit",
+                "donne pvt", 1794410006L, "", "credit");
+        check(creditTwo.length==1,
+                "Conversational message offsets exactly one ad occurrence");
+        String[] creditThree = eventAs(ID, "message", "#room", "Credit",
+                "calabria nessuna", 1794410007L, "", "credit");
+        check(java.util.Arrays.toString(creditThree).contains("motore B"),
+                "A third ad after one conversational credit triggers Watchdog");
+        eventAs(ID, "message", "#room", "NoCredit", "f",
+                1794410008L, "", "nocredit");
+        eventAs(ID, "message", "#room", "NoCredit", "!aff nickname",
+                1794410009L, "", "nocredit");
+        eventAs(ID, "message", "#room", "NoCredit", "bro ok",
+                1794410010L, "", "nocredit");
+        String[] noCredit = eventAs(ID, "message", "#room", "NoCredit",
+                "donne pvt", 1794410011L, "", "nocredit");
+        check(java.util.Arrays.toString(noCredit).contains("motore B"),
+                "Bot commands and two-word conversations give no credit");
+
+        eventAs(ID, "message", "#room", "Repeater", "oggi sono andato al mare",
+                1794410012L, "", "repeater");
+        String[] v4Second = eventAs(ID, "message", "#room", "Repeater",
+                "oggi sono andato al mare", 1794410013L, "", "repeater");
+        check(v4Second.length==1, "Second generic match does not trigger");
+        String[] v4Third = eventAs(ID, "message", "#room", "Repeater",
+                "oggi sono andato al mare", 1794410014L, "", "repeater");
+        check(java.util.Arrays.toString(v4Third).contains("motore A"),
+                "Third similar generic message triggers at 75%");
+        check(eventAs(ID, "message", "#room", "Crys", "f per conoscenza",
+                1794410015L, "", "Micaela").length==1,
+                "Crys with authenticated NickServ Micaela is excluded");
+        check(eventAs(ID, "message", "#room", "Halfop", "f per conoscenza",
+                1794410016L, "%", "halfop").length==1,
+                "Halfops are protected");
+
+        event(ID, "command", "#room", "me", "mod modo live");
+        String[] v4Live = eventAs(ID, "message", "#room", "Annonce",
+                "f per conoscenza", 1794410017L, "", "annonce");
+        check(java.util.Arrays.toString(v4Live).contains("pm") &&
+                        !java.util.Arrays.toString(v4Live).contains("tmute"),
+                "Live V4 first infraction preserves original private warning");
+        check(automodStorage.keySet().stream().anyMatch(k -> k.startsWith("v4.s")),
+                "Only sanctioned user history is persisted");
+        NativeLuaRuntime.unload(ID);
+        check("OK".equals(decode(NativeLuaRuntime.load(ID, v4))),
+                "AutoMod V4 reloads persisted configuration and Mod state");
+        eventAs(ID, "message", "#room", "Annonce", "f che chatta",
+                1794410018L, "", "annonce");
+        String[] v4Restored = eventAs(ID, "message", "#room", "Annonce",
+                "cerco f", 1794410019L, "", "annonce");
+        check(java.util.Arrays.toString(v4Restored).contains("tmute") &&
+                        java.util.Arrays.toString(v4Restored).contains("2m"),
+                "Mod escalation persists and advances after V4 Lua VM restart");
+        String[] tuned = event(ID, "command", "#room", "me",
+                "mod parametro somiglianza 80");
+        check(java.util.Arrays.toString(tuned).contains("aggiornata"),
+                "Watchdog similarity can be changed with /lua mod");
+        String[] updated = event(ID, "command", "#room", "me", "mod stato");
+        check(java.util.Arrays.toString(updated).contains("somiglianza 80%"),
+                "Updated similarity is visible in status");
+        for (int i=0; i<550; i++) {
+            String nick="V4User"+i;
+            String[] output=eventWithLongIdentity(nick,"v4acct"+i,
+                    "io sono qui tranquillo",1794410020L+i);
+            check("OK".equals(output[0]),
+                    "V4 Watchdog handles more than 360 ordinary users: "+i);
+        }
+        check(automodStorage.keySet().stream()
+                        .filter(k -> k.startsWith("v4.s")).count() < 20,
+                "Ordinary monitored identities do not consume persistent Mod shards");
+
         NativeLuaRuntime.unload(ID);
         check(NativeLuaRuntime.dispatch(ID, "message", bytes("test-server"),
                 bytes("#x"), bytes("a"), bytes("b"), bytes("normal"), 0L,
