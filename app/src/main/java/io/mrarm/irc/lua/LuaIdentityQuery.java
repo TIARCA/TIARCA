@@ -117,11 +117,12 @@ final class LuaIdentityQuery {
     private Result point(ServerConnectionData data, ChannelData target) throws Exception {
         Result r = new Result();
         // Do not create a user record for arbitrary unobserved nicknames.
-        if (!data.getIdentityCache().hasSharedMember(channel, nick)) {
+        String observedNick = data.getIdentityCache().sharedMemberNick(channel, nick);
+        if (observedNick == null) {
             r.status = "not_observed"; r.complete = false;
             return r;
         }
-        UUID id = data.getUserInfoApi().getUser(nick, null, null, null, null).get().getUUID();
+        UUID id = data.getUserInfoApi().getUser(observedNick, null, null, null, null).get().getUUID();
         ChannelData.Member member = target.getMember(id);
         String observed = data.getUserInfoApi().getUsersNicks(
                 Collections.singletonList(id), null, null).get().get(id);
