@@ -808,6 +808,23 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_load(JNIEnv *env, jclass unused,
     return jmessage(env, result);
 }
 
+/* Report real registered handlers after a successful load. No script action
+ * can alter subscriptions during a callback. Called only by the VM worker. */
+JNIEXPORT jint JNICALL
+Java_io_mrarm_irc_lua_NativeLuaRuntime_eventMask(JNIEnv *env, jclass unused, jstring jid) {
+    (void)unused;
+    if (!jid) return -1;
+    const char *id = (*env)->GetStringUTFChars(env, jid, NULL);
+    if (!id) return -1;
+    int slot = slot_for(id);
+    (*env)->ReleaseStringUTFChars(env, jid, id);
+    if (slot < 0) return -1;
+    jint mask = 0;
+    for (int kind = 0; kind < EVENT_KINDS; kind++)
+        if (g_scripts[slot]->count[kind] > 0) mask |= (1 << kind);
+    return mask;
+}
+
 JNIEXPORT void JNICALL
 Java_io_mrarm_irc_lua_NativeLuaRuntime_unload(JNIEnv *env, jclass unused, jstring jid) {
     (void)unused;
