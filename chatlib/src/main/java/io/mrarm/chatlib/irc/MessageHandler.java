@@ -84,6 +84,17 @@ public class MessageHandler {
             identities.note(prefix.getNick(), null, null, params.get(1));
         handler.handle(connection, prefix, command, params, tags);
         identities.noteNumeric(command, params);
+        if ("JOIN".equals(command) && !params.isEmpty()) {
+            String nick = prefix == null ? connection.getUserNick() : prefix.getNick();
+            for (String channel : params.get(0).split(","))
+                identities.memberJoined(channel, nick);
+        } else if ("PART".equals(command) && !params.isEmpty()) {
+            String nick = prefix == null ? connection.getUserNick() : prefix.getNick();
+            for (String channel : params.get(0).split(","))
+                identities.memberLeft(channel, nick);
+        } else if ("KICK".equals(command) && params.size() >= 2) {
+            identities.memberLeft(params.get(0), params.get(1));
+        }
         if ("NICK".equals(command) && prefix != null && !params.isEmpty())
             identities.rename(prefix.getNick(), params.get(0));
         if ("QUIT".equals(command) && prefix != null)
