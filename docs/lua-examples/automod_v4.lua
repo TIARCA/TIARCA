@@ -266,7 +266,7 @@ local function detected(e,id,engine,rule,pct,h,now,c)
   now-old.at<TTL then level=old.level end
  local nextLevel=math.min(5,level+1)
  local label=c.mode=="live" and level<5 and action(nextLevel) or "monitor"
- tiarca.log(string.format("AutoModU %s/%s %s %.1f%% infrazione %d (%s) motore %s",
+ tiarca.log(string.format("AutoModV4 %s/%s %s %.1f%% infrazione %d (%s) motore %s",
   e.server:sub(1,8),e.channel,e.nick,pct,nextLevel,label,engine))
  tiarca.log(string.format("WatchdogV4 %s %s/%s %s %s score=%d",
   engine,e.server:sub(1,8),e.channel,e.nick,rule,h.score))
@@ -307,7 +307,9 @@ tiarca.on("message",function(e)
    detected(e,id,"B",rule,100,h,now,c) end
  elseif kind=="normal" and c.a then
   local s=normalize(e.text or "")
-  if #words(s)<c.minwords then return end
+  if #words(s)<c.minwords then
+   h.score=math.max(-c.credit,h.score-1);return
+  end
   local pct=h.ref and similar(h.ref,s) or 0
   if h.ref and pct>=c.similarity then
    if h.rep==1 then h.score=h.score+(h.credited and 1 or 0)+2
