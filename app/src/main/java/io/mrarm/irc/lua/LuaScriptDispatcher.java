@@ -135,6 +135,7 @@ public final class LuaScriptDispatcher {
         final long eventTimestamp;
         final boolean isEvent;
         final long generation;
+        final LuaIdentityQuery identityQuery;
 
         Pending(String id, String server, String channel, String nick,
                 String event, boolean isEvent, long generation) {
@@ -151,6 +152,7 @@ public final class LuaScriptDispatcher {
             this.commandText = commandText;
             this.eventText = "";
             this.eventTimestamp = 0L;
+            this.identityQuery = null;
             this.isEvent = isEvent;
             this.generation = generation;
         }
@@ -158,6 +160,13 @@ public final class LuaScriptDispatcher {
         Pending(String id, String server, String channel, String nick,
                 String event, boolean isEvent, long generation, String commandText,
                 String eventText, long eventTimestamp) {
+            this(id, server, channel, nick, event, isEvent, generation, commandText,
+                    eventText, eventTimestamp, null);
+        }
+
+        Pending(String id, String server, String channel, String nick,
+                String event, boolean isEvent, long generation, String commandText,
+                String eventText, long eventTimestamp, LuaIdentityQuery identityQuery) {
             this.scriptId = id;
             this.server = server;
             this.channel = channel;
@@ -166,6 +175,7 @@ public final class LuaScriptDispatcher {
             this.commandText = commandText;
             this.eventText = eventText;
             this.eventTimestamp = eventTimestamp;
+            this.identityQuery = identityQuery;
             this.isEvent = isEvent;
             this.generation = generation;
         }
@@ -467,7 +477,7 @@ public final class LuaScriptDispatcher {
         String[] observed = null;
         if (remote != null && !console.isPaused(server)) {
             for (LuaScriptStore.Script script : eventRecipients(server, event, null)) {
-                if (script.allowUserInfo && subscriptions.usesIdentityV2(script.id, server)) {
+                if (script.allowUserInfo && subscriptions.mayUseIdentityV2(script.id, server)) {
                     observed = captureSender(connection, channel, sender);
                     break;
                 }
@@ -829,7 +839,8 @@ public final class LuaScriptDispatcher {
                     data.putString(LuaDiagnosticService.EXTRA_CHANNEL, channel);
                     data.putString(LuaDiagnosticService.EXTRA_NICK, nick);
                     data.putString(LuaDiagnosticService.EXTRA_TEXT, deliveredText);
-                    if (sender != null && script.allowUserInfo && !legacy)
+                    if (sender != null && script.allowUserInfo &&
+                            subscriptions.mayUseIdentityV2(script.id, server))
                         data.putStringArray(LuaDiagnosticService.EXTRA_SENDER, sender);
                     data.putString(LuaDiagnosticService.EXTRA_MESSAGE_TYPE, messageType);
                     if ("history".equals(event)) {
@@ -868,7 +879,7 @@ public final class LuaScriptDispatcher {
                             currentGeneration, "command".equals(event) ? text :
                                     "identity".equals(event) ? messageType : "",
                             "message".equals(event) || "identity".equals(event) ? deliveredText : "",
-                            time));
+                            time, query));
                 }
             } finally {
                 queuedEvents.decrementAndGet();
@@ -1093,10 +1104,13 @@ public final class LuaScriptDispatcher {
                 if (query != null && subscriptions.usesIdentityV2(id, request.server) &&
                         ("c".equals(query.kind) || script.allowUserInfo) &&
                         query.permitted(request.event, request.channel,
-                                request.eventText, request.commandText)) {
+                                request.eventText, request.commandText) &&
+                        (!"identity".equals(request.event) || query.continues(request.identityQuery))) {
                     if (!enqueueWithData("identity", request.server, query.channel, "", "",
                             query.token, request.eventTimestamp, id, null, null, null, query))
                         store.recordLog(id, "Identity query not queued: " + query.token);
+                } else {
+                    store.recordLog(id, "Identity query rejected: invalid scope, parameters or continuation");
                 }
             } else if ("history".equals(kind)) {
                 lookupHistoryForScript(script, request, target, value);
