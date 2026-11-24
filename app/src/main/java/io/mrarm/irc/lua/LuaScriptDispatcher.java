@@ -489,9 +489,13 @@ public final class LuaScriptDispatcher {
 
     private static String[] captureSender(ServerConnectionInfo connection, String channel,
                                           MessageSenderInfo sender) {
-        if (!(connection.getApiInstance() instanceof ServerConnectionApi)) return null;
-        return LuaIdentityQuery.sender(((ServerConnectionApi) connection.getApiInstance())
-                .getServerConnectionData(), channel, sender);
+        try {
+            if (!(connection.getApiInstance() instanceof ServerConnectionApi)) return null;
+            return LuaIdentityQuery.sender(((ServerConnectionApi) connection.getApiInstance())
+                    .getServerConnectionData(), channel, sender);
+        } catch (RuntimeException unavailable) {
+            return null;
+        }
     }
 
     /**
