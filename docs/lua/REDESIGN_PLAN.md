@@ -4,7 +4,7 @@ Decisione del 24 novembre 2026. Obiettivo: trasferire solo i dati necessari, man
 
 | Fase | Attività | Stato |
 | --- | --- | --- |
-| A | Cache identità IRC: membri condivisi, JOIN/NAMES/PRIVMSG/NICK/ACCOUNT/CHGHOST/PART/KICK/QUIT/disconnessione; limiti espliciti e identità ignote | In corso |
+| A | Cache identità IRC: membri condivisi, JOIN/NAMES/PRIVMSG/NICK/ACCOUNT/CHGHOST/PART/KICK/QUIT/disconnessione; limiti espliciti e identità ignote | Implementata sul branch; CI e test reali da verificare |
 | B | Dispatcher: consegna solo eventi sottoscritti; evitare snapshot inutili, senza bloccare IRC/UI | Pianificata |
 | C | API: event.sender acquisito al ricevimento; get_user puntuale; get_users filtrato prima della paginazione e asincrono, con indicazione completezza; get_channels su richiesta | Pianificata |
 | D | Storage in memoria, aggiornamenti atomici solo al cambiamento, sincronizzazione/versioni tra processi, backup e ripristino; commit prima delle sanzioni | Pianificata |
@@ -20,3 +20,13 @@ Decisione del 24 novembre 2026. Obiettivo: trasferire solo i dati necessari, man
 - Cache delimitata, pulizia dopo uscita dall'ultimo canale condiviso e disconnessione; evitare account obsoleti.
 - Conservare i permessi attuali, il sandbox Lua e le quote. Harvester sarà progettato separatamente.
 - Le API proposte non sono ancora disponibili. Le misurazioni reali devono precedere conclusioni sulle prestazioni.
+
+## Fase A — implementazione e limiti
+
+- Base: main `b7ae71300620e21e023fdd2af48384585beae433`, 0.9.10 / 91000.
+- La cache di base ha 4.096 voci LRU (il precedente limite di 512 non è più attuale).
+- Separazione tra membri condivisi e identità recenti. Limiti per connessione: 16.384 nickname condivisi, 65.536 relazioni nickname-canale, 4.096 identità recenti. Quote conservative iniziali, non risultati di benchmark. Superando una quota non si espellono le identità condivise già note; l'indice può essere incompleto, con flag interno fino alla disconnessione.
+- NAMES a completamento, JOIN, PART, KICK, NICK, QUIT e uscita dal canale mantengono i riferimenti. Dopo l'ultima presenza condivisa si elimina l'identità; la disconnessione azzera tutto. PRIVMSG/account-tag, extended-join, ACCOUNT, WHO/WHOIS/WHOX e CHGHOST aggiornano le informazioni osservate.
+- Un cambio di maschera non esplicitamente correlato invalida il vecchio account; CHGHOST esplicito conserva l'account. Un JOIN da una presenza non condivisa scarta il vecchio record recente prima di osservare il mittente.
+- Nessun nuovo WHO automatico, nessun dato persistente, nessuna API Lua nuova in A. Snapshot 128 e storage invariati: fasi B–D.
+- Test: conservazione oltre il limite LRU, presenze multicanale, NAMES/NICK, JOIN/PART/KICK/QUIT, riuso nickname, CHGHOST, account ignoto/logout, quota e reset. Verifica Android/traffico reale e prestazioni da eseguire.
