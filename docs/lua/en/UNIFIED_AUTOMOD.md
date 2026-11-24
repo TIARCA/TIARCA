@@ -42,6 +42,6 @@ Within 24h of the latest infraction: (1) private warning, (2) timed mute 2m, (3)
 
 \`/lua mod close\` opens Android's multi-select dialog across PVT tabs, preselecting only sessions recognized as script-created; it sends no IRC message. Attribution may not survive an app restart.
 
-Local \`AutoModU\` reports remain readable by the app's moderation reporter, while \`WatchdogV4\` logs supply the rule and score. Harvester integration is intentionally deferred.
+Local \`AutoModV4\` reports remain readable by the app's moderation reporter, while \`WatchdogV4\` logs supply the rule and score. Harvester integration is intentionally deferred.
 
 **Still requiring manual Candidate validation:** live-channel classification and false positives, NickServ identity continuity, crowded channels, server-specific mute/ban masks, storage persistence under process death, backup/restore and PVT selection behavior.
