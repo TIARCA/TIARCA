@@ -152,7 +152,7 @@ public final class HostLuaRuntimeTest {
                 "Only command is registered, not message or timer");
         String[] allEvents = {"message", "connected", "disconnected", "command",
                 "join", "part", "quit", "nick", "timer", "kick", "ban", "history",
-                "moderation_log"};
+                "moderation_log", "identity"};
         for (int i = 0; i < allEvents.length; i++) {
             check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes(
                     "tiarca.on('" + allEvents[i] + "', function(e) end)")))),
@@ -165,6 +165,46 @@ public final class HostLuaRuntimeTest {
         check(NativeLuaRuntime.eventMask(OTHER) == 0, "No callbacks means empty mask");
         NativeLuaRuntime.unload(OTHER);
         check(NativeLuaRuntime.eventMask(OTHER) == -1, "Unloaded VM has no mask");
+
+        String identityScript = "tiarca.identity_v2()\n"
+                + "tiarca.on('message', function(e) "
+                + "if e.sender then tiarca.log(e.sender.nick..':'..e.sender.prefix..':'.."
+                + "tostring(e.sender.account)..':'..tostring(e.sender.account_known)) "
+                + "else tiarca.log('no sender') end end)\n"
+                + "tiarca.on('command', function(e) "
+                + "tiarca.get_users(e.channel,{token='voice',prefix='+',limit=100}) end)\n"
+                + "tiarca.on('identity', function(e) "
+                + "tiarca.log(e.token..':'..e.total..':'..e.next_offset..':'.."
+                + "tostring(e.complete)..':'..e.users[1].nick) end)";
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes(identityScript)))),
+                "Identity v2 script loads");
+        check(NativeLuaRuntime.eventMask(OTHER) == ((1 << 20) | (1 << 0) | (1 << 3) | (1 << 13)),
+                "Identity opt-in must be in real runtime metadata");
+        String[] direct = collect(NativeLuaRuntime.dispatchWithIdentity(OTHER, "message",
+                bytes("test-server"), bytes("#room"), bytes("Alice"), bytes("hello"),
+                bytes("normal"), 0L, new byte[0][], new int[0], false,
+                new byte[0][], false, true, new byte[0][], false,
+                new byte[][]{bytes("ident"), bytes("host"), bytes("+"), bytes("*")}));
+        check(direct.length == 4 && "Alice:+:*:true".equals(direct[3]),
+                "Sender available without roster");
+        String[] denied = event(OTHER, "message", "#room", "Alice", "hello");
+        check(denied.length == 4 && "no sender".equals(denied[3]),
+                "No sender without identity permission");
+        String[] request = collect(NativeLuaRuntime.dispatch(OTHER, "command",
+                bytes("test-server"), bytes("#room"), bytes("me"), bytes("voice"),
+                bytes(""), 0L, new byte[0][], new int[0], false, new byte[0][],
+                false, true, new byte[0][], false));
+        check(request.length == 4 && "query".equals(request[1]) &&
+                "#room".equals(request[2]) && request[3].startsWith("r\tvoice\t0\t100\t"),
+                "Query action must carry bounded page request");
+        String[] page = collect(NativeLuaRuntime.dispatch(OTHER, "identity",
+                bytes("test-server"), bytes("#room"), bytes(""), bytes("r ok 130 100 1"),
+                bytes("voice"), 0L, new byte[0][], new int[0], false,
+                new byte[][]{bytes("Alice"), bytes("+"), bytes("ident"), bytes("host"), bytes("*")},
+                true, true, new byte[0][], false));
+        check(page.length == 4 && "voice:130:100:true:Alice".equals(page[3]),
+                "Asynchronous result includes page metadata and users");
+        NativeLuaRuntime.unload(OTHER);
 
         String source = "local counter = 0\n"
                 + "tiarca.on('message', function(event)\n"
