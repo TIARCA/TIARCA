@@ -36,6 +36,7 @@ import io.mrarm.chatlib.dto.MessageFilterOptions;
 import java.util.Arrays;
 import io.mrarm.chatlib.irc.IrcIdentityCache;
 import io.mrarm.chatlib.irc.IRCConnection;
+import io.mrarm.chatlib.irc.ServerConnectionData;
 import io.mrarm.irc.util.ChannelOperatorUtils;
 import io.mrarm.irc.dialog.OperatorCommandComposer;
 import io.mrarm.chatlib.dto.MessageSenderInfo;
@@ -77,6 +78,7 @@ public final class LuaScriptDispatcher {
     private final AtomicInteger pendingEvents = new AtomicInteger();
     private final AtomicInteger queuedEvents = new AtomicInteger();
     private final Map<Integer, Pending> pending = new ConcurrentHashMap<>();
+    private final LuaEventSubscriptions subscriptions = new LuaEventSubscriptions();
     // Main-looper only: one worker may queue many requests but execute just one.
     private final LuaCrashTracker crashTracker = new LuaCrashTracker();
     private final Map<String, Long> lastScriptSend = new HashMap<>();
@@ -327,6 +329,7 @@ public final class LuaScriptDispatcher {
     private void clearPending() {
         crashTracker.clearActive();
         pending.clear();
+        subscriptions.clear();
         pendingEvents.set(0);
         abortRestarts();
     }
@@ -345,6 +348,9 @@ public final class LuaScriptDispatcher {
         int id = sequence.incrementAndGet();
         message.replyTo = replies;
         message.getData().putInt(LuaDiagnosticService.EXTRA_REQUEST_ID, id);
+        if (message.what == LuaDiagnosticService.REQUEST_LOAD)
+            subscriptions.begin(identity.scriptId, "restart".equals(identity.event)
+                    ? identity.server : "", id);
         pending.put(id, identity);
         try {
             target.send(message);
@@ -360,6 +366,7 @@ public final class LuaScriptDispatcher {
     private void loadAll() {
         Messenger target = remote;
         if (target == null) return;
+        subscriptions.clear();
         try {
             target.send(Message.obtain(null, LuaDiagnosticService.REQUEST_RESET));
         } catch (RemoteException error) {
@@ -689,12 +696,22 @@ public final class LuaScriptDispatcher {
                 time, onlyScriptId, null, null);
     }
 
+    private List<LuaScriptStore.Script> eventRecipients(String server, String event,
+                                                        String onlyScriptId) {
+        List<LuaScriptStore.Script> result = new ArrayList<>();
+        for (LuaScriptStore.Script script : store.enabledOn(server)) {
+            if (onlyScriptId != null && !onlyScriptId.equals(script.id)) continue;
+            if (subscriptions.accepts(script.id, server, event)) result.add(script);
+        }
+        return result;
+    }
+
     /** Sender fields from the actual stored chat message, not a guessed current identity. */
     private boolean enqueueOnlyWithIdentity(String event, String server, String channel,
             String nick, String text, String messageType, long time, String onlyScriptId,
             String historyIdent, String historyHost) {
         if (remote == null || console.isPaused(server) ||
-                store.enabledOn(server).isEmpty()) return false;
+                eventRecipients(server, event, onlyScriptId).isEmpty()) return false;
         long currentGeneration = console.generation(server);
         // Bound events *before* adding to HandlerThread, not only in-flight Binder
         // requests: otherwise a burst of IRC messages can grow the Java queue.
@@ -706,43 +723,46 @@ public final class LuaScriptDispatcher {
             try {
                 if (remote == null || console.isPaused(server) ||
                         console.generation(server) != currentGeneration) return;
-                List<LuaScriptStore.Script> eligible = store.enabledOn(server);
-                // Capture only names and cached counts from this approved IRC
-                // connection. Do not block the chat/UI threads with the snapshot.
-                LuaChannelSnapshot channels = LuaChannelSnapshot.empty();
-                if (!"disconnected".equals(event) && !eligible.isEmpty()) {
-                    try {
-                        ServerConnectionInfo conn = ServerConnectionManager.getInstance(context)
-                                .getConnection(UUID.fromString(server));
-                        if (conn != null && conn.isConnected()
-                                && conn.getApiInstance() instanceof ServerConnectionApi) {
-                            channels = LuaChannelSnapshot.capture(
-                                    ((ServerConnectionApi) conn.getApiInstance())
-                                            .getServerConnectionData());
-                        }
-                    } catch (RuntimeException ignored) {
-                        // Stale/disconnecting sessions provide an empty snapshot.
-                    }
-                }
+                List<LuaScriptStore.Script> eligible =
+                        eventRecipients(server, event, onlyScriptId);
+                if (eligible.isEmpty()) return;
+
+                // All authorized recipients of this event share the same
+                // read-only observation. No roster work for unrelated scripts,
+                // no duplicated identity lookups for multiple subscribers.
+                ServerConnectionData connectionData = null;
+                LuaChannelSnapshot channels = null;
+                LuaUserSnapshot roster = null;
                 for (LuaScriptStore.Script script : eligible) {
-                    if (onlyScriptId != null && !onlyScriptId.equals(script.id)) continue;
-                    LuaUserSnapshot users = LuaUserSnapshot.capture(null, null);
-                    if (script.allowUserInfo && !"disconnected".equals(event)) {
-                        try {
-                            ServerConnectionInfo conn = ServerConnectionManager.getInstance(context)
-                                    .getConnection(UUID.fromString(server));
-                            if (conn != null && conn.isConnected() &&
-                                    conn.getApiInstance() instanceof ServerConnectionApi)
-                                users = LuaUserSnapshot.capture(
-                                        ((ServerConnectionApi) conn.getApiInstance())
-                                                .getServerConnectionData(), channel, nick);
-                        } catch (RuntimeException ignored) {
-                            // A part/disconnect race returns an empty roster.
-                        }
-                    }
                     if (pendingEvents.incrementAndGet() > MAX_PENDING_EVENTS) {
                         pendingEvents.decrementAndGet();
                         return; // drop event; never block IRC threads
+                    }
+                    if (channels == null) {
+                        channels = LuaChannelSnapshot.empty();
+                        if (!"disconnected".equals(event)) {
+                            try {
+                                ServerConnectionInfo conn = ServerConnectionManager.getInstance(context)
+                                        .getConnection(UUID.fromString(server));
+                                if (conn != null && conn.isConnected() &&
+                                        conn.getApiInstance() instanceof ServerConnectionApi) {
+                                    connectionData = ((ServerConnectionApi) conn.getApiInstance())
+                                            .getServerConnectionData();
+                                    channels = LuaChannelSnapshot.capture(connectionData);
+                                }
+                            } catch (RuntimeException ignored) {
+                                // Stale/disconnecting sessions provide empty data.
+                                connectionData = null;
+                            }
+                        }
+                    }
+                    LuaUserSnapshot users;
+                    if (script.allowUserInfo && connectionData != null) {
+                        if (roster == null)
+                            roster = LuaUserSnapshot.capture(connectionData, channel, nick);
+                        users = roster;
+                    } else {
+                        users = LuaUserSnapshot.capture(null, null);
                     }
                     Message request = Message.obtain(null, LuaDiagnosticService.REQUEST_EVENT);
                     Bundle data = new Bundle();
@@ -884,6 +904,9 @@ public final class LuaScriptDispatcher {
         String id = data.getString(LuaDiagnosticService.EXTRA_SCRIPT_ID);
         if (!request.scriptId.equals(id)) return true;
         String status = data.getString(LuaDiagnosticService.EXTRA_STATUS, "");
+        if (!request.isEvent && "OK".equals(status))
+            subscriptions.complete(id, "restart".equals(request.event) ? request.server : "",
+                    requestId, data.getInt(LuaDiagnosticService.EXTRA_EVENT_MASK, -1));
         if ("restart".equals(request.event)) {
             LuaScriptStore.Script restartScript = store.find(id);
             ServerConnectionInfo conn = null;
