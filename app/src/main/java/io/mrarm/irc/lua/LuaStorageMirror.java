@@ -10,13 +10,13 @@ import java.util.Set;
 /** Worker-confined, read-only mirror of host-committed state, not speculative VM writes. */
 final class LuaStorageMirror {
     private static final byte[][] EMPTY = new byte[0][];
-    private static final class Entry {
+    private static final class Revision {
         final long version;
         final byte[][] pairs;
-        Entry(long version, byte[][] pairs) { this.version = version; this.pairs = pairs; }
+        Revision(long version, byte[][] pairs) { this.version = version; this.pairs = pairs; }
     }
-    private final Map<String, Entry> entries = new LinkedHashMap<String, Entry>(8, .75f, true) {
-        @Override protected boolean removeEldestEntry(Map.Entry<String, Entry> eldest) {
+    private final Map<String, Revision> entries = new LinkedHashMap<String, Revision>(8, .75f, true) {
+        @Override protected boolean removeEldestEntry(Map.Entry<String, Revision> eldest) {
             return size() > LuaScriptStore.MAX_SCRIPTS;
         }
     };
@@ -29,7 +29,7 @@ final class LuaStorageMirror {
             return pairs != null && pairs.isEmpty() ? EMPTY : null;
         }
         if (!LuaScriptStorage.validId(script) || version <= 0) return null;
-        Entry current = entries.get(script);
+        Revision current = entries.get(script);
         if (pairs == null)
             return current != null && current.version == version ? current.pairs : null;
         if (current != null && version < current.version) return null;
@@ -50,7 +50,7 @@ final class LuaStorageMirror {
         // Same revision must never acquire different contents.
         if (current != null && version == current.version &&
                 !java.util.Arrays.deepEquals(current.pairs, encoded)) return null;
-        entries.put(script, new Entry(version, encoded));
+        entries.put(script, new Revision(version, encoded));
         return encoded;
     }
 }
