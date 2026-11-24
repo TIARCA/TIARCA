@@ -76,7 +76,11 @@ final class LuaDispatchSlots {
         return null;
     }
 
-    synchronized void clear() {
+    synchronized void clear() { clearAndCount(); }
+
+    synchronized int clearAndCount() {
+        int count = live.size();
         live.clear(); active.clear(); waiting.clear();
+        return count;
     }
 }

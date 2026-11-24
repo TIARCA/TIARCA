@@ -944,6 +944,12 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_eventMask(JNIEnv *env, jclass unused, jst
     return mask | (g_scripts[slot]->identity_v2 ? IDENTITY_V2_FLAG : 0);
 }
 
+JNIEXPORT jlong JNICALL
+Java_io_mrarm_irc_lua_NativeLuaRuntime_allocatedBytes(JNIEnv *env, jclass unused) {
+    (void)env; (void)unused;
+    return (jlong)g_allocated;
+}
+
 JNIEXPORT void JNICALL
 Java_io_mrarm_irc_lua_NativeLuaRuntime_unload(JNIEnv *env, jclass unused, jstring jid) {
     (void)unused;

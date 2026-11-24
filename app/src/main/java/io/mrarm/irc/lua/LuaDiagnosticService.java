@@ -46,6 +46,8 @@ public final class LuaDiagnosticService extends Service {
     public static final String EXTRA_ACTIONS = "actions";
     public static final String EXTRA_STATUS = "status";
     public static final String EXTRA_EVENT_MASK = "event_mask";
+    public static final String EXTRA_LUA_BYTES = "lua_bytes";
+    public static final String EXTRA_NATIVE_NANOS = "native_nanos";
     public static final String EXTRA_SCENARIO = "scenario";
     public static final String EXTRA_RESULT = "result";
     public static final String EXTRA_ISOLATED = "isolated";
@@ -319,6 +321,7 @@ public final class LuaDiagnosticService extends Service {
                                         }
                                     }
                                 }
+                                long nativeStart = System.nanoTime();
                                 byte[][] nativeActions = NativeLuaRuntime.dispatchVersioned(runtimeId, event,
                                         NativeLuaRuntime.utf8(server), NativeLuaRuntime.utf8(channel),
                                         NativeLuaRuntime.utf8(nick), NativeLuaRuntime.utf8(text),
@@ -330,6 +333,7 @@ public final class LuaDiagnosticService extends Service {
                                         request.getBoolean(EXTRA_CAN_READ_USERS, false),
                                         storagePairs, canStore,
                                         observedIdentity, storageVersion);
+                                request.putLong(EXTRA_NATIVE_NANOS, System.nanoTime() - nativeStart);
                         if (nativeActions == null || nativeActions.length < 1 ||
                                 (nativeActions.length - 1) % 3 != 0 ||
                                 nativeActions.length > 37) {
@@ -359,6 +363,8 @@ public final class LuaDiagnosticService extends Service {
         payload.putString(EXTRA_SCRIPT_ID, scriptId);
         payload.putInt(EXTRA_REQUEST_ID, message.getData().getInt(EXTRA_REQUEST_ID));
         payload.putString(EXTRA_STATUS, status);
+        payload.putLong(EXTRA_LUA_BYTES, NativeLuaRuntime.allocatedBytes());
+        payload.putLong(EXTRA_NATIVE_NANOS, message.getData().getLong(EXTRA_NATIVE_NANOS, -1));
         if (message.what == REQUEST_LOAD && "OK".equals(status))
             payload.putInt(EXTRA_EVENT_MASK, message.getData().getInt(EXTRA_EVENT_MASK, -1));
         payload.putStringArrayList(EXTRA_ACTIONS, actions);

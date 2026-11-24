@@ -16,6 +16,8 @@ final class NativeLuaRuntime {
     static native byte[] load(String scriptId, byte[] source);
     /** Bit positions follow native event_kind; -1 means unavailable. */
     static native int eventMask(String scriptId);
+    /** Lua allocator only; not Java heap, native VM structs, IPC or total RSS. */
+    static native long allocatedBytes();
     // Old signature retained for host regression tests and existing callers.
     static byte[][] dispatch(String scriptId, String event, byte[] server,
                              byte[] channel, byte[] nick, byte[] text,

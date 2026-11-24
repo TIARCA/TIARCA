@@ -521,10 +521,10 @@ public final class LuaScriptStore {
         return storage.snapshot(id);
     }
 
-    synchronized void commitStorage(String id, String server, long revision, List<String> actions)
+    synchronized boolean commitStorage(String id, String server, long revision, List<String> actions)
             throws IOException {
         storageRevision(id, server);
-        storage.applyBatch(id, revision, actions);
+        return storage.applyBatch(id, revision, actions).version != revision;
     }
 
     synchronized void applyStorage(String id, String server, String operation,
