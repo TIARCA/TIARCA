@@ -16,7 +16,7 @@ local chatting=dict("chat chatta chattare chatto chiacchiera conoscenza conoscer
 local contact=dict("pvt priv privato privata scrivimi scrivetemi contattami contattatemi")
 local encounter=dict("reale incontro incontri ospito ospitare uscire")
 local media=dict("cam call videochat whatsapp whatap whatsap telegram tg")
-local places=dict("parma caserta milano roma napoli biella veneto puglia lecce sicilia friuli piemonte marche toscana bari salerno genova torino calabria siciliana verona enna viareggio firenze bologna palermo catania abruzzo molise umbria lazio sardegna lombardia campania")
+local places=dict("parma caserta milano roma napoli biella veneto puglia lecce sicilia friuli piemonte marche toscana bari salerno genova torino calabria calabira siciliana verona enna viareggio firenze bologna palermo catania abruzzo molise umbria lazio sardegna lombardia campania")
 local greet=dict("ciao salve buongiorno buonasera buonanotte sera")
 local greetings={
  ["ciao"]=true,["salve"]=true,["sera"]=true,["buongiorno"]=true,
@@ -197,8 +197,9 @@ local function identify(e,now,window)
    local account=valid(u.account)
    if account=="*" or account=="0" then account="" end
    if account~="" then
-    if (e.nick:lower()=="crys" and account=="micaela") or
-     allow[e.server.."|"..account] then return nil,"WHITELIST" end
+    -- Protect the authenticated account despite a nickname change.
+    if account=="micaela" or allow[e.server.."|"..account] then
+     return nil,"WHITELIST" end
     return e.server.."/a:"..account
    end
    local host=valid(u.host)
