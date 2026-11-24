@@ -773,7 +773,7 @@ public final class LuaScriptDispatcher {
             try {
                 if (remote == null || console.isPaused(server) ||
                         console.generation(server) != currentGeneration ||
-                        (query != null && identityEpoch.get() != currentEpoch)) return;
+                        identityEpoch.get() != currentEpoch) return;
                 List<LuaScriptStore.Script> eligible =
                         eventRecipients(server, event, onlyScriptId);
                 if (eligible.isEmpty()) return;
@@ -877,7 +877,7 @@ public final class LuaScriptDispatcher {
                             "message".equals(event) || "identity".equals(event) ? deliveredText : "",
                             time, query);
                     identity.slot = slot;
-                    identity.epoch = identityEpoch.get();
+                    identity.epoch = currentEpoch;
                     Runnable ready = dispatchSlots.submit(slot, () -> dispatchPrepared(request, identity));
                     if (ready != null) ready.run();
                 }
@@ -931,6 +931,7 @@ public final class LuaScriptDispatcher {
                 if (!Long.valueOf(revision.version).equals(sentStorageVersions.get(script.id)))
                     data.putStringArrayList(LuaDiagnosticService.EXTRA_STORAGE_PAIRS, revision.pairs());
             } else {
+                sentStorageVersions.remove(script.id);
                 data.putStringArrayList(LuaDiagnosticService.EXTRA_STORAGE_PAIRS, new ArrayList<>());
             }
             if (!currentEvent(request) || !sendMessage(message, request)) {
@@ -1150,7 +1151,7 @@ public final class LuaScriptDispatcher {
                     }
                 }
             } else if ("send".equals(kind)) {
-                // Queue behind preceding persistent writes in this reply.
+                // All persistent writes for this reply have already committed.
                 io.post(() -> main.post(() ->
                         sendAuthorized(script, request, target, value)));
             } else if ("closepm".equals(kind)) {
