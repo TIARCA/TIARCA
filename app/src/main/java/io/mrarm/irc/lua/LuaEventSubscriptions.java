@@ -42,6 +42,12 @@ final class LuaEventSubscriptions {
             entry.mask = mask >= 0 && (mask & ~VALID_MASK) == 0 ? mask : UNKNOWN;
     }
 
+    synchronized boolean mayUseIdentityV2(String script, String network) {
+        Entry entry = entries.get(key(script, network));
+        if (entry == null) entry = entries.get(key(script, ""));
+        return entry == null || entry.mask == UNKNOWN || (entry.mask & IDENTITY_V2) != 0;
+    }
+
     synchronized boolean usesIdentityV2(String script, String network) {
         Entry entry = entries.get(key(script, network));
         if (entry == null) entry = entries.get(key(script, ""));
