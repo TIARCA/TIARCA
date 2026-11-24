@@ -758,8 +758,14 @@ public final class LuaScriptDispatcher {
                     }
                     LuaUserSnapshot users;
                     if (script.allowUserInfo && connectionData != null) {
-                        if (roster == null)
-                            roster = LuaUserSnapshot.capture(connectionData, channel, nick);
+                        if (roster == null) {
+                            try {
+                                roster = LuaUserSnapshot.capture(connectionData, channel, nick);
+                            } catch (RuntimeException ignored) {
+                                // A disconnect or roster change cannot break event delivery.
+                                roster = LuaUserSnapshot.capture(null, null);
+                            }
+                        }
                         users = roster;
                     } else {
                         users = LuaUserSnapshot.capture(null, null);
