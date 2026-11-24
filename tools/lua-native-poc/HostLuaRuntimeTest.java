@@ -143,6 +143,29 @@ public final class HostLuaRuntimeTest {
     }
 
     public static void main(String[] args) throws Exception {
+        // Read subscriptions from the actual loaded VM, not Lua source text.
+        check(NativeLuaRuntime.eventMask(OTHER) == -1, "Absent VM has no known mask");
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER,
+                bytes("local register = tiarca.on; register('command', function(e) end)")))),
+                "Indirect registration must load");
+        check(NativeLuaRuntime.eventMask(OTHER) == (1 << 3),
+                "Only command is registered, not message or timer");
+        String[] allEvents = {"message", "connected", "disconnected", "command",
+                "join", "part", "quit", "nick", "timer", "kick", "ban", "history",
+                "moderation_log"};
+        for (int i = 0; i < allEvents.length; i++) {
+            check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes(
+                    "tiarca.on('" + allEvents[i] + "', function(e) end)")))),
+                    "Event kind should load: " + allEvents[i]);
+            check(NativeLuaRuntime.eventMask(OTHER) == (1 << i),
+                    "Subscription order must match Java: " + allEvents[i]);
+        }
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes("local x = 1")))),
+                "Script without handlers should load");
+        check(NativeLuaRuntime.eventMask(OTHER) == 0, "No callbacks means empty mask");
+        NativeLuaRuntime.unload(OTHER);
+        check(NativeLuaRuntime.eventMask(OTHER) == -1, "Unloaded VM has no mask");
+
         String source = "local counter = 0\n"
                 + "tiarca.on('message', function(event)\n"
                 + " counter = counter + 1\n"
