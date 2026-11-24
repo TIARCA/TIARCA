@@ -265,12 +265,13 @@ local function detected(e,id,engine,rule,pct,h,now,c)
  if old and old.epoch==c.epoch and now>=old.at and
   now-old.at<TTL then level=old.level end
  local nextLevel=math.min(5,level+1)
- local label=c.mode=="live" and level<5 and action(nextLevel) or "monitor"
+ local label=c.mode=="live" and (level<5 and action(nextLevel) or "escalation") or "monitor"
  tiarca.log(string.format("AutoModV4 %s/%s %s %.1f%% infrazione %d (%s) motore %s",
   e.server:sub(1,8),e.channel,e.nick,pct,nextLevel,label,engine))
  tiarca.log(string.format("WatchdogV4 %s %s/%s %s %s score=%d",
   engine,e.server:sub(1,8),e.channel,e.nick,rule,h.score))
- if c.mode~="live" or level>=5 then return end
+ if c.mode~="live" then return end
+ -- At level five no new ban/kick, but each new detection renews the 24h TTL.
  history[id]={level=nextLevel,at=now,epoch=c.epoch}
  local ok,err=savePart(partition(id))
  if not ok then
@@ -278,7 +279,7 @@ local function detected(e,id,engine,rule,pct,h,now,c)
   tiarca.log("AutoMod V4: archivio non scrivibile; moderazione sospesa: "..tostring(err))
   return
  end
- sanction(e,nextLevel,engine)
+ if level<5 then sanction(e,nextLevel,engine) end
 end
 tiarca.on("message",function(e)
  if e.message_type~="normal" or not e.channel or
