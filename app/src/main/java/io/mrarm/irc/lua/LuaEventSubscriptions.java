@@ -11,9 +11,10 @@ import java.util.Map;
 final class LuaEventSubscriptions {
     private static final String[] EVENTS = {
             "message", "connected", "disconnected", "command", "join", "part",
-            "quit", "nick", "timer", "kick", "ban", "history", "moderation_log"
+            "quit", "nick", "timer", "kick", "ban", "history", "moderation_log", "identity"
     };
-    private static final int VALID_MASK = (1 << EVENTS.length) - 1;
+    private static final int IDENTITY_V2 = 1 << 20;
+    private static final int VALID_MASK = ((1 << EVENTS.length) - 1) | IDENTITY_V2;
     private static final int UNKNOWN = -1;
 
     private static final class Entry {
@@ -39,6 +40,12 @@ final class LuaEventSubscriptions {
         // Old load replies cannot replace metadata for a newer VM or reset.
         if (entry != null && entry.requestId == requestId)
             entry.mask = mask >= 0 && (mask & ~VALID_MASK) == 0 ? mask : UNKNOWN;
+    }
+
+    synchronized boolean usesIdentityV2(String script, String network) {
+        Entry entry = entries.get(key(script, network));
+        if (entry == null) entry = entries.get(key(script, ""));
+        return entry != null && entry.mask != UNKNOWN && (entry.mask & IDENTITY_V2) != 0;
     }
 
     synchronized boolean accepts(String script, String network, String event) {
