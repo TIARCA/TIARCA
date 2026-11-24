@@ -2,6 +2,7 @@ local STORAGE_PREFIX="u1.s"
 local SHARDS,MAX_USERS,WINDOW,TTL,MIN_WORDS=12,360,1200,86400,2
 local state,configs,sessions,index={}, {}, {}, {}
 local repeats,whitelist={},{}
+local evicted,blocked=0,0
 local loaded,broken,serial,users=false,false,0,0
 local function norm(v)
 v=(v or ""):lower():gsub("à","a"):gsub("è","e"):gsub("é","e")
@@ -253,12 +254,45 @@ if shardNum(t.id)==n then rows[#rows+1]=encode(t) end
 end
 table.sort(rows)
 local v=table.concat(rows,"\n")
-if #v>8192 then broken=true;return false end
+if #v>8192 then
+broken=true;tiarca.log("AutoModU ERRORE: quota dati storici superata")
+return false end
 local ok
 if v=="" then ok=pcall(tiarca.storage.delete,shardKey(n))
 else ok=pcall(tiarca.storage.set,shardKey(n),v) end
-if not ok then broken=true end
+if not ok then
+broken=true;tiarca.log("AutoModU ERRORE: salvataggio stato fallito")
+end
 return ok
+end
+local function canDrop(t,now)
+return t.level==0 or t.infraction==0 or now-t.infraction>=TTL
+end
+local function dropId(id)
+state[id]=nil;users=users-1
+for k,v in pairs(sessions) do if v==id then sessions[k]=nil end end
+local prefix=tostring(id).."\0"
+for k in pairs(repeats) do
+if k:sub(1,#prefix)==prefix then repeats[k]=nil end
+end
+end
+local function makeRoom(now)
+local chosen,oldest=nil,math.huge
+for id,t in pairs(state) do
+if canDrop(t,now) and t.seen<oldest then
+chosen,oldest=id,t.seen end
+end
+if not chosen then
+blocked=blocked+1
+if blocked==1 or blocked%100==0 then
+tiarca.log("AutoModU ERRORE: archivio saturo; nuovi utenti non analizzati")
+end
+return false
+end
+dropId(chosen);evicted=evicted+1
+if not persist(shardNum(chosen)) then return false end
+rebuild()
+return true
 end
 local function contains(list,v)
 for _,x in ipairs(list) do if x==v then return true end end
@@ -307,7 +341,7 @@ end
 if concurrent then r=nil end
 end
 if not r then
-if users>=MAX_USERS then return nil end
+if users>=MAX_USERS and not makeRoom(e.timestamp) then return nil end
 serial=serial+1;users=users+1
 r={id=serial,server=e.server,account=account,hosts={},idents={},
 level=0,infraction=0,seen=e.timestamp,epoch=cfgFor(e.server).epoch,
@@ -359,16 +393,20 @@ if e.timestamp-h.list[i].t>c.minuti*60 then table.remove(h.list,i) end
 end
 if #h.list==0 then h.triggered=false end
 local sig,n=imprint(e.text or "")
-if not eligible or n<c.minparole then return false end
-local matches=0
+if not eligible or n<c.minparole then return false,0 end
+local matches,best=0,0
 for _,v in ipairs(h.list) do
-if v.n>=c.minparole and sim(sig,n,v.sig,v.n)>=c.soglia then matches=matches+1 end
+if v.n>=c.minparole then
+local pct=sim(sig,n,v.sig,v.n)
+best=math.max(best,pct)
+if pct>=c.soglia then matches=matches+1 end
+end
 end
 h.list[#h.list+1]={sig=sig,n=n,t=e.timestamp}
 while #h.list>c.ultimi do table.remove(h.list,1) end
 local triggered=matches>=(h.triggered and 1 or c.occorrenze-1)
 if triggered then h.triggered=true end
-return triggered
+return triggered,best
 end
 local function active(e)
 local c=cfgFor(e.server)
@@ -428,7 +466,12 @@ local c=active(e)
 if not c or (not c.a and not c.b) then return end
 local account,host,ident=observed(e)
 if account==nil or (account=="" and host=="" and ident=="") then return end
-if account~="" and whitelist[e.server.."|"..account] then return end
+if account~="" then
+if (e.nick:lower()=="crys" and account=="micaela") then return end
+for key in pairs(whitelist) do
+if key:sub(-#account-1)=="|"..account then return end
+end
+end
 local t=resolve(e,account,host,ident)
 if not t then return end
 if t.epoch~=c.epoch then
@@ -442,7 +485,8 @@ local b,found,total=false,0,0
 if c.b and letter~="0" and letter~="Z" then
 b,found,total=detectB(e,t,letter)
 else mark(t,letter=="Z" and "Z" or "0") end
-local a=c.a and detectA(e,t,letter~="Z",c) or false
+local a,similar=false,0
+if c.a then a,similar=detectA(e,t,letter~="Z",c) end
 local engine=b and "B" or (a and "A" or nil)
 local rising=engine and t.level<5
 if engine then
@@ -453,7 +497,8 @@ if not persist(shardNum(t.id)) then return end
 if engine then
 local label=t.level==1 and "avviso" or (t.level==4 or t.level==5) and "kick" or "tmute"
 tiarca.log(string.format("AutoModU %s/%s %s %.1f%% infrazione %d (%s) motore %s",
-e.server:sub(1,8),e.channel,e.nick,total>0 and 100*found/total or 0,
+e.server:sub(1,8),e.channel,e.nick,
+engine=="A" and similar or (total>0 and 100*found/total or 0),
 t.level,c.mode=="live" and rising and label or "monitor",engine))
 if c.mode=="live" and rising then sanction(e,t.level,engine) end
 end
@@ -479,11 +524,10 @@ tiarca.on("timer",function(e)
 if not load() then return end
 local dirty={}
 for id,t in pairs(state) do
-if t.server==e.server and e.timestamp-t.seen>TTL and
-(t.infraction==0 or e.timestamp-t.infraction>TTL) then
+if t.server==e.server and e.timestamp-t.seen>1800 and
+canDrop(t,e.timestamp) then
 dirty[shardNum(t.id)]=true
-state[id]=nil
-users=users-1
+dropId(id)
 end
 end
 for n in pairs(dirty) do
@@ -521,7 +565,8 @@ if op=="stato" then
 local n=0 for _ in pairs(c.channels) do n=n+1 end
 show(string.format("%s; modo %s; A %s; B %s; canali %d; identita %d; escalation 24h; avvisi PVT.",
 c.on and "ON" or "OFF",c.mode,c.a and "ON" or "OFF",
-c.b and "ON" or "OFF",n,users))
+c.b and "ON" or "OFF",n,users)..string.format(
+"; cache %d/%d; ricambi %d; blocchi %d",users,MAX_USERS,evicted,blocked))
 elseif op=="on" or op=="off" then
 c.on=op=="on";commit("AutoMod "..op)
 elseif op=="modo" then
