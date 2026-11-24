@@ -74,6 +74,7 @@ typedef struct ScriptVm {
     char event_channel[97];
     StorageItem stored[MAX_STORAGE];
     int stored_count;
+    jlong storage_revision;
     int can_store;
 } ScriptVm;
 
@@ -606,6 +607,8 @@ static int script_storage_set(lua_State *L) {
     if (total + kn + vn > MAX_STORAGE_BYTES)
         return luaL_error(L, "tiarca.storage: quota exceeded");
     add_action(L, "store", key, kn, value, vn);
+    // Speculative writes must not be reused unless the host sends a committed revision.
+    s->storage_revision = 0;
     if (index < 0) index = s->stored_count++;
     memcpy(s->stored[index].key, key, kn);
     s->stored[index].key[kn] = 0;
@@ -624,6 +627,7 @@ static int script_storage_delete(lua_State *L) {
     ScriptVm *s = context(L);
     int index = storage_index(s, key);
     if (index >= 0) {
+        s->storage_revision = 0;
         for (int i = index; i < s->stored_count - 1; i++)
             s->stored[i] = s->stored[i + 1];
         s->stored_count--;
@@ -975,13 +979,13 @@ static void set_field(lua_State *L, const char *name, const char *value) {
 }
 
 JNIEXPORT jobjectArray JNICALL
-Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchWithIdentity(JNIEnv *env, jclass unused,
+Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchVersioned(JNIEnv *env, jclass unused,
         jstring jid, jstring jevent, jbyteArray jserver, jbyteArray jchannel,
         jbyteArray jnick, jbyteArray jtext, jbyteArray jtype, jlong timestamp,
         jobjectArray jchannels, jintArray jcounts, jboolean jtruncated,
         jobjectArray jroster, jboolean jrostertruncated,
         jboolean jcanreadusers, jobjectArray jstorage, jboolean jcanstore,
-        jobjectArray jhistoryidentity) {
+        jobjectArray jhistoryidentity, jlong storage_revision) {
     (void)unused;
     char server[64], channel[97], nick[97], text[2049], type[97];
     if (!jid || !jevent ||
@@ -1056,8 +1060,10 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchWithIdentity(JNIEnv *env, jclass 
     if (pair_fields < 0 || pair_fields > MAX_STORAGE * 2 ||
             (pair_fields % 2) != 0 ||
             (jcanstore != JNI_TRUE && pair_fields != 0)) return NULL;
-    s->stored_count = 0;
     s->can_store = jcanstore == JNI_TRUE;
+    if (!(s->can_store && storage_revision > 0 && s->storage_revision == storage_revision)) {
+    s->storage_revision = 0;
+    s->stored_count = 0;
     size_t stored_bytes = 0;
     for (jsize i = 0; i < pair_fields; i += 2) {
         jbyteArray jkey = (jbyteArray)(*env)->GetObjectArrayElement(env, jstorage, i);
@@ -1076,6 +1082,8 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchWithIdentity(JNIEnv *env, jclass 
         stored_bytes += (size_t)key_bytes + (size_t)value_bytes;
         if (stored_bytes > MAX_STORAGE_BYTES) return NULL;
         s->stored_count++;
+    }
+    s->storage_revision = s->can_store ? storage_revision : 0;
     }
     char historical_ident[97] = "", historical_host[257] = "";
     char sender_prefix[33] = "", sender_account[97] = "";
