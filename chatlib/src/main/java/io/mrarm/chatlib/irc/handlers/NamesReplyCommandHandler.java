@@ -14,6 +14,7 @@ public class NamesReplyCommandHandler implements CommandDisconnectHandler {
     public static final int RPL_ENDOFNAMES = 366;
 
     private final Map<String, List<ChannelData.Member>> channelNamesList = new HashMap<>();
+    private final Map<String, List<String>> identityNames = new HashMap<>();
 
     @Override
     public Object[] getHandledCommands() {
@@ -63,6 +64,8 @@ public class NamesReplyCommandHandler implements CommandDisconnectHandler {
                     for (char c : nickWithPrefix.getNickPrefixes())
                         prefixModes[i++] = s.getSupportedNickPrefixModes().get(s.getSupportedNickPrefixes().find(c));
                 }
+                identityNames.computeIfAbsent(channelName, ignored -> new ArrayList<>())
+                        .add(nickWithPrefix.getNick());
                 list.add(new ChannelData.Member(uuid, prefixModes != null ? new ModeList(String.valueOf(prefixModes))
                         : null, nickWithPrefix.getNickPrefixes()));
             }
@@ -74,6 +77,9 @@ public class NamesReplyCommandHandler implements CommandDisconnectHandler {
             } catch (NoSuchChannelException e) {
                 throw new InvalidMessageException("Invalid channel name", e);
             }
+            List<String> observedNames = identityNames.remove(channelName);
+            connection.getIdentityCache().replaceChannelMembers(channelName,
+                    observedNames == null ? Collections.emptyList() : observedNames);
             channelNamesList.remove(channelName);
         }
     }
@@ -81,5 +87,6 @@ public class NamesReplyCommandHandler implements CommandDisconnectHandler {
     @Override
     public void onDisconnected() {
         channelNamesList.clear();
+        identityNames.clear();
     }
 }
