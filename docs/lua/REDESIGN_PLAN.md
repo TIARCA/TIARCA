@@ -4,8 +4,8 @@ Decisione del 24 novembre 2026. Obiettivo: trasferire solo i dati necessari, man
 
 | Fase | Attività | Stato |
 | --- | --- | --- |
-| A | Cache identità IRC: membri condivisi, JOIN/NAMES/PRIVMSG/NICK/ACCOUNT/CHGHOST/PART/KICK/QUIT/disconnessione; limiti espliciti e identità ignote | Implementata sul branch; CI e test reali da verificare |
-| B | Dispatcher: consegna solo eventi sottoscritti; evitare snapshot inutili, senza bloccare IRC/UI | Pianificata |
+| A | Cache identità IRC: membri condivisi, JOIN/NAMES/PRIVMSG/NICK/ACCOUNT/CHGHOST/PART/KICK/QUIT/disconnessione; limiti espliciti e identità ignote | CI #1181 e reproducibilità #390 superate; test reali da verificare |
+| B | Dispatcher: consegna solo eventi sottoscritti; evitare snapshot inutili, senza bloccare IRC/UI | Implementata sullo stesso branch; CI da verificare |
 | C | API: event.sender acquisito al ricevimento; get_user puntuale; get_users filtrato prima della paginazione e asincrono, con indicazione completezza; get_channels su richiesta | Pianificata |
 | D | Storage in memoria, aggiornamenti atomici solo al cambiamento, sincronizzazione/versioni tra processi, backup e ripristino; commit prima delle sanzioni | Pianificata |
 | E | Adeguare AutoMod V4, mantenere crediti e logica; correggere integrazione voice; Mask Finder ed Espelli invariati funzionalmente | Pianificata |
@@ -30,3 +30,13 @@ Decisione del 24 novembre 2026. Obiettivo: trasferire solo i dati necessari, man
 - Un cambio di maschera non esplicitamente correlato invalida il vecchio account; CHGHOST esplicito conserva l'account. Un JOIN da una presenza non condivisa scarta il vecchio record recente prima di osservare il mittente.
 - Nessun nuovo WHO automatico, nessun dato persistente, nessuna API Lua nuova in A. Snapshot 128 e storage invariati: fasi B–D.
 - Test: conservazione oltre il limite LRU, presenze multicanale, NAMES/NICK, JOIN/PART/KICK/QUIT, riuso nickname, CHGHOST, account ignoto/logout, quota e reset. Verifica Android/traffico reale e prestazioni da eseguire.
+
+## Fase B — distribuzione degli eventi
+
+- Un solo branch/PR per il redesign A–H: continuare sulla PR #303, senza creare un branch per ciascuna fase.
+- Dopo il caricamento, il runtime nativo comunica la maschera dei 13 tipi di evento registrati mediante `tiarca.on`. Niente analisi testuale degli script o regole basate sul loro nome.
+- Il dispatcher controlla le sottoscrizioni prima di mettere l'evento in coda e nuovamente sul worker prima di preparare i dati; se nessun destinatario è interessato non crea snapshot, non legge lo storage e non invia IPC per quell'evento.
+- Per ciascun evento con destinatari, uno snapshot canali e al massimo uno snapshot utenti vengono costruiti e riutilizzati; i dati utenti sono trasmessi solo agli script autorizzati. La quota degli eventi è verificata prima della preparazione.
+- Le sottoscrizioni sono associate al VM globale o al VM della rete dopo un restart mirato. Reset e ricariche invalidano i metadati; risposte obsolete non sovrascrivono la nuova sottoscrizione. In assenza di metadati confermati si usa la consegna precedente (conservativa), per non perdere callback.
+- Compatibilità: `get_users` e `get_channels` restano disponibili con la semantica precedente per gli eventi sottoscritti; il roster fino a 128 utenti resta necessario per gli script legacy, sino alla fase C. Storage per evento invariato, fase D.
+- Test aggiunti: filtro command-only, sottoscrizioni AutoMod, restart per rete, reset/metadati obsoleti, tutte le 13 registrazioni JNI e VM senza callback. Prestazioni Android effettive non ancora misurate.
