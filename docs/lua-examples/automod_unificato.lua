@@ -247,6 +247,14 @@ if users>MAX_USERS then broken=true end
 rebuild();loaded=true
 return not broken
 end
+local function dropId(id)
+state[id]=nil;users=users-1
+for k,v in pairs(sessions) do if v==id then sessions[k]=nil end end
+local prefix=tostring(id).."\0"
+for k in pairs(repeats) do
+if k:sub(1,#prefix)==prefix then repeats[k]=nil end
+end
+end
 local function persist(n)
 local rows={}
 for _,t in pairs(state) do
@@ -254,9 +262,23 @@ if shardNum(t.id)==n then rows[#rows+1]=encode(t) end
 end
 table.sort(rows)
 local v=table.concat(rows,"\n")
-if #v>8192 then
-broken=true;tiarca.log("AutoModU ERRORE: quota dati storici superata")
+while #v>8192 do
+local pick,age=nil,math.huge
+for id,t in pairs(state) do
+if shardNum(id)==n and t.level==0 and t.seen<age then
+pick,age=id,t.seen end
+end
+if not pick then
+broken=true;tiarca.log("AutoModU ERRORE: quota storico esaurita")
 return false end
+dropId(pick);evicted=evicted+1
+rows={}
+for _,t in pairs(state) do
+if shardNum(t.id)==n then rows[#rows+1]=encode(t) end
+end
+table.sort(rows);v=table.concat(rows,"\n")
+rebuild()
+end
 local ok
 if v=="" then ok=pcall(tiarca.storage.delete,shardKey(n))
 else ok=pcall(tiarca.storage.set,shardKey(n),v) end
@@ -267,14 +289,6 @@ return ok
 end
 local function canDrop(t,now)
 return t.level==0 or t.infraction==0 or now-t.infraction>=TTL
-end
-local function dropId(id)
-state[id]=nil;users=users-1
-for k,v in pairs(sessions) do if v==id then sessions[k]=nil end end
-local prefix=tostring(id).."\0"
-for k in pairs(repeats) do
-if k:sub(1,#prefix)==prefix then repeats[k]=nil end
-end
 end
 local function makeRoom(now)
 local chosen,oldest=nil,math.huge
