@@ -78,6 +78,6 @@ V4 conserva **solo le infrazioni di Mod** nello storage persistente, non tutti g
 
 La motivazione di tutti i kick è **\`Messaggi ripetuti\`**. I testi PVT sono gli stessi già adottati nella PR #302; Mod non specifica all'utente il nome dello script. Il livello 5 è il massimo e non reinvia indefinitamente nuovi kick/ban. I mute e i ban temporanei utilizzano le API TIARCA, che preferiscono la maschera di account quando supportata dal server; la reale applicazione sull'IRCd non è garantita dal solo invio del comando.
 
-L'evento di rilevamento viene riportato localmente nel formato \`AutoModU\` con motore A/B, più una riga \`WatchdogV4\` che indica la regola e il punteggio. Harvester potrà essere aggiornato successivamente in modo indipendente.
+L'evento di rilevamento viene riportato localmente nel formato \`AutoModV4\` con motore A/B, più una riga \`WatchdogV4\` che indica la regola e il punteggio. Harvester potrà essere aggiornato successivamente in modo indipendente.
 
 **Da verificare con Candidate e canali reali:** accuratezza e falsi positivi, ricongiungimento delle identità al cambio di stato NickServ, canali molto popolati, permessi e comportamento degli extban/account sul server, persistenza in caso di arresto improvviso, backup/ripristino e finestra dei PVT. La compilazione e i test automatici non sostituiscono queste verifiche.
