@@ -47,6 +47,7 @@ public final class IrcIdentityCache {
     private final Map<String, Identity> shared = new HashMap<>();
     private final Map<String, Set<String>> channelMembers = new HashMap<>();
     private final Map<String, Integer> memberships = new HashMap<>();
+    private final Map<String, String> sharedNicks = new HashMap<>();
     private int membershipCount;
     private boolean membershipOverflow;
     private long whoxExpiresAt;
@@ -127,7 +128,10 @@ public final class IrcIdentityCache {
         String ch = channelKey(channel), id = key(nick);
         if (ch == null || id == null) return;
         Set<String> members = channelMembers.get(ch);
-        if (members != null && members.contains(id)) return;
+        if (members != null && members.contains(id)) {
+            sharedNicks.put(id, nick);
+            return;
+        }
         if (membershipCount >= MAX_MEMBERSHIPS ||
                 (!memberships.containsKey(id) && memberships.size() >= MAX_SHARED)) {
             membershipOverflow = true;
@@ -141,6 +145,7 @@ public final class IrcIdentityCache {
         membershipCount++;
         int refs = memberships.getOrDefault(id, 0);
         memberships.put(id, refs + 1);
+        sharedNicks.put(id, nick);
         if (refs == 0) {
             Identity identity = recent.remove(id);
             if (identity != null) shared.put(id, identity);
@@ -152,6 +157,7 @@ public final class IrcIdentityCache {
         int refs = memberships.getOrDefault(id, 0);
         if (refs <= 1) {
             memberships.remove(id);
+            sharedNicks.remove(id);
             shared.remove(id);
             recent.remove(id);
         } else {
@@ -176,17 +182,17 @@ public final class IrcIdentityCache {
     public synchronized void replaceChannelMembers(String channel, Collection<String> nicks) {
         String ch = channelKey(channel);
         if (ch == null || nicks == null) return;
-        Set<String> desired = new HashSet<>();
+        Map<String, String> desired = new HashMap<>();
         for (String nick : nicks) {
             String id = key(nick);
-            if (id != null) desired.add(id);
+            if (id != null) desired.put(id, nick);
         }
         Set<String> previous = channelMembers.get(ch);
         if (previous != null) {
             for (String id : new HashSet<>(previous))
-                if (!desired.contains(id)) memberLeft(ch, id);
+                if (!desired.containsKey(id)) memberLeft(ch, id);
         }
-        for (String id : desired) memberJoined(ch, id);
+        for (String nick : desired.values()) memberJoined(ch, nick);
     }
 
     public synchronized void channelLeft(String channel) {
@@ -209,7 +215,6 @@ public final class IrcIdentityCache {
         membershipOverflow = true;
     }
 
-    /** Sticky for the connection; callers must not assume an exhaustive cache. */
     /** Local membership evidence only; a negative result can be incomplete. */
     public synchronized boolean hasSharedMember(String channel, String nick) {
         String ch = channelKey(channel), id = key(nick);
@@ -217,13 +222,23 @@ public final class IrcIdentityCache {
         return id != null && members != null && members.contains(id);
     }
 
+    /** Exact server-observed spelling, so point lookup need not scan the roster. */
+    public synchronized String sharedMemberNick(String channel, String nick) {
+        return hasSharedMember(channel, nick) ? sharedNicks.get(key(nick)) : null;
+    }
+
+    /** Sticky for the connection; callers must not assume an exhaustive cache. */
     public synchronized boolean membershipTrackingComplete() {
         return !membershipOverflow;
     }
 
     public synchronized void rename(String oldNick, String newNick) {
         String previous = key(oldNick), next = key(newNick);
-        if (previous == null || next == null || previous.equals(next)) return;
+        if (previous == null || next == null) return;
+        if (previous.equals(next)) {
+            if (memberships.containsKey(next)) sharedNicks.put(next, newNick);
+            return;
+        }
         Identity old = find(previous);
         // A nickname cannot have two live owners on the same IRC network.
         forget(newNick);
@@ -231,6 +246,8 @@ public final class IrcIdentityCache {
         if (refs != 0) {
             memberships.remove(previous);
             memberships.put(next, refs);
+            sharedNicks.remove(previous);
+            sharedNicks.put(next, newNick);
             for (Set<String> members : channelMembers.values())
                 if (members.remove(previous)) members.add(next);
         }
@@ -250,6 +267,7 @@ public final class IrcIdentityCache {
             if (members.isEmpty()) it.remove();
         }
         memberships.remove(id);
+        sharedNicks.remove(id);
         shared.remove(id);
         recent.remove(id);
     }
@@ -259,6 +277,7 @@ public final class IrcIdentityCache {
         recent.clear();
         channelMembers.clear();
         memberships.clear();
+        sharedNicks.clear();
         membershipCount = 0;
         membershipOverflow = false;
         whoxExpiresAt = 0L;
