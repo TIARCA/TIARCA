@@ -14,7 +14,6 @@ public class NamesReplyCommandHandler implements CommandDisconnectHandler {
     public static final int RPL_ENDOFNAMES = 366;
 
     private final Map<String, List<ChannelData.Member>> channelNamesList = new HashMap<>();
-    private final Map<String, List<String>> identityNames = new HashMap<>();
 
     @Override
     public Object[] getHandledCommands() {
@@ -64,8 +63,6 @@ public class NamesReplyCommandHandler implements CommandDisconnectHandler {
                     for (char c : nickWithPrefix.getNickPrefixes())
                         prefixModes[i++] = s.getSupportedNickPrefixModes().get(s.getSupportedNickPrefixes().find(c));
                 }
-                identityNames.computeIfAbsent(channelName, ignored -> new ArrayList<>())
-                        .add(nickWithPrefix.getNick());
                 list.add(new ChannelData.Member(uuid, prefixModes != null ? new ModeList(String.valueOf(prefixModes))
                         : null, nickWithPrefix.getNickPrefixes()));
             }
@@ -77,16 +74,30 @@ public class NamesReplyCommandHandler implements CommandDisconnectHandler {
             } catch (NoSuchChannelException e) {
                 throw new InvalidMessageException("Invalid channel name", e);
             }
-            List<String> observedNames = identityNames.remove(channelName);
-            connection.getIdentityCache().replaceChannelMembers(channelName,
-                    observedNames == null ? Collections.emptyList() : observedNames);
-            channelNamesList.remove(channelName);
+            List<ChannelData.Member> completed = channelNamesList.remove(channelName);
+            // Resolve the current nicknames from the same UUIDs as the IRC roster:
+            // a NICK between 353 and 366 must not pin the obsolete nickname.
+            List<UUID> ids = new ArrayList<>();
+            if (completed != null)
+                for (ChannelData.Member member : completed) ids.add(member.getUserUUID());
+            try {
+                Map<UUID, String> nicks = connection.getUserInfoApi()
+                        .getUsersNicks(ids, null, null).get();
+                if (nicks.size() == new HashSet<>(ids).size())
+                    connection.getIdentityCache().replaceChannelMembers(channelName, nicks.values());
+                else
+                    connection.getIdentityCache().markMembershipIncomplete();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                connection.getIdentityCache().markMembershipIncomplete();
+            } catch (ExecutionException e) {
+                connection.getIdentityCache().markMembershipIncomplete();
+            }
         }
     }
 
     @Override
     public void onDisconnected() {
         channelNamesList.clear();
-        identityNames.clear();
     }
 }
