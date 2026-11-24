@@ -6,6 +6,7 @@ These are UTF-8 files for manual import, **not** automatically installed plugins
 
 | Example | Purpose | Capabilities |
 |---|---|---|
+| [automod_v4.lua](../../lua-examples/automod_v4.lua) | **[AutoMod V4](UNIFIED_AUTOMOD.md)**: Watchdog (ads, micro-ads, repeats) + Mod (escalation); Harvester separate | Identities, persistence; send and moderation in live mode |
 | [automod_antiripetizione.lua](../../lua-examples/automod_antiripetizione.lua) | Moderate repetitions with per-channel scope | Identities, persistence, moderation; send for warnings |
 | [automod_annunci.lua](../../lua-examples/automod_annunci.lua) | [AutoMod B](AUTOMOD_B.md): announcement patterns, lookback concentration and escalation | Identities, persistence, send and moderation in live mode |
 | [espelli.lua](../../lua-examples/espelli.lua) | Manual kick: host-scoped `N:` and `m:U:` TBAN for 6h, nick/account bans; no global +N | Identities, moderation; OP |
