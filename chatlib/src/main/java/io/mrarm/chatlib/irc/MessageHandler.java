@@ -73,6 +73,8 @@ public class MessageHandler {
         }
         // Cache server-observed identity before publishing IRC events to Lua.
         IrcIdentityCache identities = connection.getIdentityCache();
+        if ("JOIN".equals(command) && prefix != null)
+            identities.prepareJoin(prefix.getNick());
         if (prefix != null && prefix.getUser() != null && prefix.getHost() != null)
             identities.note(prefix.getNick(), prefix.getUser(), prefix.getHost(), null);
         if (prefix != null && tags.containsKey("account") &&
