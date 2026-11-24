@@ -103,7 +103,7 @@ public class MessageCommandHandler implements CommandHandler {
                         continue;
                 }
                 MessageInfo.Builder builder = new MessageInfo.Builder(
-                        sender.toSenderInfo(userUUID, channelData, automated), text, type);
+                        observedSender(connection, sender, userUUID, channelData, automated), text, type);
                 builder.setStatusMessage(connection.getSupportList()
                         .getStatusMessageChannel(rawChannel) != null);
                 channelData.addMessage(builder, tags);
@@ -111,6 +111,19 @@ public class MessageCommandHandler implements CommandHandler {
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private MessageSenderInfo observedSender(ServerConnectionData connection, MessagePrefix sender,
+                                             UUID userUUID, ChannelData channel, boolean automated) {
+        ChannelData.Member member = channel == null || userUUID == null ? null :
+                channel.getMember(userUUID);
+        IrcIdentityCache.Identity identity = connection.getIdentityCache().get(sender.getNick());
+        String account = identity != null && sender.getUser() != null && sender.getHost() != null &&
+                sender.getUser().equals(identity.ident) && sender.getHost().equalsIgnoreCase(identity.host) &&
+                identity.accountKnown ? (identity.account == null ? "*" : identity.account) : null;
+        return new MessageSenderInfo(sender.getNick(), sender.getUser(), sender.getHost(),
+                member == null ? null : member.getNickPrefixes(), userUUID, automated,
+                true, member != null, account);
     }
 
     private boolean isAutomatedSender(ServerConnectionData connection, MessagePrefix sender,
@@ -142,7 +155,7 @@ public class MessageCommandHandler implements CommandHandler {
                 if (channelData == null)
                     continue;
                 MessageInfo.Builder builder = new MessageInfo.Builder(
-                        sender.toSenderInfo(userUUID, channelData, automated), args,
+                        observedSender(connection, sender, userUUID, channelData, automated), args,
                         MessageInfo.MessageType.ME);
                 builder.setStatusMessage(connection.getSupportList()
                         .getStatusMessageChannel(rawChannel) != null);
