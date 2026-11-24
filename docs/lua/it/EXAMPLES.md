@@ -6,6 +6,7 @@ Gli esempi sono file UTF-8 da importare manualmente: **non** sono plugin install
 
 | Esempio | Scopo | Autorizzazioni |
 |---|---|---|
+| [automod_v4.lua](../../lua-examples/automod_v4.lua) | **[AutoMod V4](AUTOMOD_UNIFICATO.md)**: Watchdog (annunci, microannunci, ripetizioni) + Mod (escalation); Harvester separato | Identità, persistenza; invio e moderazione in modalità live |
 | [automod_antiripetizione.lua](../../lua-examples/automod_antiripetizione.lua) | Modera ripetizioni con filtri per canale | Identità, persistenza, moderazione; invio per avvisi |
 | [automod_annunci.lua](../../lua-examples/automod_annunci.lua) | [AutoMod B](AUTOMOD_B.md): riconoscimento annunci, concentrazione retroattiva, escalation | Membri e identità, persistenza, invio e moderazione in modalità live |
 | [espelli.lua](../../lua-examples/espelli.lua) | Espulsione manuale: TBAN host `N:` e `m:U:` per 6h, KICK e ban nick/account; senza +N globale | Membri e identità, moderazione; OP |
