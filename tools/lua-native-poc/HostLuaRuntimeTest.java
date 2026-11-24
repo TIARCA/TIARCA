@@ -1640,6 +1640,75 @@ public final class HostLuaRuntimeTest {
         String[] updated = event(ID, "command", "#room", "me", "mod stato");
         check(java.util.Arrays.toString(updated).contains("somiglianza 80%"),
                 "Updated similarity is visible in status");
+        // Level five renews its 24-hour memory without sending repeat kick/ban.
+        eventAs(ID, "message", "#room", "Annonce", "mxm reale",
+                1794410020L, "", "annonce"); // level 3
+        eventAs(ID, "message", "#room", "Annonce", "donne pvt",
+                1794410021L, "", "annonce"); // level 4
+        String[] five = eventAs(ID, "message", "#room", "Annonce", "f che chatta",
+                1794410022L, "", "annonce");
+        check(java.util.Arrays.toString(five).contains("tban") &&
+                        java.util.Arrays.toString(five).contains("24h"),
+                "V4 fifth sanction preserves the 24-hour ban");
+        String[] capped = eventAs(ID, "message", "#room", "Annonce", "cerco m",
+                1794410023L, "", "annonce");
+        check(!java.util.Arrays.toString(capped).contains("tban") &&
+                        !java.util.Arrays.toString(capped).contains("kick") &&
+                        java.util.Arrays.toString(capped).contains("(escalation)"),
+                "Further detections renew level-five TTL without duplicate sanctions");
+        check(automodStorage.values().stream().anyMatch(v -> v.contains("1794410023")),
+                "A level-five repeat refreshes persisted infraction timestamp");
+
+        // The same account crosses nickname changes; each channel has its own score.
+        eventAs(ID, "message", "#room", "FirstNick", "f",
+                1794410030L, "", "shared-account");
+        String[] renamed = eventAs(ID, "message", "#room", "SecondNick",
+                "cerco f", 1794410031L, "", "shared-account");
+        check(java.util.Arrays.toString(renamed).contains("motore B"),
+                "Watchdog recognizes same NickServ account under a new nickname");
+        event(ID, "command", "#room", "me", "mod canali add #other");
+        check(eventAs(ID, "message", "#other", "FirstNick", "f",
+                1794410032L, "", "shared-account").length==1,
+                "Separate channel starts with an independent Watchdog score");
+        String[] otherChannel = eventAs(ID, "message", "#other", "SecondNick",
+                "cerco f", 1794410033L, "", "shared-account");
+        check(java.util.Arrays.toString(otherChannel).contains("motore B"),
+                "The second ad in the new channel triggers its own detection");
+
+        eventAs(ID, "message", "#room", "Late", "mxm reale",
+                1794410034L, "", "late-account");
+        check(eventAs(ID, "message", "#room", "Late", "donne pvt",
+                1794410034L+901L, "", "late-account").length==1,
+                "Ads separated by over fifteen minutes do not form a pair");
+        eventAs(ID, "message", "#room", "Geo", "calabira nessuna",
+                1794410040L, "", "geo");
+        check(java.util.Arrays.toString(eventAs(ID, "message", "#room",
+                "Geo", "f che chatta", 1794410041L, "", "geo"))
+                        .contains("motore B"),
+                "Known spelling variant calabira contributes to ad score");
+        check(eventAs(ID, "message", "#room", "ChangedNick",
+                "f", 1794410042L, "", "Micaela").length==1 &&
+                eventAs(ID, "message", "#room", "ChangedNick",
+                "donne pvt", 1794410043L, "", "Micaela").length==1,
+                "Default authenticated allowlist survives nickname changes");
+
+        // A large channel's truncated roster still contains its sender.
+        byte[][] largeSender = new byte[][]{bytes("LargeSender"), bytes(""),
+                bytes("ident"), bytes("host.example"), bytes("large-account")};
+        String[] largeFirst=collect(NativeLuaRuntime.dispatch(ID,"message",
+                bytes("test-server"),bytes("#room"),bytes("LargeSender"),
+                bytes("mxm reale"),bytes("normal"),1794410044L,
+                new byte[0][],new int[0],false,largeSender,true,true,
+                automodSnapshot(),true));
+        String[] largeSecond=collect(NativeLuaRuntime.dispatch(ID,"message",
+                bytes("test-server"),bytes("#room"),bytes("LargeSender"),
+                bytes("cerco m"),bytes("normal"),1794410045L,
+                new byte[0][],new int[0],false,largeSender,true,true,
+                automodSnapshot(),true));
+        check(largeFirst.length==1 &&
+                        java.util.Arrays.toString(largeSecond).contains("motore B"),
+                "V4 inspects the observed sender even when a roster is truncated");
+
         for (int i=0; i<550; i++) {
             String nick="V4User"+i;
             String[] output=eventWithLongIdentity(nick,"v4acct"+i,
