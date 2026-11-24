@@ -1,7 +1,7 @@
 -- TIARCA AutoMod V4: Watchdog (detection) + Mod (existing escalation).
 -- Separate from Harvester; disable previous AutoMod scripts on these networks.
 local TTL,SHARDS=86400,20
-local configs,allow,history,watch,hostSeen={},{},{},{},{}
+local configs,allow,history,watch,hostSeen,unresolved={},{},{},{},{},{}
 local loaded,failed=false,false
 local function words(s)
  local t={} for v in s:gmatch("%S+") do t[#t+1]=v end return t
@@ -17,7 +17,6 @@ local contact=dict("pvt priv privato privata scrivimi scrivetemi contattami cont
 local encounter=dict("reale incontro incontri ospito ospitare uscire")
 local media=dict("cam call videochat whatsapp whatap whatsap telegram tg")
 local places=dict("parma caserta milano roma napoli biella veneto puglia lecce sicilia friuli piemonte marche toscana bari salerno genova torino calabria calabira siciliana verona enna viareggio firenze bologna palermo catania abruzzo molise umbria lazio sardegna lombardia campania")
-local greet=dict("ciao salve buongiorno buonasera buonanotte sera")
 local greetings={
  ["ciao"]=true,["salve"]=true,["sera"]=true,["buongiorno"]=true,
  ["buonasera"]=true,["buonanotte"]=true,["buona sera"]=true,
@@ -290,15 +289,20 @@ tiarca.on("message",function(e)
  local now=tonumber(e.timestamp) or 0
  if now<=0 then return end
  local window=c.minutes*60
+ local kind,rule=category(e.text or "")
+ if kind=="ignore" or kind=="short" then return end
  local id,why=identify(e,now,window)
  if not id then
-  if why=="HOST_SHARED" or why=="ROSTER" or why=="ROSTER_TRUNCATED" then
-   tiarca.log("AutoMod V4: identita non affidabile "..why.."; controllo sospeso")
+  if why~="WHITELIST" and why~="PROTECTED" then
+   local k=e.server.."/"..e.channel:lower().."/"..e.nick:lower()
+   if not unresolved[k] or now-unresolved[k]>window then
+    tiarca.log("AutoMod V4: identita incerta per "..e.nick..
+     " in "..e.channel.." ("..tostring(why).."); controllo sospeso")
+    unresolved[k]=now
+   end
   end
   return
  end
- local kind,rule=category(e.text or "")
- if kind=="ignore" or kind=="short" then return end
  local h=getWatch(id,e.channel,now,window)
  h.last=now
  if h.adAt>0 and now-h.adAt>window then h.ads=0 end
@@ -344,7 +348,14 @@ tiarca.on("timer",function(e)
   if now-h.last>60*(c and c.minutes or 15) then watch[key]=nil end
  end
  for key,s in pairs(hostSeen) do
-  if now-s.at>900 then hostSeen[key]=nil end
+  local server=key:match("^(.-)/")
+  local c=configs[server]
+  if now-s.at>60*(c and c.minutes or 15) then hostSeen[key]=nil end
+ end
+ for key,at in pairs(unresolved) do
+  local server=key:match("^(.-)/")
+  local c=configs[server]
+  if now-at>60*(c and c.minutes or 15) then unresolved[key]=nil end
  end
  local touched,parts={},0
  for id,r in pairs(history) do
@@ -405,11 +416,7 @@ tiarca.on("command",function(e)
  elseif op=="modo" and (rest=="monitor" or rest=="live") then
   c.mode=rest;finish()
  elseif op=="motore" then
-  local group,value=rest:match("^(%S+)%s+(on|off)$")
-  if not group then
-   local p={} for word in rest:gmatch("%S+") do p[#p+1]=word end
-   group,value=p[1],p[2]
-  end
+  local group,value=rest:match("^(%S+)%s+(%S+)$")
   if value~="on" and value~="off" then
    show("Uso: /lua mod motore ripetizioni|annunci on|off");return end
   if group=="a" or group=="ripetizioni" then c.a=value=="on"
