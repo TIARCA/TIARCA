@@ -142,7 +142,38 @@ public final class HostLuaRuntimeTest {
                 }));
     }
 
+    private static String[] revisionEvent(String vm, String operation, long revision,
+                                          String value) {
+        byte[][] storage = {bytes("count"), bytes(value)};
+        return collect(NativeLuaRuntime.dispatchVersioned(vm, "command", bytes("test-server"),
+                bytes("#room"), bytes("me"), bytes(operation), bytes(""), 0L,
+                new byte[0][], new int[0], false, new byte[0][], false, false,
+                storage, true, new byte[0][], revision));
+    }
+
+    private static void checkStorageRevisions() {
+        String source = "tiarca.on('command', function(e) "
+                + "if e.text == 'mutate' then tiarca.storage.set('count','99') end "
+                + "if e.text == 'fail' then tiarca.storage.set('count','88'); error('rollback') end "
+                + "tiarca.log(tiarca.storage.get('count')) end)";
+        check("OK".equals(decode(NativeLuaRuntime.load(ID, bytes(source)))), "Revision VM loads");
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes(source)))), "Second VM loads");
+        check("1".equals(revisionEvent(ID, "read", 1, "1")[3]), "Initial committed revision");
+        check("1".equals(revisionEvent(ID, "read", 1, "1")[3]), "Reuse unchanged revision");
+        String[] mutation = revisionEvent(ID, "mutate", 1, "1");
+        check(mutation.length == 7 && "store".equals(mutation[1]) && "99".equals(mutation[6]),
+                "Local mutation visible inside event");
+        check("1".equals(revisionEvent(ID, "read", 1, "1")[3]),
+                "Uncommitted native mutation is not reused");
+        check("2".equals(revisionEvent(ID, "read", 2, "2")[3]), "New host revision replaces old");
+        check("2".equals(revisionEvent(OTHER, "read", 2, "2")[3]), "Other VM receives same revision");
+        check(revisionEvent(ID, "fail", 2, "2")[0].startsWith("ERROR"), "Failed callback rolls back");
+        check("2".equals(revisionEvent(ID, "read", 2, "2")[3]), "Failed mutation invalidates native cache");
+        NativeLuaRuntime.clear();
+    }
+
     public static void main(String[] args) throws Exception {
+        checkStorageRevisions();
         // Read subscriptions from the actual loaded VM, not Lua source text.
         check(NativeLuaRuntime.eventMask(OTHER) == -1, "Absent VM has no known mask");
         check("OK".equals(decode(NativeLuaRuntime.load(OTHER,
