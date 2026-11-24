@@ -7,10 +7,10 @@ Decisione del 24 novembre 2026. Obiettivo: trasferire solo i dati necessari, man
 | A | Cache identità IRC: membri condivisi, JOIN/NAMES/PRIVMSG/NICK/ACCOUNT/CHGHOST/PART/KICK/QUIT/disconnessione; limiti espliciti e identità ignote | CI #1181 e reproducibilità #390 superate; test reali da verificare |
 | B | Dispatcher: consegna solo eventi sottoscritti; evitare snapshot inutili, senza bloccare IRC/UI | CI #1188 e reproducibilità #397 superate; test reali da verificare |
 | C | API: event.sender acquisito al ricevimento; get_user puntuale; get_users filtrato prima della paginazione e asincrono, con indicazione completezza; get_channels su richiesta | CI #1206 e reproducibilità #415 superate; test reali da verificare |
-| D | Storage in memoria, aggiornamenti atomici solo al cambiamento, sincronizzazione/versioni tra processi, backup e ripristino; commit prima delle sanzioni | CI #1218 superata; reproducibilità #427 in corso al momento della migrazione |
-| E | Adeguare AutoMod V4, mantenere crediti e logica; correggere integrazione voice; Mask Finder ed Espelli invariati funzionalmente | CI #1219 superata; reproducibilità #428 in corso; test reali da verificare |
-| F | Diagnostica motore (eventi ricevuti/elaborati/scartati, latenza, memoria, scritture, richieste roster) e stress test 1000 membri/500 attivi, 5/10/25/50 msg/s; statistiche AutoMod separate da valutare dopo | Implementata; benchmark CI e prova Android da verificare |
-| G | Guida scripting IT/EN, contratto API e compatibilità script terzi | Pianificata |
+| D | Storage in memoria, aggiornamenti atomici solo al cambiamento, sincronizzazione/versioni tra processi, backup e ripristino; commit prima delle sanzioni | CI #1218 e reproducibilità #427 superate |
+| E | Adeguare AutoMod V4, mantenere crediti e logica; correggere integrazione voice; Mask Finder ed Espelli invariati funzionalmente | CI #1219 e reproducibilità #428 superate; test reali da verificare |
+| F | Diagnostica motore (eventi ricevuti/elaborati/scartati, latenza, memoria, scritture, richieste roster) e stress test 1000 membri/500 attivi, 5/10/25/50 msg/s; statistiche AutoMod separate da valutare dopo | CI #1220 e benchmark host superati; prova Android da verificare |
+| G | Guida scripting IT/EN, contratto API e compatibilità script terzi | Documentazione aggiornata; CI da verificare |
 | H | CI, reproducibilità, Candidate firmata e test reali; nessun merge/release automatico | Pianificata |
 
 ## Vincoli
@@ -110,3 +110,20 @@ end)
 - Latenza media/max: da enqueue a invio IPC, invio-risposta (include coda sandbox e Binder), durata della chiamata JNI, enqueue fino a rilascio degli effetti (non conferma IRC), durata transazione storage. Snapshot roster legacy, righe effettivamente inviate (incluse query), query eseguite, invii snapshot storage, commit riusciti e no-op. Gli errori storage includono anche caricamenti/permessi falliti.
 - Memoria: ultimo campione e massimo campionato dell'allocatore Lua nel processo isolato, aggregato su VM; non RSS, heap Java, strutture C o memoria IPC. Dopo invalidazione il valore corrente torna non disponibile. Nessun reset dei contatori in F, nessuna scrittura diagnostica su disco.
 - `HostLuaStressTest`: CI Standard, runtime JNI reale, 1000 identità sintetiche (500 mittenti attivi oltre i primi 128), pre-seed di un annuncio ciascuno e 500 successivi arrivi reali a 5/10/25/50 msg/s, coda host 32. V4 in monitor, nessun roster o query, verifica riconoscimenti e contabilità, stampa throughput, drop, p95/p99, campioni memoria. Nessun limite prestazionale arbitrario: errori funzionali falliscono, i drop vengono riportati. Separatamente il test Java identity query di C esercita il roster effettivo di 1000 membri/130 voice. Non è uno stress test dell'intero Android: Binder, cache IRC, disco reale, UI e code host Android vanno misurati con Candidate e server/test traffic nella fase H. Nessuna conclusione prestazionale prima dei risultati.
+
+## Risultati F — CI #1220, 24 novembre 2026
+
+[Log Standard](https://github.com/TIARCA/TIARCA/actions/runs/45480395659/job/138751642767). Entrambe varianti CI superate; 500 rilevamenti attesi su 500 elaborati per scenario, nessun drop; massimo campionato memoria 689043 byte e coda 1/32.
+
+| msg/s | Elaborati | Drop | P95 ms | P99 ms | JNI P95 ms |
+| --- | --- | --- | --- | --- | --- |
+| 5 | 500 | 0 | 0.472 | 0.577 | 0.155 |
+| 10 | 500 | 0 | 0.387 | 0.471 | 0.130 |
+| 25 | 500 | 0 | 0.349 | 0.394 | 0.117 |
+| 50 | 500 | 0 | 0.208 | 0.349 | 0.070 |
+
+Host/JNI in monitor, non garanzia Android end-to-end o accuratezza generale. Reproducibilità #429 da verificare.
+
+## Fase G — contratto e compatibilità
+
+Guide IT/EN aggiornate (API, eventi, permessi, esempi, migrazione); checker include API ed evento identity; MVP marcato storico. V4 presente negli esempi; PR #302 separata. Nessuna modifica al runtime, script, versione o workflow. CI documentale e Candidate da verificare.

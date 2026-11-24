@@ -14,3 +14,5 @@ This document is for AI coding assistants and human contributors writing **Lua s
 10. When updating documentation, keep **Italian and English files structurally aligned**. Do not claim an API is verified unless its current implementation was checked.
 
 This documentation covers a **development feature**; the stable v0.9.10 APK does not include it.
+
+11. For PR #303 follow [migration guide](en/MIGRATION.md) and current implementation rather than historical MVP. Prefer event.sender for messages, point lookup for explicit identity requests, filtered paginated roster for commands. Do not blindly opt legacy scripts in; handle missing replies, unknown accounts and incomplete observations. `/lua perf` is global engine diagnostics, not AutoMod statistics.

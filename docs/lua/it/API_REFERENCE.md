@@ -10,9 +10,12 @@
 | `tiarca.log(testo)` | Registra testo nel log locale dello script | Nessuno |
 | `tiarca.send(destinazione, testo)` | Richiede invio nella stessa conversazione dell'evento | Invio; limiti temporali |
 | `tiarca.pm(nick, testo)` | Richiede PVT al mittente ammesso di un messaggio in canale | Invio; evento compatibile |
+| `tiarca.close_pms()` | Chiude PVT dello script, non manuali | Comando locale `mod close`; selezione multipla non inclusa #303 |
 | `tiarca.notice(nick, testo)` | Come `pm`, tramite NOTICE | Invio; evento compatibile |
-| `tiarca.get_channels()` | Array `{name, users}`; `.truncated` se oltre 32 canali | Dentro callback |
-| `tiarca.get_users(canale)` | Array di membri osservati; `.truncated` oltre 128; campi mancanti `nil` | Identità; canale corrente |
+| `tiarca.identity_v2()` | Opt-in per VM; solo inizializzazione | Nessuno |
+| `tiarca.get_channels()` / `tiarca.get_channels(token)` | Legacy snapshot max 32; v2 risposta identity | Legacy callback; v2 comando locale |
+| `tiarca.get_user(canale, nick, token)` | V2 lookup puntuale asincrono | Identità; comando locale o evento IRC stesso canale |
+| `tiarca.get_users(canale)` / `tiarca.get_users(canale, opzioni)` | Legacy max 128; v2 filtrato e paginato | Identità; legacy canale corrente, v2 comando locale o continuazione |
 | `tiarca.refresh_users(canale)` | Richiede WHO/WHOX asincrono; massimo una richiesta/minuto per script | Identità; comando locale |
 | `tiarca.maskfind(canale, pattern)` | Ricerca WHO/WHOX strutturata, mostra risultati locali; non restituisce subito le corrispondenze | Identità; comando esplicito |
 | `tiarca.show(titolo, testo)` | Risultato locale: titolo 1–96 byte, testo 1–512 byte | Dentro callback |
@@ -31,18 +34,20 @@
 | `tiarca.mode(canale, nick, modo)` | Solo `+o`, `-o`, `+v`, `-v` | Moderazione; OP |
 | `tiarca.mute(canale, nick)` | Richiede mute con dialetto IRC supportato | Moderazione; OP |
 | `tiarca.tban(canale, nick, durata)` | Richiede ban temporaneo (es. `"3h"`) | Moderazione; OP; dialetto supportato |
-| `tiarca.tmute(canale, nick, durata)` | Richiede mute temporaneo del solo host corrente (`TBAN` con `m:` su InspIRCd); nessun timer lato app | Moderazione; OP; dialetto supportato |
+| `tiarca.tmute(canale, nick, durata)` | Mute temporaneo lato server; V4 usa account R: osservato se supportato, altrimenti host esatto; legacy host | Moderazione; OP; dialetto supportato |
 | `tiarca.kickban(canale, nick, motivo)` | KICK + ban come unica richiesta convalidata | Moderazione; OP |
 | `tiarca.kicktban(canale, nick, durata, motivo)` | KICK + ban temporaneo convalidati insieme | Moderazione; OP |
 | `tiarca.blacklist_action(canale, nick, account, azione, durata)` | Azioni `kick`, `ban`, `mute`, `tban`, `bankick`, `tbankick`; account verificato dal client | Moderazione e identità; vincoli aggiuntivi |
 
+| `tiarca.override_action(canale, nick, account, azione, durata)` | Alias di blacklist_action | Stessi requisiti |
+
 ### Campi delle identità
 
-`get_users` espone `nick`, `prefix` e, **solo se osservati**, `ident`, `host`, `account`, `mask`. I dati assenti valgono `nil`; un host può essere cloaked. Non costruire ban da host sconosciuti.
+`get_users`, `event.sender` e risposte identity espongono `nick`, `prefix` e, **solo se osservati**, `ident`, `host`, `account`, `mask`. `account_known` distingue ignoto (`nil`) da logout (`"*"`). I dati assenti valgono `nil`; un host può essere cloaked. Non costruire ban da host sconosciuti.
 
 ### Persistenza
 
-Chiavi di 1–48 caratteri ASCII (lettere, numeri, `_`, `.`, `-`); valori UTF-8 da 1 a 8192 byte. La persistenza è condivisa tra le reti abilitate per **lo stesso script**. Letture e scritture sono consentite nel callback; tra eventi concorrenti possono esistere snapshot temporaneamente precedenti. Consulta [limiti e sicurezza](PERMISSIONS.md).
+Chiavi di 1–48 caratteri ASCII (lettere, numeri, `_`, `.`, `-`); valori UTF-8 da 1 a 8192 byte. La persistenza è condivisa tra le reti abilitate per **lo stesso script**. Max 32 chiavi, 128 KiB totali, JSON max 160 KiB. Eventi serializzati per script con storage anche multirete; commit atomico prima degli effetti, nessuna scrittura se invariato. Consulta [limiti e sicurezza](PERMISSIONS.md).
 
 ### Esempio: comando locale
 
@@ -57,3 +62,5 @@ end)
 Digita `/lua ping`. Non viene inviato alcun messaggio IRC.
 
 **Nota:** l'API non promette conferme di consegna/ban. Per semantica, quote e condizioni complete consulta [la fonte tecnica](../../LUA_SCRIPTING_MVP.md); l'implementazione Java/C è la fonte definitiva.
+
+V4 privilegia account osservato anche per ban temporanei se supportato. Gate voice V4 limitato a `automod_v4.lua`, mittente e consensi; halfop e superiori protetti nella moderazione ordinaria V4. [Migrazione](MIGRATION.md) per scope, token, filtri e limiti.

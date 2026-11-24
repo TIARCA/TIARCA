@@ -3,7 +3,7 @@
 [Bilingual index](../README.md) · [API](API_REFERENCE.md) · [Events](EVENTS.md) · [Permissions](PERMISSIONS.md) · [Examples](EXAMPLES.md) · [Moderation Collector](MODERATION_COLLECTOR.md) · [AutoMod B](AUTOMOD_B.md)
 
 
-> **Availability:** experimental feature on development `main`; **not included in the published v0.9.10 stable APK**.
+> **Availability:** experimental feature; guide includes unmerged PR #303 redesign; **not included in the published v0.9.10 stable APK**.
 
 ## Your first script
 
@@ -30,3 +30,7 @@ On a Lua-enabled build: **Settings → Lua scripts (experimental)** → import t
 Read [Events](EVENTS.md), then the [API reference](API_REFERENCE.md) and [Permissions](PERMISSIONS.md). Start with [importable examples](EXAMPLES.md). For historical details and limits see the [technical implementation notes](../../LUA_SCRIPTING_MVP.md).
 
 Report missing APIs or broken examples with the commit/build, IRC network, and privacy-sanitized logs.
+
+## Redesign and compatibility
+
+[Identity v2 migration guide](MIGRATION.md): asynchronous APIs, legacy, storage, `/lua perf`. Reserved client commands: help, list, status, log, stop, start, restart, perf; not delivered to scripts.
