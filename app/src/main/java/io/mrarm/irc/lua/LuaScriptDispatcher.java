@@ -75,7 +75,9 @@ public final class LuaScriptDispatcher {
     private final HandlerThread ioThread = new HandlerThread("tiarca-lua-ipc");
     private final Handler io;
     private final AtomicInteger sequence = new AtomicInteger();
-    private final AtomicInteger pendingEvents = new AtomicInteger();
+    private final LuaDispatchSlots dispatchSlots = new LuaDispatchSlots(MAX_PENDING_EVENTS);
+    // Coordinator worker only; the sandbox caches the last full committed revision.
+    private final Map<String, Long> sentStorageVersions = new HashMap<>();
     private final AtomicInteger queuedEvents = new AtomicInteger();
     private final Map<Integer, Pending> pending = new ConcurrentHashMap<>();
     private final LuaEventSubscriptions subscriptions = new LuaEventSubscriptions();
@@ -136,6 +138,9 @@ public final class LuaScriptDispatcher {
         final boolean isEvent;
         final long generation;
         final LuaIdentityQuery identityQuery;
+        LuaDispatchSlots.Ticket slot;
+        int epoch;
+        long storageVersion = -1;
 
         Pending(String id, String server, String channel, String nick,
                 String event, boolean isEvent, long generation) {
@@ -342,7 +347,7 @@ public final class LuaScriptDispatcher {
         pending.clear();
         subscriptions.clear();
         identityEpoch.incrementAndGet();
-        pendingEvents.set(0);
+        dispatchSlots.clear();
         abortRestarts();
     }
 
@@ -350,7 +355,7 @@ public final class LuaScriptDispatcher {
         for (Map.Entry<Integer, Pending> entry : pending.entrySet()) {
             Pending value = entry.getValue();
             if (server.equals(value.server) && pending.remove(entry.getKey(), value)
-                    && value.isEvent) pendingEvents.decrementAndGet();
+                    && value.isEvent) finishSlot(value.slot);
         }
     }
 
@@ -369,7 +374,7 @@ public final class LuaScriptDispatcher {
             return true;
         } catch (RemoteException error) {
             pending.remove(id);
-            if (identity.isEvent) pendingEvents.decrementAndGet();
+            if (identity.isEvent) sentStorageVersions.remove(identity.scriptId);
             return false;
         }
     }
@@ -380,6 +385,7 @@ public final class LuaScriptDispatcher {
         if (target == null) return;
         subscriptions.clear();
         identityEpoch.incrementAndGet();
+        sentStorageVersions.clear();
         try {
             target.send(Message.obtain(null, LuaDiagnosticService.REQUEST_RESET));
         } catch (RemoteException error) {
@@ -782,10 +788,9 @@ public final class LuaScriptDispatcher {
                 for (LuaScriptStore.Script script : eligible) {
                     if (query != null && (!subscriptions.usesIdentityV2(script.id, server) ||
                             (!"c".equals(query.kind) && !script.allowUserInfo))) continue;
-                    if (pendingEvents.incrementAndGet() > MAX_PENDING_EVENTS) {
-                        pendingEvents.decrementAndGet();
-                        return; // drop event; never block IRC threads
-                    }
+                    LuaDispatchSlots.Ticket slot =
+                            dispatchSlots.reserve(script.id, server, script.allowStorage);
+                    if (slot == null) return; // bounded, never block IRC threads
                     boolean legacy = !subscriptions.usesIdentityV2(script.id, server);
                     if ((legacy || query != null) && !connectionChecked) {
                         connectionChecked = true;
@@ -812,7 +817,7 @@ public final class LuaScriptDispatcher {
                         if (identityEpoch.get() != currentEpoch ||
                                 console.generation(server) != currentGeneration ||
                                 console.isPaused(server)) {
-                            pendingEvents.decrementAndGet();
+                            finishSlot(slot);
                             continue;
                         }
                     } else if (legacy) {
@@ -865,25 +870,16 @@ public final class LuaScriptDispatcher {
                             users.truncated);
                     data.putBoolean(LuaDiagnosticService.EXTRA_CAN_READ_USERS,
                             script.allowUserInfo);
-                    ArrayList<String> stored = new ArrayList<>();
-                    if (script.allowStorage) {
-                        try {
-                            stored = store.storageSnapshot(script.id);
-                        } catch (IOException error) {
-                            store.fail(script.id, "Lua persistent data unavailable");
-                            main.post(this::reload);
-                            pendingEvents.decrementAndGet();
-                            continue;
-                        }
-                    }
-                    data.putStringArrayList(LuaDiagnosticService.EXTRA_STORAGE_PAIRS, stored);
-                    data.putBoolean(LuaDiagnosticService.EXTRA_CAN_STORE, script.allowStorage);
                     request.setData(data);
-                    sendMessage(request, new Pending(script.id, server, channel, nick, event, true,
+                    Pending identity = new Pending(script.id, server, channel, nick, event, true,
                             currentGeneration, "command".equals(event) ? text :
                                     "identity".equals(event) ? messageType : "",
                             "message".equals(event) || "identity".equals(event) ? deliveredText : "",
-                            time, query));
+                            time, query);
+                    identity.slot = slot;
+                    identity.epoch = identityEpoch.get();
+                    Runnable ready = dispatchSlots.submit(slot, () -> dispatchPrepared(request, identity));
+                    if (ready != null) ready.run();
                 }
             } finally {
                 queuedEvents.decrementAndGet();
@@ -891,6 +887,66 @@ public final class LuaScriptDispatcher {
         });
         if (!accepted) queuedEvents.decrementAndGet();
         return accepted;
+    }
+
+    private boolean currentEvent(Pending request) {
+        return dispatchSlots.valid(request.slot) && request.epoch == identityEpoch.get() &&
+                !console.isPaused(request.server) &&
+                console.generation(request.server) == request.generation;
+    }
+
+    private void finishSlot(LuaDispatchSlots.Ticket slot) {
+        if (slot == null) return;
+        io.post(() -> {
+            Runnable ready = dispatchSlots.finish(slot);
+            if (ready != null) ready.run();
+        });
+    }
+
+    /** Serialized per storage-enabled script, even across different IRC networks. */
+    private void dispatchPrepared(Message message, Pending request) {
+        LuaScriptStore.Script script = store.find(request.scriptId);
+        if (!currentEvent(request) || remote == null || script == null ||
+                !script.isEnabledOn(request.server) ||
+                script.allowStorage != request.slot.serial ||
+                !subscriptions.accepts(script.id, request.server, request.event)) {
+            finishSlot(request.slot);
+            return;
+        }
+        Bundle data = message.getData();
+        data.putBoolean(LuaDiagnosticService.EXTRA_CAN_STORE, script.allowStorage);
+        // Permission revocation must never expose a previously prepared roster.
+        if (!script.allowUserInfo) {
+            data.putBoolean(LuaDiagnosticService.EXTRA_CAN_READ_USERS, false);
+            data.putStringArrayList(LuaDiagnosticService.EXTRA_USER_FIELDS, new ArrayList<>());
+            data.remove(LuaDiagnosticService.EXTRA_SENDER);
+            data.remove(LuaDiagnosticService.EXTRA_HISTORY_IDENT);
+            data.remove(LuaDiagnosticService.EXTRA_HISTORY_HOST);
+        }
+        try {
+            if (script.allowStorage) {
+                LuaScriptStorage.Snapshot revision = store.storageRevision(script.id, request.server);
+                request.storageVersion = revision.version;
+                data.putLong(LuaDiagnosticService.EXTRA_STORAGE_VERSION, revision.version);
+                if (!Long.valueOf(revision.version).equals(sentStorageVersions.get(script.id)))
+                    data.putStringArrayList(LuaDiagnosticService.EXTRA_STORAGE_PAIRS, revision.pairs());
+            } else {
+                data.putStringArrayList(LuaDiagnosticService.EXTRA_STORAGE_PAIRS, new ArrayList<>());
+            }
+            if (!currentEvent(request) || !sendMessage(message, request)) {
+                sentStorageVersions.remove(script.id);
+                finishSlot(request.slot);
+            } else if (script.allowStorage) {
+                sentStorageVersions.put(script.id, request.storageVersion);
+            }
+        } catch (IOException failure) {
+            sentStorageVersions.remove(script.id);
+            if (currentEvent(request)) {
+                store.fail(script.id, "Lua persistent data unavailable");
+                main.post(this::reload);
+            }
+            finishSlot(request.slot);
+        }
     }
 
     private static String safeHistoricIdentity(String value, int limit) {
@@ -976,7 +1032,10 @@ public final class LuaScriptDispatcher {
         Pending request = pending.remove(requestId);
         if (request == null) return true;
         crashTracker.completed(requestId, request.scriptId, request.isEvent);
-        if (request.isEvent) pendingEvents.decrementAndGet();
+        if (request.isEvent) {
+            handleEventReply(request, data);
+            return true;
+        }
         String id = data.getString(LuaDiagnosticService.EXTRA_SCRIPT_ID);
         if (!request.scriptId.equals(id)) return true;
         String status = data.getString(LuaDiagnosticService.EXTRA_STATUS, "");
@@ -995,25 +1054,75 @@ public final class LuaScriptDispatcher {
                         restartScript == null ? id : restartScript.name, status);
             return true;
         }
-        if (request.isEvent && (console.isPaused(request.server) ||
-                console.generation(request.server) != request.generation))
-            return true;
         LuaScriptStore.Script script = store.find(id);
-        if (script == null || !script.isEnabledOn(request.server))
-            return true;
-        if (!"OK".equals(status)) {
+        if (script != null && script.isEnabledOn(request.server) && !"OK".equals(status)) {
             console.log(request.server, script.name, status);
             store.fail(id, status);
             reload();
-            return true;
         }
-        if (!request.isEvent) return true;
+        return true;
+    }
+
+    private void handleEventReply(Pending request, Bundle data) {
+        String id = request.scriptId;
+        LuaScriptStore.Script script = store.find(id);
+        if (!currentEvent(request) || script == null || !script.isEnabledOn(request.server)) {
+            finishSlot(request.slot);
+            return;
+        }
+        String status = data.getString(LuaDiagnosticService.EXTRA_STATUS, "");
         ArrayList<String> actions = data.getStringArrayList(LuaDiagnosticService.EXTRA_ACTIONS);
-        if (actions == null || actions.size() > 36 || actions.size() % 3 != 0) {
-            store.fail(id, "Lua returned invalid actions");
+        if (!id.equals(data.getString(LuaDiagnosticService.EXTRA_SCRIPT_ID)) ||
+                !"OK".equals(status) || actions == null || actions.size() > 36 ||
+                actions.size() % 3 != 0 || actions.contains(null)) {
+            store.fail(id, "OK".equals(status) ? "Lua returned invalid actions" : status);
             reload();
-            return true;
+            finishSlot(request.slot);
+            return;
         }
+        boolean mutates = false;
+        for (int i = 0; i < actions.size(); i += 3)
+            if ("store".equals(actions.get(i)) || "erase".equals(actions.get(i))) mutates = true;
+        if (mutates) {
+            if (!script.allowStorage || request.storageVersion < 0) {
+                store.fail(id, "Lua storage action without permission");
+                reload();
+                finishSlot(request.slot);
+                return;
+            }
+            io.post(() -> {
+                if (!currentEvent(request)) { finishSlot(request.slot); return; }
+                try {
+                    store.commitStorage(id, request.server, request.storageVersion, actions);
+                    main.post(() -> deliverCommittedActions(request, actions));
+                } catch (IOException failure) {
+                    // No warnings, kicks, bans or other effects from a failed transaction.
+                    if (currentEvent(request)) {
+                        store.fail(id, "Lua persistent data commit failed: " + failure.getMessage());
+                        main.post(this::reload);
+                    }
+                    finishSlot(request.slot);
+                }
+            });
+        } else {
+            deliverCommittedActions(request, actions);
+        }
+    }
+
+    private void deliverCommittedActions(Pending request, ArrayList<String> actions) {
+        try {
+            LuaScriptStore.Script script = store.find(request.scriptId);
+            if (!currentEvent(request) || script == null || !script.isEnabledOn(request.server))
+                return;
+            applyCommittedActions(request, script, actions);
+        } finally {
+            finishSlot(request.slot);
+        }
+    }
+
+    private boolean applyCommittedActions(Pending request, LuaScriptStore.Script script,
+                                          ArrayList<String> actions) {
+        String id = script.id;
         for (int i = 0; i < actions.size(); i += 3) {
             String kind = actions.get(i);
             String target = actions.get(i + 1);
@@ -1119,16 +1228,8 @@ public final class LuaScriptDispatcher {
             } else if ("history".equals(kind)) {
                 lookupHistoryForScript(script, request, target, value);
             } else if ("store".equals(kind) || "erase".equals(kind)) {
-                String operation = kind;
-                io.post(() -> {
-                    try {
-                        store.applyStorage(script.id, request.server,
-                                operation, target, value);
-                    } catch (IOException error) {
-                        store.fail(script.id, "Lua persistent data write failed");
-                        main.post(this::reload);
-                    }
-                });
+                // Already committed atomically before any action was released.
+                continue;
             } else if ("show".equals(kind) || "list".equals(kind)) {
                 store.recordOutput(id, target, value, "list".equals(kind));
                 if ("command".equals(request.event) || "identity".equals(request.event)) {
