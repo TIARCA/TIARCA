@@ -43,6 +43,7 @@ public final class LuaDiagnosticService extends Service {
     public static final String EXTRA_REQUEST_ID = "request_id";
     public static final String EXTRA_ACTIONS = "actions";
     public static final String EXTRA_STATUS = "status";
+    public static final String EXTRA_EVENT_MASK = "event_mask";
     public static final String EXTRA_SCENARIO = "scenario";
     public static final String EXTRA_RESULT = "result";
     public static final String EXTRA_ISOLATED = "isolated";
@@ -202,6 +203,8 @@ public final class LuaDiagnosticService extends Service {
                 status = source == null || source.length > LuaScriptStore.MAX_SOURCE_BYTES
                         ? "ERROR: source too large or missing"
                         : NativeLuaRuntime.decode(NativeLuaRuntime.load(runtimeId, source));
+                if ("OK".equals(status))
+                    request.putInt(EXTRA_EVENT_MASK, NativeLuaRuntime.eventMask(runtimeId));
                 if (scoped) {
                     if ("OK".equals(status)) scopedRuntimeIds.put(scriptId + ":" + network, runtimeId);
                     else scopedRuntimeIds.remove(scriptId + ":" + network);
@@ -351,6 +354,8 @@ public final class LuaDiagnosticService extends Service {
         payload.putString(EXTRA_SCRIPT_ID, scriptId);
         payload.putInt(EXTRA_REQUEST_ID, message.getData().getInt(EXTRA_REQUEST_ID));
         payload.putString(EXTRA_STATUS, status);
+        if (message.what == REQUEST_LOAD && "OK".equals(status))
+            payload.putInt(EXTRA_EVENT_MASK, message.getData().getInt(EXTRA_EVENT_MASK, -1));
         payload.putStringArrayList(EXTRA_ACTIONS, actions);
         response.setData(payload);
         try {
