@@ -136,6 +136,19 @@ public final class HostLuaRuntimeTest {
                 automodSnapshot(), true));
     }
 
+    private static String[] eventWithLongIdentity(String nick, String account,
+                                                   String text, long when) {
+        String suffix = nick.toLowerCase(java.util.Locale.ROOT);
+        byte[][] roster = new byte[][]{
+            bytes(nick), bytes(""), bytes("id" + suffix + "z".repeat(42)),
+            bytes(suffix + "." + "x".repeat(175) + ".example"), bytes(account)
+        };
+        return collect(NativeLuaRuntime.dispatch(ID, "message", bytes("test-server"),
+                bytes("#room"), bytes(nick), bytes(text), bytes("normal"), when,
+                new byte[0][], new int[0], false,
+                roster, false, true, automodSnapshot(), true));
+    }
+
     private static String[] historyWithStoredSender() {
         byte[][] roster = new byte[][]{
                 bytes("Target"), bytes(""), bytes("ident"),
@@ -1499,6 +1512,30 @@ public final class HostLuaRuntimeTest {
         check(java.util.Arrays.toString(preservedDetection).contains("motore B") &&
                         java.util.Arrays.toString(preservedDetection).contains("infrazione 2"),
                 "Unexpired escalation survives eviction and a VM restart");
+
+        // Large ident/host values must not disable B when a shard fills.
+        automodStorage.clear();
+        automodActive = true;
+        check("OK".equals(decode(NativeLuaRuntime.load(ID, unified))),
+                "Unified AutoMod reloads for storage quota test");
+        event(ID, "command", "#room", "me", "mod canali add #room");
+        for (int i = 0; i < 500; i++) {
+            check("OK".equals(eventWithLongIdentity("Guest" + i, "acct" + i,
+                    "sono qui per parlare", 1794409000L + i)[0]),
+                    "Quota churn must not crash AutoMod: " + i);
+        }
+        for (java.util.Map.Entry<String, String> stored : automodStorage.entrySet()) {
+            if (stored.getKey().startsWith("u1.s"))
+                check(bytes(stored.getValue()).length <= 8192,
+                        "Large identity shard must be trimmed under its 8 KiB quota");
+        }
+        eventWithLongIdentity("GuestNew", "quota-new",
+                "f per conoscenza", 1794409600L);
+        String[] quotaDetection = eventWithLongIdentity("GuestNew", "quota-new",
+                "f per conoscenza", 1794409601L);
+        check(java.util.Arrays.toString(quotaDetection).contains("motore B") &&
+                        java.util.Arrays.toString(quotaDetection).contains("infrazione 1"),
+                "B must continue detecting after persistent-shard eviction");
 
         NativeLuaRuntime.unload(ID);
         check(NativeLuaRuntime.dispatch(ID, "message", bytes("test-server"),
