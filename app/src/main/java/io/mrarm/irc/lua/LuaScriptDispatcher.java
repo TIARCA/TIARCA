@@ -1170,6 +1170,7 @@ public final class LuaScriptDispatcher {
         String scriptId = privateTabs.ownerScriptId(networkId, nick);
         LuaScriptStore.Script owner = scriptId == null ? null : store.find(scriptId);
         return owner != null && ("automod_unificato.lua".equals(owner.name) ||
+                "automod_v4.lua".equals(owner.name) ||
                 "automod_antiripetizione.lua".equals(owner.name));
     }
 
