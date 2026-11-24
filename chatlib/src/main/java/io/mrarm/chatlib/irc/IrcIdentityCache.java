@@ -1,18 +1,25 @@
 package io.mrarm.chatlib.irc;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
- * Small, connection-local cache of server-observed IRC identities. Values may
+ * Connection-local cache of server-observed IRC identities. Values may
  * be unavailable, and a cloaked host is not a user's real IP address.
  * No scripting permission is implied merely by caching data already received.
  */
 public final class IrcIdentityCache {
-    // Keep server-observed identities for active, large IRC rosters; bounded LRU.
-    private static final int LIMIT = 4096;
+    // Shared members are retained independently of transient WHO/PVT churn.
+    // Bounds are safety limits, not protocol limits or performance measurements.
+    static final int MAX_SHARED = 16384;
+    static final int MAX_MEMBERSHIPS = 65536;
+    static final int MAX_RECENT = 4096;
     private static final long WHOX_WINDOW_MS = 20_000L;
     private static final String WHOX_TOKEN = "042";
 
@@ -31,12 +38,17 @@ public final class IrcIdentityCache {
         }
     }
 
-    private final LinkedHashMap<String, Identity> known =
+    private final LinkedHashMap<String, Identity> recent =
             new LinkedHashMap<String, Identity>(128, 0.75f, true) {
                 @Override protected boolean removeEldestEntry(Map.Entry<String, Identity> eldest) {
-                    return size() > LIMIT;
+                    return size() > MAX_RECENT;
                 }
             };
+    private final Map<String, Identity> shared = new HashMap<>();
+    private final Map<String, Set<String>> channelMembers = new HashMap<>();
+    private final Map<String, Integer> memberships = new HashMap<>();
+    private int membershipCount;
+    private boolean membershipOverflow;
     private long whoxExpiresAt;
 
     private static String valid(String value, int max) {
@@ -53,17 +65,33 @@ public final class IrcIdentityCache {
         return good == null ? null : good.toLowerCase(Locale.ROOT);
     }
 
+    private Identity find(String id) {
+        return memberships.containsKey(id) ? shared.get(id) : recent.get(id);
+    }
+
+    private void remember(String id, Identity identity) {
+        if (memberships.containsKey(id))
+            shared.put(id, identity);
+        else
+            recent.put(id, identity);
+    }
+
     public synchronized void note(String nick, String ident, String host, String account) {
         String id = key(nick);
         if (id == null) return;
         String user = valid(ident, 64);
         String hostname = valid(host, 192);
         String acct = valid(account, 64);
-        // IRCv3 WHOX uses "0" for logged-out users. An explicit logout
-        // must clear a formerly observed account, not preserve stale state.
         boolean loggedOut = "0".equals(acct) || "*".equals(acct);
         if (loggedOut) acct = null;
-        Identity old = known.get(id);
+        Identity old = find(id);
+        // A reused nick or an unobserved mask change must not inherit an
+        // account belonging to a different identity. Explicit CHGHOST is
+        // handled separately and retains the verified account.
+        if (old != null && ((user != null && old.ident != null && !user.equals(old.ident)) ||
+                (hostname != null && old.host != null &&
+                        !hostname.equalsIgnoreCase(old.host))))
+            old = null;
         boolean accountKnown = loggedOut || acct != null ||
                 (old != null && old.accountKnown);
         if (old != null) {
@@ -72,28 +100,148 @@ public final class IrcIdentityCache {
             if (acct == null && !loggedOut) acct = old.account;
         }
         if (user != null || hostname != null || acct != null || accountKnown)
-            known.put(id, new Identity(user, hostname, acct, accountKnown));
+            remember(id, new Identity(user, hostname, acct, accountKnown));
+    }
+
+    /** An explicit server CHGHOST identifies the same connected user. */
+    public synchronized void changeHost(String nick, String ident, String host) {
+        String id = key(nick);
+        String user = valid(ident, 64), hostname = valid(host, 192);
+        if (id == null || user == null || hostname == null) return;
+        Identity old = find(id);
+        remember(id, new Identity(user, hostname, old == null ? null : old.account,
+                old != null && old.accountKnown));
     }
 
     public synchronized Identity get(String nick) {
         String id = key(nick);
-        return id == null ? null : known.get(id);
+        return id == null ? null : find(id);
+    }
+
+    private static String channelKey(String channel) {
+        String good = valid(channel, 192);
+        return good == null ? null : good.toLowerCase(Locale.ROOT);
+    }
+
+    public synchronized void memberJoined(String channel, String nick) {
+        String ch = channelKey(channel), id = key(nick);
+        if (ch == null || id == null) return;
+        Set<String> members = channelMembers.get(ch);
+        if (members != null && members.contains(id)) return;
+        if (membershipCount >= MAX_MEMBERSHIPS ||
+                (!memberships.containsKey(id) && memberships.size() >= MAX_SHARED)) {
+            membershipOverflow = true;
+            return; // Never evict another still-shared identity to make room.
+        }
+        if (members == null) {
+            members = new HashSet<>();
+            channelMembers.put(ch, members);
+        }
+        members.add(id);
+        membershipCount++;
+        int refs = memberships.getOrDefault(id, 0);
+        memberships.put(id, refs + 1);
+        if (refs == 0) {
+            Identity identity = recent.remove(id);
+            if (identity != null) shared.put(id, identity);
+        }
+    }
+
+    private void release(String id) {
+        membershipCount--;
+        int refs = memberships.getOrDefault(id, 0);
+        if (refs <= 1) {
+            memberships.remove(id);
+            shared.remove(id);
+            recent.remove(id);
+        } else {
+            memberships.put(id, refs - 1);
+        }
+    }
+
+    public synchronized void memberLeft(String channel, String nick) {
+        String ch = channelKey(channel), id = key(nick);
+        if (ch == null || id == null) return;
+        Set<String> members = channelMembers.get(ch);
+        if (members != null && members.remove(id)) {
+            release(id);
+            if (members.isEmpty()) channelMembers.remove(ch);
+        } else if (!memberships.containsKey(id)) {
+            // A departure from an untracked roster must not leave stale data.
+            recent.remove(id);
+        }
+    }
+
+    /** Apply a completed NAMES roster, preserving identities still present. */
+    public synchronized void replaceChannelMembers(String channel, Collection<String> nicks) {
+        String ch = channelKey(channel);
+        if (ch == null || nicks == null) return;
+        Set<String> desired = new HashSet<>();
+        for (String nick : nicks) {
+            String id = key(nick);
+            if (id != null) desired.add(id);
+        }
+        Set<String> previous = channelMembers.get(ch);
+        if (previous != null) {
+            for (String id : new HashSet<>(previous))
+                if (!desired.contains(id)) memberLeft(ch, id);
+        }
+        for (String id : desired) memberJoined(ch, id);
+    }
+
+    public synchronized void channelLeft(String channel) {
+        String ch = channelKey(channel);
+        if (ch == null) return;
+        Set<String> members = channelMembers.remove(ch);
+        if (members != null)
+            for (String id : members) release(id);
+    }
+
+    /** Sticky for the connection; callers must not assume an exhaustive cache. */
+    public synchronized boolean membershipTrackingComplete() {
+        return !membershipOverflow;
     }
 
     public synchronized void rename(String oldNick, String newNick) {
         String previous = key(oldNick), next = key(newNick);
-        if (previous == null || next == null) return;
-        Identity old = known.remove(previous);
-        if (old != null) known.put(next, old);
+        if (previous == null || next == null || previous.equals(next)) return;
+        Identity old = find(previous);
+        // A nickname cannot have two live owners on the same IRC network.
+        forget(newNick);
+        int refs = memberships.getOrDefault(previous, 0);
+        if (refs != 0) {
+            memberships.remove(previous);
+            memberships.put(next, refs);
+            for (Set<String> members : channelMembers.values())
+                if (members.remove(previous)) members.add(next);
+        }
+        shared.remove(previous);
+        recent.remove(previous);
+        if (old != null) remember(next, old);
     }
 
     public synchronized void forget(String nick) {
         String id = key(nick);
-        if (id != null) known.remove(id);
+        if (id == null) return;
+        java.util.Iterator<Map.Entry<String, Set<String>>> it =
+                channelMembers.entrySet().iterator();
+        while (it.hasNext()) {
+            Set<String> members = it.next().getValue();
+            if (members.remove(id)) release(id);
+            if (members.isEmpty()) it.remove();
+        }
+        memberships.remove(id);
+        shared.remove(id);
+        recent.remove(id);
     }
 
     public synchronized void clear() {
-        known.clear();
+        shared.clear();
+        recent.clear();
+        channelMembers.clear();
+        memberships.clear();
+        membershipCount = 0;
+        membershipOverflow = false;
         whoxExpiresAt = 0L;
     }
 
