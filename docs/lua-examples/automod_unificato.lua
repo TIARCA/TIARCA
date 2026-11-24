@@ -185,16 +185,18 @@ if not k or k=="" then return end
 if map[k] and map[k]~=t then map[k]=false
 elseif map[k]==nil then map[k]=t end
 end
-local function rebuild()
-index={account={},host={},ident={}}
-for _,t in pairs(state) do
+local function indexOne(t)
 local s=t.server.."\0"
-addidx(index.account,s..t.account,t.account~="" and t or nil)
+if t.account~="" then addidx(index.account,s..t.account,t) end
 for _,x in ipairs(t.hosts) do addidx(index.host,s..x,t) end
 for _,x in ipairs(t.idents) do
 if distinctIdent(x) then addidx(index.ident,s..x,t) end
 end
 end
+local function rebuild()
+for _,m in pairs(index) do for k in pairs(m) do m[k]=nil end end
+if not index.account then index={account={},host={},ident={}} end
+for _,t in pairs(state) do indexOne(t) end
 end
 local function load()
 if loaded then return not broken end
@@ -315,7 +317,9 @@ end
 local function alias(t,field,v)
 if v=="" or contains(t[field],v) then return end
 local l=t[field];l[#l+1]=v
-while #l>3 do table.remove(l,1) end
+local trimmed=#l>3
+if trimmed then table.remove(l,1) end
+return trimmed
 end
 local function nickKey(server,nick) return server.."\0"..nick:lower() end
 local function observed(e)
@@ -362,10 +366,11 @@ level=0,infraction=0,seen=e.timestamp,epoch=cfgFor(e.server).epoch,
 marks={},last={}}
 state[r.id]=r
 end
-alias(r,"hosts",host);alias(r,"idents",ident)
+local reset=alias(r,"hosts",host)
+if alias(r,"idents",ident) then reset=true end
 r.seen=e.timestamp
 sessions[nickKey(e.server,e.nick)]=r.id
-rebuild()
+if reset then rebuild() else indexOne(r) end
 return r
 end
 local function allowSave()
