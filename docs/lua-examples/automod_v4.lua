@@ -1,4 +1,4 @@
--- TIARCA AutoMod V4: Watchdog (detection) + Mod (existing escalation).
+-- AutoMod V4: detection + escalation.
 -- Separate from Harvester; disable previous AutoMod scripts on these networks.
 local TTL,SHARDS=86400,20
 local configs,allow,history,watch,hostSeen,unresolved={},{},{},{},{},{}
@@ -12,7 +12,8 @@ local function dict(s)
  local d={} for v in s:gmatch("%S+") do d[v]=true end return d
 end
 local people=dict("f m mxm ragazza ragazze ragazzo ragazzi donna donne uomo uomini qualcuna qualcuno nessuna nessuno coetanea coetanee coetaneo coetanei")
-local single=dict("f m mxm ragazza ragazze donna donne qualcuna qualcuno nessuna nessuno")
+local single=dict("mxm ragazza ragazze donna donne")
+local chatTarget=dict("f m mxm donna donne uomo uomini")
 local search=dict("cerco cerca cercasi cerchiamo chi qualche qualke")
 local chatting=dict("chat chatta chattare chatto chiacchiera conoscenza conoscere compagnia amicizia amicizie parlare")
 local contact=dict("pvt priv privato privata scrivimi scrivetemi contattami contattatemi")
@@ -50,7 +51,7 @@ local function code(w)
  for _,v in ipairs(w) do if v:match("^[mf]%d%d?%d?%d?$") then return true end end
  return false
 end
--- Recognize a whole greeting, not a greeting word inside an announcement.
+-- Whole greetings only.
 local wish=dict("buon buona felice sereno serena splendido splendida ottimo ottima dolce bellissimo bellissima")
 local periods=dict("giorno giornata mattina mattinata pomeriggio sera serata notte nottata weekend")
 local greetPrefix={"ti auguro","vi auguro","auguro a tutti","auguro a tutte","auguro a te","auguro a voi","auguro"}
@@ -100,25 +101,28 @@ local function category(raw)
  if s=="" then return "ignore","EMPTY" end
  if greetings[s] then return "ignore","GREETING" end
  local w=words(s)
- local numeric=true
- for _,v in ipairs(w) do if not v:match("^%d+$") then numeric=false;break end end
- if numeric then return "ad","NUMERIC" end
- if #w==1 and (single[w[1]] or code(w)) then return "ad","SINGLE" end
+ if not s:find("[^%d ]") then return "short","NUMERIC" end
+ if #w==1 and (single[w[1]] or code(w) or
+ ((w[1]=="f" or w[1]=="m") and raw:find("?",1,true))) then return "ad","SINGLE" end
  if #w<2 then return "short","SHORT" end
  if s=="mxm reale" or near(w,{mxm=true},encounter,3) then return "ad","MXM" end
  if near(w,people,contact,7) then return "ad","CONTACT" end
- if near(w,people,chatting,5) then return "ad","CHAT" end
  if near(w,people,places,6) then return "ad","GEO" end
  if near(w,people,encounter,7) then return "ad","MEET" end
  if near(w,people,media,6) then return "ad","MEDIA" end
- if near(w,search,people,5) then return "ad","SEARCH" end
- if code(w) and (w[1]=="io" or has(w,search) or
- has(w,contact) or has(w,people)) then return "ad","MCODE" end
- if w[1]=="io" and places[w[2]] then return "ad","INTRO_GEO" end
  if w[1]=="chi" and has(w,places) then return "ad","WHO_GEO" end
  if has(w,{ospito=true,ospitare=true}) and has(w,places) then return "ad","HOST" end
  if has(w,people) and (s:find("qualsiasi eta",1,true) or
  s:find("qualunque eta",1,true)) then return "ad","AGE" end
+ if near(w,people,chatting,5) then
+ if #w<=8 and (near(w,chatTarget,chatting,5) or
+ has(w,{conoscenza=true,conoscere=true})) and
+ not (#w==2 and chatting[w[1]] and not raw:find("?",1,true)) then
+ return "ad","CHAT" end
+ return "normal","NORMAL" end
+ if near(w,search,people,5) then return "ad","SEARCH" end
+ if code(w) and (w[1]=="io" or has(w,search) or
+ has(w,contact) or has(w,people)) then return "ad","MCODE" end
  if isGreeting(raw) or s:match("^ciao da [%w_]+$") then return "ignore","GREETING" end
  if #w<=2 then return "short","SHORT" end
  if not s:find("[a-z]") then return "ignore","SYMBOLS" end
