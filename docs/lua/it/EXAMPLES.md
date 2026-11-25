@@ -11,6 +11,7 @@ Gli esempi sono file UTF-8 da importare manualmente: **non** sono plugin install
 | [automod_v4.lua](../../lua-examples/automod_v4.lua) | Watchdog + Mod v2; monitor predefinito, zero canali | Identità, persistenza; invio e moderazione per live |
 | [espelli.lua](../../lua-examples/espelli.lua) | Espulsione manuale: TBAN host `N:` e `m:U:` per 6h, KICK e ban nick/account; senza +N globale | Membri e identità, moderazione; OP |
 | [mask_finder.lua](../../lua-examples/mask_finder.lua) | Cerca nickname, ident e host | Membri e identità |
+| [harvester.lua](../../lua-examples/harvester.lua) | [Harvester V1 in bozza](../../lua-examples/HARVESTER.md): raccolta passiva normalizzata | Identità e persistenza; nessun invio o moderazione |
 | [moderation_collector.lua](../../lua-examples/moderation_collector.lua) | Registra eventi di moderazione in JSONL | Identità e persistenza |
 
 ### Esempio minimale copiabile
