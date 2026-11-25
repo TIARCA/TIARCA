@@ -988,21 +988,22 @@ static void set_field(lua_State *L, const char *name, const char *value) {
 }
 
 JNIEXPORT jobjectArray JNICALL
-Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchVersioned(JNIEnv *env, jclass unused,
+Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchWithMetadata(JNIEnv *env, jclass unused,
         jstring jid, jstring jevent, jbyteArray jserver, jbyteArray jchannel,
         jbyteArray jnick, jbyteArray jtext, jbyteArray jtype, jlong timestamp,
         jobjectArray jchannels, jintArray jcounts, jboolean jtruncated,
         jobjectArray jroster, jboolean jrostertruncated,
         jboolean jcanreadusers, jobjectArray jstorage, jboolean jcanstore,
-        jobjectArray jhistoryidentity, jlong storage_revision) {
+        jobjectArray jhistoryidentity, jlong storage_revision, jbyteArray jsourceid) {
     (void)unused;
-    char server[64], channel[97], nick[97], text[2049], type[97];
+    char server[64], channel[97], nick[97], text[2049], type[97], source_id[97];
     if (!jid || !jevent ||
         !copy_java_bytes(env, jserver, server, sizeof(server)) ||
         !copy_java_bytes(env, jchannel, channel, sizeof(channel)) ||
         !copy_java_bytes(env, jnick, nick, sizeof(nick)) ||
         !copy_java_bytes(env, jtext, text, sizeof(text)) ||
-        !copy_java_bytes(env, jtype, type, sizeof(type)))
+        !copy_java_bytes(env, jtype, type, sizeof(type)) ||
+        !copy_java_bytes(env, jsourceid, source_id, sizeof(source_id)))
         return NULL;
     const char *id = (*env)->GetStringUTFChars(env, jid, NULL);
     const char *event_name = (*env)->GetStringUTFChars(env, jevent, NULL);
@@ -1148,6 +1149,7 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchVersioned(JNIEnv *env, jclass unu
         set_field(L, "nick", nick);
         set_field(L, "text", text);
         set_field(L, "message_type", type);
+        if (source_id[0]) set_field(L, "source_id", source_id);
         if (kind == 11) {
             if (historical_ident[0]) set_field(L, "ident", historical_ident);
             if (historical_host[0]) set_field(L, "host", historical_host);
