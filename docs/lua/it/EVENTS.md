@@ -22,6 +22,8 @@ Registra gli eventi con `tiarca.on("nome", function(event) ... end)`. Il callbac
 | `mode` | Variazione mode del canale | `message_type` mode con segno e tipo (es. `+b:LIST`); `text` parametro, vuoto per chiavi e valori exact-unset; scegliere mode o ban legacy per evitare duplicati |
 | `topic` | TOPIC osservato con mittente | `text` nuovo topic |
 | `own_message` | Messaggio pubblico del proprio utente | Separato da `message`, non attiva callback legacy; non prova consegna |
+| `account` | ACCOUNT IRCv3 osservato | Consenso identità; `sender.account` nuovo account o `*`; solo canali condivisi |
+| `chghost` | CHGHOST IRCv3 osservato | Consenso identità; `sender.ident/host` nuovi valori; solo canali condivisi |
 | `timer` | Tick approssimativo di 60 secondi | Solo quando servizio IRC attivo e rete connessa; non è un allarme preciso |
 
 Campi comuni: `type`, `server` (UUID configurazione server, **non** hostname), `channel`, `nick`, `text`, `message_type` (`normal`, `notice`, `me`), `timestamp` (secondi Unix). I campi dipendono dall'evento e possono essere vuoti.
