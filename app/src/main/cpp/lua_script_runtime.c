@@ -44,6 +44,7 @@ typedef struct {
     char ident[97];
     char host[257];
     char account[97];
+    char realname[258];
 } UserSnapshot;
 
 typedef struct {
@@ -358,6 +359,7 @@ static void push_users(lua_State *L) {
         if (u->ident[0]) set_field(L, "ident", u->ident);
         if (u->host[0]) set_field(L, "host", u->host);
         if (u->account[0]) set_field(L, "account", u->account);
+        if (u->realname[0] == '1') set_field(L, "realname", u->realname + 1);
         lua_pushboolean(L, u->account[0] != 0);
         lua_setfield(L, -2, "account_known");
         if (u->ident[0] && u->host[0]) {
@@ -1008,7 +1010,8 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchWithMetadata(JNIEnv *env, jclass 
         jobjectArray jchannels, jintArray jcounts, jboolean jtruncated,
         jobjectArray jroster, jboolean jrostertruncated,
         jboolean jcanreadusers, jobjectArray jstorage, jboolean jcanstore,
-        jobjectArray jhistoryidentity, jlong storage_revision, jbyteArray jsourceid) {
+        jobjectArray jhistoryidentity, jlong storage_revision, jbyteArray jsourceid,
+        jobjectArray jrosterrealnames) {
     (void)unused;
     char server[64], channel[97], nick[97], text[2049], type[97], source_id[97];
     if (!jid || !jevent ||
@@ -1076,7 +1079,19 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchWithMetadata(JNIEnv *env, jclass 
         if (!ok) return NULL;
         if (index % 5 == 0) {
             if (!entry->nick[0]) return NULL;
+            entry->realname[0] = 0;
             s->user_count++;
+        }
+    }
+    if (jrosterrealnames) {
+        jsize count_realnames = (*env)->GetArrayLength(env, jrosterrealnames);
+        if (count_realnames != 0 && (jcanreadusers != JNI_TRUE || count_realnames != s->user_count || kind != 13)) return NULL;
+        for (int i = 0; i < count_realnames; i++) {
+            jbyteArray field = (jbyteArray)(*env)->GetObjectArrayElement(env, jrosterrealnames, i);
+            if (!field) return NULL;
+            int ok = copy_java_bytes(env, field, s->users[i].realname, sizeof(s->users[i].realname));
+            (*env)->DeleteLocalRef(env, field);
+            if (!ok) return NULL;
         }
     }
     if (!jstorage) return NULL;
