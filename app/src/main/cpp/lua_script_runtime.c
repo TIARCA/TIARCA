@@ -285,10 +285,13 @@ static int script_query_users(lua_State *L) {
     if (!channel[0] || !fields[0][0] || offset < 0 || offset > 65536 ||
             limit < 1 || limit > MAX_USERS)
         return luaL_error(L, "tiarca.get_users: invalid token or page");
+    lua_getfield(L, 2, "state");
+    int include_state = lua_toboolean(L, -1);
+    lua_pop(L, 1);
     char value[513];
-    int n = snprintf(value, sizeof(value), "r\t%s\t%lld\t%lld\t%s\t%s\t%s\t%s\t%s\t%s",
+    int n = snprintf(value, sizeof(value), "r\t%s\t%lld\t%lld\t%s\t%s\t%s\t%s\t%s\t%s%s",
             fields[0], (long long)offset, (long long)limit, fields[1], fields[2],
-            fields[3], fields[4], fields[5], fields[6]);
+            fields[3], fields[4], fields[5], fields[6], include_state ? "\tstate" : "");
     if (n < 0 || n >= (int)sizeof(value))
         return luaL_error(L, "tiarca.get_users: query too large");
     submit_query(L, channel, value);
@@ -1011,7 +1014,7 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchWithMetadata(JNIEnv *env, jclass 
         jobjectArray jroster, jboolean jrostertruncated,
         jboolean jcanreadusers, jobjectArray jstorage, jboolean jcanstore,
         jobjectArray jhistoryidentity, jlong storage_revision, jbyteArray jsourceid,
-        jobjectArray jrosterrealnames) {
+        jobjectArray jrosterrealnames, jobjectArray jchannelstate) {
     (void)unused;
     char server[64], channel[97], nick[97], text[2049], type[97], source_id[97];
     if (!jid || !jevent ||
@@ -1090,6 +1093,22 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchWithMetadata(JNIEnv *env, jclass 
             jbyteArray field = (jbyteArray)(*env)->GetObjectArrayElement(env, jrosterrealnames, i);
             if (!field) return NULL;
             int ok = copy_java_bytes(env, field, s->users[i].realname, sizeof(s->users[i].realname));
+            (*env)->DeleteLocalRef(env, field);
+            if (!ok) return NULL;
+        }
+    }
+    // Only the requesting identity callback can receive the bounded public mode cache.
+    char mode_state[64][3][513];
+    int mode_count = -1;
+    if (jchannelstate) {
+        jsize mode_fields = (*env)->GetArrayLength(env, jchannelstate);
+        if (kind != 13 || jcanreadusers != JNI_TRUE || mode_fields > 64 * 3 || mode_fields % 3) return NULL;
+        mode_count = mode_fields / 3;
+        const size_t mode_caps[] = {9, 513, 33};
+        for (int i = 0; i < mode_fields; i++) {
+            jbyteArray field = (jbyteArray)(*env)->GetObjectArrayElement(env, jchannelstate, i);
+            if (!field) return NULL;
+            int ok = copy_java_bytes(env, field, mode_state[i/3][i%3], mode_caps[i%3]);
             (*env)->DeleteLocalRef(env, field);
             if (!ok) return NULL;
         }
@@ -1214,6 +1233,18 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchWithMetadata(JNIEnv *env, jclass 
             lua_pushinteger(L, total); lua_setfield(L, -2, "total");
             if (next >= 0) { lua_pushinteger(L, next); lua_setfield(L, -2, "next_offset"); }
             lua_pushboolean(L, complete); lua_setfield(L, -2, "complete");
+            if (mode_count >= 0) {
+                lua_createtable(L, mode_count, 0);
+                for (int i = 0; i < mode_count; i++) {
+                    lua_createtable(L, 0, 3);
+                    set_field(L, "mode", mode_state[i][0]);
+                    set_field(L, "param", mode_state[i][1]);
+                    set_field(L, "kind", mode_state[i][2]);
+                    lua_rawseti(L, -2, i+1);
+                }
+                lua_setfield(L, -2, "channel_modes");
+                lua_pushboolean(L, 1); lua_setfield(L, -2, "channel_modes_partial");
+            }
             if (query_kind[0] == 'c') {
                 push_channels(L); lua_setfield(L, -2, "channels");
             } else if (s->can_read_users) {
