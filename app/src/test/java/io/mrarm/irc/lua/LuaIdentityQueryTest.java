@@ -95,6 +95,24 @@ public class LuaIdentityQueryTest {
                 .execute(data).status);
     }
 
+    @Test public void snapshotModesAreExplicitAndNeverExposeKeys() throws Exception {
+        ServerConnectionData data = new ServerConnectionData();
+        data.setUserInfoApi(new SimpleUserInfoApi());
+        data.onChannelJoined("#room");
+        ChannelData room = data.getJoinedChannelData("#room");
+        room.setFlagMode('n', true);
+        room.addListMode('b', "*!*@bad.example");
+        room.setValueExactUnsetMode('k', "SECRET");
+        LuaIdentityQuery.Result result = LuaIdentityQuery.parse("#room",
+                roster(0, 8, "", "") + "\tstate").execute(data);
+        assertNotNull(result.channelState);
+        assertTrue(result.channelState.contains("+n"));
+        assertTrue(result.channelState.contains("*!*@bad.example"));
+        assertTrue(result.channelState.contains("redacted"));
+        assertFalse(result.channelState.contains("SECRET"));
+        assertNull(LuaIdentityQuery.parse("#room", roster(0, 8, "", "")).execute(data).channelState);
+    }
+
     @Test public void unknownAccountDoesNotBecomeLoggedOut() throws Exception {
         ServerConnectionData data = new ServerConnectionData();
         SimpleUserInfoApi api = new SimpleUserInfoApi();
