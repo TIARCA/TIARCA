@@ -237,6 +237,44 @@ public final class HostLuaRuntimeTest {
             check("OK".equals(one[0]) && java.util.Arrays.toString(two).contains("motore B"),
                     "V4 preserves announcement: "+row[0]+" "+java.util.Arrays.toString(two));
         }
+        // Weak fragments cannot become a B violation merely through repetition.
+        String[] weak = {"qualcuno?", "Nessuna", "Nessuna?", "F", "3", "08?", "2007",
+                "07-09", "07/09", "io bologna", "Chat f", "ragazze per parlare?",
+                "f 23 qualcuno in chat?", "Qualcuna che mi fa compagnia mentre lavoro?",
+                "Ragaaa ma qualcuna simpatica che cerca compagnia c'e?",
+                "Bella genteee, ci sta qualcuno intenzionato a farmi compagnia in chat?",
+                "Maxto: ma infatti si altrimenti sclero con gli admin di sto canale " +
+                        "non si puo chiedere alla chat se qualcuno cerca compagnia"};
+        for (int i = 0; i < weak.length; i++) {
+            String account = "permissive-" + i;
+            for (int j = 0; j < 2; j++) {
+                String[] response = v4Event("message", "Weak"+i, weak[i], t+20+j, "", account);
+                check("OK".equals(response[0]) &&
+                                !java.util.Arrays.toString(response).contains("motore B"),
+                        "Weak message must not trigger B: "+weak[i]);
+            }
+        }
+        check(v4Event("message", "Asia", "F", t+30, "", "asia").length == 1 &&
+                v4Event("message", "Asia", "3", t+30+728, "", "asia").length == 1,
+                "Unrelated numeric fragments cannot combine into an ad");
+        String[] strong = {"F?", "ragazze?", "f x chat?", "donna x chattare",
+                "cerco donna sposata con cui parlare", "qualcuna per conoscenza?",
+                "F per compagnia va bene qualsiasi eta", "ragazze di Roma?",
+                "cerco f", "f in pvt?"};
+        for (int i = 0; i < strong.length; i++) {
+            String account = "strong-" + i;
+            String[] one = v4Event("message", "Strong"+i, strong[i], t+800, "", account);
+            String[] two = v4Event("message", "Strong"+i, strong[i], t+801, "", account);
+            check("OK".equals(one[0]) && java.util.Arrays.toString(two).contains("motore B"),
+                    "Explicit repeated ad still detected: "+strong[i]);
+        }
+        String generic = "qualcuno vuole fare due chiacchiere";
+        for (int i = 0; i < 2; i++)
+            check(v4Event("message", "Repeat", generic, t+810+i, "", "repeat").length == 1,
+                    "Ordinary chat not immediately sanctioned");
+        check(java.util.Arrays.toString(v4Event("message", "Repeat", generic,
+                        t+812, "", "repeat")).contains("motore A"),
+                "Repeated ordinary chat remains subject to Engine A");
         check(v4Event("message", "Greeting", "M99: felice pomeriggio a te",
                 t+14, "", "greetacct", "M99").length == 1 &&
                 v4Event("message", "Greeting", "Sarah felice pomeriggio a te",
