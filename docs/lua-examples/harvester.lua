@@ -16,6 +16,13 @@ local function q(v)
   return string.format("\\u%04x",c:byte())
  end)..'"'
 end
+-- A process UUID is constant across observations; intern it rather than repeat it.
+local function sourceRef(id,intern)
+ if type(id)~="string" then return nil end
+ local session,sequence=id:match("^([a-f0-9%-]+):(%d+)$")
+ if not session or not sequence then return nil end
+ return "["..intern("source_session",session)..","..sequence.."]"
+end
 local function valid(ch)
  return type(ch)=="string" and #ch>1 and #ch<=64 and ch:match("^[#&+!][^,%s:%c]+$")~=nil
 end
@@ -110,13 +117,14 @@ local function write(e,kind,build)
  local server=intern("server",e.server)
  local channel=valid(e.channel) and intern("channel",e.channel:lower()) or 0
  local data=build(intern,identity) or ""
+ local source=sourceRef(e.source_id,intern)
  local sequence=d.seq+1
  local st=counter(e.server)
  local line='{"v":1,"epoch":'..epoch..',"segment":'..segment..
   ',"id":'..sequence..',"ts":'..(tonumber(e.timestamp) or 0)..
   ',"s":'..server..',"ch":'..channel..',"type":'..q(kind)..
   (#defs>0 and ',"defs":['..table.concat(defs,",")..']' or "")..
-  (st.lost and ',"local_gap":'..st.lost or "")..(st.diskGap and ',"disk_gap":'..st.diskGap or "")..(e.source_id and ',"source_id":'..q(e.source_id) or "")..data.."}"
+  (st.lost and ',"local_gap":'..st.lost or "")..(st.diskGap and ',"disk_gap":'..st.diskGap or "")..(source and ',"source_id":'..source or "")..data.."}"
  if #line>8192 then
   st.rejected=st.rejected+1;st.lost=(st.lost or 0)+1;d.seq=sequence
   tiarca.log("Harvester: record over journal limit; collection incomplete")
@@ -183,11 +191,15 @@ for _,name in ipairs({"join","part","quit","nick","kick","mode","topic","account
     local base=num("target",u(e.nick,e.sender))..field("script",e.message_type)
     if not pct then return base..field("report",e.text) end
     local prior={}
-    for id in refs:gmatch("[^,]+") do if id~="-" then prior[#prior+1]=q(id) end end
+    for id in refs:gmatch("[^,]+") do
+     local ref=sourceRef(id,i)
+     if ref then prior[#prior+1]=ref end
+    end
     return base..num("percent",tonumber(pct))..num("level",tonumber(level))..
      field("action",action)..field("engine",engine)..field("rule",rule)..
      num("score",tonumber(score))..num("threshold",tonumber(threshold))..
-     num("occurrences",tonumber(count))..',"previous_sources":['..table.concat(prior,",")..']'
+     num("occurrences",tonumber(count))..',"previous_sources":['..table.concat(prior,",")..']'..
+     ',"previous_sources_complete":'..(#prior==tonumber(count)-1 and e.source_id and "true" or "false")
    elseif eventName=="nick" then
     return userData(e,i,u)..num("new_nick",i("nick",e.text))
    else
