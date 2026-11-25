@@ -38,11 +38,16 @@ final class LuaSandboxExit {
         final String label;
         final boolean penalize;
         final boolean retryable;
+        final LuaEngineMetrics.Count category;
 
         Result(String label, boolean penalize, boolean retryable) {
             this.label = label;
             this.penalize = penalize;
             this.retryable = retryable;
+            this.category = "LOW_MEMORY".equals(label) ? LuaEngineMetrics.Count.EXIT_LOW_MEMORY
+                    : !penalize ? LuaEngineMetrics.Count.EXIT_SYSTEM
+                    : ("CRASH".equals(label) || "CRASH_NATIVE".equals(label) || "ANR".equals(label))
+                    ? LuaEngineMetrics.Count.EXIT_CRASH : LuaEngineMetrics.Count.EXIT_UNKNOWN;
         }
     }
 

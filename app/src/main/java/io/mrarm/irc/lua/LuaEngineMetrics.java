@@ -9,7 +9,9 @@ final class LuaEngineMetrics {
         STALE_INPUT, PREPARED, SLOT_FULL, DISPATCH_REJECTED, CANCELLED_SLOTS,
         IPC_SENT, IPC_FAILED, REPLIED, CALLBACK_FAILED, COMPLETED, EFFECTS_SKIPPED,
         ROSTER_CAPTURE, ROSTER_ROWS, IDENTITY_QUERY, STORAGE_SNAPSHOT,
-        STORAGE_TRANSACTION, STORAGE_WRITE, STORAGE_NOOP, STORAGE_FAILURE, JOURNAL_WRITE, JOURNAL_FAILURE
+        STORAGE_TRANSACTION, STORAGE_WRITE, STORAGE_NOOP, STORAGE_FAILURE, JOURNAL_WRITE, JOURNAL_FAILURE,
+        SANDBOX_EXIT, EXIT_LOW_MEMORY, EXIT_SYSTEM, EXIT_CRASH, EXIT_UNKNOWN,
+        BIND_ATTEMPT, BIND_FAILURE, RECOVERED, OUTAGE_INGRESS, OUTAGE_SLOTS
     }
 
     private final long[] counts = new long[Count.values().length];
@@ -17,6 +19,46 @@ final class LuaEngineMetrics {
             nativeCall = new Latency(), total = new Latency(), storage = new Latency();
     private final long since = System.nanoTime();
     private long memory = -1, peak = -1;
+    private long outageSince = -1, outageTotal, outageIngressStart, outageSlotsStart;
+
+    static final class Gap {
+        final long durationMs, ingress, slots;
+        Gap(long durationMs, long ingress, long slots) {
+            this.durationMs = durationMs;
+            this.ingress = ingress;
+            this.slots = slots;
+        }
+    }
+
+    synchronized void beginOutage(long now) {
+        if (outageSince >= 0) return;
+        outageSince = now;
+        outageIngressStart = count(Count.OUTAGE_INGRESS);
+        outageSlotsStart = count(Count.OUTAGE_SLOTS);
+    }
+
+    synchronized void unavailable(boolean engineAbsent) {
+        inc(Count.UNAVAILABLE);
+        if (engineAbsent && outageSince >= 0) inc(Count.OUTAGE_INGRESS);
+    }
+
+    synchronized Gap endOutage(long now, boolean recovered) {
+        if (outageSince < 0) return null;
+        long duration = Math.max(0, now - outageSince);
+        outageTotal += duration;
+        outageSince = -1;
+        if (!recovered) return null;
+        inc(Count.RECOVERED);
+        return new Gap(duration, count(Count.OUTAGE_INGRESS) - outageIngressStart,
+                count(Count.OUTAGE_SLOTS) - outageSlotsStart);
+    }
+
+    synchronized String outageLine(long now) {
+        long current = outageSince < 0 ? 0 : Math.max(0, now - outageSince);
+        return "Interruzioni: totale " + (outageTotal + current) + " ms; attuale " + current
+                + " ms; ingressi non disponibili " + c(Count.OUTAGE_INGRESS)
+                + "; slot annullati per arresto " + c(Count.OUTAGE_SLOTS);
+    }
 
     static final class Latency {
         long n, sum, max;
@@ -61,6 +103,11 @@ final class LuaEngineMetrics {
                     + "; risposte " + c(Count.REPLIED),
             "Consegne completate " + c(Count.COMPLETED) + "; callback fallite " + c(Count.CALLBACK_FAILED)
                     + "; effetti scartati " + c(Count.EFFECTS_SKIPPED),
+            "Sandbox: arresti osservati " + c(Count.SANDBOX_EXIT)
+                    + "; LOW_MEMORY " + c(Count.EXIT_LOW_MEMORY) + "; sistema " + c(Count.EXIT_SYSTEM)
+                    + "; crash/ANR " + c(Count.EXIT_CRASH) + "; incerti " + c(Count.EXIT_UNKNOWN),
+            "Sandbox: tentativi bind " + c(Count.BIND_ATTEMPT) + "; falliti "
+                    + c(Count.BIND_FAILURE) + "; connessioni ripristinate " + c(Count.RECOVERED),
             "Latenza media/max: coda " + queue.display() + "; IPC " + ipc.display(),
             "Latenza media/max: JNI " + nativeCall.display() + "; totale " + total.display(),
             "Roster: snapshot legacy " + c(Count.ROSTER_CAPTURE) + "; righe inviate " + c(Count.ROSTER_ROWS)

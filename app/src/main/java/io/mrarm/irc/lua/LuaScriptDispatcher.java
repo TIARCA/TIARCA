@@ -60,7 +60,7 @@ public final class LuaScriptDispatcher {
     private static final long SERVER_INTERVAL_MS = 1500L;
     private static final long WHO_INTERVAL_MS = 60000L;
     private static final long TICK_INTERVAL_MS = 60000L;
-    private static final long BIND_RETRY_GRACE_MS = 30000L;
+    private static final long BIND_TIMEOUT_MS = 30000L;
 
     public static synchronized LuaScriptDispatcher get(Context context) {
         if (instance == null)
@@ -115,10 +115,11 @@ public final class LuaScriptDispatcher {
     private volatile Messenger remote;
     private boolean bound; // main thread only
     private boolean running; // main thread only
-    private long lastBindAttemptMs; // main thread only
-    // Keep a replacement Messenger unpublished until the preceding exit is classified.
+    private ServiceConnection binding; // main thread only, unique per attempt
+    private final LuaSandboxRecovery recovery = new LuaSandboxRecovery();
+    private final Runnable retrySandbox = this::reconcileBinding;
+    private final Runnable bindTimeout = this::onBindTimeout;
     // All fields below are main-looper only.
-    private Messenger deferredRemote;
     private LuaSandboxExit.Identity sandboxIdentity;
     private ExitCheck exitCheck;
     private long crashGeneration;
@@ -226,32 +227,31 @@ public final class LuaScriptDispatcher {
         }
     }
 
-    private final ServiceConnection connection = new ServiceConnection() {
-        @Override public void onServiceConnected(ComponentName name, IBinder service) {
-            if (!running || !bound) return;
-            deferredRemote = new Messenger(service);
-            publishReplacement();
-        }
-
-        @Override public void onServiceDisconnected(ComponentName name) {
-            lastBindAttemptMs = SystemClock.elapsedRealtime();
-            onSandboxLost();
-            // BIND_AUTO_CREATE may reconnect before Android publishes the exit record.
-            // publishReplacement() waits for the bounded lookup to finish.
-        }
-
-        @Override public void onBindingDied(ComponentName name) {
-            // A binding can become invalid after package changes without a script crash.
-            onSandboxLost();
-            main.post(() -> {
-                if (bound) {
-                    context.unbindService(connection);
-                    bound = false;
+    private ServiceConnection newBinding() {
+        return new ServiceConnection() {
+            @Override public void onServiceConnected(ComponentName name, IBinder service) {
+                if (binding != this || !running || !bound) return;
+                main.removeCallbacks(bindTimeout);
+                if (!store.anyEnabled()) {
+                    reconcileBinding();
+                    return;
                 }
-                reconcileBinding();
-            });
-        }
-    };
+                publishReplacement(new Messenger(service));
+            }
+
+            @Override public void onServiceDisconnected(ComponentName name) {
+                if (binding == this) onSandboxLost();
+            }
+
+            @Override public void onBindingDied(ComponentName name) {
+                if (binding == this) onSandboxLost();
+            }
+
+            @Override public void onNullBinding(ComponentName name) {
+                if (binding == this) onSandboxLost();
+            }
+        };
+    }
 
     private LuaScriptDispatcher(Context context) {
         this.context = context;
@@ -300,85 +300,134 @@ public final class LuaScriptDispatcher {
         });
     }
 
-    /**
-     * BIND_AUTO_CREATE normally reconnects a dead isolated process. Some device
-     * implementations can leave the binding without a live Messenger. On a
-     * connected, unpaused network, retry at the next minute tick after a grace
-     * period; never revive a script disabled by the crash guard or /lua stop.
-     */
     private void recoverMissingSandbox() {
-        if (!running || remote != null || exitCheck != null || !store.anyEnabled()) return;
-        long now = SystemClock.elapsedRealtime();
-        if (now - lastBindAttemptMs < BIND_RETRY_GRACE_MS) return;
-        boolean needed = false;
-        for (ServerConnectionInfo conn :
-                ServerConnectionManager.getInstance(context).getConnections()) {
-            if (conn.isConnected() && !console.isPaused(conn.getUUID().toString())
-                    && !store.enabledOn(conn.getUUID().toString()).isEmpty()) {
-                needed = true;
-                break;
-            }
-        }
-        if (!needed) return;
-        if (bound) {
-            context.unbindService(connection);
-            bound = false;
-        }
+        // A timer or new IRC connection cannot bypass the retry delay.
         reconcileBinding();
+    }
+
+    private void detachBinding() {
+        main.removeCallbacks(bindTimeout);
+        ServiceConnection previous = binding;
+        binding = null; // Ignore callbacks from an old Android binding.
+        boolean wasBound = bound;
+        bound = false;
+        if (wasBound && previous != null) {
+            try { context.unbindService(previous); }
+            catch (IllegalArgumentException ignored) { }
+        }
+    }
+
+    private void scheduleRecovery() {
+        main.removeCallbacks(retrySandbox);
+        if (!running || !store.anyEnabled()) {
+            reconcileBinding();
+            return;
+        }
+        main.postDelayed(retrySandbox, recovery.remaining(SystemClock.elapsedRealtime()));
     }
 
     private void reconcileBinding() {
         boolean needed = running && store.anyEnabled();
-        if (needed && !bound) {
-            lastBindAttemptMs = SystemClock.elapsedRealtime();
-            try {
-                // Active Lua scripts are part of the IRC client's ongoing work.
-                // Request higher process importance without changing isolation or
-                // granting foreground capabilities. Android can still reclaim it.
-                bound = context.bindService(new Intent(context, LuaDiagnosticService.class),
-                        connection, Context.BIND_AUTO_CREATE | Context.BIND_IMPORTANT);
-            } catch (RuntimeException error) {
-                bound = false;
-            }
-        } else if (!needed) {
+        if (!needed) {
+            main.removeCallbacks(retrySandbox);
             crashTracker.reset();
             crashGeneration++;
             exitCheck = null;
-            deferredRemote = null;
             sandboxIdentity = null;
-            clearPending();
             remote = null;
-            if (bound) {
-                context.unbindService(connection);
-                bound = false;
-            }
+            clearPending();
+            detachBinding();
+            recovery.reset();
+            metrics.endOutage(SystemClock.elapsedRealtime(), false);
+            return;
+        }
+        if (bound || exitCheck != null) return;
+        long now = SystemClock.elapsedRealtime();
+        if (recovery.remaining(now) > 0) {
+            scheduleRecovery();
+            return;
+        }
+        main.removeCallbacks(retrySandbox);
+        ServiceConnection attempt = newBinding();
+        binding = attempt;
+        metrics.inc(LuaEngineMetrics.Count.BIND_ATTEMPT);
+        try {
+            // Keep isolation; request importance without foreground capabilities.
+            bound = context.bindService(new Intent(context, LuaDiagnosticService.class),
+                    attempt, Context.BIND_AUTO_CREATE | Context.BIND_IMPORTANT);
+        } catch (RuntimeException error) {
+            bound = false;
+        }
+        if (bound) {
+            main.postDelayed(bindTimeout, BIND_TIMEOUT_MS);
+        } else {
+            binding = null;
+            onBindFailed();
         }
     }
 
-    private void publishReplacement() {
-        if (exitCheck != null || deferredRemote == null || !running || !bound) return;
-        if (!store.anyEnabled()) {
-            reconcileBinding();
-            return;
-        }
-        remote = deferredRemote;
-        deferredRemote = null;
+    private void onBindTimeout() {
+        if (!bound || remote != null) return;
+        detachBinding();
+        onBindFailed();
+    }
+
+    private void onBindFailed() {
+        metrics.inc(LuaEngineMetrics.Count.BIND_FAILURE);
+        long now = SystemClock.elapsedRealtime();
+        metrics.beginOutage(now);
+        recovery.failed(now);
+        scheduleRecovery();
+    }
+
+    private void publishReplacement(Messenger replacement) {
+        long now = SystemClock.elapsedRealtime();
+        LuaEngineMetrics.Gap gap = metrics.endOutage(now, true);
+        recovery.connected(now);
         sandboxIdentity = null;
-        io.post(this::loadAll);
+        // Queue reset/load before exposing the replacement to new event producers.
+        synchronized (this) {
+            io.post(() -> {
+                synchronized (LuaScriptDispatcher.this) {
+                    if (remote != replacement) return;
+                }
+                loadAll();
+                if (gap != null && remote == replacement) notifySandboxGap(gap);
+            });
+            remote = replacement;
+        }
+    }
+
+    private void notifySandboxGap(LuaEngineMetrics.Gap gap) {
+        // Existing storage-scoped event, best effort, no new Lua capability.
+        String detail = gap.durationMs + " " + gap.ingress + " " + gap.slots;
+        for (ServerConnectionInfo conn :
+                ServerConnectionManager.getInstance(context).getConnections()) {
+            String server = conn.getUUID().toString();
+            if (!console.isPaused(server) && !store.enabledOn(server).isEmpty())
+                enqueue("journal_status", server, "", "", detail, "sandbox_gap",
+                        System.currentTimeMillis() / 1000);
+        }
     }
 
     private void onSandboxLost() {
         boolean wasPublished = remote != null;
         remote = null;
-        deferredRemote = null;
-        if (!wasPublished) return; // No script ran on the unpublished replacement.
+        detachBinding(); // Prevent BIND_AUTO_CREATE from restarting in a tight loop.
+        if (!wasPublished) {
+            onBindFailed();
+            return;
+        }
+        long now = SystemClock.elapsedRealtime();
+        metrics.beginOutage(now);
+        metrics.inc(LuaEngineMetrics.Count.SANDBOX_EXIT);
+        recovery.failed(now);
         Pending active = pending.get(crashTracker.activeRequestId());
         ExitCheck check = new ExitCheck(sandboxIdentity, active,
                 System.currentTimeMillis(), crashGeneration);
         sandboxIdentity = null;
-        clearPending();
+        metrics.add(LuaEngineMetrics.Count.OUTAGE_SLOTS, clearPending());
         exitCheck = check;
-        // Query ActivityManager on the IPC worker, never block the UI thread.
         io.post(() -> lookupSandboxExit(check, 1));
     }
 
@@ -399,6 +448,7 @@ public final class LuaScriptDispatcher {
                 + " (pid " + (check.identity == null ? "unknown" : check.identity.pid)
                 + ", observed " + check.observedAt + ")";
         android.util.Log.i("TiarcaLua", detail);
+        metrics.inc(result.category);
         Pending active = check.active;
         if (active != null && check.generation == crashGeneration) {
             LuaScriptStore.Script script = store.find(active.scriptId);
@@ -416,7 +466,7 @@ public final class LuaScriptDispatcher {
             }
         }
         if (!store.anyEnabled()) reconcileBinding();
-        else publishReplacement();
+        else scheduleRecovery();
     }
 
     private void abortRestarts() {
@@ -425,14 +475,16 @@ public final class LuaScriptDispatcher {
         restarts.clear();
     }
 
-    private void clearPending() {
+    private int clearPending() {
         crashTracker.clearActive();
         pending.clear();
         subscriptions.clear();
         identityEpoch.incrementAndGet();
-        metrics.add(LuaEngineMetrics.Count.CANCELLED_SLOTS, dispatchSlots.clearAndCount());
+        int cancelled = dispatchSlots.clearAndCount();
+        metrics.add(LuaEngineMetrics.Count.CANCELLED_SLOTS, cancelled);
         metrics.memoryUnavailable();
         abortRestarts();
+        return cancelled;
     }
 
     private void discardPendingForNetwork(String server) {
@@ -733,6 +785,7 @@ public final class LuaScriptDispatcher {
                 lines.add("[Lua] " + line.script + ": " + line.message);
         } else if ("perf".equals(builtin)) {
             for (String line : metrics.lines()) lines.add("[Lua] " + line);
+            lines.add("[Lua] " + metrics.outageLine(SystemClock.elapsedRealtime()));
             lines.add("[Lua] Coda ingresso: " + queuedEvents.get() + "/" + MAX_PENDING_EVENTS
                     + "; slot: " + dispatchSlots.size() + "/" + MAX_PENDING_EVENTS);
         } else if ("status".equals(builtin)) {
@@ -910,8 +963,10 @@ public final class LuaScriptDispatcher {
             LuaIdentityQuery query, String inheritedSourceId) {
         final long receivedNanos = System.nanoTime();
         metrics.inc(LuaEngineMetrics.Count.RECEIVED);
-        if (remote == null || console.isPaused(server)) {
-            metrics.inc(LuaEngineMetrics.Count.UNAVAILABLE);
+        boolean engineAbsent = remote == null;
+        boolean paused = console.isPaused(server);
+        if (engineAbsent || paused) {
+            metrics.unavailable(engineAbsent && !paused);
             return false;
         }
         if (eventRecipients(server, event, onlyScriptId).isEmpty()) {
