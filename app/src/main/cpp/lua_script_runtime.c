@@ -21,7 +21,7 @@
 #define MAX_USERS 128
 #define MAX_STORAGE 32
 #define MAX_STORAGE_BYTES (128u * 1024u)
-#define EVENT_KINDS 17
+#define EVENT_KINDS 19
 #define IDENTITY_V2_FLAG (1 << 20)
 #define MAX_SOURCE 24576
 #define SCRIPT_MEMORY (2u * 1024u * 1024u)
@@ -135,6 +135,8 @@ static int event_kind(const char *name) {
     if (!strcmp(name, "mode")) return 14;
     if (!strcmp(name, "topic")) return 15;
     if (!strcmp(name, "own_message")) return 16;
+    if (!strcmp(name, "account")) return 17;
+    if (!strcmp(name, "chghost")) return 18;
     return -1;
 }
 
@@ -1104,7 +1106,7 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchWithMetadata(JNIEnv *env, jclass 
         if (histFields == 4 || histFields == 5) {
             if (jcanreadusers != JNI_TRUE || (kind != 0 && kind != 4 && kind != 5 &&
                     kind != 6 && kind != 7 && kind != 9 && kind != 10 &&
-                    kind != 14 && kind != 15 && kind != 16)) return NULL;
+                    kind != 14 && kind != 15 && kind != 16 && kind != 17 && kind != 18)) return NULL;
             char *dest[] = {historical_ident, historical_host, sender_prefix, sender_account, sender_realname};
             size_t caps[] = {sizeof(historical_ident), sizeof(historical_host),
                     sizeof(sender_prefix), sizeof(sender_account), sizeof(sender_realname)};
@@ -1157,7 +1159,7 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchWithMetadata(JNIEnv *env, jclass 
         if (sender_present) {
             lua_createtable(L, 0, 6);
             set_field(L, "nick", nick);
-            set_field(L, "prefix", sender_prefix);
+            if (kind != 17 && kind != 18) set_field(L, "prefix", sender_prefix);
             if (historical_ident[0]) set_field(L, "ident", historical_ident);
             if (historical_host[0]) set_field(L, "host", historical_host);
             if (sender_account[0]) set_field(L, "account", sender_account);
@@ -1199,7 +1201,7 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchWithMetadata(JNIEnv *env, jclass 
         const char *event_names[] = {"message", "connected", "disconnected", "command",
                                     "join", "part", "quit", "nick", "timer",
                                     "kick", "ban", "history", "moderation_log", "identity",
-                                    "mode", "topic", "own_message"};
+                                    "mode", "topic", "own_message", "account", "chghost"};
         set_field(L, "type", event_names[kind]);
         lua_pushinteger(L, (lua_Integer)timestamp);
         lua_setfield(L, -2, "timestamp");
