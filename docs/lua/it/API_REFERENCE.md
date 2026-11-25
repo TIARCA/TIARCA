@@ -65,3 +65,5 @@ Digita `/lua ping`. Non viene inviato alcun messaggio IRC.
 **Nota:** l'API non promette conferme di consegna/ban. Per semantica, quote e condizioni complete consulta [la fonte tecnica](../../LUA_SCRIPTING_MVP.md); l'implementazione Java/C è la fonte definitiva.
 
 V4 privilegia account osservato anche per ban temporanei se supportato. Gate voice V4 limitato a `automod_v4.lua`, mittente e consensi; halfop e superiori protetti nella moderazione ordinaria V4. [Migrazione](MIGRATION.md) per scope, token, filtri e limiti.
+
+Nelle richieste roster v2, l'opzione `state=true` aggiunge `event.channel_modes` nella prima pagina (osservazioni locali limitate; `channel_modes_partial=true`). Mantenere l'opzione identica nelle pagine successive. I valori potenzialmente contenenti chiavi sono oscurati. `event.user` ed `event.users` includono `realname` quando osservato.
