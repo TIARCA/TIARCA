@@ -75,6 +75,8 @@ public final class LuaScriptDispatcher {
     private final HandlerThread ioThread = new HandlerThread("tiarca-lua-ipc");
     private final Handler io;
     private final AtomicInteger sequence = new AtomicInteger();
+    private final String observationSession = UUID.randomUUID().toString();
+    private final java.util.concurrent.atomic.AtomicLong observationSequence = new java.util.concurrent.atomic.AtomicLong();
     private final LuaDispatchSlots dispatchSlots = new LuaDispatchSlots(MAX_PENDING_EVENTS);
     private final LuaEngineMetrics metrics = new LuaEngineMetrics();
     // Coordinator worker only; the sandbox caches the last full committed revision.
@@ -142,6 +144,7 @@ public final class LuaScriptDispatcher {
         LuaDispatchSlots.Ticket slot;
         int epoch;
         long storageVersion = -1;
+        String sourceId = "";
         long receivedNanos, sentNanos;
 
         Pending(String id, String server, String channel, String nick,
@@ -794,6 +797,14 @@ public final class LuaScriptDispatcher {
             String text, String messageType, long time, String onlyScriptId,
             String historyIdent, String historyHost, String[] sender,
             LuaIdentityQuery query) {
+        return enqueueWithData(event, server, channel, nick, text, messageType, time,
+                onlyScriptId, historyIdent, historyHost, sender, query, "");
+    }
+
+    private boolean enqueueWithData(String event, String server, String channel, String nick,
+            String text, String messageType, long time, String onlyScriptId,
+            String historyIdent, String historyHost, String[] sender,
+            LuaIdentityQuery query, String inheritedSourceId) {
         final long receivedNanos = System.nanoTime();
         metrics.inc(LuaEngineMetrics.Count.RECEIVED);
         if (remote == null || console.isPaused(server)) {
@@ -804,6 +815,9 @@ public final class LuaScriptDispatcher {
             metrics.inc(LuaEngineMetrics.Count.FILTERED);
             return false;
         }
+        final String sourceId = !inheritedSourceId.isEmpty() ? inheritedSourceId :
+                ("message".equals(event) || "own_message".equals(event)) ?
+                    observationSession + ":" + observationSequence.incrementAndGet() : "";
         long currentGeneration = console.generation(server);
         int currentEpoch = identityEpoch.get();
         // Bound events *before* adding to HandlerThread, not only in-flight Binder
@@ -919,6 +933,7 @@ public final class LuaScriptDispatcher {
                                 historyHost == null ? "" : historyHost);
                     }
                     data.putLong(LuaDiagnosticService.EXTRA_TIME, time);
+                    data.putString(LuaDiagnosticService.EXTRA_SOURCE_ID, sourceId);
                     data.putStringArrayList(LuaDiagnosticService.EXTRA_CHANNEL_NAMES,
                             channels.names);
                     data.putIntArray(LuaDiagnosticService.EXTRA_CHANNEL_COUNTS, channels.counts);
@@ -936,6 +951,7 @@ public final class LuaScriptDispatcher {
                                     "identity".equals(event) ? messageType : "",
                             "message".equals(event) || "identity".equals(event) ? deliveredText : "",
                             time, query);
+                    identity.sourceId = sourceId;
                     identity.slot = slot;
                     identity.epoch = currentEpoch;
                     identity.receivedNanos = receivedNanos;
@@ -1245,8 +1261,9 @@ public final class LuaScriptDispatcher {
                     // Publish a generic observed moderation report to enabled Lua
                     // scripts; only an external script decides whether to archive it.
                     if (!"moderation_log".equals(request.event))
-                        enqueue("moderation_log", request.server, request.channel,
-                                request.nick, value, script.name, request.eventTimestamp);
+                        enqueueWithData("moderation_log", request.server, request.channel,
+                                request.nick, value, script.name, request.eventTimestamp,
+                                null, null, null, null, null, request.sourceId);
                     try {
                         ServerConnectionInfo connection = ServerConnectionManager
                                 .getInstance(context).getConnection(UUID.fromString(request.server));
