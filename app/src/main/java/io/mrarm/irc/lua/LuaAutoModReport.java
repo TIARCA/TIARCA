@@ -8,7 +8,8 @@ final class LuaAutoModReport {
     private static final Pattern DETECTION = Pattern.compile(
             "^AutoMod(B|U|V4)? ([^\\s/]{1,12})/([^\\s]{1,64}) ([^\\s]{1,64}) " +
             "([0-9]{1,3}(?:\\.[0-9])?)% infrazione ([0-9]{1,6}) " +
-            "\\((monitor|avviso|kick|ban|mute|tmute|tban|bankick|tbankick|escalation)\\)(?: motore ([AB]))?$");
+            "\\((monitor|avviso|kick|ban|mute|tmute|tban|bankick|tbankick|escalation)\\)(?: motore ([AB]))?" +
+            "(?: rule ([A-Z_]{1,24}) score (-?[0-9]{1,10}) threshold ([0-9]{1,3}) count ([0-9]{1,10}) refs ([a-f0-9:-]{1,64}(?:,[a-f0-9:-]{1,64})?))?$");
 
     private LuaAutoModReport() { }
 
@@ -17,7 +18,7 @@ final class LuaAutoModReport {
         if (!"message".equals(event) || server == null || channel == null ||
                 nick == null || line == null) return null;
         Matcher match = DETECTION.matcher(line);
-        if (!match.matches()) return null;
+        if (!match.matches() || (match.group(9) != null && !"V4".equals(match.group(1)))) return null;
         if (!match.group(2).equals(server.substring(0, Math.min(8, server.length()))) ||
                 !match.group(3).equalsIgnoreCase(channel) ||
                 !match.group(4).equalsIgnoreCase(nick)) return null;
