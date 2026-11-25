@@ -889,7 +889,11 @@ public final class LuaScriptDispatcher {
                     }
                     metrics.inc(LuaEngineMetrics.Count.PREPARED);
                     boolean legacy = !subscriptions.usesIdentityV2(script.id, server);
-                    if ((legacy || query != null) && !connectionChecked) {
+                    // V4 needs only exact tokens observed in this message's channel.
+                    boolean mentions = !legacy && script.allowUserInfo &&
+                            LuaModerationPolicy.v4Script(script) && "message".equals(event) &&
+                            "normal".equals(messageType);
+                    if ((legacy || query != null || mentions) && !connectionChecked) {
                         connectionChecked = true;
                         if (!"disconnected".equals(event)) {
                             try {
@@ -940,6 +944,12 @@ public final class LuaScriptDispatcher {
                                 }
                             }
                             users = roster;
+                        }
+                    } else if (mentions && connectionData != null) {
+                        try {
+                            users = LuaIdentityQuery.mentions(connectionData, channel, nick, text);
+                        } catch (RuntimeException unavailable) {
+                            users = new LuaUserSnapshot();
                         }
                     }
                     Message request = Message.obtain(null, LuaDiagnosticService.REQUEST_EVENT);

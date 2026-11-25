@@ -173,12 +173,17 @@ public final class HostLuaRuntimeTest {
     }
 
     private static String[] v4Event(String event, String nick, String text, long time,
-                                    String prefix, String account) {
+                                    String prefix, String account, String... mentions) {
+        byte[][] roster = new byte[mentions.length * 5][];
+        for (int i = 0; i < mentions.length; i++) {
+            roster[5*i] = bytes(mentions[i]);
+            for (int j = 1; j < 5; j++) roster[5*i+j] = bytes("");
+        }
         byte[][] sender = prefix == null ? new byte[0][] :
                 new byte[][]{bytes("ident"), bytes("host.example"), bytes(prefix), bytes(account)};
         return collect(NativeLuaRuntime.dispatchWithIdentity(OTHER, event,
                 bytes("test-server"), bytes("#room"), bytes(nick), bytes(text), bytes("normal"), time,
-                new byte[0][], new int[0], false, new byte[0][], false, true,
+                new byte[0][], new int[0], false, roster, false, true,
                 automodSnapshot(), true, sender));
     }
 
@@ -213,6 +218,32 @@ public final class HostLuaRuntimeTest {
                 automodStorage.get("v4.allow").contains("voiceacct"), "Verified result persists");
         check(v4Event("message", "Voice", "cerco ragazza", t+7, "+", "voiceacct").length == 1,
                 "Whitelist applies immediately");
+        // A mention must be verified and must not erase a real announcement.
+        check(v4Event("message", "Ajejeje", "M99", t+10, "", "aje", "M99").length == 1 &&
+                v4Event("message", "Ajejeje", "M99 ti ricordi quella ragazza della foto?",
+                        t+11, "", "aje", "M99").length == 1,
+                "V4 verified M99 conversation is not an announcement");
+        String[][] ads = {{"m 99", "m"}, {"m-99", "m-99"}, {"cerco F35", "F35"},
+                {"F35 pvt", "F35", "pvt"}, {"io F35", "F35"},
+                {"F35 cerco uomo", "F35"}, {"ragazze in pvt", "pvt"},
+                {"donna Roma", "Roma"}, {"M99", ""}};
+        for (int i = 0; i < ads.length; i++) {
+            String[] row = ads[i];
+            String account = "mention-regression-" + i;
+            String[] hits = row[1].isEmpty() ? new String[0] :
+                    java.util.Arrays.copyOfRange(row, 1, row.length);
+            String[] one = v4Event("message", "Tester"+i, row[0], t+12, "", account, hits);
+            String[] two = v4Event("message", "Tester"+i, row[0], t+13, "", account, hits);
+            check("OK".equals(one[0]) && java.util.Arrays.toString(two).contains("motore B"),
+                    "V4 preserves announcement: "+row[0]+" "+java.util.Arrays.toString(two));
+        }
+        check(v4Event("message", "Greeting", "M99: felice pomeriggio a te",
+                t+14, "", "greetacct", "M99").length == 1 &&
+                v4Event("message", "Greeting", "Sarah felice pomeriggio a te",
+                t+15, "", "greetacct", "Sarah").length == 1 &&
+                v4Event("message", "Greeting", "Gianna felice pomeriggio a te",
+                t+16, "", "greetacct", "Gianna").length == 1,
+                "V4 personalized greetings remain ignored");
         NativeLuaRuntime.unload(OTHER);
         automodStorage.clear();
         automodActive = false;

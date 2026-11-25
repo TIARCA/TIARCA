@@ -44,3 +44,5 @@ V2: `event.sender` may be absent; authorized observed data, captured at receipt 
 `source_id` is an opaque observation ID on `message`, `own_message` and a moderation report derived from that message. It identifies the triggering observation across scripts, not an IRC msgid or proof of sanction. `sender.realname` is present only when observed, with identities consent; unknown is nil.
 
 V2 roster: `users[].realname` or `user.realname` when observed. For `state=true`, first page may carry `channel_modes` entries `{mode,param,kind}` and `channel_modes_partial=true`. No full IRC list guarantee.
+
+For AutoMod v4 (`automod_v4.lua`) with identities consent and V2 opt-in, `event.mentions` may contain a map of original tokens verified against the local channel index (key = token without trailing `,:;.!?`, value = `true`). At most 64 tokens examined and 32 matches; sender excluded. No IRC request or full roster. An absent field or key does not prove the nickname is absent from the channel; the original message is unchanged.

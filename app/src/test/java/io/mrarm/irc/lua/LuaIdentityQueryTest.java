@@ -95,6 +95,22 @@ public class LuaIdentityQueryTest {
                 .execute(data).status);
     }
 
+    @Test public void messageMentionsUseExactRawTokensAndOnlySharedMembers() throws Exception {
+        ServerConnectionData data = new ServerConnectionData();
+        data.onChannelJoined("#room");
+        data.onChannelJoined("#other");
+        for (int i = 0; i < 1000; i++) data.getIdentityCache().memberJoined("#room", "user"+i);
+        data.getIdentityCache().memberJoined("#room", "M99");
+        data.getIdentityCache().memberJoined("#room", "Pvt");
+        data.getIdentityCache().memberJoined("#room", "Sender");
+        data.getIdentityCache().memberJoined("#other", "Elsewhere");
+        LuaUserSnapshot mentions = LuaIdentityQuery.mentions(data, "#room", "Sender",
+                "m99: m 99 m-99 user999 Pvt sender Elsewhere M999");
+        assertEquals(java.util.Arrays.asList("m99","","","","","user999","","","","",
+                "Pvt","","","",""), mentions.fields);
+        assertTrue(LuaIdentityQuery.mentions(null, "#room", "Sender", "M99").fields.isEmpty());
+    }
+
     @Test public void snapshotModesAreExplicitAndNeverExposeKeys() throws Exception {
         ServerConnectionData data = new ServerConnectionData();
         data.setUserInfoApi(new SimpleUserInfoApi());

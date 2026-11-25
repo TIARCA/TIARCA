@@ -1219,6 +1219,15 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchWithMetadata(JNIEnv *env, jclass 
             lua_setfield(L, -2, "account_known");
             lua_setfield(L, -2, "sender");
         }
+        /* V2 message rows are verified raw mention tokens, not roster identities. */
+        if (kind == 0 && s->identity_v2 && s->can_read_users && s->user_count > 0) {
+            lua_createtable(L, 0, s->user_count);
+            for (int i = 0; i < s->user_count; i++) {
+                lua_pushboolean(L, 1);
+                lua_setfield(L, -2, s->users[i].nick);
+            }
+            lua_setfield(L, -2, "mentions");
+        }
         if (kind == 13) {
             char query_kind[2] = "", status[32] = "";
             int total = 0, next = -1, complete = 0;
