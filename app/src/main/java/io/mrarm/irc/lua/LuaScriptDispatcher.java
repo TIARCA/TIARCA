@@ -1400,7 +1400,8 @@ public final class LuaScriptDispatcher {
                 continue;
             } else if ("show".equals(kind) || "list".equals(kind)) {
                 store.recordOutput(id, target, value, "list".equals(kind));
-                if ("command".equals(request.event) || "identity".equals(request.event)) {
+                if ("command".equals(request.event) || "identity".equals(request.event) ||
+                        "journal_status".equals(request.event)) {
                     try {
                         ServerConnectionInfo conn = ServerConnectionManager.getInstance(context)
                                 .getConnection(UUID.fromString(request.server));
