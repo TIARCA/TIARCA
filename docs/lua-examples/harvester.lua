@@ -177,8 +177,17 @@ for _,name in ipairs({"join","part","quit","nick","kick","mode","topic","account
    elseif eventName=="topic" then
     return num("actor",u(e.nick,e.sender))..field("text",e.text)
    elseif eventName=="moderation_log" then
-    -- Report, not confirmed IRC execution; no fabricated message links.
-    return num("target",u(e.nick,e.sender))..field("script",e.message_type)..field("report",e.text)
+    -- V4 report carries actual trigger + bounded preceding references.
+    local pct,level,action,engine,rule,score,threshold,count,refs=(e.text or ""):match(
+     "^AutoModV4 %S+ %S+ ([%d.]+)%% infrazione (%d+) %((%w+)%) motore ([AB]) rule ([A-Z_]+) score (-?%d+) threshold (%d+) count (%d+) refs ([%w:,%-]+)$")
+    local base=num("target",u(e.nick,e.sender))..field("script",e.message_type)
+    if not pct then return base..field("report",e.text) end
+    local prior={}
+    for id in refs:gmatch("[^,]+") do if id~="-" then prior[#prior+1]=q(id) end end
+    return base..num("percent",tonumber(pct))..num("level",tonumber(level))..
+     field("action",action)..field("engine",engine)..field("rule",rule)..
+     num("score",tonumber(score))..num("threshold",tonumber(threshold))..
+     num("occurrences",tonumber(count))..',"previous_sources":['..table.concat(prior,",")..']'
    elseif eventName=="nick" then
     return userData(e,i,u)..num("new_nick",i("nick",e.text))
    else
