@@ -19,6 +19,9 @@ Registra gli eventi con `tiarca.on("nome", function(event) ... end)`. Il callbac
 | `moderation_log` | Rapporto di moderazione riconosciuto da un altro script | `event.nick` utente, `event.text` rapporto, `event.message_type` nome dello script sorgente; non prova l'esecuzione IRC |
 | `ban` | MODE +b osservato | `event.nick` esecutore, `event.text` mask; non implica espulsione |
 | `identity` | Risposta asincrona v2 | Solo richiedente: token, query (user/users/channels), status (ok/not_observed/unavailable), total, complete, next_offset se presente, user/users o channels |
+| `mode` | Variazione mode del canale | `message_type` mode con segno e tipo (es. `+b:LIST`); `text` parametro, vuoto per chiavi e valori exact-unset; scegliere mode o ban legacy per evitare duplicati |
+| `topic` | TOPIC osservato con mittente | `text` nuovo topic |
+| `own_message` | Messaggio pubblico del proprio utente | Separato da `message`, non attiva callback legacy; non prova consegna |
 | `timer` | Tick approssimativo di 60 secondi | Solo quando servizio IRC attivo e rete connessa; non è un allarme preciso |
 
 Campi comuni: `type`, `server` (UUID configurazione server, **non** hostname), `channel`, `nick`, `text`, `message_type` (`normal`, `notice`, `me`), `timestamp` (secondi Unix). I campi dipendono dall'evento e possono essere vuoti.
