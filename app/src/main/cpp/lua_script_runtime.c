@@ -1098,7 +1098,7 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchWithMetadata(JNIEnv *env, jclass 
         }
     }
     // Only the requesting identity callback can receive the bounded public mode cache.
-    char mode_state[64][3][513];
+    struct { char mode[9], param[513], kind[33]; } mode_state[64];
     int mode_count = -1;
     if (jchannelstate) {
         jsize mode_fields = (*env)->GetArrayLength(env, jchannelstate);
@@ -1108,7 +1108,8 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchWithMetadata(JNIEnv *env, jclass 
         for (int i = 0; i < mode_fields; i++) {
             jbyteArray field = (jbyteArray)(*env)->GetObjectArrayElement(env, jchannelstate, i);
             if (!field) return NULL;
-            int ok = copy_java_bytes(env, field, mode_state[i/3][i%3], mode_caps[i%3]);
+            char *dest[] = {mode_state[i/3].mode, mode_state[i/3].param, mode_state[i/3].kind};
+            int ok = copy_java_bytes(env, field, dest[i%3], mode_caps[i%3]);
             (*env)->DeleteLocalRef(env, field);
             if (!ok) return NULL;
         }
@@ -1237,9 +1238,9 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchWithMetadata(JNIEnv *env, jclass 
                 lua_createtable(L, mode_count, 0);
                 for (int i = 0; i < mode_count; i++) {
                     lua_createtable(L, 0, 3);
-                    set_field(L, "mode", mode_state[i][0]);
-                    set_field(L, "param", mode_state[i][1]);
-                    set_field(L, "kind", mode_state[i][2]);
+                    set_field(L, "mode", mode_state[i].mode);
+                    set_field(L, "param", mode_state[i].param);
+                    set_field(L, "kind", mode_state[i].kind);
                     lua_rawseti(L, -2, i+1);
                 }
                 lua_setfield(L, -2, "channel_modes");
