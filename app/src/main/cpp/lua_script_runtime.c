@@ -1095,19 +1095,19 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchVersioned(JNIEnv *env, jclass unu
     s->storage_revision = s->can_store ? storage_revision : 0;
     }
     char historical_ident[97] = "", historical_host[257] = "";
-    char sender_prefix[33] = "", sender_account[97] = "";
+    char sender_prefix[33] = "", sender_account[97] = "", sender_realname[258] = "";
     int sender_present = 0;
     if (jhistoryidentity) {
         jsize histFields = (*env)->GetArrayLength(env, jhistoryidentity);
-        if (histFields != 0 && histFields != 2 && histFields != 4) return NULL;
-        if (histFields == 4) {
+        if (histFields != 0 && histFields != 2 && histFields != 4 && histFields != 5) return NULL;
+        if (histFields == 4 || histFields == 5) {
             if (jcanreadusers != JNI_TRUE || (kind != 0 && kind != 4 && kind != 5 &&
                     kind != 6 && kind != 7 && kind != 9 && kind != 10 &&
                     kind != 14 && kind != 15 && kind != 16)) return NULL;
-            char *dest[] = {historical_ident, historical_host, sender_prefix, sender_account};
+            char *dest[] = {historical_ident, historical_host, sender_prefix, sender_account, sender_realname};
             size_t caps[] = {sizeof(historical_ident), sizeof(historical_host),
-                    sizeof(sender_prefix), sizeof(sender_account)};
-            for (int i = 0; i < 4; i++) {
+                    sizeof(sender_prefix), sizeof(sender_account), sizeof(sender_realname)};
+            for (int i = 0; i < histFields; i++) {
                 jbyteArray field = (jbyteArray)(*env)->GetObjectArrayElement(env, jhistoryidentity, i);
                 if (!field) return NULL;
                 int ok = copy_java_bytes(env, field, dest[i], caps[i]);
@@ -1159,6 +1159,7 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchVersioned(JNIEnv *env, jclass unu
             if (historical_ident[0]) set_field(L, "ident", historical_ident);
             if (historical_host[0]) set_field(L, "host", historical_host);
             if (sender_account[0]) set_field(L, "account", sender_account);
+            if (sender_realname[0] == '1') set_field(L, "realname", sender_realname + 1);
             if (historical_ident[0] && historical_host[0]) {
                 lua_pushfstring(L, "%s!%s@%s", nick, historical_ident, historical_host);
                 lua_setfield(L, -2, "mask");
