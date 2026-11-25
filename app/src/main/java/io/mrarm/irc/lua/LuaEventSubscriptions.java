@@ -12,7 +12,7 @@ final class LuaEventSubscriptions {
     private static final String[] EVENTS = {
             "message", "connected", "disconnected", "command", "join", "part",
             "quit", "nick", "timer", "kick", "ban", "history", "moderation_log", "identity",
-            "mode", "topic", "own_message", "account", "chghost"
+            "mode", "topic", "own_message", "account", "chghost", "journal_status"
     };
     private static final int IDENTITY_V2 = 1 << 20;
     private static final int VALID_MASK = ((1 << EVENTS.length) - 1) | IDENTITY_V2;
