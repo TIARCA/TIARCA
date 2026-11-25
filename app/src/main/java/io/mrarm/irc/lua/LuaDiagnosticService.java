@@ -31,6 +31,7 @@ public final class LuaDiagnosticService extends Service {
     public static final String EXTRA_MESSAGE_TYPE = "message_type";
     public static final String EXTRA_HISTORY_IDENT = "history_ident";
     public static final String EXTRA_SENDER = "sender";
+    public static final String EXTRA_ROSTER_REALNAMES = "roster_realnames";
     public static final String EXTRA_SOURCE_ID = "source_id";
     public static final String EXTRA_HISTORY_HOST = "history_host";
     public static final String EXTRA_TIME = "time";
@@ -324,6 +325,14 @@ public final class LuaDiagnosticService extends Service {
                                         }
                                     }
                                 }
+                                java.util.ArrayList<String> namesExtra = request.getStringArrayList(EXTRA_ROSTER_REALNAMES);
+                                byte[][] rosterRealnames = new byte[0][];
+                                if (request.getBoolean(EXTRA_CAN_READ_USERS, false) && namesExtra != null &&
+                                        namesExtra.size() == members.size() / LuaUserSnapshot.FIELDS && !namesExtra.isEmpty()) {
+                                    rosterRealnames = new byte[namesExtra.size()][];
+                                    for (int i = 0; i < namesExtra.size(); i++)
+                                        rosterRealnames[i] = NativeLuaRuntime.utf8(LuaIdentityQuery.valid(namesExtra.get(i), 257) ? namesExtra.get(i) : "");
+                                }
                                 long nativeStart = System.nanoTime();
                                 byte[][] nativeActions = NativeLuaRuntime.dispatchWithMetadata(runtimeId, event,
                                         NativeLuaRuntime.utf8(server), NativeLuaRuntime.utf8(channel),
@@ -336,7 +345,7 @@ public final class LuaDiagnosticService extends Service {
                                         request.getBoolean(EXTRA_CAN_READ_USERS, false),
                                         storagePairs, canStore,
                                         observedIdentity, storageVersion,
-                                        NativeLuaRuntime.utf8(request.getString(EXTRA_SOURCE_ID, "")));
+                                        NativeLuaRuntime.utf8(request.getString(EXTRA_SOURCE_ID, "")), rosterRealnames);
                                 request.putLong(EXTRA_NATIVE_NANOS, System.nanoTime() - nativeStart);
                         if (nativeActions == null || nativeActions.length < 1 ||
                                 (nativeActions.length - 1) % 3 != 0 ||
