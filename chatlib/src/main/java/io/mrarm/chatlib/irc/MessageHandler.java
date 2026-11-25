@@ -82,8 +82,10 @@ public class MessageHandler {
                         "TAGMSG".equals(command)))
             identities.note(prefix.getNick(), null, null, tags.get("account"));
         // IRCv3 extended-join: JOIN <channel> <account|*> :<realname>.
-        if ("JOIN".equals(command) && prefix != null && params.size() >= 3)
+        if ("JOIN".equals(command) && prefix != null && params.size() >= 3) {
             identities.note(prefix.getNick(), null, null, params.get(1));
+            identities.noteRealname(prefix.getNick(), params.get(2));
+        }
         handler.handle(connection, prefix, command, params, tags);
         identities.noteNumeric(command, params);
         if ("JOIN".equals(command) && !params.isEmpty()) {
