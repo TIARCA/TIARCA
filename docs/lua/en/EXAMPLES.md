@@ -11,6 +11,7 @@ These are UTF-8 files for manual import, **not** automatically installed plugins
 | [automod_v4.lua](../../lua-examples/automod_v4.lua) | Watchdog + Mod v2; default monitor, zero channels | Identities, persistence; send and moderation for live |
 | [espelli.lua](../../lua-examples/espelli.lua) | Manual kick: host-scoped `N:` and `m:U:` TBAN for 6h, nick/account bans; no global +N | Identities, moderation; OP |
 | [mask_finder.lua](../../lua-examples/mask_finder.lua) | Search nicknames, idents and hosts | Channel members and identities |
+| [harvester.lua](../../lua-examples/harvester.lua) | [Harvester V1 draft](../../lua-examples/HARVESTER.md): normalized passive journal | Identities and persistence; no send or moderation |
 | [moderation_collector.lua](../../lua-examples/moderation_collector.lua) | Record moderation events to JSONL | Identities and persistence |
 
 ### Minimal copyable example
