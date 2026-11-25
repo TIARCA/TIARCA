@@ -270,11 +270,24 @@ local function getWatch(id,channel,now,window)
  end
  return h
 end
-local function action(level)
+-- Account authentication and voice are independent moderation conditions.
+local function hasVoice(e)
+ return e.sender and e.sender.prefix=="+" or false
+end
+local function needsBan(e)
+ local account=valid(e.sender and e.sender.account)
+ return hasVoice(e) or (account~="" and account~="*" and account~="0")
+end
+local function action(e,level)
  if level==1 then return "avviso" end
  if level==2 or level==3 then return "tmute" end
- if level==4 then return "kick" end
- return "ban"
+ if level==4 then return needsBan(e) and "tbankick" or "tmute" end
+ return "tbankick"
+end
+local function mute(e,duration)
+ -- Install the mute first, then remove any voice exemption.
+ tiarca.tmute(e.channel,e.nick,duration)
+ if hasVoice(e) then tiarca.mode(e.channel,e.nick,"-v") end
 end
 local function sanction(e,level,engine)
  local problem=engine=="A" and "messaggi ripetuti" or "annunci ripetuti"
@@ -283,16 +296,25 @@ local function sanction(e,level,engine)
    problem..". Ti invitiamo a partecipare alla conversazione evitando altre ripetizioni.")
  elseif level==2 then
   tiarca.pm(e.nick,"Su "..e.channel.." continui a inviare "..problem..
-   ". E' stato richiesto un mute di 2 minuti.")
-  tiarca.tmute(e.channel,e.nick,"2m")
+   ". E' stato richiesto un mute di 2 minuti."..
+   (hasVoice(e) and " Verra' rimosso anche il voice." or ""))
+  mute(e,"2m")
  elseif level==3 then
-  tiarca.pm(e.nick,"Su "..e.channel.." le ripetizioni continuano. E' stato richiesto un mute di 15 minuti.")
-  tiarca.tmute(e.channel,e.nick,"15m")
+  tiarca.pm(e.nick,"Su "..e.channel.." le ripetizioni continuano. E' stato richiesto un mute di 15 minuti."..
+   (hasVoice(e) and " Verra' rimosso anche il voice." or ""))
+  mute(e,"15m")
  elseif level==4 then
-  tiarca.pm(e.nick,"Su "..e.channel.." continuano "..problem..
-   ". Sono stati richiesti un mute di 3 ore e l'espulsione. Un'altra infrazione comportera' un ban di 24 ore.")
-  tiarca.tmute(e.channel,e.nick,"3h")
-  tiarca.kick(e.channel,e.nick,"Messaggi ripetuti")
+  if needsBan(e) then
+   tiarca.pm(e.nick,"Su "..e.channel.." continuano "..problem..
+    ". Sono stati richiesti un ban di 3 ore e l'espulsione. Un'altra infrazione comportera' un ban di 24 ore.")
+   tiarca.tban(e.channel,e.nick,"3h")
+   -- If the server already expelled the member, the dispatcher skips KICK.
+   tiarca.kick(e.channel,e.nick,"Messaggi ripetuti")
+  else
+   tiarca.pm(e.nick,"Su "..e.channel.." continuano "..problem..
+    ". E' stato richiesto un mute di 3 ore. Un'altra infrazione comportera' un ban di 24 ore.")
+   mute(e,"3h")
+  end
  else
   tiarca.pm(e.nick,"Su "..e.channel.." hai continuato a inviare "..problem..
    ". Sono stati richiesti un ban di 24 ore e l'espulsione. Contatta un operatore in caso di errore.")
@@ -306,7 +328,7 @@ local function detected(e,id,engine,rule,pct,h,now,c)
  if old and old.epoch==c.epoch and now>=old.at and
   now-old.at<TTL then level=old.level end
  local nextLevel=math.min(5,level+1)
- local label=c.mode=="live" and (level<5 and action(nextLevel) or "escalation") or "monitor"
+ local label=c.mode=="live" and (level<5 and action(e,nextLevel) or "escalation") or "monitor"
  tiarca.log(string.format("AutoModV4 %s/%s %s %.1f%% infrazione %d (%s) motore %s",
   e.server:sub(1,8),e.channel,e.nick,pct,nextLevel,label,engine)..
   string.format(" rule %s score %d threshold %d count %d refs %s",rule,h.score,
@@ -432,7 +454,7 @@ local function help(topic)
  elseif topic=="whitelist" then
   show("/lua mod whitelist add NICK [#canale] | drop NICK | list. Serve account NickServ autenticato.")
  elseif topic=="azioni" then
-  show("Escalation 24h: avviso PVT; mute 2m; mute 15m; kick+mute 3h; kick+ban 24h.")
+  show("Escalation 24h: avviso PVT; mute 2m e 15m (devoice se +v); 3h ban+kick se account o +v, altrimenti mute; ban+kick 24h.")
  else show("Argomenti: watchdog, parametri, whitelist, azioni") end
 end
 tiarca.on("command",function(e)
