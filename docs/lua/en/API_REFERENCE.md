@@ -24,6 +24,7 @@
 | `tiarca.storage.set(key, value)` | Requests UTF-8 string storage | Persistent data |
 | `tiarca.storage.delete(key)` | Requests deletion | Persistent data |
 | `tiarca.journal.append(json)` | Append one private JSONL object line on the current network, no circular event limit | Persistent data; callback |
+| `tiarca.journal.stats()` | Asynchronous file bytes and bounded write/error counters via `journal_status` | Persistent data; local command |
 | `tiarca.journal.export()` | Open Android share chooser for the current network journal | Persistent data; local command |
 | `tiarca.journal.rotate()` | Safely archives the active JSONL and requests Android sharing; future entries start a fresh journal | Persistent data; local command |
 | `tiarca.journal.export_archive()` | Re-share the latest durable archive if sharing was dismissed | Persistent data; local command |
