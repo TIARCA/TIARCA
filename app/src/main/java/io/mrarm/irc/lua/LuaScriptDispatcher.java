@@ -750,6 +750,29 @@ public final class LuaScriptDispatcher {
         }
     }
 
+    /** Consented observation of identity changes, only in locally shared public channels. */
+    public void onIdentityObservation(ServerConnectionInfo connection, ServerConnectionData data,
+            String event, String nick, IrcIdentityCache.Identity identity) {
+        if (!("account".equals(event) || "chghost".equals(event)) ||
+                !LuaIdentityQuery.valid(nick, 95) || nick.length() > 64) return;
+        String server = connection.getUUID().toString();
+        if (remote == null || console.isPaused(server) || eventRecipients(server, event, null).isEmpty()) return;
+        String account = identity.account != null ? identity.account : identity.accountKnown ? "*" : "";
+        String[] sender = { identity.ident == null ? "" : identity.ident,
+                identity.host == null ? "" : identity.host, "", account,
+                identity.realname == null ? "" : "1" + identity.realname };
+        int[] caps = {95, 255, 31, 95, 257};
+        for (int i = 0; i < caps.length; i++)
+            if (!LuaIdentityQuery.valid(sender[i], caps[i])) sender[i] = "";
+        long now = System.currentTimeMillis() / 1000;
+        for (String channel : data.getJoinedChannelList()) {
+            if (channel.length() > 64 || !LuaIdentityQuery.valid(channel, 96) ||
+                    !data.getIdentityCache().hasSharedMember(channel, nick)) continue;
+            enqueueWithData(event, server, channel, nick, "", "", now,
+                    null, null, null, sender, null);
+        }
+    }
+
     public void onConnectionChanged(ServerConnectionInfo connection, boolean connected) {
         if (connection == null) return;
         if (!connected) {
@@ -780,6 +803,7 @@ public final class LuaScriptDispatcher {
         List<LuaScriptStore.Script> result = new ArrayList<>();
         for (LuaScriptStore.Script script : store.enabledOn(server)) {
             if (onlyScriptId != null && !onlyScriptId.equals(script.id)) continue;
+            if (("account".equals(event) || "chghost".equals(event)) && !script.allowUserInfo) continue;
             if (subscriptions.accepts(script.id, server, event)) result.add(script);
         }
         return result;
