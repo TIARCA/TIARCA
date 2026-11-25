@@ -42,3 +42,5 @@ Gli eventi possono essere persi in caso di code piene, riavvio o sospensione And
 V2: `event.sender` può mancare; dati osservati e autorizzati, per messaggi live alla ricezione. Consegna secondo sottoscrizioni. `identity` non è un nuovo comando utente. [Migrazione](MIGRATION.md).
 
 `source_id` identifica la stessa osservazione in `message`, `own_message` e nel report di moderazione derivato: non è un msgid IRC né conferma della sanzione. `sender.realname` è disponibile solo se osservato e con consenso identità; ignoto = nil.
+
+Roster v2: `users[].realname` o `user.realname` quando osservato. Con `state=true`, la prima pagina può includere `channel_modes` con voci `{mode,param,kind}` e `channel_modes_partial=true`. Nessuna garanzia di lista IRC completa.
