@@ -172,6 +172,8 @@ public final class LuaScriptStore {
         storage = new LuaScriptStorage(directory);
         approvalMarker = new File(context.getNoBackupFilesDir(), "lua_approvals_v1");
         load();
+        for (Script script : scripts)
+            pruneSources(script.id, currentSourceFile(script));
         if (!approvalMarker.exists()) {
             // Android Auto Backup restores the script sources and index, but not
             // files in getNoBackupFilesDir(). Never inherit script permissions.
@@ -501,7 +503,9 @@ public final class LuaScriptStore {
         replace(before, after);
         ephemeralLogs.remove(before.id);
         ephemeralOutputs.remove(before.id);
-        pruneSources(after.id, staged);
+        // A coordinator load may still hold the previous Script snapshot.
+        // Keep old sources until the next app process starts, rather than
+        // letting an in-flight read disable the newly updated script.
         return after;
     }
 
