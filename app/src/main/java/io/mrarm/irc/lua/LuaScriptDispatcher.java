@@ -309,8 +309,11 @@ public final class LuaScriptDispatcher {
         if (needed && !bound) {
             lastBindAttemptMs = SystemClock.elapsedRealtime();
             try {
+                // Active Lua scripts are part of the IRC client's ongoing work.
+                // Request higher process importance without changing isolation or
+                // granting foreground capabilities. Android can still reclaim it.
                 bound = context.bindService(new Intent(context, LuaDiagnosticService.class),
-                        connection, Context.BIND_AUTO_CREATE);
+                        connection, Context.BIND_AUTO_CREATE | Context.BIND_IMPORTANT);
             } catch (RuntimeException error) {
                 bound = false;
             }
