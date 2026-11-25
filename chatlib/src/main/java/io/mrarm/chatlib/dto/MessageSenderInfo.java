@@ -12,6 +12,7 @@ public class MessageSenderInfo extends NickWithPrefix {
     private final boolean liveIdentityObserved;
     private final boolean liveChannelMember;
     private final String observedAccount;
+    private final String observedRealname;
 
     public MessageSenderInfo(String nick, String user, String host, NickPrefixList nickPrefixes,
                              UUID userUUID) {
@@ -26,7 +27,15 @@ public class MessageSenderInfo extends NickWithPrefix {
     public MessageSenderInfo(String nick, String user, String host, NickPrefixList nickPrefixes,
                              UUID userUUID, boolean automated, boolean liveIdentityObserved,
                              boolean liveChannelMember, String observedAccount) {
+        this(nick, user, host, nickPrefixes, userUUID, automated, liveIdentityObserved,
+                liveChannelMember, observedAccount, null);
+    }
+
+    public MessageSenderInfo(String nick, String user, String host, NickPrefixList nickPrefixes,
+                             UUID userUUID, boolean automated, boolean liveIdentityObserved,
+                             boolean liveChannelMember, String observedAccount, String observedRealname) {
         super(nick, nickPrefixes);
+        this.observedRealname = observedRealname;
         this.liveIdentityObserved = liveIdentityObserved;
         this.liveChannelMember = liveChannelMember;
         this.observedAccount = observedAccount;
@@ -52,6 +61,7 @@ public class MessageSenderInfo extends NickWithPrefix {
     public boolean wasLiveChannelMember() { return liveChannelMember; }
     /** null means unknown, '*' means confirmed logout. */
     public String getObservedAccount() { return observedAccount; }
+    public String getObservedRealname() { return observedRealname; }
 
     public boolean isAutomated() {
         return automated;
