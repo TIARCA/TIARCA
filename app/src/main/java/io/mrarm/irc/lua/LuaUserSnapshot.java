@@ -19,6 +19,7 @@ final class LuaUserSnapshot {
     static final int FIELDS = 5; // nick, prefix, ident, host, account
 
     final ArrayList<String> fields = new ArrayList<>();
+    final ArrayList<String> realnames = new ArrayList<>(); // optional, one encoded value per v2 row
     boolean truncated;
 
     static LuaUserSnapshot capture(ServerConnectionData data, String channel) {
