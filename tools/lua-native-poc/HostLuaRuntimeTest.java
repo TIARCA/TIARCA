@@ -275,7 +275,7 @@ public final class HostLuaRuntimeTest {
         String source = "00000000-0000-0000-0000-000000000000:1";
         String own = harvesterLine(harvesterEvent("own_message","Mario","own message","normal",
                 t+4,namedSender,empty,empty,null,source));
-        check(own.contains("\"own\":true") && own.contains("Common Realname") && own.contains(source),
+        check(own.contains("\"own\":true") && own.contains("Common Realname") && own.contains("source_session") && own.contains("\"source_id\":["),
                 "Own message has source ID and normalized realname");
         String changed = harvesterLine(harvesterEvent("account","Mario","","",t+4,
                 new byte[][]{bytes("ident"),bytes("host.example"),bytes(""),bytes("registered"),bytes("1Common Realname")},
@@ -289,7 +289,7 @@ public final class HostLuaRuntimeTest {
                 "AutoModV4 test-ser/#room Mario 75.0% infrazione 2 (tmute) motore A rule SIMILAR score 3 threshold 75 count 3 refs -,-",
                 "automod_v4.lua",t+4,empty,empty,empty,null,source));
         check(decision.contains("\"rule\":\"SIMILAR\"") && decision.contains("\"threshold\":75") &&
-                decision.contains(source), "Decision retains actual triggering source ID and parameters");
+                decision.contains("\"source_id\":[") && !decision.contains("source_session"), "Decision reuses actual triggering source ID and parameters");
         check(java.util.Arrays.toString(v4Event("command","me","harvester stats",t+4,null,"")).contains("jstats"),
                 "Stats requests host disk counters");
         check("OK".equals(harvesterEvent("journal_status","","append_failed","error",t+4,empty,empty,empty,null,"")[0]),
