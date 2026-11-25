@@ -12,12 +12,12 @@ EXPECTED_API = {
     "storage.set", "storage.delete", "kick", "eject", "ban", "mode", "mute",
     "tban", "tmute", "kickban", "kicktban", "blacklist_action", "override_action",
     "last_message", "journal.append", "journal.export",
-    "journal.rotate", "journal.export_archive",
+    "journal.rotate", "journal.export_archive", "journal.stats",
 }
 EXPECTED_EVENTS = {
     "connected", "disconnected", "message", "command", "join", "part",
     "quit", "nick", "timer", "kick", "ban", "history", "moderation_log", "identity",
-    "mode", "topic", "own_message", "account", "chghost",
+    "mode", "topic", "own_message", "account", "chghost", "journal_status",
 }
 
 def links_ok(path: Path, content: str) -> list[str]:
