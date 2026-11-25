@@ -217,7 +217,7 @@ local function requestSnapshot(e,ch)
  if not write({server=e.server,channel=ch,timestamp=e.timestamp},"snapshot_start",function()
   return field("token",token)
  end) then pending[e.server]=nil;return end
- tiarca.get_users(ch,{token=token,limit=8})
+ tiarca.get_users(ch,{token=token,limit=8,state=true})
 end
 tiarca.on("identity",function(e)
  local p=pending[e.server]
@@ -230,13 +230,22 @@ tiarca.on("identity",function(e)
   return
  end
  if not e.complete then p.failed=true end
+ if e.channel_modes then
+  local modes={}
+  for _,m in ipairs(e.channel_modes) do
+   modes[#modes+1]="["..q(m.mode)..","..q(m.kind)..","..q(m.param).."]"
+  end
+  if not write(ev,"snapshot_modes",function()
+   return field("token",p.token)..',"partial":true,"modes":['..table.concat(modes,",").."]"
+  end) then p.failed=true end
+ end
  for _,u in ipairs(e.users or {}) do
   if not write(ev,"snapshot_member",function(i,identity)
    return field("token",p.token)..num("user",identity(u.nick,u))..field("prefix",u.prefix)
   end) then p.failed=true end
  end
  if e.next_offset then
-  tiarca.get_users(p.ch,{token=p.token,limit=8,offset=e.next_offset})
+  tiarca.get_users(p.ch,{token=p.token,limit=8,offset=e.next_offset,state=true})
  else
   pending[e.server]=nil
   write(ev,"snapshot_end",function()
