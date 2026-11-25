@@ -31,6 +31,7 @@ public final class LuaDiagnosticService extends Service {
     public static final String EXTRA_MESSAGE_TYPE = "message_type";
     public static final String EXTRA_HISTORY_IDENT = "history_ident";
     public static final String EXTRA_SENDER = "sender";
+    public static final String EXTRA_SOURCE_ID = "source_id";
     public static final String EXTRA_HISTORY_HOST = "history_host";
     public static final String EXTRA_TIME = "time";
     public static final String EXTRA_CHANNEL_NAMES = "channel_names";
@@ -323,7 +324,7 @@ public final class LuaDiagnosticService extends Service {
                                     }
                                 }
                                 long nativeStart = System.nanoTime();
-                                byte[][] nativeActions = NativeLuaRuntime.dispatchVersioned(runtimeId, event,
+                                byte[][] nativeActions = NativeLuaRuntime.dispatchWithMetadata(runtimeId, event,
                                         NativeLuaRuntime.utf8(server), NativeLuaRuntime.utf8(channel),
                                         NativeLuaRuntime.utf8(nick), NativeLuaRuntime.utf8(text),
                                         NativeLuaRuntime.utf8(messageType), request.getLong(EXTRA_TIME),
@@ -333,7 +334,8 @@ public final class LuaDiagnosticService extends Service {
                                         request.getBoolean(EXTRA_USERS_TRUNCATED, false),
                                         request.getBoolean(EXTRA_CAN_READ_USERS, false),
                                         storagePairs, canStore,
-                                        observedIdentity, storageVersion);
+                                        observedIdentity, storageVersion,
+                                        NativeLuaRuntime.utf8(request.getString(EXTRA_SOURCE_ID, "")));
                                 request.putLong(EXTRA_NATIVE_NANOS, System.nanoTime() - nativeStart);
                         if (nativeActions == null || nativeActions.length < 1 ||
                                 (nativeActions.length - 1) % 3 != 0 ||
