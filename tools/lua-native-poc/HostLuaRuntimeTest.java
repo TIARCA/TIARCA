@@ -281,7 +281,7 @@ public final class HostLuaRuntimeTest {
                 "Only command is registered, not message or timer");
         String[] allEvents = {"message", "connected", "disconnected", "command",
                 "join", "part", "quit", "nick", "timer", "kick", "ban", "history",
-                "moderation_log", "identity", "mode", "topic", "own_message", "account", "chghost"};
+                "moderation_log", "identity", "mode", "topic", "own_message", "account", "chghost", "journal_status"};
         for (int i = 0; i < allEvents.length; i++) {
             check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes(
                     "tiarca.on('" + allEvents[i] + "', function(e) end)")))),
