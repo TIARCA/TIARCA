@@ -904,12 +904,14 @@ public final class LuaScriptDispatcher {
                     LuaChannelSnapshot channels = LuaChannelSnapshot.empty();
                     LuaUserSnapshot users = new LuaUserSnapshot();
                     String deliveredText = text;
+                    ArrayList<String> channelState = null;
                     if (query != null) {
                         metrics.inc(LuaEngineMetrics.Count.IDENTITY_QUERY);
                         LuaIdentityQuery.Result result = query.execute(connectionData);
                         channels = result.channels;
                         users = result.users;
                         deliveredText = result.metadata(query.kind);
+                        channelState = result.channelState;
                         // A reload/stop during the lookup must not deliver data to a new VM.
                         if (identityEpoch.get() != currentEpoch ||
                                 console.generation(server) != currentGeneration ||
@@ -967,6 +969,7 @@ public final class LuaScriptDispatcher {
                     data.putStringArrayList(LuaDiagnosticService.EXTRA_USER_FIELDS,
                             users.fields);
                     data.putStringArrayList(LuaDiagnosticService.EXTRA_ROSTER_REALNAMES, users.realnames);
+                    if (channelState != null) data.putStringArrayList(LuaDiagnosticService.EXTRA_CHANNEL_STATE, channelState);
                     data.putBoolean(LuaDiagnosticService.EXTRA_USERS_TRUNCATED,
                             users.truncated);
                     data.putBoolean(LuaDiagnosticService.EXTRA_CAN_READ_USERS,
