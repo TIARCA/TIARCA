@@ -111,26 +111,27 @@ local function write(e,kind,build)
  local channel=valid(e.channel) and intern("channel",e.channel:lower()) or 0
  local data=build(intern,identity) or ""
  local sequence=d.seq+1
+ local st=counter(e.server)
  local line='{"v":1,"epoch":'..epoch..',"segment":'..segment..
   ',"id":'..sequence..',"ts":'..(tonumber(e.timestamp) or 0)..
   ',"s":'..server..',"ch":'..channel..',"type":'..q(kind)..
-  (#defs>0 and ',"defs":['..table.concat(defs,",")..']' or "")..data.."}"
- local st=counter(e.server)
+  (#defs>0 and ',"defs":['..table.concat(defs,",")..']' or "")..
+  (st.lost and ',"local_gap":'..st.lost or "")..data.."}"
  if #line>8192 then
-  st.rejected=st.rejected+1
+  st.rejected=st.rejected+1;st.lost=(st.lost or 0)+1;d.seq=sequence
   tiarca.log("Harvester: record over journal limit; collection incomplete")
   return false
  end
  local ok,err=pcall(tiarca.journal.append,line)
  if not ok then
-  st.rejected=st.rejected+1
+  st.rejected=st.rejected+1;st.lost=(st.lost or 0)+1;d.seq=sequence
   tiarca.log("Harvester: append rejected; "..tostring(err))
   return false
  end
  for _,key in ipairs(keys) do
   d.map[key]=staged[key]; entries=entries+1; bytes=bytes+#key
  end
- d.next=nextId;d.seq=sequence
+ d.next=nextId;d.seq=sequence;st.lost=nil
  if kind=="message" then st.messages=st.messages+1 else st.events=st.events+1 end
  st.bytes=st.bytes+#line+1
  return true
@@ -188,11 +189,12 @@ end)
 local function requestSnapshot(e,ch)
  if pending[e.server] then tiarca.show("Harvester","Snapshot already running");return end
  querySeq=querySeq+1
- local token="harv-"..querySeq
+ ensureEpoch()
+ local token="harv-"..epoch.."-"..querySeq
  pending[e.server]={token=token,ch=ch,started=e.timestamp}
- write({server=e.server,channel=ch,timestamp=e.timestamp},"snapshot_start",function()
+ if not write({server=e.server,channel=ch,timestamp=e.timestamp},"snapshot_start",function()
   return field("token",token)
- end)
+ end) then pending[e.server]=nil;return end
  tiarca.get_users(ch,{token=token,limit=8})
 end
 tiarca.on("identity",function(e)
@@ -205,6 +207,7 @@ tiarca.on("identity",function(e)
   write(ev,"snapshot_end",function() return field("token",p.token)..',"complete":false'..field("status",e.status) end)
   return
  end
+ if not e.complete then p.failed=true end
  for _,u in ipairs(e.users or {}) do
   if not write(ev,"snapshot_member",function(i,identity)
    return field("token",p.token)..num("user",identity(u.nick,u))..field("prefix",u.prefix)
@@ -247,8 +250,14 @@ tiarca.on("command",function(e)
  local c=config(e.server)
  if op=="on" then
   if #channelList(c)==0 then show("Add a channel first: /lua harvester add #channel");return end
-  if not c.on then c.on=true;change(e,c,"on") end
+  local started=not c.on
+  if started then c.on=true;change(e,c,"on") end
   show("ON (selected channels only)")
+  -- Automatic first snapshot when the command can query the sole channel.
+  local list=channelList(c)
+  if started and #list==1 and (e.channel=="" or (valid(e.channel) and e.channel:lower()==list[1])) then
+   requestSnapshot(e,list[1])
+  end
  elseif op=="off" then
   if c.on then c.on=false;pending[e.server]=nil;change(e,c,"off") end
   show("OFF")
@@ -265,6 +274,9 @@ tiarca.on("command",function(e)
   end
   change(e,c,op,ch)
   show(op.." "..ch)
+  if op=="add" and c.on and (e.channel=="" or (valid(e.channel) and e.channel:lower()==ch)) and not pending[e.server] then
+   requestSnapshot(e,ch)
+  end
  elseif op=="channels" then
   local list=channelList(c)
   if #list==0 then show("No selected channels");return end
