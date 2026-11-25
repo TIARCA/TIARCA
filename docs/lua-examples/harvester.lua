@@ -146,23 +146,36 @@ local function userData(e,intern,identity)
   field("prefix",type(u)=="table" and u.nick==e.nick and u.prefix or nil)
 end
 
-tiarca.on("message",function(e)
+local function collectMessage(e)
  if not scope(e) then return end
  if e.message_type~="normal" and e.message_type~="notice" and e.message_type~="me" then return end
  write(e,"message",function(i,u)
-  return userData(e,i,u)..field("kind",e.message_type)..field("text",e.text)
+  return userData(e,i,u)..field("kind",e.message_type)..field("text",e.text)..
+   (e.type=="own_message" and ',"own":true' or "")
  end)
-end)
-for _,name in ipairs({"join","part","quit","nick","kick","ban","moderation_log"}) do
+end
+tiarca.on("message",collectMessage)
+tiarca.on("own_message",collectMessage)
+for _,name in ipairs({"join","part","quit","nick","kick","mode","topic","moderation_log"}) do
  local eventName=name
  tiarca.on(eventName,function(e)
   if not scope(e) then return end
   write(e,eventName,function(i,u)
    if eventName=="kick" then
     return num("actor",u(e.nick,e.sender))..num("target",u(e.message_type,nil))..field("reason",e.text)
-   elseif eventName=="ban" then
-    -- A mask is not proof that a particular nickname was banned.
-    return num("actor",u(e.nick,e.sender))..field("mask",e.text)
+   elseif eventName=="mode" then
+    -- Keep protocol mode and argument; classify only known acting mute masks.
+    local mode,kind=(e.message_type or ""):match("^([+-].):(.+)$")
+    local action
+    if mode=="+b" or mode=="-b" then
+     local mask=e.text or ""
+     local mute=mask:match("^m:") or mask:match("^~quiet:")
+     action=mode=="+b" and (mute and "mute" or "ban") or (mute and "unmute" or "unban")
+    end
+    return num("actor",u(e.nick,e.sender))..field("mode",mode)..field("mode_kind",kind)..
+     field("action",action)..(kind~="redacted" and field("param",e.text) or "")
+   elseif eventName=="topic" then
+    return num("actor",u(e.nick,e.sender))..field("text",e.text)
    elseif eventName=="moderation_log" then
     -- Report, not confirmed IRC execution; no fabricated message links.
     return num("target",u(e.nick,e.sender))..field("script",e.message_type)..field("report",e.text)
