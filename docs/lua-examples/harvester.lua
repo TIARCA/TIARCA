@@ -116,7 +116,7 @@ local function write(e,kind,build)
   ',"id":'..sequence..',"ts":'..(tonumber(e.timestamp) or 0)..
   ',"s":'..server..',"ch":'..channel..',"type":'..q(kind)..
   (#defs>0 and ',"defs":['..table.concat(defs,",")..']' or "")..
-  (st.lost and ',"local_gap":'..st.lost or "")..data.."}"
+  (st.lost and ',"local_gap":'..st.lost or "")..(e.source_id and ',"source_id":'..q(e.source_id) or "")..data.."}"
  if #line>8192 then
   st.rejected=st.rejected+1;st.lost=(st.lost or 0)+1;d.seq=sequence
   tiarca.log("Harvester: record over journal limit; collection incomplete")
