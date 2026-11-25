@@ -27,10 +27,17 @@ public final class IrcIdentityCache {
         public final String ident;
         public final String host;
         public final String account;
+        /** Realname observed in extended JOIN or a standard WHO/WHOIS reply. */
+        public final String realname;
         /** True only after the server explicitly reported an account or logout. */
         public final boolean accountKnown;
 
         Identity(String ident, String host, String account, boolean accountKnown) {
+            this(ident, host, account, accountKnown, null);
+        }
+
+        Identity(String ident, String host, String account, boolean accountKnown, String realname) {
+            this.realname = realname;
             this.ident = ident;
             this.host = host;
             this.account = account;
@@ -101,7 +108,7 @@ public final class IrcIdentityCache {
             if (acct == null && !loggedOut) acct = old.account;
         }
         if (user != null || hostname != null || acct != null || accountKnown)
-            remember(id, new Identity(user, hostname, acct, accountKnown));
+            remember(id, new Identity(user, hostname, acct, accountKnown, old == null ? null : old.realname));
     }
 
     /** An explicit server CHGHOST identifies the same connected user. */
@@ -111,7 +118,19 @@ public final class IrcIdentityCache {
         if (id == null || user == null || hostname == null) return;
         Identity old = find(id);
         remember(id, new Identity(user, hostname, old == null ? null : old.account,
-                old != null && old.accountKnown));
+                old != null && old.accountKnown, old == null ? null : old.realname));
+    }
+
+    /** Store only a server-observed value attached to the current known mask. */
+    public synchronized void noteRealname(String nick, String realname) {
+        String id = key(nick);
+        if (id == null || realname == null || realname.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 256)
+            return;
+        for (int n = 0; n < realname.length(); n++)
+            if (Character.isISOControl(realname.charAt(n))) return;
+        Identity old = find(id);
+        if (old == null || old.ident == null || old.host == null) return;
+        remember(id, new Identity(old.ident, old.host, old.account, old.accountKnown, realname));
     }
 
     public synchronized Identity get(String nick) {
@@ -296,8 +315,14 @@ public final class IrcIdentityCache {
         if (params == null) return;
         if ("352".equals(command) && params.size() >= 6) {
             note(params.get(5), params.get(2), params.get(3), null);
+            if (params.size() >= 8) {
+                String tail = params.get(7);
+                int separator = tail.indexOf(' ');
+                if (separator >= 0) noteRealname(params.get(5), tail.substring(separator + 1));
+            }
         } else if ("311".equals(command) && params.size() >= 4) {
             note(params.get(1), params.get(2), params.get(3), null);
+            if (params.size() >= 6) noteRealname(params.get(1), params.get(5));
         } else if ("330".equals(command) && params.size() >= 3) {
             note(params.get(1), null, null, params.get(2));
         } else if ("354".equals(command) && params.size() >= 7) {
