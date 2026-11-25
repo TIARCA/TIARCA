@@ -433,15 +433,34 @@ public final class LuaScriptDispatcher {
                 info instanceof NickChangeMessageInfo) event = "nick";
         else if (type == MessageInfo.MessageType.KICK &&
                 info instanceof KickMessageInfo) event = "kick";
+        else if (type == MessageInfo.MessageType.TOPIC) event = "topic";
         else if (type == MessageInfo.MessageType.MODE &&
                 info instanceof ChannelModeMessageInfo) {
-            // A MODE may contain several +b masks. Emit one event per added ban.
+            // Emit each observed channel mode once for mode subscribers. Keep the legacy
+            // ban event for existing scripts; a script should subscribe to one or the other.
             MessageSenderInfo modeSender = info.getSender();
             if (modeSender == null || modeSender.getNick() == null) return;
             long modeTime = info.getDate() == null ? System.currentTimeMillis()/1000 :
                     info.getDate().getTime()/1000;
+            String modeServer = connection.getUUID().toString();
+            if (channel.length() > 64 || modeSender.getNick().length() > 64 ||
+                    channel.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 96 ||
+                    modeSender.getNick().getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 96) return;
+            boolean observeModes = !eventRecipients(modeServer, "mode", null).isEmpty();
+            String[] modeIdentity = observeModes ? captureSender(connection, channel, modeSender) : null;
             for (ChannelModeMessageInfo.Entry entry :
                     ((ChannelModeMessageInfo) info).getEntries()) {
+                if (observeModes) {
+                    String param = entry.getParam() == null ? "" : entry.getParam();
+                    // Never export channel passwords or exact-unset values (possibly secrets).
+                    boolean redacted = entry.getMode() == 'k' || entry.getType() == ChannelModeMessageInfo.EntryType.VALUE_EXACT_UNSET;
+                    if (redacted) param = "";
+                    if (param.length() <= 1024 && param.getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= 2048)
+                        enqueueWithData("mode", modeServer, channel, modeSender.getNick(), param,
+                                (entry.isRemoved() ? "-" : "+") + entry.getMode() + ":" +
+                                        (redacted ? "redacted" : entry.getType().name()), modeTime,
+                                null, null, null, modeIdentity, null);
+                }
                 if (entry.getMode() != 'b' || entry.isRemoved() ||
                         entry.getParam() == null || entry.getParam().isEmpty()) continue;
                 String mask = entry.getParam();
@@ -462,7 +481,12 @@ public final class LuaScriptDispatcher {
             if (info.getMessage() == null) return;
             // Avoid echo/reply loops; presence events are still observable.
             try {
-                if (sender.getNick().equalsIgnoreCase(connection.getUserNick())) return;
+                if (sender.getNick().equalsIgnoreCase(connection.getUserNick())) {
+                    if (!(connection.getApiInstance() instanceof ServerConnectionApi) ||
+                            !((ServerConnectionApi) connection.getApiInstance()).getServerConnectionData()
+                                    .getSupportList().getSupportedChannelTypes().contains(channel.charAt(0))) return;
+                    event = "own_message"; // Never deliver own messages to ordinary message handlers.
+                }
             } catch (RuntimeException ignored) {
                 return;
             }
