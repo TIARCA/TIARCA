@@ -1030,6 +1030,8 @@ public final class LuaScriptDispatcher {
             data.putBoolean(LuaDiagnosticService.EXTRA_CAN_READ_USERS, false);
             data.putStringArrayList(LuaDiagnosticService.EXTRA_USER_FIELDS, new ArrayList<>());
             data.remove(LuaDiagnosticService.EXTRA_SENDER);
+            data.remove(LuaDiagnosticService.EXTRA_ROSTER_REALNAMES);
+            data.remove(LuaDiagnosticService.EXTRA_CHANNEL_STATE);
             data.remove(LuaDiagnosticService.EXTRA_HISTORY_IDENT);
             data.remove(LuaDiagnosticService.EXTRA_HISTORY_HOST);
         }
