@@ -244,7 +244,8 @@ public final class LuaDiagnosticService extends Service {
                                 "timer".equals(event) || "kick".equals(event) ||
                                 "ban".equals(event) || "history".equals(event) ||
                                 "moderation_log".equals(event) || "identity".equals(event) ||
-                                "mode".equals(event) || "topic".equals(event) || "own_message".equals(event))) {
+                                "mode".equals(event) || "topic".equals(event) || "own_message".equals(event) ||
+                                "account".equals(event) || "chghost".equals(event))) {
                     status = "ERROR: invalid event";
                 } else if (names == null || memberCounts == null ||
                         names.size() != memberCounts.length ||
