@@ -42,3 +42,5 @@ Events may be dropped when queues fill or Android suspends/restarts processes. D
 V2: `event.sender` may be absent; authorized observed data, captured at receipt for live messages. Delivery depends on subscriptions. `identity` is not a new user command. [Migration](MIGRATION.md).
 
 `source_id` is an opaque observation ID on `message`, `own_message` and a moderation report derived from that message. It identifies the triggering observation across scripts, not an IRC msgid or proof of sanction. `sender.realname` is present only when observed, with identities consent; unknown is nil.
+
+V2 roster: `users[].realname` or `user.realname` when observed. For `state=true`, first page may carry `channel_modes` entries `{mode,param,kind}` and `channel_modes_partial=true`. No full IRC list guarantee.
