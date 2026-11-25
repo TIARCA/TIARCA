@@ -804,6 +804,7 @@ public final class LuaScriptDispatcher {
         for (LuaScriptStore.Script script : store.enabledOn(server)) {
             if (onlyScriptId != null && !onlyScriptId.equals(script.id)) continue;
             if (("account".equals(event) || "chghost".equals(event)) && !script.allowUserInfo) continue;
+            if ("journal_status".equals(event) && !script.allowStorage) continue;
             if (subscriptions.accepts(script.id, server, event)) result.add(script);
         }
         return result;
@@ -1311,13 +1312,29 @@ public final class LuaScriptDispatcher {
                 io.post(() -> main.post(() ->
                         sendDirectAuthorized(script, request, target, value, notice)));
             } else if ("journal".equals(kind)) {
-                if (!script.allowStorage || !target.isEmpty()) continue;
+                if (!script.allowStorage || !target.isEmpty() || "journal_status".equals(request.event)) continue;
                 io.post(() -> {
-                    try { journal.append(script.id, request.server, value); }
-                    catch (IOException error) {
-                        console.log(request.server, script.name,
-                                "Lua journal append failed: " + error.getMessage());
+                    try {
+                        journal.append(script.id, request.server, value);
+                        journal.recordResult(script.id, request.server, true);
+                        metrics.inc(LuaEngineMetrics.Count.JOURNAL_WRITE);
+                    } catch (IOException error) {
+                        journal.recordResult(script.id, request.server, false);
+                        metrics.inc(LuaEngineMetrics.Count.JOURNAL_FAILURE);
+                        console.log(request.server, script.name, "Lua journal append failed: " + error.getMessage());
+                        enqueueOnly("journal_status", request.server, "", "", "append_failed", "error",
+                                System.currentTimeMillis()/1000, script.id);
                     }
+                });
+            } else if ("jstats".equals(kind)) {
+                if (!script.allowStorage || !"command".equals(request.event) || !target.isEmpty() || !"1".equals(value)) continue;
+                io.post(() -> {
+                    String result = journal.status(script.id, request.server) + " " +
+                            metrics.count(LuaEngineMetrics.Count.INPUT_FULL) + " " +
+                            metrics.count(LuaEngineMetrics.Count.SLOT_FULL) + " " +
+                            metrics.count(LuaEngineMetrics.Count.IPC_FAILED);
+                    enqueueOnly("journal_status", request.server, "", "", result, "stats",
+                            System.currentTimeMillis()/1000, script.id);
                 });
             } else if ("export".equals(kind)) {
                 if (!script.allowStorage || !"command".equals(request.event) ||
