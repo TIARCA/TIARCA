@@ -40,4 +40,7 @@
     <string name="lua_scripts_view_output">View script result</string>
     <string name="lua_scripts_copy_label">Lua script result</string>
     <string name="lua_scripts_copied">Item copied</string>
+    <string name="lua_scripts_update">Update script</string>
+    <string name="lua_scripts_update_confirm">Replace the code of %1$s with %2$s? Stored data, script name, networks and existing permissions are retained. Only continue if you trust the new code and it is compatible with the stored data.</string>
+    <string name="lua_scripts_updated">Script updated</string>
 </resources>

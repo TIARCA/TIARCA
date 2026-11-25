@@ -52,6 +52,55 @@ public class LuaAppUpgradeTest {
         return item;
     }
 
+    @Test public void sourceUpdatePreservesIdPermissionsAndStorageAcrossRestart() throws Exception {
+        Application app = ApplicationProvider.getApplicationContext();
+        ReflectionHelpers.setStaticField(LuaScriptStore.class, "instance", null);
+        LuaScriptStore initial = LuaScriptStore.get(app);
+        initial.clearAll();
+        File directory = new File(app.getFilesDir(), "lua_scripts");
+        byte[] oldCode = "return 1".getBytes(StandardCharsets.UTF_8);
+        byte[] newCode = "return 2".getBytes(StandardCharsets.UTF_8);
+        try {
+            JSONObject entry = script(ON, oldCode, true);
+            entry.put("servers", new JSONArray().put(NETWORK).put(SECOND_NETWORK));
+            entry.put("send", true);
+            entry.put("users", true);
+            entry.put("moderation", true);
+            Files.write(new File(directory, ON + ".lua").toPath(), oldCode);
+            Files.write(new File(directory, ON + ".state.json").toPath(),
+                    "{\"counter\":\"42\"}".getBytes(StandardCharsets.UTF_8));
+            Files.write(new File(directory, "index.json").toPath(),
+                    new JSONArray().put(entry).toString().getBytes(StandardCharsets.UTF_8));
+            ReflectionHelpers.setStaticField(LuaScriptStore.class, "instance", null);
+            LuaScriptStore store = LuaScriptStore.get(app);
+            LuaScriptStore.Script before = store.find(ON);
+            try {
+                store.updateSource(before, new LuaScriptStore.SourceDocument("bad.lua", new byte[]{0}));
+                fail("Invalid source accepted");
+            } catch (java.io.IOException expected) {
+                assertArrayEquals(oldCode, store.sourceBytes(before));
+            }
+            LuaScriptStore.Script after = store.updateSource(before,
+                    new LuaScriptStore.SourceDocument("new.lua", newCode));
+            assertEquals(before.id, after.id);
+            assertEquals(before.name, after.name);
+            assertEquals(before.serverIds, after.serverIds);
+            assertTrue(after.enabled && after.allowSend && after.allowUserInfo &&
+                    after.allowModeration && after.allowStorage);
+            assertArrayEquals(newCode, store.sourceBytes(after));
+            assertEquals("42", store.storageSnapshot(ON).get(1));
+            ReflectionHelpers.setStaticField(LuaScriptStore.class, "instance", null);
+            LuaScriptStore restarted = LuaScriptStore.get(app);
+            assertArrayEquals(newCode, restarted.sourceBytes(restarted.find(ON)));
+            assertEquals("42", restarted.storageSnapshot(ON).get(1));
+            restarted.remove(ON);
+            assertFalse(new File(directory, ON + ".state.json").exists());
+        } finally {
+            LuaScriptStore.get(app).clearAll();
+            ReflectionHelpers.setStaticField(LuaScriptStore.class, "instance", null);
+        }
+    }
+
     @Test public void apkReplacementPreservesEnablementAndPersistedValues()
             throws Exception {
         Application app = ApplicationProvider.getApplicationContext();

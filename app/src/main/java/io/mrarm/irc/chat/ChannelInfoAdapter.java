@@ -174,10 +174,15 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
             return;
         AdapterItem item = mAdapterItems.get(position);
         int type = holder.getItemViewType();
-        if (type == TYPE_HEADER)
-            ((TextHolder) holder).bind(item.type == AdapterItem.TYPE_HEADER_TOPIC ? R.string.channel_topic
-                    : R.string.channel_members);
-        else if (type == TYPE_TOPIC)
+        if (type == TYPE_HEADER) {
+            if (item.type == AdapterItem.TYPE_HEADER_TOPIC)
+                ((TextHolder) holder).bind(R.string.channel_topic);
+            else {
+                String label = holder.itemView.getContext().getString(R.string.channel_members);
+                ((TextHolder) holder).bind(item.text == null ? label : label + " (" +
+                        java.text.NumberFormat.getIntegerInstance().format(Integer.parseInt(item.text)) + ")");
+            }
+        } else if (type == TYPE_TOPIC)
             ((TopicHolder) holder).bind(mTopic, mTopicSetBy, mTopicSetOn);
         else if (type == TYPE_SEARCH)
             ((SearchHolder) holder).bind(mSearchQuery);
@@ -258,7 +263,7 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
         items.add(AdapterItem.topic(mTopic, mTopicSetBy, mTopicSetOn));
         if (isMemberSearchVisible(getMemberCount()))
             items.add(AdapterItem.search(mSearchQuery));
-        items.add(AdapterItem.headerMembers());
+        items.add(AdapterItem.headerMembers(mMembers == null ? -1 : getMemberCount()));
         if (mVisibleMembers != null) {
             for (NickWithPrefix member : mVisibleMembers) {
                 if (member != null)
@@ -301,8 +306,9 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
             return new AdapterItem(TYPE_SEARCH, query, null, null, null);
         }
 
-        public static AdapterItem headerMembers() {
-            return new AdapterItem(TYPE_HEADER_MEMBERS, null, null, null, null);
+        public static AdapterItem headerMembers(int total) {
+            return new AdapterItem(TYPE_HEADER_MEMBERS,
+                    total < 0 ? null : Integer.toString(total), null, null, null);
         }
 
         public static AdapterItem member(NickWithPrefix nick) {
@@ -310,7 +316,7 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
         }
     }
 
-    private static class AdapterItemDiffCallback extends DiffUtil.Callback {
+    static class AdapterItemDiffCallback extends DiffUtil.Callback {
         private final List<AdapterItem> oldList;
         private final List<AdapterItem> newList;
 
@@ -352,7 +358,8 @@ public class ChannelInfoAdapter extends RecyclerView.Adapter {
                         && java.util.Objects.equals(oldItem.topicSetBy, newItem.topicSetBy)
                         && java.util.Objects.equals(oldItem.topicSetOn, newItem.topicSetOn);
             }
-            if (oldItem.type == AdapterItem.TYPE_SEARCH) {
+            if (oldItem.type == AdapterItem.TYPE_SEARCH ||
+                    oldItem.type == AdapterItem.TYPE_HEADER_MEMBERS) {
                 return java.util.Objects.equals(oldItem.text, newItem.text);
             }
             if (oldItem.type == AdapterItem.TYPE_MEMBER) {
