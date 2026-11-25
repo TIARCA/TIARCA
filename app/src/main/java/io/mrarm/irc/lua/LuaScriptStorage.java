@@ -12,6 +12,7 @@ import org.json.JSONObject;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -19,6 +20,8 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -35,6 +38,30 @@ final class LuaScriptStorage {
     static final int MAX_FILE_BYTES = 160 * 1024;
     private static final String PREFIX = "lua_scripts/";
     private final File directory;
+    private long nextVersion;
+    private final LinkedHashMap<String, Snapshot> cached =
+            new LinkedHashMap<String, Snapshot>(8, 0.75f, true) {
+                @Override protected boolean removeEldestEntry(Map.Entry<String, Snapshot> entry) {
+                    return size() > LuaScriptStore.MAX_SCRIPTS;
+                }
+            };
+
+    /** Immutable committed state. Versions are local to this app process. */
+    static final class Snapshot {
+        final long version;
+        private final LinkedHashMap<String, String> values;
+        Snapshot(long version, Map<String, String> values) {
+            this.version = version;
+            this.values = new LinkedHashMap<>(values);
+        }
+        ArrayList<String> pairs() {
+            ArrayList<String> pairs = new ArrayList<>();
+            for (Map.Entry<String, String> e : values.entrySet()) {
+                pairs.add(e.getKey()); pairs.add(e.getValue());
+            }
+            return pairs;
+        }
+    }
 
     LuaScriptStorage(File directory) {
         this.directory = directory;
@@ -119,10 +146,25 @@ final class LuaScriptStorage {
         return data;
     }
 
+    synchronized Snapshot snapshot(String scriptId) throws IOException {
+        File base = file(scriptId);
+        Snapshot known = cached.get(scriptId);
+        if (known != null) return known;
+        AtomicFile source = new AtomicFile(base);
+        LinkedHashMap<String, String> values;
+        try {
+            values = decode(source.readFully());
+        } catch (FileNotFoundException absent) {
+            if (base.exists() || new File(base.getPath() + ".bak").exists()) throw absent;
+            values = new LinkedHashMap<>();
+        }
+        Snapshot loaded = new Snapshot(++nextVersion, values);
+        cached.put(scriptId, loaded);
+        return loaded;
+    }
+
     synchronized LinkedHashMap<String, String> read(String scriptId) throws IOException {
-        AtomicFile source = new AtomicFile(file(scriptId));
-        if (!source.getBaseFile().exists()) return new LinkedHashMap<>();
-        return decode(source.readFully());
+        return new LinkedHashMap<>(snapshot(scriptId).values);
     }
 
     private void write(String scriptId, byte[] data) throws IOException {
@@ -130,36 +172,73 @@ final class LuaScriptStorage {
         FileOutputStream stream = target.startWrite();
         try {
             stream.write(data);
+            stream.getFD().sync();
             target.finishWrite(stream);
         } catch (IOException error) {
             target.failWrite(stream);
             throw error;
         }
+        // AtomicFile.finishWrite may only log rename/sync failures. Verify the
+        // committed bytes before allowing any externally visible action.
+        if (!Arrays.equals(data, target.readFully()))
+            throw new IOException("Lua state commit verification failed");
+    }
+
+    /** Apply every storage mutation in an event as a single transaction. */
+    synchronized Snapshot applyBatch(String scriptId, long expectedVersion, List<String> actions)
+            throws IOException {
+        Snapshot before = snapshot(scriptId);
+        if (expectedVersion != before.version)
+            throw new IOException("Stale Lua storage revision");
+        if (actions == null || actions.size() > 36 || actions.size() % 3 != 0)
+            throw new IOException("Invalid Lua storage transaction");
+        LinkedHashMap<String, String> values = new LinkedHashMap<>(before.values);
+        for (int i = 0; i < actions.size(); i += 3) {
+            String operation = actions.get(i), key = actions.get(i + 1), value = actions.get(i + 2);
+            if (!"store".equals(operation) && !"erase".equals(operation)) continue;
+            if (!validKey(key)) throw new IOException("Invalid Lua storage key");
+            if ("store".equals(operation)) {
+                if (!validValue(value)) throw new IOException("Invalid Lua storage value");
+                values.put(key, value);
+            } else {
+                if (!"1".equals(value)) throw new IOException("Invalid Lua erase value");
+                values.remove(key);
+            }
+            checkTotal(values);
+        }
+        if (values.equals(before.values)) return before;
+        byte[] encoded = encode(values);
+        try {
+            write(scriptId, encoded);
+        } catch (IOException failure) {
+            cached.remove(scriptId);
+            throw failure;
+        }
+        Snapshot committed = new Snapshot(++nextVersion, values);
+        cached.put(scriptId, committed);
+        return committed;
     }
 
     synchronized void apply(String scriptId, String operation, String key, String value)
             throws IOException {
-        if (!validKey(key)) throw new IOException("Invalid Lua storage key");
-        LinkedHashMap<String, String> values = read(scriptId);
-        if ("store".equals(operation)) {
-            if (!validValue(value)) throw new IOException("Invalid Lua storage value");
-            values.put(key, value);
-        } else if ("erase".equals(operation)) {
-            values.remove(key);
-        } else {
+        if (!"store".equals(operation) && !"erase".equals(operation))
             throw new IOException("Unsupported Lua storage operation");
-        }
-        write(scriptId, encode(values));
+        applyBatch(scriptId, snapshot(scriptId).version, Arrays.asList(operation, key, value));
     }
 
     synchronized void delete(String scriptId) {
-        if (validId(scriptId)) new AtomicFile(file(scriptId)).delete();
+        if (validId(scriptId)) {
+            cached.remove(scriptId);
+            new AtomicFile(file(scriptId)).delete();
+        }
     }
 
+    synchronized void invalidateAll() { cached.clear(); }
+
     synchronized void export(ZipFile zip, ZipParameters params, String id) throws IOException {
-        File state = file(id);
-        if (!state.isFile()) return;
-        byte[] bytes = encode(read(id)); // Do not export damaged or oversized state.
+        Snapshot state = snapshot(id);
+        if (state.values.isEmpty() && !file(id).isFile()) return;
+        byte[] bytes = encode(state.values);
         params.setFileNameInZip(PREFIX + id + ".state.json");
         zip.addStream(new ByteArrayInputStream(bytes), params);
     }
@@ -176,6 +255,10 @@ final class LuaScriptStorage {
     }
 
     synchronized void restoreValidated(String id, byte[] encoded) throws IOException {
-        if (encoded != null) write(id, encoded);
+        cached.remove(id);
+        if (encoded == null) { delete(id); return; }
+        LinkedHashMap<String, String> restored = decode(encoded);
+        write(id, encoded);
+        cached.put(id, new Snapshot(++nextVersion, restored));
     }
 }

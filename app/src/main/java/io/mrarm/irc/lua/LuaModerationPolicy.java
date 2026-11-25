@@ -137,6 +137,20 @@ final class LuaModerationPolicy {
                 || member.getNickPrefixes().length() == 0);
     }
 
+    /** V4 may moderate voice, but never halfops or higher. */
+    static boolean v4VoiceTarget(LuaScriptStore.Script script, NickWithPrefix member) {
+        return script != null && script.allowUserInfo && script.allowModeration &&
+                v4Script(script) && targetHasVoice(member);
+    }
+
+    static boolean v4Script(LuaScriptStore.Script script) {
+        return script != null && "automod_v4.lua".equals(script.name);
+    }
+
+    static boolean validObservedAccount(String account, boolean accountKnown) {
+        return accountKnown && validAccount(account);
+    }
+
     /** An explicitly typed /lua command may target a joined channel from
      * its own tab or the server tab, but never from another conversation. */
     static boolean scopedEject(LuaScriptStore.Script script, String server,

@@ -95,4 +95,123 @@ public class IrcIdentityCacheTest {
         cache.clear();
         assertNull(cache.get("nick"));
     }
+
+    @Test public void sharedIdentitySurvivesTransientChurnAndLastPartClearsIt() {
+        IrcIdentityCache cache = new IrcIdentityCache();
+        cache.memberJoined("#a", "Alice");
+        cache.memberJoined("#b", "ALICE");
+        cache.note("Alice", "ident", "host.example", "registered");
+        for (int i = 0; i < IrcIdentityCache.MAX_RECENT + 100; i++)
+            cache.note("guest" + i, "ident", "guest.example", "*");
+        assertEquals("registered", cache.get("Alice").account);
+        cache.memberLeft("#A", "alice");
+        assertNotNull(cache.get("Alice"));
+        cache.channelLeft("#B");
+        assertNull(cache.get("Alice"));
+    }
+
+    @Test public void completedRosterPromotesAndReconcilesSharedIdentities() {
+        IrcIdentityCache cache = new IrcIdentityCache();
+        cache.note("Alice", "ident", "host", "acct");
+        cache.replaceChannelMembers("#a", Arrays.asList("Alice", "Bob"));
+        cache.note("Bob", "ident", "host", "acct2");
+        cache.replaceChannelMembers("#b", Arrays.asList("Bob"));
+        cache.replaceChannelMembers("#a", Arrays.asList("Alice", "Charlie"));
+        assertEquals("acct", cache.get("Alice").account);
+        assertEquals("acct2", cache.get("Bob").account);
+        cache.channelLeft("#b");
+        assertNull(cache.get("Bob"));
+        cache.rename("Alice", "NewAlice");
+        assertNull(cache.get("Alice"));
+        assertEquals("acct", cache.get("NewAlice").account);
+        cache.forget("NewAlice");
+        assertNull(cache.get("NewAlice"));
+        cache.clear();
+        assertTrue(cache.membershipTrackingComplete());
+    }
+
+    @Test public void unobservedMaskChangeDoesNotInheritAccountButChghostDoes() {
+        IrcIdentityCache cache = new IrcIdentityCache();
+        cache.memberJoined("#a", "Alice");
+        cache.note("Alice", "oldident", "old.host", "registered");
+        cache.changeHost("Alice", "newident", "new.host");
+        assertEquals("registered", cache.get("Alice").account);
+        assertEquals("new.host", cache.get("Alice").host);
+        cache.note("Alice", "otherident", "other.host", null);
+        assertFalse(cache.get("Alice").accountKnown);
+        assertNull(cache.get("Alice").account);
+        cache.note("Alice", null, null, "*");
+        assertTrue(cache.get("Alice").accountKnown);
+        assertNull(cache.get("Alice").account);
+    }
+
+    @Test public void sharedCapacityIsBoundedWithoutEvictingExistingMembers() {
+        IrcIdentityCache cache = new IrcIdentityCache();
+        cache.memberJoined("#a", "first");
+        cache.note("first", "ident", "host", "registered");
+        for (int i = 1; i < IrcIdentityCache.MAX_SHARED; i++)
+            cache.memberJoined("#a", "member" + i);
+        assertTrue(cache.membershipTrackingComplete());
+        cache.memberJoined("#a", "overflow");
+        assertFalse(cache.membershipTrackingComplete());
+        assertEquals("registered", cache.get("first").account);
+        cache.clear();
+        assertNull(cache.get("first"));
+        assertTrue(cache.membershipTrackingComplete());
+    }
+
+    @Test public void realJoinNamesPartAndChghostUpdateIdentityLifecycle() throws Exception {
+        ServerConnectionData data = new ServerConnectionData();
+        data.setUserNick("me");
+        data.setUserInfoApi(new io.mrarm.chatlib.user.SimpleUserInfoApi());
+        data.setMessageStorageApi(new io.mrarm.chatlib.message.SimpleMessageStorageApi());
+        data.onChannelJoined("#room");
+        data.onChannelJoined("#other");
+        MessageHandler handler = new MessageHandler(data);
+        handler.handleLine(":Bob!ident@host JOIN #room accountBob :Bob");
+        handler.handleLine(":Bob!ident@host JOIN #other accountBob :Bob");
+        handler.handleLine(":irc.example 353 me = #room :Bob Alice");
+        handler.handleLine(":irc.example 366 me #room :End of NAMES");
+        io.mrarm.chatlib.irc.cap.ChghostCapability cap = data.getCapabilityManager()
+                .getCapability(io.mrarm.chatlib.irc.cap.ChghostCapability.class);
+        assertNotNull(cap);
+        data.getCommandHandlerList().registerHandler(cap);
+        handler.handleLine(":Bob!ident@host CHGHOST ident2 host2");
+        assertEquals("host2", data.getIdentityCache().get("Bob").host);
+        assertEquals("accountBob", data.getIdentityCache().get("Bob").account);
+        handler.handleLine(":Bob!ident2@host2 PART #room :bye");
+        assertNotNull(data.getIdentityCache().get("Bob"));
+        handler.handleLine(":Bob!ident2@host2 PART #other :bye");
+        assertNull(data.getIdentityCache().get("Bob"));
+
+        // A nickname reused after leaving must not inherit an old account,
+        // even if an unrelated recent WHOIS had the same visible mask.
+        data.getIdentityCache().note("Bob", "ident2", "host2", "oldAccount");
+        handler.handleLine(":Bob!ident2@host2 JOIN #room");
+        assertFalse(data.getIdentityCache().get("Bob").accountKnown);
+        handler.handleLine(":Bob!ident2@host2 JOIN #other newAccount :Bob");
+        handler.handleLine(":Op!ident@host KICK #room Bob :bye");
+        assertEquals("newAccount", data.getIdentityCache().get("Bob").account);
+        handler.handleLine(":Bob!ident2@host2 QUIT :bye");
+        assertNull(data.getIdentityCache().get("Bob"));
+    }
+
+    @Test public void namesCompletionDoesNotRecreateOldNickAfterRename() throws Exception {
+        ServerConnectionData data = new ServerConnectionData();
+        data.setUserNick("me");
+        data.setUserInfoApi(new io.mrarm.chatlib.user.SimpleUserInfoApi());
+        data.setMessageStorageApi(new io.mrarm.chatlib.message.SimpleMessageStorageApi());
+        data.onChannelJoined("#room");
+        MessageHandler handler = new MessageHandler(data);
+        handler.handleLine(":Bob!ident@host JOIN #room accountBob :Bob");
+        handler.handleLine(":irc.example 353 me = #room :Bob");
+        handler.handleLine(":Bob!ident@host NICK :Bobby");
+        handler.handleLine(":irc.example 366 me #room :End of NAMES");
+        for (int i = 0; i < IrcIdentityCache.MAX_RECENT + 10; i++)
+            data.getIdentityCache().note("noise" + i, "ident", "host", "*");
+        assertNull(data.getIdentityCache().get("Bob"));
+        assertEquals("accountBob", data.getIdentityCache().get("Bobby").account);
+        data.onChannelLeft("#room");
+        assertNull(data.getIdentityCache().get("Bobby"));
+    }
 }

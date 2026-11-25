@@ -33,6 +33,7 @@ public class CapabilityManager {
         registerCapability(new AccountTagCapability());
         registerCapability(new ExtendedJoinCapability());
         registerCapability(new AccountNotifyCapability());
+        registerCapability(new ChghostCapability());
         registerCapability(new ZNCSelfMessageCapability());
     }
 

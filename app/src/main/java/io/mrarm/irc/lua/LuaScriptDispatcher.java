@@ -36,6 +36,7 @@ import io.mrarm.chatlib.dto.MessageFilterOptions;
 import java.util.Arrays;
 import io.mrarm.chatlib.irc.IrcIdentityCache;
 import io.mrarm.chatlib.irc.IRCConnection;
+import io.mrarm.chatlib.irc.ServerConnectionData;
 import io.mrarm.irc.util.ChannelOperatorUtils;
 import io.mrarm.irc.dialog.OperatorCommandComposer;
 import io.mrarm.chatlib.dto.MessageSenderInfo;
@@ -74,9 +75,14 @@ public final class LuaScriptDispatcher {
     private final HandlerThread ioThread = new HandlerThread("tiarca-lua-ipc");
     private final Handler io;
     private final AtomicInteger sequence = new AtomicInteger();
-    private final AtomicInteger pendingEvents = new AtomicInteger();
+    private final LuaDispatchSlots dispatchSlots = new LuaDispatchSlots(MAX_PENDING_EVENTS);
+    private final LuaEngineMetrics metrics = new LuaEngineMetrics();
+    // Coordinator worker only; the sandbox caches the last full committed revision.
+    private final Map<String, Long> sentStorageVersions = new HashMap<>();
     private final AtomicInteger queuedEvents = new AtomicInteger();
     private final Map<Integer, Pending> pending = new ConcurrentHashMap<>();
+    private final LuaEventSubscriptions subscriptions = new LuaEventSubscriptions();
+    private final AtomicInteger identityEpoch = new AtomicInteger();
     // Main-looper only: one worker may queue many requests but execute just one.
     private final LuaCrashTracker crashTracker = new LuaCrashTracker();
     private final Map<String, Long> lastScriptSend = new HashMap<>();
@@ -132,6 +138,11 @@ public final class LuaScriptDispatcher {
         final long eventTimestamp;
         final boolean isEvent;
         final long generation;
+        final LuaIdentityQuery identityQuery;
+        LuaDispatchSlots.Ticket slot;
+        int epoch;
+        long storageVersion = -1;
+        long receivedNanos, sentNanos;
 
         Pending(String id, String server, String channel, String nick,
                 String event, boolean isEvent, long generation) {
@@ -148,6 +159,7 @@ public final class LuaScriptDispatcher {
             this.commandText = commandText;
             this.eventText = "";
             this.eventTimestamp = 0L;
+            this.identityQuery = null;
             this.isEvent = isEvent;
             this.generation = generation;
         }
@@ -155,6 +167,13 @@ public final class LuaScriptDispatcher {
         Pending(String id, String server, String channel, String nick,
                 String event, boolean isEvent, long generation, String commandText,
                 String eventText, long eventTimestamp) {
+            this(id, server, channel, nick, event, isEvent, generation, commandText,
+                    eventText, eventTimestamp, null);
+        }
+
+        Pending(String id, String server, String channel, String nick,
+                String event, boolean isEvent, long generation, String commandText,
+                String eventText, long eventTimestamp, LuaIdentityQuery identityQuery) {
             this.scriptId = id;
             this.server = server;
             this.channel = channel;
@@ -163,6 +182,7 @@ public final class LuaScriptDispatcher {
             this.commandText = commandText;
             this.eventText = eventText;
             this.eventTimestamp = eventTimestamp;
+            this.identityQuery = identityQuery;
             this.isEvent = isEvent;
             this.generation = generation;
         }
@@ -327,7 +347,10 @@ public final class LuaScriptDispatcher {
     private void clearPending() {
         crashTracker.clearActive();
         pending.clear();
-        pendingEvents.set(0);
+        subscriptions.clear();
+        identityEpoch.incrementAndGet();
+        metrics.add(LuaEngineMetrics.Count.CANCELLED_SLOTS, dispatchSlots.clearAndCount());
+        metrics.memoryUnavailable();
         abortRestarts();
     }
 
@@ -335,7 +358,10 @@ public final class LuaScriptDispatcher {
         for (Map.Entry<Integer, Pending> entry : pending.entrySet()) {
             Pending value = entry.getValue();
             if (server.equals(value.server) && pending.remove(entry.getKey(), value)
-                    && value.isEvent) pendingEvents.decrementAndGet();
+                    && value.isEvent) {
+                metrics.inc(LuaEngineMetrics.Count.EFFECTS_SKIPPED);
+                finishSlot(value.slot);
+            }
         }
     }
 
@@ -345,13 +371,16 @@ public final class LuaScriptDispatcher {
         int id = sequence.incrementAndGet();
         message.replyTo = replies;
         message.getData().putInt(LuaDiagnosticService.EXTRA_REQUEST_ID, id);
+        if (message.what == LuaDiagnosticService.REQUEST_LOAD)
+            subscriptions.begin(identity.scriptId, "restart".equals(identity.event)
+                    ? identity.server : "", id);
         pending.put(id, identity);
         try {
             target.send(message);
             return true;
         } catch (RemoteException error) {
             pending.remove(id);
-            if (identity.isEvent) pendingEvents.decrementAndGet();
+            if (identity.isEvent) sentStorageVersions.remove(identity.scriptId);
             return false;
         }
     }
@@ -360,6 +389,9 @@ public final class LuaScriptDispatcher {
     private void loadAll() {
         Messenger target = remote;
         if (target == null) return;
+        subscriptions.clear();
+        identityEpoch.incrementAndGet();
+        sentStorageVersions.clear();
         try {
             target.send(Message.obtain(null, LuaDiagnosticService.REQUEST_RESET));
         } catch (RemoteException error) {
@@ -452,8 +484,30 @@ public final class LuaScriptDispatcher {
             return;
         long timestamp = info.getDate() == null ?
                 System.currentTimeMillis()/1000 : info.getDate().getTime()/1000;
-        enqueue(event, connection.getUUID().toString(), channel, sender.getNick(),
-                value, messageType, timestamp);
+        String server = connection.getUUID().toString();
+        // No roster/DB lookup: preserve the observed sender before queuing.
+        String[] observed = null;
+        if (remote != null && !console.isPaused(server)) {
+            for (LuaScriptStore.Script script : eventRecipients(server, event, null)) {
+                if (script.allowUserInfo && subscriptions.mayUseIdentityV2(script.id, server)) {
+                    observed = captureSender(connection, channel, sender);
+                    break;
+                }
+            }
+        }
+        enqueueWithData(event, server, channel, sender.getNick(), value, messageType,
+                timestamp, null, null, null, observed, null);
+    }
+
+    private static String[] captureSender(ServerConnectionInfo connection, String channel,
+                                          MessageSenderInfo sender) {
+        try {
+            if (!(connection.getApiInstance() instanceof ServerConnectionApi)) return null;
+            return LuaIdentityQuery.sender(((ServerConnectionApi) connection.getApiInstance())
+                    .getServerConnectionData(), channel, sender);
+        } catch (RuntimeException unavailable) {
+            return null;
+        }
     }
 
     /**
@@ -510,7 +564,7 @@ public final class LuaScriptDispatcher {
             return true;
         }
         if ("list".equals(builtin) || "help".equals(builtin) ||
-                "status".equals(builtin) || "log".equals(builtin)) {
+                "status".equals(builtin) || "log".equals(builtin) || "perf".equals(builtin)) {
             showBuiltinCommand(connection, builtin);
             return true;
         }
@@ -553,6 +607,7 @@ public final class LuaScriptDispatcher {
             lines.add("[Lua] /lua help - guida generale");
             lines.add("[Lua] /lua list - script attivi sulla rete");
             lines.add("[Lua] /lua status - motore, script, errori e coda");
+            lines.add("[Lua] /lua perf - contatori e latenze del motore globale");
             lines.add("[Lua] /lua stop | start - sospende o riprende sulla rete");
             lines.add("[Lua] /lua restart - reinizializza gli script di questa rete");
             lines.add("[Lua] /lua log - ultimi messaggi degli script sulla rete");
@@ -571,6 +626,10 @@ public final class LuaScriptDispatcher {
             if (history.isEmpty()) lines.add("[Lua] Nessun log disponibile");
             for (LuaConsoleState.LogLine line : history)
                 lines.add("[Lua] " + line.script + ": " + line.message);
+        } else if ("perf".equals(builtin)) {
+            for (String line : metrics.lines()) lines.add("[Lua] " + line);
+            lines.add("[Lua] Coda ingresso: " + queuedEvents.get() + "/" + MAX_PENDING_EVENTS
+                    + "; slot: " + dispatchSlots.size() + "/" + MAX_PENDING_EVENTS);
         } else if ("status".equals(builtin)) {
             io.post(() -> {
                 int queued = moderationPacer.pendingCount(server);
@@ -600,7 +659,7 @@ public final class LuaScriptDispatcher {
                 status += " - errore: " + script.error;
             emitConsole(connection, "[Lua] " + script.name + ": " + status);
         }
-        emitConsole(connection, "[Lua] Memoria effettiva: non disponibile; limite VM 2 MiB, globale 32 MiB");
+        emitConsole(connection, "[Lua] Limite memoria VM 2 MiB, globale 32 MiB; campioni in /lua perf");
     }
 
     private void restartNetwork(ServerConnectionInfo connection, String server,
@@ -689,60 +748,133 @@ public final class LuaScriptDispatcher {
                 time, onlyScriptId, null, null);
     }
 
+    private List<LuaScriptStore.Script> eventRecipients(String server, String event,
+                                                        String onlyScriptId) {
+        List<LuaScriptStore.Script> result = new ArrayList<>();
+        for (LuaScriptStore.Script script : store.enabledOn(server)) {
+            if (onlyScriptId != null && !onlyScriptId.equals(script.id)) continue;
+            if (subscriptions.accepts(script.id, server, event)) result.add(script);
+        }
+        return result;
+    }
+
     /** Sender fields from the actual stored chat message, not a guessed current identity. */
     private boolean enqueueOnlyWithIdentity(String event, String server, String channel,
             String nick, String text, String messageType, long time, String onlyScriptId,
             String historyIdent, String historyHost) {
-        if (remote == null || console.isPaused(server) ||
-                store.enabledOn(server).isEmpty()) return false;
+        return enqueueWithData(event, server, channel, nick, text, messageType, time,
+                onlyScriptId, historyIdent, historyHost, null, null);
+    }
+
+    private boolean enqueueWithData(String event, String server, String channel, String nick,
+            String text, String messageType, long time, String onlyScriptId,
+            String historyIdent, String historyHost, String[] sender,
+            LuaIdentityQuery query) {
+        final long receivedNanos = System.nanoTime();
+        metrics.inc(LuaEngineMetrics.Count.RECEIVED);
+        if (remote == null || console.isPaused(server)) {
+            metrics.inc(LuaEngineMetrics.Count.UNAVAILABLE);
+            return false;
+        }
+        if (eventRecipients(server, event, onlyScriptId).isEmpty()) {
+            metrics.inc(LuaEngineMetrics.Count.FILTERED);
+            return false;
+        }
         long currentGeneration = console.generation(server);
+        int currentEpoch = identityEpoch.get();
         // Bound events *before* adding to HandlerThread, not only in-flight Binder
         // requests: otherwise a burst of IRC messages can grow the Java queue.
         if (queuedEvents.incrementAndGet() > MAX_PENDING_EVENTS) {
             queuedEvents.decrementAndGet();
+            metrics.inc(LuaEngineMetrics.Count.INPUT_FULL);
             return false;
         }
         boolean accepted = io.post(() -> {
             try {
                 if (remote == null || console.isPaused(server) ||
-                        console.generation(server) != currentGeneration) return;
-                List<LuaScriptStore.Script> eligible = store.enabledOn(server);
-                // Capture only names and cached counts from this approved IRC
-                // connection. Do not block the chat/UI threads with the snapshot.
-                LuaChannelSnapshot channels = LuaChannelSnapshot.empty();
-                if (!"disconnected".equals(event) && !eligible.isEmpty()) {
-                    try {
-                        ServerConnectionInfo conn = ServerConnectionManager.getInstance(context)
-                                .getConnection(UUID.fromString(server));
-                        if (conn != null && conn.isConnected()
-                                && conn.getApiInstance() instanceof ServerConnectionApi) {
-                            channels = LuaChannelSnapshot.capture(
-                                    ((ServerConnectionApi) conn.getApiInstance())
-                                            .getServerConnectionData());
-                        }
-                    } catch (RuntimeException ignored) {
-                        // Stale/disconnecting sessions provide an empty snapshot.
-                    }
+                        console.generation(server) != currentGeneration ||
+                        identityEpoch.get() != currentEpoch) {
+                    metrics.inc(LuaEngineMetrics.Count.STALE_INPUT);
+                    return;
                 }
+                List<LuaScriptStore.Script> eligible =
+                        eventRecipients(server, event, onlyScriptId);
+                if (eligible.isEmpty()) {
+                    metrics.inc(LuaEngineMetrics.Count.STALE_INPUT);
+                    return;
+                }
+
+                // All authorized recipients of this event share the same
+                // read-only observation. No roster work for unrelated scripts,
+                // no duplicated identity lookups for multiple subscribers.
+                ServerConnectionData connectionData = null;
+                boolean connectionChecked = false;
+                LuaChannelSnapshot sharedChannels = null;
+                LuaUserSnapshot roster = null;
                 for (LuaScriptStore.Script script : eligible) {
-                    if (onlyScriptId != null && !onlyScriptId.equals(script.id)) continue;
-                    LuaUserSnapshot users = LuaUserSnapshot.capture(null, null);
-                    if (script.allowUserInfo && !"disconnected".equals(event)) {
-                        try {
-                            ServerConnectionInfo conn = ServerConnectionManager.getInstance(context)
-                                    .getConnection(UUID.fromString(server));
-                            if (conn != null && conn.isConnected() &&
-                                    conn.getApiInstance() instanceof ServerConnectionApi)
-                                users = LuaUserSnapshot.capture(
-                                        ((ServerConnectionApi) conn.getApiInstance())
-                                                .getServerConnectionData(), channel, nick);
-                        } catch (RuntimeException ignored) {
-                            // A part/disconnect race returns an empty roster.
+                    if (query != null && (!subscriptions.usesIdentityV2(script.id, server) ||
+                            (!"c".equals(query.kind) && !script.allowUserInfo))) {
+                        metrics.inc(LuaEngineMetrics.Count.DISPATCH_REJECTED);
+                        continue;
+                    }
+                    LuaDispatchSlots.Ticket slot =
+                            dispatchSlots.reserve(script.id, server, script.allowStorage);
+                    if (slot == null) {
+                        metrics.inc(LuaEngineMetrics.Count.SLOT_FULL);
+                        return; // bounded, never block IRC threads
+                    }
+                    metrics.inc(LuaEngineMetrics.Count.PREPARED);
+                    boolean legacy = !subscriptions.usesIdentityV2(script.id, server);
+                    if ((legacy || query != null) && !connectionChecked) {
+                        connectionChecked = true;
+                        if (!"disconnected".equals(event)) {
+                            try {
+                                ServerConnectionInfo conn = ServerConnectionManager.getInstance(context)
+                                        .getConnection(UUID.fromString(server));
+                                if (conn != null && conn.isConnected() &&
+                                        conn.getApiInstance() instanceof ServerConnectionApi)
+                                    connectionData = ((ServerConnectionApi) conn.getApiInstance())
+                                            .getServerConnectionData();
+                            } catch (RuntimeException ignored) { }
                         }
                     }
-                    if (pendingEvents.incrementAndGet() > MAX_PENDING_EVENTS) {
-                        pendingEvents.decrementAndGet();
-                        return; // drop event; never block IRC threads
+                    LuaChannelSnapshot channels = LuaChannelSnapshot.empty();
+                    LuaUserSnapshot users = new LuaUserSnapshot();
+                    String deliveredText = text;
+                    if (query != null) {
+                        metrics.inc(LuaEngineMetrics.Count.IDENTITY_QUERY);
+                        LuaIdentityQuery.Result result = query.execute(connectionData);
+                        channels = result.channels;
+                        users = result.users;
+                        deliveredText = result.metadata(query.kind);
+                        // A reload/stop during the lookup must not deliver data to a new VM.
+                        if (identityEpoch.get() != currentEpoch ||
+                                console.generation(server) != currentGeneration ||
+                                console.isPaused(server)) {
+                            metrics.inc(LuaEngineMetrics.Count.DISPATCH_REJECTED);
+                            finishSlot(slot);
+                            continue;
+                        }
+                    } else if (legacy) {
+                        if (sharedChannels == null) {
+                            try {
+                                sharedChannels = LuaChannelSnapshot.capture(connectionData);
+                            } catch (RuntimeException ignored) {
+                                sharedChannels = LuaChannelSnapshot.empty();
+                            }
+                        }
+                        channels = sharedChannels;
+                        if (script.allowUserInfo && connectionData != null) {
+                            if (roster == null) {
+                                metrics.inc(LuaEngineMetrics.Count.ROSTER_CAPTURE);
+                                try {
+                                    roster = LuaUserSnapshot.capture(connectionData, channel, nick);
+                                } catch (RuntimeException ignored) {
+                                    roster = new LuaUserSnapshot();
+                                }
+                            }
+                            users = roster;
+                        }
                     }
                     Message request = Message.obtain(null, LuaDiagnosticService.REQUEST_EVENT);
                     Bundle data = new Bundle();
@@ -751,7 +883,10 @@ public final class LuaScriptDispatcher {
                     data.putString(LuaDiagnosticService.EXTRA_SERVER, server);
                     data.putString(LuaDiagnosticService.EXTRA_CHANNEL, channel);
                     data.putString(LuaDiagnosticService.EXTRA_NICK, nick);
-                    data.putString(LuaDiagnosticService.EXTRA_TEXT, text);
+                    data.putString(LuaDiagnosticService.EXTRA_TEXT, deliveredText);
+                    if (sender != null && script.allowUserInfo &&
+                            subscriptions.mayUseIdentityV2(script.id, server))
+                        data.putStringArray(LuaDiagnosticService.EXTRA_SENDER, sender);
                     data.putString(LuaDiagnosticService.EXTRA_MESSAGE_TYPE, messageType);
                     if ("history".equals(event)) {
                         data.putString(LuaDiagnosticService.EXTRA_HISTORY_IDENT,
@@ -771,30 +906,108 @@ public final class LuaScriptDispatcher {
                             users.truncated);
                     data.putBoolean(LuaDiagnosticService.EXTRA_CAN_READ_USERS,
                             script.allowUserInfo);
-                    ArrayList<String> stored = new ArrayList<>();
-                    if (script.allowStorage) {
-                        try {
-                            stored = store.storageSnapshot(script.id);
-                        } catch (IOException error) {
-                            store.fail(script.id, "Lua persistent data unavailable");
-                            main.post(this::reload);
-                            pendingEvents.decrementAndGet();
-                            continue;
-                        }
-                    }
-                    data.putStringArrayList(LuaDiagnosticService.EXTRA_STORAGE_PAIRS, stored);
-                    data.putBoolean(LuaDiagnosticService.EXTRA_CAN_STORE, script.allowStorage);
                     request.setData(data);
-                    sendMessage(request, new Pending(script.id, server, channel, nick, event, true,
-                            console.generation(server), "command".equals(event) ? text : "",
-                            "message".equals(event) ? text : "", time));
+                    Pending identity = new Pending(script.id, server, channel, nick, event, true,
+                            currentGeneration, "command".equals(event) ? text :
+                                    "identity".equals(event) ? messageType : "",
+                            "message".equals(event) || "identity".equals(event) ? deliveredText : "",
+                            time, query);
+                    identity.slot = slot;
+                    identity.epoch = currentEpoch;
+                    identity.receivedNanos = receivedNanos;
+                    Runnable ready = dispatchSlots.submit(slot, () -> dispatchPrepared(request, identity));
+                    if (ready != null) ready.run();
                 }
             } finally {
                 queuedEvents.decrementAndGet();
             }
         });
-        if (!accepted) queuedEvents.decrementAndGet();
+        if (!accepted) {
+            queuedEvents.decrementAndGet();
+            metrics.inc(LuaEngineMetrics.Count.POST_FAILED);
+        } else metrics.inc(LuaEngineMetrics.Count.ENQUEUED);
         return accepted;
+    }
+
+    private boolean currentEvent(Pending request) {
+        return dispatchSlots.valid(request.slot) && request.epoch == identityEpoch.get() &&
+                !console.isPaused(request.server) &&
+                console.generation(request.server) == request.generation;
+    }
+
+    private void finishSlot(LuaDispatchSlots.Ticket slot) {
+        if (slot == null) return;
+        io.post(() -> {
+            Runnable ready = dispatchSlots.finish(slot);
+            if (ready != null) ready.run();
+        });
+    }
+
+    /** Serialized per storage-enabled script, even across different IRC networks. */
+    private void dispatchPrepared(Message message, Pending request) {
+        LuaScriptStore.Script script = store.find(request.scriptId);
+        if (!currentEvent(request) || remote == null || script == null ||
+                !script.isEnabledOn(request.server) ||
+                script.allowStorage != request.slot.serial ||
+                !subscriptions.accepts(script.id, request.server, request.event)) {
+            metrics.inc(LuaEngineMetrics.Count.DISPATCH_REJECTED);
+            finishSlot(request.slot);
+            return;
+        }
+        Bundle data = message.getData();
+        data.putBoolean(LuaDiagnosticService.EXTRA_CAN_STORE, script.allowStorage);
+        // Permission revocation must never expose a previously prepared roster.
+        if (!script.allowUserInfo) {
+            data.putBoolean(LuaDiagnosticService.EXTRA_CAN_READ_USERS, false);
+            data.putStringArrayList(LuaDiagnosticService.EXTRA_USER_FIELDS, new ArrayList<>());
+            data.remove(LuaDiagnosticService.EXTRA_SENDER);
+            data.remove(LuaDiagnosticService.EXTRA_HISTORY_IDENT);
+            data.remove(LuaDiagnosticService.EXTRA_HISTORY_HOST);
+        }
+        try {
+            if (script.allowStorage) {
+                LuaScriptStorage.Snapshot revision = store.storageRevision(script.id, request.server);
+                request.storageVersion = revision.version;
+                data.putLong(LuaDiagnosticService.EXTRA_STORAGE_VERSION, revision.version);
+                if (!Long.valueOf(revision.version).equals(sentStorageVersions.get(script.id)))
+                    data.putStringArrayList(LuaDiagnosticService.EXTRA_STORAGE_PAIRS, revision.pairs());
+            } else {
+                sentStorageVersions.remove(script.id);
+                data.putStringArrayList(LuaDiagnosticService.EXTRA_STORAGE_PAIRS, new ArrayList<>());
+            }
+            if (!currentEvent(request)) {
+                metrics.inc(LuaEngineMetrics.Count.DISPATCH_REJECTED);
+                sentStorageVersions.remove(script.id);
+                finishSlot(request.slot);
+                return;
+            }
+            request.sentNanos = System.nanoTime();
+            metrics.queue(request.sentNanos - request.receivedNanos);
+            // Messenger may recycle the Message after send; inspect Bundle first.
+            ArrayList<String> rows = data.getStringArrayList(LuaDiagnosticService.EXTRA_USER_FIELDS);
+            int rowCount = rows == null ? 0 : rows.size() / LuaUserSnapshot.FIELDS;
+            boolean fullStorage = script.allowStorage &&
+                    data.containsKey(LuaDiagnosticService.EXTRA_STORAGE_PAIRS);
+            if (!sendMessage(message, request)) {
+                metrics.inc(LuaEngineMetrics.Count.IPC_FAILED);
+                sentStorageVersions.remove(script.id);
+                finishSlot(request.slot);
+            } else {
+                metrics.inc(LuaEngineMetrics.Count.IPC_SENT);
+                metrics.add(LuaEngineMetrics.Count.ROSTER_ROWS, rowCount);
+                if (fullStorage) metrics.inc(LuaEngineMetrics.Count.STORAGE_SNAPSHOT);
+                if (script.allowStorage)
+                    sentStorageVersions.put(script.id, request.storageVersion);
+            }
+        } catch (IOException failure) {
+            metrics.inc(LuaEngineMetrics.Count.STORAGE_FAILURE);
+            sentStorageVersions.remove(script.id);
+            if (currentEvent(request)) {
+                store.fail(script.id, "Lua persistent data unavailable");
+                main.post(this::reload);
+            }
+            finishSlot(request.slot);
+        }
     }
 
     private static String safeHistoricIdentity(String value, int limit) {
@@ -880,10 +1093,21 @@ public final class LuaScriptDispatcher {
         Pending request = pending.remove(requestId);
         if (request == null) return true;
         crashTracker.completed(requestId, request.scriptId, request.isEvent);
-        if (request.isEvent) pendingEvents.decrementAndGet();
+        if (request.scriptId.equals(data.getString(LuaDiagnosticService.EXTRA_SCRIPT_ID)))
+            metrics.memory(data.getLong(LuaDiagnosticService.EXTRA_LUA_BYTES, -1));
+        if (request.isEvent) {
+            metrics.inc(LuaEngineMetrics.Count.REPLIED);
+            metrics.ipc(System.nanoTime() - request.sentNanos);
+            metrics.nativeCall(data.getLong(LuaDiagnosticService.EXTRA_NATIVE_NANOS, -1));
+            handleEventReply(request, data);
+            return true;
+        }
         String id = data.getString(LuaDiagnosticService.EXTRA_SCRIPT_ID);
         if (!request.scriptId.equals(id)) return true;
         String status = data.getString(LuaDiagnosticService.EXTRA_STATUS, "");
+        if (!request.isEvent && "OK".equals(status))
+            subscriptions.complete(id, "restart".equals(request.event) ? request.server : "",
+                    requestId, data.getInt(LuaDiagnosticService.EXTRA_EVENT_MASK, -1));
         if ("restart".equals(request.event)) {
             LuaScriptStore.Script restartScript = store.find(id);
             ServerConnectionInfo conn = null;
@@ -896,25 +1120,91 @@ public final class LuaScriptDispatcher {
                         restartScript == null ? id : restartScript.name, status);
             return true;
         }
-        if (request.isEvent && (console.isPaused(request.server) ||
-                console.generation(request.server) != request.generation))
-            return true;
         LuaScriptStore.Script script = store.find(id);
-        if (script == null || !script.isEnabledOn(request.server))
-            return true;
-        if (!"OK".equals(status)) {
+        if (script != null && script.isEnabledOn(request.server) && !"OK".equals(status)) {
             console.log(request.server, script.name, status);
             store.fail(id, status);
             reload();
-            return true;
         }
-        if (!request.isEvent) return true;
+        return true;
+    }
+
+    private void handleEventReply(Pending request, Bundle data) {
+        String id = request.scriptId;
+        LuaScriptStore.Script script = store.find(id);
+        if (!currentEvent(request) || script == null || !script.isEnabledOn(request.server)) {
+            metrics.inc(LuaEngineMetrics.Count.EFFECTS_SKIPPED);
+            finishSlot(request.slot);
+            return;
+        }
+        String status = data.getString(LuaDiagnosticService.EXTRA_STATUS, "");
         ArrayList<String> actions = data.getStringArrayList(LuaDiagnosticService.EXTRA_ACTIONS);
-        if (actions == null || actions.size() > 36 || actions.size() % 3 != 0) {
-            store.fail(id, "Lua returned invalid actions");
+        if (!id.equals(data.getString(LuaDiagnosticService.EXTRA_SCRIPT_ID)) ||
+                !"OK".equals(status) || actions == null || actions.size() > 36 ||
+                actions.size() % 3 != 0 || actions.contains(null)) {
+            metrics.inc(LuaEngineMetrics.Count.CALLBACK_FAILED);
+            store.fail(id, "OK".equals(status) ? "Lua returned invalid actions" : status);
             reload();
-            return true;
+            finishSlot(request.slot);
+            return;
         }
+        boolean mutates = false;
+        for (int i = 0; i < actions.size(); i += 3)
+            if ("store".equals(actions.get(i)) || "erase".equals(actions.get(i))) mutates = true;
+        if (mutates) {
+            if (!script.allowStorage || request.storageVersion < 0) {
+                metrics.inc(LuaEngineMetrics.Count.STORAGE_FAILURE);
+                store.fail(id, "Lua storage action without permission");
+                reload();
+                finishSlot(request.slot);
+                return;
+            }
+            io.post(() -> {
+                if (!currentEvent(request)) {
+                    metrics.inc(LuaEngineMetrics.Count.EFFECTS_SKIPPED);
+                    finishSlot(request.slot); return;
+                }
+                metrics.inc(LuaEngineMetrics.Count.STORAGE_TRANSACTION);
+                long begin = System.nanoTime();
+                try {
+                    boolean wrote = store.commitStorage(id, request.server, request.storageVersion, actions);
+                    metrics.inc(wrote ? LuaEngineMetrics.Count.STORAGE_WRITE : LuaEngineMetrics.Count.STORAGE_NOOP);
+                    main.post(() -> deliverCommittedActions(request, actions));
+                } catch (IOException failure) {
+                    metrics.inc(LuaEngineMetrics.Count.STORAGE_FAILURE);
+                    // No warnings, kicks, bans or other effects from a failed transaction.
+                    if (currentEvent(request)) {
+                        store.fail(id, "Lua persistent data commit failed: " + failure.getMessage());
+                        main.post(this::reload);
+                    }
+                    finishSlot(request.slot);
+                } finally {
+                    metrics.storage(System.nanoTime() - begin);
+                }
+            });
+        } else {
+            deliverCommittedActions(request, actions);
+        }
+    }
+
+    private void deliverCommittedActions(Pending request, ArrayList<String> actions) {
+        try {
+            LuaScriptStore.Script script = store.find(request.scriptId);
+            if (!currentEvent(request) || script == null || !script.isEnabledOn(request.server)) {
+                metrics.inc(LuaEngineMetrics.Count.EFFECTS_SKIPPED);
+                return;
+            }
+            applyCommittedActions(request, script, actions);
+            metrics.inc(LuaEngineMetrics.Count.COMPLETED);
+            metrics.total(System.nanoTime() - request.receivedNanos);
+        } finally {
+            finishSlot(request.slot);
+        }
+    }
+
+    private boolean applyCommittedActions(Pending request, LuaScriptStore.Script script,
+                                          ArrayList<String> actions) {
+        String id = script.id;
         for (int i = 0; i < actions.size(); i += 3) {
             String kind = actions.get(i);
             String target = actions.get(i + 1);
@@ -942,7 +1232,7 @@ public final class LuaScriptDispatcher {
                     }
                 }
             } else if ("send".equals(kind)) {
-                // Queue behind preceding persistent writes in this reply.
+                // All persistent writes for this reply have already committed.
                 io.post(() -> main.post(() ->
                         sendAuthorized(script, request, target, value)));
             } else if ("closepm".equals(kind)) {
@@ -1004,22 +1294,27 @@ public final class LuaScriptDispatcher {
                                 "Lua archived journal operation failed: " + error.getMessage());
                     }
                 });
+            } else if ("query".equals(kind)) {
+                LuaIdentityQuery query = LuaIdentityQuery.parse(target, value);
+                if (query != null && subscriptions.usesIdentityV2(id, request.server) &&
+                        ("c".equals(query.kind) || script.allowUserInfo) &&
+                        query.permitted(request.event, request.channel,
+                                request.eventText, request.commandText) &&
+                        (!"identity".equals(request.event) || query.continues(request.identityQuery))) {
+                    if (!enqueueWithData("identity", request.server, query.channel, "", "",
+                            query.token, request.eventTimestamp, id, null, null, null, query))
+                        store.recordLog(id, "Identity query not queued: " + query.token);
+                } else {
+                    store.recordLog(id, "Identity query rejected: invalid scope, parameters or continuation");
+                }
             } else if ("history".equals(kind)) {
                 lookupHistoryForScript(script, request, target, value);
             } else if ("store".equals(kind) || "erase".equals(kind)) {
-                String operation = kind;
-                io.post(() -> {
-                    try {
-                        store.applyStorage(script.id, request.server,
-                                operation, target, value);
-                    } catch (IOException error) {
-                        store.fail(script.id, "Lua persistent data write failed");
-                        main.post(this::reload);
-                    }
-                });
+                // Already committed atomically before any action was released.
+                continue;
             } else if ("show".equals(kind) || "list".equals(kind)) {
                 store.recordOutput(id, target, value, "list".equals(kind));
-                if ("command".equals(request.event)) {
+                if ("command".equals(request.event) || "identity".equals(request.event)) {
                     try {
                         ServerConnectionInfo conn = ServerConnectionManager.getInstance(context)
                                 .getConnection(UUID.fromString(request.server));
@@ -1405,8 +1700,8 @@ public final class LuaScriptDispatcher {
                             api.getServerConnectionData().getSupportList().getCaseMapping(),
                             nick, connection.getUserNick()),
                     nick)) return;
-            // Ordinary scripts cannot moderate prefixed users. An explicit
-            // account blacklist request is the sole exception, and only when
+            // V4 may moderate its own voiced sender. Other ordinary scripts
+            // cannot moderate prefixed users. An explicit blacklist requires that
             // the target is the event sender AND a live observed IRC account
             // matches the claim, with user-info and moderation consent.
             IrcIdentityCache.Identity liveIdentity =
@@ -1419,7 +1714,12 @@ public final class LuaScriptDispatcher {
                             liveIdentity.accountKnown,
                             api.getServerConnectionData().getSupportList()
                                     .getCaseMapping())) return;
-            if (!"mode".equals(kind) && !blacklistOverride &&
+            boolean v4Voice = LuaModerationPolicy.v4VoiceTarget(script, targetMember) &&
+                    "message".equals(request.event) &&
+                    LuaModerationPolicy.isSelf(
+                            api.getServerConnectionData().getSupportList().getCaseMapping(),
+                            nick, request.nick);
+            if (!"mode".equals(kind) && !blacklistOverride && !v4Voice &&
                     !LuaModerationPolicy.unprivilegedTarget(targetMember)) return;
             if (compound) {
                 // Validate both commands while the target is still in the channel.
@@ -1481,6 +1781,10 @@ public final class LuaScriptDispatcher {
                         new OperatorCommandComposer.Dialect(
                                 api.getServerConnectionData().getSupportList().getExtban(),
                                 api.getServerConnectionData().getSupportList().getAccountExtban());
+                String timedMaskBase = LuaModerationPolicy.v4Script(script) &&
+                        LuaModerationPolicy.validObservedAccount(identity.account, identity.accountKnown) &&
+                        "R:".equals(dialect.matching('R')) ?
+                        "R:" + identity.account : baseMask;
                 if ("mute".equals(kind)) {
                     String token = dialect.acting('m');
                     if (token == null) return; // Network has no known mute extban.
@@ -1488,10 +1792,13 @@ public final class LuaScriptDispatcher {
                             new String[]{channel, "+b", token + baseMask}, null, null);
                     logModerationSent(connection, script, channel, "MUTE", nick, "");
                 } else if ("tmute".equals(kind)) {
-                    String timed = LuaModerationPolicy.timedMuteCommand(
-                            dialect, channel, mode, identity.host);
+                    String acting = dialect.acting('m');
+                    if (acting == null || !mode.matches("(?i)[1-9][0-9]?[hmd]")) return;
+                    String mask = acting + timedMaskBase;
+                    String timed = LuaModerationPolicy.v4Script(script) ?
+                            dialect.timedCommand(channel, mode, mask) :
+                            LuaModerationPolicy.timedMuteCommand(dialect, channel, mode, identity.host);
                     if (timed == null) return;
-                    String mask = dialect.acting('m') + baseMask;
                     if (dialect.isInspStyle()) {
                         api.sendCommand("TBAN", false,
                                 new String[]{channel, mode, mask}, null, null);
@@ -1505,11 +1812,11 @@ public final class LuaScriptDispatcher {
                             nick, "durata: " + mode);
                 } else if ("tban".equals(kind)) {
                     if (!mode.matches("(?i)[1-9][0-9]?[hmd]")) return;
-                    String timed = dialect.timedCommand(channel, mode, baseMask);
+                    String timed = dialect.timedCommand(channel, mode, timedMaskBase);
                     if (timed == null) return; // Do not invent an unsupported syntax.
                     if (dialect.isInspStyle()) {
                         api.sendCommand("TBAN", false,
-                                new String[]{channel, mode, baseMask}, null, null);
+                                new String[]{channel, mode, timedMaskBase}, null, null);
                     } else if (dialect.isUnrealStyle()) {
                         String timedMask = timed.substring(timed.lastIndexOf(' ') + 1);
                         api.sendCommand("MODE", false,

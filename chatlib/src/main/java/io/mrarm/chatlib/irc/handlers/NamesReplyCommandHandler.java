@@ -74,7 +74,25 @@ public class NamesReplyCommandHandler implements CommandDisconnectHandler {
             } catch (NoSuchChannelException e) {
                 throw new InvalidMessageException("Invalid channel name", e);
             }
-            channelNamesList.remove(channelName);
+            List<ChannelData.Member> completed = channelNamesList.remove(channelName);
+            // Resolve the current nicknames from the same UUIDs as the IRC roster:
+            // a NICK between 353 and 366 must not pin the obsolete nickname.
+            List<UUID> ids = new ArrayList<>();
+            if (completed != null)
+                for (ChannelData.Member member : completed) ids.add(member.getUserUUID());
+            try {
+                Map<UUID, String> nicks = connection.getUserInfoApi()
+                        .getUsersNicks(ids, null, null).get();
+                if (nicks.size() == new HashSet<>(ids).size())
+                    connection.getIdentityCache().replaceChannelMembers(channelName, nicks.values());
+                else
+                    connection.getIdentityCache().markMembershipIncomplete();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                connection.getIdentityCache().markMembershipIncomplete();
+            } catch (ExecutionException e) {
+                connection.getIdentityCache().markMembershipIncomplete();
+            }
         }
     }
 

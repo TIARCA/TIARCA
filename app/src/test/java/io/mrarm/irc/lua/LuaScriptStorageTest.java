@@ -217,4 +217,41 @@ public class LuaScriptStorageTest {
             store.clearAll();
         }
     }
+
+    @Test public void revisionsAreCachedAndOnlyChangeAfterSuccessfulAtomicBatch() throws Exception {
+        Application app = ApplicationProvider.getApplicationContext();
+        File dir = new File(app.getCacheDir(), "lua-revision-test");
+        assertTrue(dir.isDirectory() || dir.mkdirs());
+        LuaScriptStorage storage = new LuaScriptStorage(dir);
+        storage.delete(ID);
+        try {
+            LuaScriptStorage.Snapshot empty = storage.snapshot(ID);
+            for (int i = 0; i < 1000; i++) assertSame(empty, storage.snapshot(ID));
+            LuaScriptStorage.Snapshot first = storage.applyBatch(ID, empty.version,
+                    java.util.Arrays.asList("store", "count", "1", "store", "level", "2"));
+            assertTrue(first.version > empty.version);
+            assertEquals("2", new LuaScriptStorage(dir).read(ID).get("level"));
+            assertSame(first, storage.applyBatch(ID, first.version,
+                    java.util.Arrays.asList("store", "count", "1", "erase", "missing", "1")));
+            try {
+                storage.applyBatch(ID, first.version, java.util.Arrays.asList(
+                        "store", "count", "2", "store", "bad/key", "x"));
+                fail("Invalid batch committed");
+            } catch (IOException expected) { }
+            assertSame(first, storage.snapshot(ID));
+            assertEquals("1", new LuaScriptStorage(dir).read(ID).get("count"));
+            try {
+                storage.applyBatch(ID, empty.version,
+                        java.util.Arrays.asList("store", "count", "9"));
+                fail("Stale revision accepted");
+            } catch (IOException expected) { }
+            assertEquals("1", storage.read(ID).get("count"));
+            storage.restoreValidated(ID, "{\"count\":\"17\"}".getBytes(StandardCharsets.UTF_8));
+            assertTrue(storage.snapshot(ID).version > first.version);
+            assertEquals("17", storage.read(ID).get("count"));
+            storage.delete(ID);
+            assertTrue(storage.read(ID).isEmpty());
+            assertTrue(storage.snapshot(ID).version > first.version);
+        } finally { storage.delete(ID); }
+    }
 }

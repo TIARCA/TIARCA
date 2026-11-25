@@ -189,6 +189,7 @@ public class ServerConnectionData {
             if (channelData == null)
                 return;
         }
+        identityCache.channelLeft(channelName);
         try {
             for (ChannelData.Member member : new ArrayList<>(channelData.getMembers()))
                 getUserInfoApi().setUserChannelPresence(member.getUserUUID(), channelData.getName(), false,

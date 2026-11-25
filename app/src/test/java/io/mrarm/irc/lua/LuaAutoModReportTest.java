@@ -44,6 +44,18 @@ public class LuaAutoModReportTest {
         assertNull(render("AutoModB wrong-id/#room Nick-2 80.0% infrazione 2 (tmute)"));
     }
 
+    @Test public void autoModV4UsesBinaryAdClassificationNotConcentration() {
+        String ad = render("AutoModV4 test-ser/#room Nick-2 100.0% infrazione 1 (monitor) motore B");
+        assertNotNull(ad);
+        assertTrue(ad.contains("annunci riconosciuti"));
+        assertFalse(ad.contains("concentrazione"));
+        assertTrue(ad.contains("MONITORAGGIO"));
+        String generic = render("AutoModV4 test-ser/#room Nick-2 75.0% infrazione 3 (tmute) motore A");
+        assertNotNull(generic);
+        assertTrue(generic.contains("ripetizione 75.0%"));
+        assertTrue(generic.contains("MUTE TEMPORANEO"));
+    }
+
     @Test public void unrelatedOrForgedLogsAreNotInjectedIntoServerTab() {
         assertNull(render("AutoMod: storico persistente pieno"));
         assertNull(render("Other script called moderation"));

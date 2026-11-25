@@ -5,18 +5,18 @@ import re
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / "docs" / "lua"
-PAGES = ("README.md", "API_REFERENCE.md", "EVENTS.md", "PERMISSIONS.md", "EXAMPLES.md")
+PAGES = ("README.md", "API_REFERENCE.md", "EVENTS.md", "PERMISSIONS.md", "EXAMPLES.md", "MIGRATION.md")
 EXPECTED_API = {
-    "on", "log", "send", "pm", "notice", "get_channels", "get_users",
+    "on", "log", "send", "pm", "notice", "close_pms", "identity_v2", "get_user", "get_channels", "get_users",
     "refresh_users", "maskfind", "show", "show_list", "storage.get",
     "storage.set", "storage.delete", "kick", "eject", "ban", "mode", "mute",
-    "tban", "tmute", "kickban", "kicktban", "blacklist_action",
+    "tban", "tmute", "kickban", "kicktban", "blacklist_action", "override_action",
     "last_message", "journal.append", "journal.export",
     "journal.rotate", "journal.export_archive",
 }
 EXPECTED_EVENTS = {
     "connected", "disconnected", "message", "command", "join", "part",
-    "quit", "nick", "timer", "kick", "ban", "history", "moderation_log",
+    "quit", "nick", "timer", "kick", "ban", "history", "moderation_log", "identity",
 }
 
 def links_ok(path: Path, content: str) -> list[str]:
@@ -53,11 +53,11 @@ def main() -> int:
         problems.extend(links_ok(path, data))
     for lang in ("it", "en"):
         api = (BASE / lang / "API_REFERENCE.md").read_text(encoding="utf-8")
-        found = tokens(api, r"tiarca\.([a-z_]+(?:\.[a-z_]+)?)")
+        found = tokens(api, r"tiarca\.([a-z_][a-z_0-9]*(?:\.[a-z_][a-z_0-9]*)?)")
         if found != EXPECTED_API:
             problems.append(f"{lang} API mismatch: missing={sorted(EXPECTED_API-found)}, extra={sorted(found-EXPECTED_API)}")
         events = (BASE / lang / "EVENTS.md").read_text(encoding="utf-8")
-        found_events = tokens(events, r"\| `([a-z_]+)` \|")
+        found_events = tokens(events, r"\| `([a-z_][a-z_0-9]*)` \|")
         if found_events != EXPECTED_EVENTS:
             problems.append(f"{lang} events mismatch: missing={sorted(EXPECTED_EVENTS-found_events)}")
     if problems:

@@ -1,5 +1,7 @@
 # Lua scripting API — development on main
 
+> Historical implementation notes. For PR #303 see [current bilingual API contract](lua/README.md), [migration guide](lua/en/MIGRATION.md) and [redesign plan](lua/REDESIGN_PLAN.md). Earlier snapshot, cache, storage and diagnostics descriptions are historical, not the v2 contract. Stable v0.9.10 remains unchanged.
+
 Scope: https://github.com/TIARCA/TIARCA/issues/216
 
 The Lua API was integrated into `main` on 2026-11-12 through PR #260

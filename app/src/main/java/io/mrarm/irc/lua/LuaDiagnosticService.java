@@ -30,6 +30,7 @@ public final class LuaDiagnosticService extends Service {
     public static final String EXTRA_TEXT = "text";
     public static final String EXTRA_MESSAGE_TYPE = "message_type";
     public static final String EXTRA_HISTORY_IDENT = "history_ident";
+    public static final String EXTRA_SENDER = "sender";
     public static final String EXTRA_HISTORY_HOST = "history_host";
     public static final String EXTRA_TIME = "time";
     public static final String EXTRA_CHANNEL_NAMES = "channel_names";
@@ -39,10 +40,14 @@ public final class LuaDiagnosticService extends Service {
     public static final String EXTRA_USERS_TRUNCATED = "users_truncated";
     public static final String EXTRA_CAN_READ_USERS = "can_read_users";
     public static final String EXTRA_STORAGE_PAIRS = "storage_pairs";
+    public static final String EXTRA_STORAGE_VERSION = "storage_version";
     public static final String EXTRA_CAN_STORE = "can_store";
     public static final String EXTRA_REQUEST_ID = "request_id";
     public static final String EXTRA_ACTIONS = "actions";
     public static final String EXTRA_STATUS = "status";
+    public static final String EXTRA_EVENT_MASK = "event_mask";
+    public static final String EXTRA_LUA_BYTES = "lua_bytes";
+    public static final String EXTRA_NATIVE_NANOS = "native_nanos";
     public static final String EXTRA_SCENARIO = "scenario";
     public static final String EXTRA_RESULT = "result";
     public static final String EXTRA_ISOLATED = "isolated";
@@ -58,6 +63,7 @@ public final class LuaDiagnosticService extends Service {
     // networks continue using their original VM without interruption.
     private final java.util.Map<String, String> scopedRuntimeIds =
             new java.util.HashMap<>();
+    private final LuaStorageMirror storageMirror = new LuaStorageMirror();
 
     @Override public void onCreate() {
         super.onCreate();
@@ -76,6 +82,7 @@ public final class LuaDiagnosticService extends Service {
         if (message.what == REQUEST_RESET) {
             NativeLuaRuntime.clear();
             scopedRuntimeIds.clear();
+            storageMirror.clear();
             return true;
         }
         if (message.what == REQUEST_LOAD || message.what == REQUEST_EVENT) {
@@ -202,6 +209,8 @@ public final class LuaDiagnosticService extends Service {
                 status = source == null || source.length > LuaScriptStore.MAX_SOURCE_BYTES
                         ? "ERROR: source too large or missing"
                         : NativeLuaRuntime.decode(NativeLuaRuntime.load(runtimeId, source));
+                if ("OK".equals(status))
+                    request.putInt(EXTRA_EVENT_MASK, NativeLuaRuntime.eventMask(runtimeId));
                 if (scoped) {
                     if ("OK".equals(status)) scopedRuntimeIds.put(scriptId + ":" + network, runtimeId);
                     else scopedRuntimeIds.remove(scriptId + ":" + network);
@@ -220,6 +229,8 @@ public final class LuaDiagnosticService extends Service {
                         request.getStringArrayList(EXTRA_USER_FIELDS);
                 java.util.ArrayList<String> stored =
                         request.getStringArrayList(EXTRA_STORAGE_PAIRS);
+                boolean canStore = request.getBoolean(EXTRA_CAN_STORE, false);
+                long storageVersion = request.getLong(EXTRA_STORAGE_VERSION, -1);
                 if (server.length() != 36 || channel.length() > 64 ||
                         nick.length() > 64 || text.length() > 1024 ||
                         channel.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 96 ||
@@ -231,7 +242,7 @@ public final class LuaDiagnosticService extends Service {
                                 "quit".equals(event) || "nick".equals(event) ||
                                 "timer".equals(event) || "kick".equals(event) ||
                                 "ban".equals(event) || "history".equals(event) ||
-                                "moderation_log".equals(event))) {
+                                "moderation_log".equals(event) || "identity".equals(event))) {
                     status = "ERROR: invalid event";
                 } else if (names == null || memberCounts == null ||
                         names.size() != memberCounts.length ||
@@ -239,9 +250,9 @@ public final class LuaDiagnosticService extends Service {
                         members == null ||
                         members.size() > LuaUserSnapshot.MAX_USERS * LuaUserSnapshot.FIELDS ||
                         members.size() % LuaUserSnapshot.FIELDS != 0 ||
-                        stored == null || stored.size() > LuaScriptStorage.MAX_KEYS * 2 ||
-                        stored.size() % 2 != 0 ||
-                        (!request.getBoolean(EXTRA_CAN_STORE, false) && !stored.isEmpty())) {
+                        (stored != null && (stored.size() > LuaScriptStorage.MAX_KEYS * 2 ||
+                                stored.size() % 2 != 0)) ||
+                        (!canStore && (stored == null || !stored.isEmpty()))) {
                     status = "ERROR: invalid channel snapshot";
                 } else {
                     byte[][] channels = new byte[names.size()][];
@@ -281,32 +292,37 @@ public final class LuaDiagnosticService extends Service {
                         if (!valid) {
                             status = "ERROR: invalid user snapshot";
                         } else {
-                            byte[][] storagePairs = new byte[stored.size()][];
-                            int total = 0;
-                            for (int i = 0; i < stored.size(); i += 2) {
-                                String key = stored.get(i), value = stored.get(i + 1);
-                                if (!LuaScriptStorage.validKey(key) ||
-                                        !LuaScriptStorage.validValue(value) ||
-                                        value.isEmpty()) {
-                                    valid = false;
-                                    break;
-                                }
-                                byte[] keyBytes = NativeLuaRuntime.utf8(key);
-                                byte[] valueBytes = NativeLuaRuntime.utf8(value);
-                                total += keyBytes.length + valueBytes.length;
-                                if (total > LuaScriptStorage.MAX_TOTAL_BYTES) {
-                                    valid = false;
-                                    break;
-                                }
-                                storagePairs[i] = keyBytes;
-                                storagePairs[i + 1] = valueBytes;
-                            }
-                            if (!valid) {
-                                status = "ERROR: invalid Lua storage snapshot";
+                            byte[][] storagePairs = storageMirror.resolve(
+                                    scriptId, storageVersion, canStore, stored);
+                            if (storagePairs == null) {
+                                status = "ERROR: invalid or missing Lua storage revision";
                             } else {
                                 String runtimeId = scopedRuntimeIds.getOrDefault(
                                         scriptId + ":" + server, scriptId);
-                                byte[][] nativeActions = NativeLuaRuntime.dispatchWithIdentity(runtimeId, event,
+                                byte[][] observedIdentity = new byte[0][];
+                                if (request.getBoolean(EXTRA_CAN_READ_USERS, false)) {
+                                    if ("history".equals(event)) {
+                                        observedIdentity = new byte[][] {
+                                            NativeLuaRuntime.utf8(request.getString(EXTRA_HISTORY_IDENT, "")),
+                                            NativeLuaRuntime.utf8(request.getString(EXTRA_HISTORY_HOST, ""))
+                                        };
+                                    } else {
+                                        String[] sender = request.getStringArray(EXTRA_SENDER);
+                                        if (sender != null && sender.length == 4) {
+                                            int[] caps = {95, 255, 31, 95};
+                                            observedIdentity = new byte[4][];
+                                            for (int i = 0; i < 4; i++) {
+                                                if (!LuaIdentityQuery.valid(sender[i], caps[i])) {
+                                                    observedIdentity = new byte[0][];
+                                                    break;
+                                                }
+                                                observedIdentity[i] = NativeLuaRuntime.utf8(sender[i]);
+                                            }
+                                        }
+                                    }
+                                }
+                                long nativeStart = System.nanoTime();
+                                byte[][] nativeActions = NativeLuaRuntime.dispatchVersioned(runtimeId, event,
                                         NativeLuaRuntime.utf8(server), NativeLuaRuntime.utf8(channel),
                                         NativeLuaRuntime.utf8(nick), NativeLuaRuntime.utf8(text),
                                         NativeLuaRuntime.utf8(messageType), request.getLong(EXTRA_TIME),
@@ -315,13 +331,9 @@ public final class LuaDiagnosticService extends Service {
                                         userFields,
                                         request.getBoolean(EXTRA_USERS_TRUNCATED, false),
                                         request.getBoolean(EXTRA_CAN_READ_USERS, false),
-                                        storagePairs, request.getBoolean(EXTRA_CAN_STORE, false),
-                                        "history".equals(event) ? new byte[][]{
-                                                NativeLuaRuntime.utf8(
-                                                        request.getString(EXTRA_HISTORY_IDENT, "")),
-                                                NativeLuaRuntime.utf8(
-                                                        request.getString(EXTRA_HISTORY_HOST, ""))
-                                        } : new byte[0][]);
+                                        storagePairs, canStore,
+                                        observedIdentity, storageVersion);
+                                request.putLong(EXTRA_NATIVE_NANOS, System.nanoTime() - nativeStart);
                         if (nativeActions == null || nativeActions.length < 1 ||
                                 (nativeActions.length - 1) % 3 != 0 ||
                                 nativeActions.length > 37) {
@@ -351,6 +363,10 @@ public final class LuaDiagnosticService extends Service {
         payload.putString(EXTRA_SCRIPT_ID, scriptId);
         payload.putInt(EXTRA_REQUEST_ID, message.getData().getInt(EXTRA_REQUEST_ID));
         payload.putString(EXTRA_STATUS, status);
+        payload.putLong(EXTRA_LUA_BYTES, NativeLuaRuntime.allocatedBytes());
+        payload.putLong(EXTRA_NATIVE_NANOS, message.getData().getLong(EXTRA_NATIVE_NANOS, -1));
+        if (message.what == REQUEST_LOAD && "OK".equals(status))
+            payload.putInt(EXTRA_EVENT_MASK, message.getData().getInt(EXTRA_EVENT_MASK, -1));
         payload.putStringArrayList(EXTRA_ACTIONS, actions);
         response.setData(payload);
         try {

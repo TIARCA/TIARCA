@@ -142,7 +142,182 @@ public final class HostLuaRuntimeTest {
                 }));
     }
 
+    private static String[] revisionEvent(String vm, String operation, long revision,
+                                          String value) {
+        byte[][] storage = {bytes("count"), bytes(value)};
+        return collect(NativeLuaRuntime.dispatchVersioned(vm, "command", bytes("test-server"),
+                bytes("#room"), bytes("me"), bytes(operation), bytes(""), 0L,
+                new byte[0][], new int[0], false, new byte[0][], false, false,
+                storage, true, new byte[0][], revision));
+    }
+
+    private static void checkStorageRevisions() {
+        String source = "tiarca.on('command', function(e) "
+                + "if e.text == 'mutate' then tiarca.storage.set('count','99') end "
+                + "if e.text == 'fail' then tiarca.storage.set('count','88'); error('rollback') end "
+                + "tiarca.log(tiarca.storage.get('count')) end)";
+        check("OK".equals(decode(NativeLuaRuntime.load(ID, bytes(source)))), "Revision VM loads");
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes(source)))), "Second VM loads");
+        check("1".equals(revisionEvent(ID, "read", 1, "1")[3]), "Initial committed revision");
+        check("1".equals(revisionEvent(ID, "read", 1, "1")[3]), "Reuse unchanged revision");
+        String[] mutation = revisionEvent(ID, "mutate", 1, "1");
+        check(mutation.length == 7 && "store".equals(mutation[1]) && "99".equals(mutation[6]),
+                "Local mutation visible inside event");
+        check("1".equals(revisionEvent(ID, "read", 1, "1")[3]),
+                "Uncommitted native mutation is not reused");
+        check("2".equals(revisionEvent(ID, "read", 2, "2")[3]), "New host revision replaces old");
+        check("2".equals(revisionEvent(OTHER, "read", 2, "2")[3]), "Other VM receives same revision");
+        check(revisionEvent(ID, "fail", 2, "2")[0].startsWith("ERROR"), "Failed callback rolls back");
+        check("2".equals(revisionEvent(ID, "read", 2, "2")[3]), "Failed mutation invalidates native cache");
+        NativeLuaRuntime.clear();
+    }
+
+    private static String[] v4Event(String event, String nick, String text, long time,
+                                    String prefix, String account) {
+        byte[][] sender = prefix == null ? new byte[0][] :
+                new byte[][]{bytes("ident"), bytes("host.example"), bytes(prefix), bytes(account)};
+        return collect(NativeLuaRuntime.dispatchWithIdentity(OTHER, event,
+                bytes("test-server"), bytes("#room"), bytes(nick), bytes(text), bytes("normal"), time,
+                new byte[0][], new int[0], false, new byte[0][], false, true,
+                automodSnapshot(), true, sender));
+    }
+
+    private static void checkV4Identity() throws Exception {
+        byte[] source = Files.readAllBytes(Path.of("docs/lua-examples/automod_v4.lua"));
+        check(source.length <= 24576, "V4 source quota");
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, source))), "V4 loads");
+        check((NativeLuaRuntime.eventMask(OTHER) & (1 << 20)) != 0, "V4 opts in");
+        automodStorage.clear();
+        automodActive = true;
+        long t = 1794400000L;
+        check("OK".equals(v4Event("command", "me", "mod canali add #room", t, null, "")[0]),
+                "Configure V4");
+        String[] first = v4Event("message", "Voice", "cerco ragazza", t+1, "+", "voiceacct");
+        String[] second = v4Event("message", "Voice", "cerco donna", t+2, "+", "voiceacct");
+        check(first.length == 1 && java.util.Arrays.toString(second).contains("AutoModV4"),
+                "Voice detection works without roster or query");
+        check(v4Event("message", "Operator", "cerco ragazza", t+3, "@+", "opacct").length == 1 &&
+                v4Event("message", "Operator", "cerco donna", t+4, "@+", "opacct").length == 1,
+                "Higher prefixes excluded");
+        String[] unknown = v4Event("message", "Unknown", "cerco ragazza", t+5, null, "");
+        check(java.util.Arrays.toString(unknown).contains("UNKNOWN"), "No sender fails closed");
+        String[] request = v4Event("command", "me", "mod whitelist add Voice", t+6, null, "");
+        check(java.util.Arrays.toString(request).contains("u\tv4w1\tVoice"),
+                "Whitelist uses single point query");
+        String[] result = collect(NativeLuaRuntime.dispatch(OTHER, "identity",
+                bytes("test-server"), bytes("#room"), bytes(""), bytes("u ok 1 -1 1"),
+                bytes("v4w1"), t+6, new byte[0][], new int[0], false,
+                new byte[][]{bytes("Voice"), bytes("+"), bytes("ident"), bytes("host.example"), bytes("voiceacct")},
+                false, true, automodSnapshot(), true));
+        check(java.util.Arrays.toString(result).contains("Whitelist aggiornata") &&
+                automodStorage.get("v4.allow").contains("voiceacct"), "Verified result persists");
+        check(v4Event("message", "Voice", "cerco ragazza", t+7, "+", "voiceacct").length == 1,
+                "Whitelist applies immediately");
+        NativeLuaRuntime.unload(OTHER);
+        automodStorage.clear();
+        automodActive = false;
+    }
+
     public static void main(String[] args) throws Exception {
+        checkStorageRevisions();
+        checkV4Identity();
+        // Read subscriptions from the actual loaded VM, not Lua source text.
+        check(NativeLuaRuntime.eventMask(OTHER) == -1, "Absent VM has no known mask");
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER,
+                bytes("local register = tiarca.on; register('command', function(e) end)")))),
+                "Indirect registration must load");
+        check(NativeLuaRuntime.eventMask(OTHER) == (1 << 3),
+                "Only command is registered, not message or timer");
+        String[] allEvents = {"message", "connected", "disconnected", "command",
+                "join", "part", "quit", "nick", "timer", "kick", "ban", "history",
+                "moderation_log", "identity"};
+        for (int i = 0; i < allEvents.length; i++) {
+            check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes(
+                    "tiarca.on('" + allEvents[i] + "', function(e) end)")))),
+                    "Event kind should load: " + allEvents[i]);
+            check(NativeLuaRuntime.eventMask(OTHER) == (1 << i),
+                    "Subscription order must match Java: " + allEvents[i]);
+        }
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes("local x = 1")))),
+                "Script without handlers should load");
+        check(NativeLuaRuntime.eventMask(OTHER) == 0, "No callbacks means empty mask");
+        NativeLuaRuntime.unload(OTHER);
+        check(NativeLuaRuntime.eventMask(OTHER) == -1, "Unloaded VM has no mask");
+
+        {
+            String identityScript = "tiarca.identity_v2()\n"
+                    + "tiarca.on('message', function(e) "
+                    + "if e.sender then tiarca.log(e.sender.nick..':'..e.sender.prefix..':'.."
+                    + "tostring(e.sender.account)..':'..tostring(e.sender.account_known)) "
+                    + "else tiarca.log('no sender') end end)\n"
+                    + "tiarca.on('command', function(e) "
+                    + "tiarca.get_users(e.channel,{token='voice',prefix='+',limit=100}) end)\n"
+                    + "tiarca.on('identity', function(e) "
+                    + "tiarca.log(e.token..':'..e.total..':'..e.next_offset..':'.."
+                    + "tostring(e.complete)..':'..e.users[1].nick) end)";
+            check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes(identityScript)))),
+                    "Identity v2 script loads");
+            check(NativeLuaRuntime.eventMask(OTHER) == ((1 << 20) | (1 << 0) | (1 << 3) | (1 << 13)),
+                    "Identity opt-in must be in real runtime metadata");
+            String[] direct = collect(NativeLuaRuntime.dispatchWithIdentity(OTHER, "message",
+                    bytes("test-server"), bytes("#room"), bytes("Alice"), bytes("hello"),
+                    bytes("normal"), 0L, new byte[0][], new int[0], false,
+                    new byte[0][], false, true, new byte[0][], false,
+                    new byte[][]{bytes("ident"), bytes("host"), bytes("+"), bytes("*")}));
+            check(direct.length == 4 && "Alice:+:*:true".equals(direct[3]),
+                    "Sender available without roster");
+            String[] denied = event(OTHER, "message", "#room", "Alice", "hello");
+            check(denied.length == 4 && "no sender".equals(denied[3]),
+                    "No sender without identity permission");
+            String[] request = collect(NativeLuaRuntime.dispatch(OTHER, "command",
+                    bytes("test-server"), bytes("#room"), bytes("me"), bytes("voice"),
+                    bytes(""), 0L, new byte[0][], new int[0], false, new byte[0][],
+                    false, true, new byte[0][], false));
+            check(request.length == 4 && "query".equals(request[1]) &&
+                    "#room".equals(request[2]) && request[3].startsWith("r\tvoice\t0\t100\t"),
+                    "Query action must carry bounded page request");
+            String[] page = collect(NativeLuaRuntime.dispatch(OTHER, "identity",
+                    bytes("test-server"), bytes("#room"), bytes(""), bytes("r ok 130 100 1"),
+                    bytes("voice"), 0L, new byte[0][], new int[0], false,
+                    new byte[][]{bytes("Alice"), bytes("+"), bytes("ident"), bytes("host"), bytes("*")},
+                    true, true, new byte[0][], false));
+            check(page.length == 4 && "voice:130:100:true:Alice".equals(page[3]),
+                    "Asynchronous result includes page metadata and users");
+            NativeLuaRuntime.unload(OTHER);
+            String lookupScript = "tiarca.identity_v2()\n"
+                    + "tiarca.on('command',function(e) "
+                    + "if e.text=='channels' then tiarca.get_channels('channels') "
+                    + "else tiarca.get_user(e.channel,'Alice','one') end end)\n"
+                    + "tiarca.on('identity',function(e) "
+                    + "if e.query=='channels' then tiarca.log(e.channels[1].name..':'..e.total) "
+                    + "else tiarca.log(e.user.nick..':'..tostring(e.user.account_known)) end end)";
+            check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes(lookupScript)))),
+                    "Point and channel lookup script loads");
+            String[] one = collect(NativeLuaRuntime.dispatch(OTHER, "command", bytes("test-server"),
+                    bytes("#room"), bytes("me"), bytes("one"), bytes(""), 0L,
+                    new byte[0][], new int[0], false, new byte[0][],
+                    false, true, new byte[0][], false));
+            check(one.length == 4 && "query".equals(one[1]) && "u\tone\tAlice".equals(one[3]),
+                    "Point lookup action");
+            String[] oneResult = collect(NativeLuaRuntime.dispatch(OTHER, "identity", bytes("test-server"),
+                    bytes("#room"), bytes(""), bytes("u ok 1 -1 0"), bytes("one"), 0L,
+                    new byte[0][], new int[0], false,
+                    new byte[][]{bytes("Alice"), bytes("+"), bytes("ident"), bytes("host"), bytes("")},
+                    false, true, new byte[0][], false));
+            check(oneResult.length == 4 && "Alice:false".equals(oneResult[3]),
+                    "Point result carries unknown account without treating it as logout");
+            String[] channelRequest = event(OTHER, "command", "", "me", "channels");
+            check(channelRequest.length == 4 && "query".equals(channelRequest[1]) &&
+                    "c\tchannels".equals(channelRequest[3]), "Channel query needs no user consent");
+            String[] channelResult = collect(NativeLuaRuntime.dispatch(OTHER, "identity", bytes("test-server"),
+                    bytes(""), bytes(""), bytes("c ok 1 -1 1"), bytes("channels"), 0L,
+                    new byte[][]{bytes("#room")}, new int[]{1000}, false,
+                    new byte[0][], false, false, new byte[0][], false));
+            check(channelResult.length == 4 && "#room:1".equals(channelResult[3]),
+                    "Channel result uses local list");
+            NativeLuaRuntime.unload(OTHER);
+        }
+
         String source = "local counter = 0\n"
                 + "tiarca.on('message', function(event)\n"
                 + " counter = counter + 1\n"

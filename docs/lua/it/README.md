@@ -3,7 +3,7 @@
 [Indice bilingue](../README.md) · [API](API_REFERENCE.md) · [Eventi](EVENTS.md) · [Permessi](PERMISSIONS.md) · [Esempi](EXAMPLES.md) · [Collector moderazione](MODERATION_COLLECTOR.md) · [AutoMod B](AUTOMOD_B.md)
 
 
-> **Disponibilità:** funzione sperimentale nel branch di sviluppo `main`, **non presente nell'APK stabile v0.9.10**.
+> **Disponibilità:** funzione sperimentale; guida del redesign non ancora integrato della PR #303, **non presente nell'APK stabile v0.9.10**.
 
 ## Il primo script
 
@@ -30,3 +30,7 @@ In una build che include Lua: **Impostazioni → Script Lua (sperimentale)** →
 Leggi [Eventi](EVENTS.md), poi [Riferimento API](API_REFERENCE.md) e [Autorizzazioni](PERMISSIONS.md). Parti dagli [esempi importabili](EXAMPLES.md). Per limiti e dettagli storici consulta [la documentazione tecnica](../../LUA_SCRIPTING_MVP.md).
 
 Per segnalare un'API mancante o un esempio non funzionante, apri una issue indicando commit/build, rete IRC e log privo di dati sensibili.
+
+## Redesign e compatibilità
+
+[Guida migrazione identity v2](MIGRATION.md): API asincrone, legacy, storage, `/lua perf`. Comandi client riservati: help, list, status, log, stop, start, restart, perf; non arrivano agli script.

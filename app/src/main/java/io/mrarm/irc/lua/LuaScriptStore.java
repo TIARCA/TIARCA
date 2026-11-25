@@ -508,14 +508,23 @@ public final class LuaScriptStore {
         }
     }
 
-    /** Storage is read only in the main process and copied to each isolated dispatch. */
+    /** Committed state is cached in the main process, shared across network VMs. */
     synchronized ArrayList<String> storageSnapshot(String id) throws IOException {
-        ArrayList<String> pairs = new ArrayList<>();
-        for (Map.Entry<String, String> entry : storage.read(id).entrySet()) {
-            pairs.add(entry.getKey());
-            pairs.add(entry.getValue());
-        }
-        return pairs;
+        return storage.snapshot(id).pairs();
+    }
+
+    synchronized LuaScriptStorage.Snapshot storageRevision(String id, String server)
+            throws IOException {
+        Script script = find(id);
+        if (script == null || !script.isEnabledOn(server) || !script.allowStorage)
+            throw new IOException("Lua storage permission revoked");
+        return storage.snapshot(id);
+    }
+
+    synchronized boolean commitStorage(String id, String server, long revision, List<String> actions)
+            throws IOException {
+        storageRevision(id, server);
+        return storage.applyBatch(id, revision, actions).version != revision;
     }
 
     synchronized void applyStorage(String id, String server, String operation,
@@ -583,6 +592,7 @@ public final class LuaScriptStore {
         ephemeralLogs.clear();
         ephemeralOutputs.clear();
         for (Script script : previous) storage.delete(script.id);
+        storage.invalidateAll();
         File[] files = directory.listFiles();
         if (files != null)
             for (File f : files)
