@@ -17,7 +17,7 @@ EXPECTED_API = {
 EXPECTED_EVENTS = {
     "connected", "disconnected", "message", "command", "join", "part",
     "quit", "nick", "timer", "kick", "ban", "history", "moderation_log", "identity",
-    "mode", "topic", "own_message",
+    "mode", "topic", "own_message", "account", "chghost",
 }
 
 def links_ok(path: Path, content: str) -> list[str]:
