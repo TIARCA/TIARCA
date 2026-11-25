@@ -23,6 +23,7 @@ final class LuaIdentityQuery {
     final int offset, limit;
     final String nick, ident, host, account, prefix, auth;
     private int pageNumber = 1;
+    private boolean includeState;
 
     private LuaIdentityQuery(String kind, String token, String channel, int offset, int limit,
                              String nick, String ident, String host, String account,
@@ -44,7 +45,8 @@ final class LuaIdentityQuery {
         if ("u".equals(f[0]) && f.length == 3 && valid(f[2], 95) &&
                 !f[2].isEmpty() && f[2].length() <= 64)
             return new LuaIdentityQuery("u", f[1], channel, 0, 1, f[2], "", "", "", "", "");
-        if (!"r".equals(f[0]) || f.length != 10) return null;
+        if (!"r".equals(f[0]) || (f.length != 10 && f.length != 11) ||
+                (f.length == 11 && !"state".equals(f[10]))) return null;
         try {
             int offset = Integer.parseInt(f[2]), limit = Integer.parseInt(f[3]);
             int[] caps = {95, 95, 255, 95, 31, 16};
@@ -54,8 +56,10 @@ final class LuaIdentityQuery {
                     limit > LuaUserSnapshot.MAX_USERS ||
                     !(f[9].isEmpty() || "registered".equals(f[9]) ||
                     "logged_out".equals(f[9]) || "unknown".equals(f[9]))) return null;
-            return new LuaIdentityQuery("r", f[1], channel, offset, limit,
+            LuaIdentityQuery result = new LuaIdentityQuery("r", f[1], channel, offset, limit,
                     f[4], f[5], f[6], f[7], f[8], f[9]);
+            result.includeState = f.length == 11;
+            return result;
         } catch (NumberFormatException invalid) { return null; }
     }
 
@@ -82,13 +86,14 @@ final class LuaIdentityQuery {
                 !channel.equalsIgnoreCase(previous.channel) || !token.equals(previous.token) ||
                 limit != previous.limit || !nick.equals(previous.nick) || !ident.equals(previous.ident) ||
                 !host.equals(previous.host) || !account.equals(previous.account) ||
-                !prefix.equals(previous.prefix) || !auth.equals(previous.auth)) return false;
+                !prefix.equals(previous.prefix) || !auth.equals(previous.auth) || includeState != previous.includeState) return false;
         pageNumber = previous.pageNumber + 1;
         return true;
     }
 
     static final class Result {
         final LuaUserSnapshot users = new LuaUserSnapshot();
+        ArrayList<String> channelState; // null = not requested
         LuaChannelSnapshot channels = LuaChannelSnapshot.empty();
         String status = "ok";
         int total, next = -1;
@@ -154,6 +159,13 @@ final class LuaIdentityQuery {
 
     private Result roster(ServerConnectionData data, ChannelData target) throws Exception {
         Result r = new Result();
+        if (includeState && offset == 0) {
+            r.channelState = new ArrayList<>();
+            for (String[] row : target.snapshotObservedModes(64, 2048)) {
+                if (valid(row[0], 8) && valid(row[1], 512) && valid(row[2], 32))
+                    Collections.addAll(r.channelState, row);
+            }
+        }
         int count = target.getMemberCount();
         List<ChannelData.Member> members = target.getMemberSnapshot(MAX_SCAN);
         r.complete = members.size() == count && data.getIdentityCache().membershipTrackingComplete();
