@@ -42,6 +42,7 @@ public class ServerConnectionData {
     private CapabilityManager capabilityManager = new CapabilityManager(this);
     private final List<ChannelListListener> channelListListeners = new ArrayList<>();
     private final List<ServerNoticeListener> serverNoticeListeners = new ArrayList<>();
+    private final java.util.concurrent.CopyOnWriteArrayList<IdentityObservationListener> identityObservationListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
     private long registrationTimeMillis;
     private BooleanSupplier separateStatusMessageTargetsSupplier = () -> false;
 
@@ -281,6 +282,28 @@ public class ServerConnectionData {
         }
         for (ServerNoticeListener listener : listeners)
             listener.onServerNotice(text);
+    }
+
+    public interface IdentityObservationListener {
+        void onIdentityObservation(String event, String nick, IrcIdentityCache.Identity identity);
+    }
+
+    public void addIdentityObservationListener(IdentityObservationListener listener) {
+        identityObservationListeners.addIfAbsent(listener);
+    }
+
+    public void removeIdentityObservationListener(IdentityObservationListener listener) {
+        identityObservationListeners.remove(listener);
+    }
+
+    public void notifyIdentityObservation(String event, String nick) {
+        if (identityObservationListeners.isEmpty()) return;
+        IrcIdentityCache.Identity identity = identityCache.get(nick);
+        if (identity == null) return;
+        for (IdentityObservationListener listener : identityObservationListeners) {
+            try { listener.onIdentityObservation(event, nick, identity); }
+            catch (RuntimeException ignored) { /* Observers cannot disrupt IRC. */ }
+        }
     }
 
     public interface ServerNoticeListener {

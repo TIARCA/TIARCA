@@ -308,7 +308,10 @@ local function detected(e,id,engine,rule,pct,h,now,c)
  local nextLevel=math.min(5,level+1)
  local label=c.mode=="live" and (level<5 and action(nextLevel) or "escalation") or "monitor"
  tiarca.log(string.format("AutoModV4 %s/%s %s %.1f%% infrazione %d (%s) motore %s",
-  e.server:sub(1,8),e.channel,e.nick,pct,nextLevel,label,engine))
+  e.server:sub(1,8),e.channel,e.nick,pct,nextLevel,label,engine)..
+  string.format(" rule %s score %d threshold %d count %d refs %s",rule,h.score,
+   engine=="A" and c.similarity or 2,engine=="A" and h.rep or h.ads,
+   engine=="A" and ((h.r2 or "-")..","..(h.r1 or "-")) or (h.a1 or "-")))
  tiarca.log(string.format("WatchdogV4 %s %s/%s %s %s score=%d",
   engine,e.server:sub(1,8),e.channel,e.nick,rule,h.score))
  if c.mode~="live" then return end
@@ -346,12 +349,13 @@ tiarca.on("message",function(e)
  end
  local h=getWatch(id,e.channel,now,window)
  h.last=now
- if h.adAt>0 and now-h.adAt>window then h.ads=0 end
- if h.refAt>0 and now-h.refAt>window then h.rep=0;h.ref=nil end
+ if h.adAt>0 and now-h.adAt>window then h.ads=0;h.a1=nil end
+ if h.refAt>0 and now-h.refAt>window then h.rep=0;h.ref=nil;h.r1=nil;h.r2=nil end
  if kind=="ad" and c.b then
   h.score=h.score+1;h.ads=h.ads+1;h.adAt=now
   if h.ads>=2 and h.score>=2 then
    detected(e,id,"B",rule,100,h,now,c) end
+  h.a1=e.source_id
  elseif kind=="normal" and c.a then
   local s=normalize(e.text or "")
   if #words(s)<c.minwords then
@@ -364,8 +368,9 @@ tiarca.on("message",function(e)
    h.rep=h.rep+1;h.ref=s;h.refAt=now;h.credited=false
    if h.rep>=3 and h.score>=3 then
     detected(e,id,"A","SIMILAR",pct,h,now,c) end
+   h.r2=h.r1;h.r1=e.source_id
   else
-   h.ref=s;h.refAt=now;h.rep=1
+   h.ref=s;h.refAt=now;h.rep=1;h.r1=e.source_id;h.r2=nil
    h.credited=h.score>-c.credit
    h.score=math.max(-c.credit,h.score-1)
   end

@@ -56,6 +56,12 @@ public class LuaAutoModReportTest {
         assertTrue(generic.contains("MUTE TEMPORANEO"));
     }
 
+    @Test public void v4EvidenceSuffixDoesNotChangeTheNotice() {
+        String report = "AutoModV4 test-ser/#room Nick-2 75.0% infrazione 3 (tmute) motore A";
+        assertEquals(render(report), render(report + " rule SIMILAR score 3 threshold 75 count 3 refs 00000000-0000-0000-0000-000000000000:1,00000000-0000-0000-0000-000000000000:2"));
+        assertNull(render(report + " rule INVALID! score 3 threshold 75 count 3 refs -"));
+    }
+
     @Test public void unrelatedOrForgedLogsAreNotInjectedIntoServerTab() {
         assertNull(render("AutoMod: storico persistente pieno"));
         assertNull(render("Other script called moderation"));

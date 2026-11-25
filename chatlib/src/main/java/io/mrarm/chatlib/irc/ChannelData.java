@@ -240,6 +240,55 @@ public class ChannelData {
         }
     }
 
+    /**
+     * Bounded snapshot of locally observed public channel modes. This is not
+     * proof of a complete IRC list (no new server request). Never returns keys
+     * or other potentially secret value-mode parameters.
+     */
+    public synchronized List<String[]> snapshotObservedModes(int maxRows, int maxBytes) {
+        List<String[]> rows = new ArrayList<>();
+        int remaining = Math.max(0, Math.min(maxBytes, 4096));
+        int limit = Math.max(0, Math.min(maxRows, 128));
+        if (modesFlag != null) {
+            for (char flag : modesFlag.toString().toCharArray()) {
+                if (rows.size() >= limit || remaining < 32) return rows;
+                rows.add(new String[]{"+" + flag, "", "FLAG"});
+                remaining -= 32;
+            }
+        }
+        if (modesList != null) {
+            for (Map.Entry<Character, Set<String>> entry : modesList.entrySet()) {
+                for (String value : entry.getValue()) {
+                    if (value == null) continue;
+                    int bytes = value.getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+                    if (bytes > 512) continue;
+                    if (rows.size() >= limit || remaining < bytes + 32) return rows;
+                    if (entry.getKey() == 'k') continue;
+                    rows.add(new String[]{"+" + entry.getKey(), value, "LIST"});
+                    remaining -= bytes + 32;
+                }
+            }
+        }
+        if (modesValueExactUnset != null) {
+            for (char flag : modesValueExactUnset.keySet()) {
+                if (rows.size() >= limit || remaining < 32) return rows;
+                rows.add(new String[]{"+" + flag, "", "redacted"});
+                remaining -= 32;
+            }
+        }
+        if (modesValue != null) {
+            for (char flag : modesValue.keySet()) {
+                if (rows.size() >= limit || remaining < 32) return rows;
+                // Only expose a known nonsecret numeric channel limit.
+                String value = modesValue.get(flag);
+                boolean safe = flag == 'l' && value != null && value.matches("[0-9]{1,10}");
+                rows.add(new String[]{"+" + flag, safe ? value : "", safe ? "VALUE" : "redacted"});
+                remaining -= 32;
+            }
+        }
+        return rows;
+    }
+
     public Map<Character, Set<String>> getListModes() {
         synchronized (this) {
             return modesList;

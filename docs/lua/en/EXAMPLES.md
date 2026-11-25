@@ -11,6 +11,7 @@ These are UTF-8 files for manual import, **not** automatically installed plugins
 | [automod_v4.lua](../../lua-examples/automod_v4.lua) | Watchdog + Mod v2; default monitor, zero channels | Identities, persistence; send and moderation for live |
 | [espelli.lua](../../lua-examples/espelli.lua) | Manual kick: host-scoped `N:` and `m:U:` TBAN for 6h, nick/account bans; no global +N | Identities, moderation; OP |
 | [mask_finder.lua](../../lua-examples/mask_finder.lua) | Search nicknames, idents and hosts | Channel members and identities |
+| [harvester.lua](../../lua-examples/harvester.lua) | [Harvester V1 draft](../../lua-examples/HARVESTER.md): normalized passive journal | Identities and persistence; no send or moderation |
 | [moderation_collector.lua](../../lua-examples/moderation_collector.lua) | Record moderation events to JSONL | Identities and persistence |
 
 ### Minimal copyable example
@@ -29,4 +30,4 @@ Import, enable on the intended network, and type `/lua my-help`. Output is local
 
 ### AutoMod V4
 
-Import on redesign build. `/lua mod canali add #channel`, `/lua mod stato`, `/lua mod help`; verify monitor before `/lua mod modo live`. Whitelist: `/lua mod whitelist add NICK` from monitored channel; add `#channel` from server tab with multiple channels. Verified account required. Live escalation: private warning, 2m mute, 15m mute, kick+3h mute, kick+24h ban. `/lua mod close` closes script-owned PVTs; #302 multi-selection separate. Do not run multiple AutoMods together; no automatic migration from older scripts. [V2 examples](MIGRATION.md).
+Import on redesign build. `/lua mod canali add #channel`, `/lua mod stato`, `/lua mod help`; verify monitor before `/lua mod modo live`. Whitelist: `/lua mod whitelist add NICK` from monitored channel; add `#channel` from server tab with multiple channels. Verified account required. Live escalation: private warning, 2m mute, 15m mute, kick+3h mute, kick+24h ban. `/lua mod close` opens the Android private-tab selection across networks, preselecting recognized AutoMod tabs; select/deselect all is available. Do not run multiple AutoMods together; no automatic migration from older scripts. [V2 examples](MIGRATION.md).

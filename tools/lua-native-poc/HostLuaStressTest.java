@@ -19,6 +19,7 @@ public final class HostLuaStressTest {
     private static final byte[][] EMPTY = new byte[0][];
     private static final int[] COUNTS = new int[0];
     private static final long T = 1794400000L;
+    private static long observations;
     private static byte[] b(String s) { return NativeLuaRuntime.utf8(s); }
     private static String s(byte[] b) { return NativeLuaRuntime.decode(b); }
     private static void check(boolean ok, String message) {
@@ -40,9 +41,10 @@ public final class HostLuaStressTest {
     }
     private static byte[][] run(String kind, byte[] nick, String text, long time,
                                byte[][] sender, byte[][] storage, long revision) {
-        byte[][] result = NativeLuaRuntime.dispatchVersioned(ID, kind, b(SERVER),
+        byte[][] result = NativeLuaRuntime.dispatchWithMetadata(ID, kind, b(SERVER),
                 b("#room"), nick, b(text), b("normal"), time, EMPTY, COUNTS,
-                false, EMPTY, false, true, storage, true, sender, revision);
+                false, EMPTY, false, true, storage, true, sender, revision,
+                b("message".equals(kind) ? SERVER + ":" + (++observations) : ""), EMPTY, null);
         check(result != null && result.length >= 1 && "OK".equals(s(result[0])),
                 "Runtime failed: " + (result == null ? "null" : s(result[0])));
         return result;

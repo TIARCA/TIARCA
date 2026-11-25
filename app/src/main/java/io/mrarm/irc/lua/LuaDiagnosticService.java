@@ -31,6 +31,9 @@ public final class LuaDiagnosticService extends Service {
     public static final String EXTRA_MESSAGE_TYPE = "message_type";
     public static final String EXTRA_HISTORY_IDENT = "history_ident";
     public static final String EXTRA_SENDER = "sender";
+    public static final String EXTRA_ROSTER_REALNAMES = "roster_realnames";
+    public static final String EXTRA_CHANNEL_STATE = "channel_state";
+    public static final String EXTRA_SOURCE_ID = "source_id";
     public static final String EXTRA_HISTORY_HOST = "history_host";
     public static final String EXTRA_TIME = "time";
     public static final String EXTRA_CHANNEL_NAMES = "channel_names";
@@ -242,7 +245,9 @@ public final class LuaDiagnosticService extends Service {
                                 "quit".equals(event) || "nick".equals(event) ||
                                 "timer".equals(event) || "kick".equals(event) ||
                                 "ban".equals(event) || "history".equals(event) ||
-                                "moderation_log".equals(event) || "identity".equals(event))) {
+                                "moderation_log".equals(event) || "identity".equals(event) ||
+                                "mode".equals(event) || "topic".equals(event) || "own_message".equals(event) ||
+                                "account".equals(event) || "chghost".equals(event) || "journal_status".equals(event))) {
                     status = "ERROR: invalid event";
                 } else if (names == null || memberCounts == null ||
                         names.size() != memberCounts.length ||
@@ -308,10 +313,10 @@ public final class LuaDiagnosticService extends Service {
                                         };
                                     } else {
                                         String[] sender = request.getStringArray(EXTRA_SENDER);
-                                        if (sender != null && sender.length == 4) {
-                                            int[] caps = {95, 255, 31, 95};
-                                            observedIdentity = new byte[4][];
-                                            for (int i = 0; i < 4; i++) {
+                                        if (sender != null && (sender.length == 4 || sender.length == 5)) {
+                                            int[] caps = {95, 255, 31, 95, 257};
+                                            observedIdentity = new byte[sender.length][];
+                                            for (int i = 0; i < sender.length; i++) {
                                                 if (!LuaIdentityQuery.valid(sender[i], caps[i])) {
                                                     observedIdentity = new byte[0][];
                                                     break;
@@ -321,8 +326,27 @@ public final class LuaDiagnosticService extends Service {
                                         }
                                     }
                                 }
+                                java.util.ArrayList<String> namesExtra = request.getStringArrayList(EXTRA_ROSTER_REALNAMES);
+                                byte[][] rosterRealnames = new byte[0][];
+                                if (request.getBoolean(EXTRA_CAN_READ_USERS, false) && namesExtra != null &&
+                                        namesExtra.size() == members.size() / LuaUserSnapshot.FIELDS && !namesExtra.isEmpty()) {
+                                    rosterRealnames = new byte[namesExtra.size()][];
+                                    for (int i = 0; i < namesExtra.size(); i++)
+                                        rosterRealnames[i] = NativeLuaRuntime.utf8(LuaIdentityQuery.valid(namesExtra.get(i), 257) ? namesExtra.get(i) : "");
+                                }
+                                java.util.ArrayList<String> modeFields = request.getStringArrayList(EXTRA_CHANNEL_STATE);
+                                byte[][] channelState = null;
+                                if ("identity".equals(event) && request.getBoolean(EXTRA_CAN_READ_USERS, false) &&
+                                        modeFields != null && modeFields.size() <= 64 * 3 && modeFields.size() % 3 == 0) {
+                                    channelState = new byte[modeFields.size()][];
+                                    int[] caps = {8, 512, 32};
+                                    for (int i = 0; i < modeFields.size(); i++) {
+                                        if (!LuaIdentityQuery.valid(modeFields.get(i), caps[i%3])) { channelState = null; break; }
+                                        channelState[i] = NativeLuaRuntime.utf8(modeFields.get(i));
+                                    }
+                                }
                                 long nativeStart = System.nanoTime();
-                                byte[][] nativeActions = NativeLuaRuntime.dispatchVersioned(runtimeId, event,
+                                byte[][] nativeActions = NativeLuaRuntime.dispatchWithMetadata(runtimeId, event,
                                         NativeLuaRuntime.utf8(server), NativeLuaRuntime.utf8(channel),
                                         NativeLuaRuntime.utf8(nick), NativeLuaRuntime.utf8(text),
                                         NativeLuaRuntime.utf8(messageType), request.getLong(EXTRA_TIME),
@@ -332,7 +356,8 @@ public final class LuaDiagnosticService extends Service {
                                         request.getBoolean(EXTRA_USERS_TRUNCATED, false),
                                         request.getBoolean(EXTRA_CAN_READ_USERS, false),
                                         storagePairs, canStore,
-                                        observedIdentity, storageVersion);
+                                        observedIdentity, storageVersion,
+                                        NativeLuaRuntime.utf8(request.getString(EXTRA_SOURCE_ID, "")), rosterRealnames, channelState);
                                 request.putLong(EXTRA_NATIVE_NANOS, System.nanoTime() - nativeStart);
                         if (nativeActions == null || nativeActions.length < 1 ||
                                 (nativeActions.length - 1) % 3 != 0 ||

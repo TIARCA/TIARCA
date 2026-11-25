@@ -9,7 +9,7 @@ final class LuaEngineMetrics {
         STALE_INPUT, PREPARED, SLOT_FULL, DISPATCH_REJECTED, CANCELLED_SLOTS,
         IPC_SENT, IPC_FAILED, REPLIED, CALLBACK_FAILED, COMPLETED, EFFECTS_SKIPPED,
         ROSTER_CAPTURE, ROSTER_ROWS, IDENTITY_QUERY, STORAGE_SNAPSHOT,
-        STORAGE_TRANSACTION, STORAGE_WRITE, STORAGE_NOOP, STORAGE_FAILURE
+        STORAGE_TRANSACTION, STORAGE_WRITE, STORAGE_NOOP, STORAGE_FAILURE, JOURNAL_WRITE, JOURNAL_FAILURE
     }
 
     private final long[] counts = new long[Count.values().length];
@@ -69,6 +69,7 @@ final class LuaEngineMetrics {
                     + "; scritture riuscite " + c(Count.STORAGE_WRITE) + "; no-op " + c(Count.STORAGE_NOOP)
                     + "; errori " + c(Count.STORAGE_FAILURE),
             "Storage media/max: " + storage.display(),
+            "Journal: scritture " + c(Count.JOURNAL_WRITE) + "; errori " + c(Count.JOURNAL_FAILURE),
             "Allocazioni Lua (byte): ultimo campione " + (memory < 0 ? "n/d" : memory)
                     + "; massimo campionato " + (peak < 0 ? "n/d" : peak)
         };

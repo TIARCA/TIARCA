@@ -16,6 +16,7 @@ public final class ChghostCapability extends Capability {
                        String command, List<String> params, Map<String, String> tags) {
         if (sender == null || params.size() < 2) return;
         connection.getIdentityCache().changeHost(sender.getNick(), params.get(0), params.get(1));
+        connection.notifyIdentityObservation("chghost", sender.getNick());
         if (sender.getNick().equalsIgnoreCase(connection.getUserNick()))
             connection.setUserExtraInfo(params.get(0), params.get(1));
     }

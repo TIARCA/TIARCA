@@ -119,12 +119,13 @@ public class MessageCommandHandler implements CommandHandler {
         ChannelData.Member member = channel == null || userUUID == null ? null :
                 channel.getMember(userUUID);
         IrcIdentityCache.Identity identity = connection.getIdentityCache().get(sender.getNick());
-        String account = identity != null && sender.getUser() != null && sender.getHost() != null &&
-                sender.getUser().equals(identity.ident) && sender.getHost().equalsIgnoreCase(identity.host) &&
-                identity.accountKnown ? (identity.account == null ? "*" : identity.account) : null;
+        boolean sameMask = identity != null && sender.getUser() != null && sender.getHost() != null &&
+                sender.getUser().equals(identity.ident) && sender.getHost().equalsIgnoreCase(identity.host);
+        String account = sameMask && identity.accountKnown ? (identity.account == null ? "*" : identity.account) : null;
+        String realname = sameMask ? identity.realname : null;
         return new MessageSenderInfo(sender.getNick(), sender.getUser(), sender.getHost(),
                 member == null ? null : member.getNickPrefixes(), userUUID, automated,
-                true, member != null, account);
+                true, member != null, account, realname);
     }
 
     private boolean isAutomatedSender(ServerConnectionData connection, MessagePrefix sender,

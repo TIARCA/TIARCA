@@ -11,6 +11,7 @@ Gli esempi sono file UTF-8 da importare manualmente: **non** sono plugin install
 | [automod_v4.lua](../../lua-examples/automod_v4.lua) | Watchdog + Mod v2; monitor predefinito, zero canali | Identità, persistenza; invio e moderazione per live |
 | [espelli.lua](../../lua-examples/espelli.lua) | Espulsione manuale: TBAN host `N:` e `m:U:` per 6h, KICK e ban nick/account; senza +N globale | Membri e identità, moderazione; OP |
 | [mask_finder.lua](../../lua-examples/mask_finder.lua) | Cerca nickname, ident e host | Membri e identità |
+| [harvester.lua](../../lua-examples/harvester.lua) | [Harvester V1 in bozza](../../lua-examples/HARVESTER.md): raccolta passiva normalizzata | Identità e persistenza; nessun invio o moderazione |
 | [moderation_collector.lua](../../lua-examples/moderation_collector.lua) | Registra eventi di moderazione in JSONL | Identità e persistenza |
 
 ### Esempio minimale copiabile
@@ -29,4 +30,4 @@ Importa, abilita sulla rete desiderata e digita `/lua help-mio`. Il log è local
 
 ### AutoMod V4
 
-Importa con build redesign. `/lua mod canali add #canale`, `/lua mod stato`, `/lua mod help`; verifica monitor prima di `/lua mod modo live`. Whitelist: `/lua mod whitelist add NICK` dal canale monitorato; dalla scheda server con più canali aggiungi `#canale`. Account verificato richiesto. Scala live: avviso PVT, mute 2m, mute 15m, kick+mute 3h, kick+ban 24h. `/lua mod close` chiude PVT dello script; selezione multipla #302 separata. Non attivare più AutoMod insieme; niente migrazione automatica dai vecchi script. [Esempi v2](MIGRATION.md).
+Importa con build redesign. `/lua mod canali add #canale`, `/lua mod stato`, `/lua mod help`; verifica monitor prima di `/lua mod modo live`. Whitelist: `/lua mod whitelist add NICK` dal canale monitorato; dalla scheda server con più canali aggiungi `#canale`. Account verificato richiesto. Scala live: avviso PVT, mute 2m, mute 15m, kick+mute 3h, kick+ban 24h. `/lua mod close` apre la selezione multipla dei PVT su tutte le reti, preselezionando quelli riconosciuti come AutoMod; disponibili seleziona/deseleziona tutto. Non attivare più AutoMod insieme; niente migrazione automatica dai vecchi script. [Esempi v2](MIGRATION.md).

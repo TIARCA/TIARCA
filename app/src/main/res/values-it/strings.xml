@@ -1183,4 +1183,10 @@
     <string name="operator_composer_ident">Ident</string>
     <string name="operator_composer_host">Host</string>
     <string name="operator_composer_country_invalid">Inserisci un codice paese ISO di due lettere (es. IT).</string>
+    <string name="lua_close_pvt_title">Chiudi conversazioni private</string>
+    <string name="lua_close_pvt_empty">Nessuna conversazione privata aperta</string>
+    <string name="lua_close_pvt_select_all">Seleziona tutto</string>
+    <string name="lua_close_pvt_deselect_all">Deseleziona tutto</string>
+    <string name="lua_close_pvt_selected">Chiudi selezionati</string>
+    <string name="lua_close_pvt_result">PVT chiusi: %1$d; non chiusi: %2$d</string>
 </resources>

@@ -88,11 +88,29 @@ public class LuaIdentityQueryTest {
         MessageSenderInfo original = new MessageSenderInfo("Alice", "ident", "host",
                 new NickPrefixList("+"), id, false, true, true, "oldAccount");
         data.getIdentityCache().note("Alice", null, null, "newAccount");
-        assertArrayEquals(new String[]{"ident", "host", "+", "oldAccount"},
+        assertArrayEquals(new String[]{"ident", "host", "+", "oldAccount", ""},
                 LuaIdentityQuery.sender(data, "#room", original));
         assertNull(LuaIdentityQuery.sender(data, "#private", original));
         assertEquals("not_observed", LuaIdentityQuery.parse("#room", "u\ttoken\tNobody")
                 .execute(data).status);
+    }
+
+    @Test public void snapshotModesAreExplicitAndNeverExposeKeys() throws Exception {
+        ServerConnectionData data = new ServerConnectionData();
+        data.setUserInfoApi(new SimpleUserInfoApi());
+        data.onChannelJoined("#room");
+        ChannelData room = data.getJoinedChannelData("#room");
+        room.setFlagMode('n', true);
+        room.addListMode('b', "*!*@bad.example");
+        room.setValueExactUnsetMode('k', "SECRET");
+        LuaIdentityQuery.Result result = LuaIdentityQuery.parse("#room",
+                roster(0, 8, "", "") + "\tstate").execute(data);
+        assertNotNull(result.channelState);
+        assertTrue(result.channelState.contains("+n"));
+        assertTrue(result.channelState.contains("*!*@bad.example"));
+        assertTrue(result.channelState.contains("redacted"));
+        assertFalse(result.channelState.contains("SECRET"));
+        assertNull(LuaIdentityQuery.parse("#room", roster(0, 8, "", "")).execute(data).channelState);
     }
 
     @Test public void unknownAccountDoesNotBecomeLoggedOut() throws Exception {
@@ -159,7 +177,7 @@ public class LuaIdentityQueryTest {
         assertTrue(original.hasLiveIdentityObservation());
         assertTrue(original.wasLiveChannelMember());
         data.getIdentityCache().note("Alice", null, null, "*");
-        assertArrayEquals(new String[]{"ident", "host", "", "oldAccount"},
+        assertArrayEquals(new String[]{"ident", "host", "", "oldAccount", "1Alice"},
                 LuaIdentityQuery.sender(data, "#room", original));
     }
 }

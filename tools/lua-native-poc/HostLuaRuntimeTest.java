@@ -218,7 +218,99 @@ public final class HostLuaRuntimeTest {
         automodActive = false;
     }
 
+    private static String harvesterLine(String[] response) {
+        check("OK".equals(response[0]), "Harvester callback: " + java.util.Arrays.toString(response));
+        for (int i = 1; i < response.length; i += 3) {
+            if ("journal".equals(response[i])) return response[i+2];
+        }
+        throw new AssertionError("Expected Harvester journal action");
+    }
+
+    private static String[] harvesterEvent(String event, String nick, String text, String kind,
+            long time, byte[][] sender, byte[][] roster, byte[][] realnames, byte[][] state, String source) {
+        return collect(NativeLuaRuntime.dispatchWithMetadata(OTHER, event, bytes("test-server"),
+                bytes("#room"), bytes(nick), bytes(text), bytes(kind), time,
+                new byte[0][], new int[0], false, roster, false, true,
+                automodSnapshot(), true, sender, 0, bytes(source), realnames, state));
+    }
+
+    private static void checkHarvester() throws Exception {
+        byte[] script = Files.readAllBytes(Path.of("docs/lua-examples/harvester.lua"));
+        check(script.length <= 24576, "Harvester source quota");
+        automodStorage.clear();
+        automodActive = true;
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, script))), "Harvester loads");
+        long t = 1794400000L;
+        check(v4Event("message", "Mario", "before opt in", t, "", "*").length == 1,
+                "Harvester starts OFF");
+        check("OK".equals(v4Event("command", "me", "harvester add #room", t, null, "")[0]),
+                "Harvester explicit channel");
+        check("OK".equals(v4Event("command", "me", "harvester on", t, null, "")[0]),
+                "Harvester start");
+        byte[][] empty = new byte[0][];
+        String[] rosterReply = harvesterEvent("identity", "", "r ok 1 -1 1", "harv-1-1", t,
+                empty, new byte[][]{bytes("Initial"),bytes("@"),bytes("otherident"),bytes("other.host"),bytes("acct")},
+                new byte[][]{bytes("1Initial Name")}, new byte[][]{bytes("+b"),bytes("*!*@bad.host"),bytes("LIST")}, "");
+        String snapshot = java.util.Arrays.toString(rosterReply);
+        check("OK".equals(rosterReply[0]) && snapshot.contains("snapshot_modes") &&
+                snapshot.contains("bad.host") && snapshot.contains("Initial Name") &&
+                snapshot.contains("snapshot_end"), "Snapshot includes cached public modes and roster realname");
+        String first = harvesterLine(v4Event("message", "Mario", "hello \"world\"", t+1, "+", "*"));
+        String second = harvesterLine(v4Event("message", "Mario", "hello \"world\"", t+2, "+", "*"));
+        check(first.contains("\"type\":\"message\"") && first.contains("\"defs\"") &&
+                first.contains("host.example") && first.contains("hello \\\"world\\\""),
+                "First message includes identity definitions and escaped text");
+        check(second.contains("\"type\":\"message\"") && !second.contains("\"defs\"") &&
+                !second.contains("host.example"), "Repeated identity is not serialized again");
+        check(!first.equals(second), "Identical utterances remain separate records");
+        String third = harvesterLine(v4Event("message", "Other", "hi", t+3, "", "*"));
+        check(third.contains("\"defs\"") && !third.contains("host.example") &&
+                !third.contains("\"ident\",\"ident\""), "Field dictionaries shared by distinct identities");
+        String[] privateEvent = collect(NativeLuaRuntime.dispatchWithIdentity(OTHER, "message",
+                bytes("test-server"), bytes("privateNick"), bytes("Mario"), bytes("private text"),
+                bytes("normal"), t+4, new byte[0][], new int[0], false, new byte[0][], false, true,
+                automodSnapshot(), true, new byte[][]{bytes("ident"),bytes("host.example"),bytes(""),bytes("*")}));
+        check(privateEvent.length == 1, "No private conversation collection");
+        byte[][] namedSender = {bytes("ident"),bytes("host.example"),bytes("+"),bytes("*"),bytes("1Common Realname")};
+        String source = "00000000-0000-0000-0000-000000000000:1";
+        String own = harvesterLine(harvesterEvent("own_message","Mario","own message","normal",
+                t+4,namedSender,empty,empty,null,source));
+        check(own.contains("\"own\":true") && own.contains("Common Realname") && own.contains("source_session") && own.contains("\"source_id\":["),
+                "Own message has source ID and normalized realname");
+        String changed = harvesterLine(harvesterEvent("account","Mario","","",t+4,
+                new byte[][]{bytes("ident"),bytes("host.example"),bytes(""),bytes("registered"),bytes("1Common Realname")},
+                empty,empty,null,""));
+        check(changed.contains("\"type\":\"account\"") && changed.contains("registered") &&
+                !changed.contains("Common Realname"), "Account change reuses realname dictionary");
+        String mode = harvesterLine(harvesterEvent("mode","Op","m:*!*@bad.host","-b:LIST",t+4,
+                empty,empty,empty,null,""));
+        check(mode.contains("\"action\":\"unmute\""), "Mode removal classified exactly once");
+        String decision = harvesterLine(harvesterEvent("moderation_log","Mario",
+                "AutoModV4 test-ser/#room Mario 75.0% infrazione 2 (tmute) motore A rule SIMILAR score 3 threshold 75 count 3 refs -,-",
+                "automod_v4.lua",t+4,empty,empty,empty,null,source));
+        check(decision.contains("\"rule\":\"SIMILAR\"") && decision.contains("\"threshold\":75") &&
+                decision.contains("\"source_id\":[") && !decision.contains("source_session"), "Decision reuses actual triggering source ID and parameters");
+        check(java.util.Arrays.toString(v4Event("command","me","harvester stats",t+4,null,"")).contains("jstats"),
+                "Stats requests host disk counters");
+        check("OK".equals(harvesterEvent("journal_status","","append_failed","error",t+4,empty,empty,empty,null,"")[0]),
+                "Journal failure is handled without recursive write");
+        String recovery = harvesterLine(v4Event("message","Mario","after failed append",t+4,"+","*"));
+        check(recovery.contains("\"disk_gap\":1") && recovery.contains("\"defs\""), "New segment after disk error");
+        NativeLuaRuntime.unload(OTHER);
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, script))), "Harvester reload");
+        String after = harvesterLine(v4Event("message", "Mario", "after restart", t+5, "+", "*"));
+        check(after.contains("\"epoch\":2") && after.contains("\"defs\""),
+                "Persisted activation and new epoch with self-contained definitions after reload");
+        check("OK".equals(v4Event("command", "me", "harvester off", t+6, null, "")[0]), "Harvester stop");
+        check(v4Event("message", "Mario", "after stop", t+7, "", "*").length == 1,
+                "No journal when off");
+        NativeLuaRuntime.unload(OTHER);
+        automodStorage.clear();
+        automodActive = false;
+    }
+
     public static void main(String[] args) throws Exception {
+        checkHarvester();
         checkStorageRevisions();
         checkV4Identity();
         // Read subscriptions from the actual loaded VM, not Lua source text.
@@ -230,7 +322,7 @@ public final class HostLuaRuntimeTest {
                 "Only command is registered, not message or timer");
         String[] allEvents = {"message", "connected", "disconnected", "command",
                 "join", "part", "quit", "nick", "timer", "kick", "ban", "history",
-                "moderation_log", "identity"};
+                "moderation_log", "identity", "mode", "topic", "own_message", "account", "chghost", "journal_status"};
         for (int i = 0; i < allEvents.length; i++) {
             check("OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes(
                     "tiarca.on('" + allEvents[i] + "', function(e) end)")))),

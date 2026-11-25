@@ -23,6 +23,7 @@ final class LuaIdentityQuery {
     final int offset, limit;
     final String nick, ident, host, account, prefix, auth;
     private int pageNumber = 1;
+    private boolean includeState;
 
     private LuaIdentityQuery(String kind, String token, String channel, int offset, int limit,
                              String nick, String ident, String host, String account,
@@ -44,7 +45,8 @@ final class LuaIdentityQuery {
         if ("u".equals(f[0]) && f.length == 3 && valid(f[2], 95) &&
                 !f[2].isEmpty() && f[2].length() <= 64)
             return new LuaIdentityQuery("u", f[1], channel, 0, 1, f[2], "", "", "", "", "");
-        if (!"r".equals(f[0]) || f.length != 10) return null;
+        if (!"r".equals(f[0]) || (f.length != 10 && f.length != 11) ||
+                (f.length == 11 && !"state".equals(f[10]))) return null;
         try {
             int offset = Integer.parseInt(f[2]), limit = Integer.parseInt(f[3]);
             int[] caps = {95, 95, 255, 95, 31, 16};
@@ -54,8 +56,10 @@ final class LuaIdentityQuery {
                     limit > LuaUserSnapshot.MAX_USERS ||
                     !(f[9].isEmpty() || "registered".equals(f[9]) ||
                     "logged_out".equals(f[9]) || "unknown".equals(f[9]))) return null;
-            return new LuaIdentityQuery("r", f[1], channel, offset, limit,
+            LuaIdentityQuery result = new LuaIdentityQuery("r", f[1], channel, offset, limit,
                     f[4], f[5], f[6], f[7], f[8], f[9]);
+            result.includeState = f.length == 11;
+            return result;
         } catch (NumberFormatException invalid) { return null; }
     }
 
@@ -82,13 +86,14 @@ final class LuaIdentityQuery {
                 !channel.equalsIgnoreCase(previous.channel) || !token.equals(previous.token) ||
                 limit != previous.limit || !nick.equals(previous.nick) || !ident.equals(previous.ident) ||
                 !host.equals(previous.host) || !account.equals(previous.account) ||
-                !prefix.equals(previous.prefix) || !auth.equals(previous.auth)) return false;
+                !prefix.equals(previous.prefix) || !auth.equals(previous.auth) || includeState != previous.includeState) return false;
         pageNumber = previous.pageNumber + 1;
         return true;
     }
 
     static final class Result {
         final LuaUserSnapshot users = new LuaUserSnapshot();
+        ArrayList<String> channelState; // null = not requested
         LuaChannelSnapshot channels = LuaChannelSnapshot.empty();
         String status = "ok";
         int total, next = -1;
@@ -146,7 +151,7 @@ final class LuaIdentityQuery {
         }
         String[] row = entry(data, member, observed);
         if (row == null) return unavailable();
-        Collections.addAll(r.users.fields, row);
+        addRow(r.users, row);
         r.total = 1;
         r.complete = !row[2].isEmpty() && !row[3].isEmpty() && !row[4].isEmpty();
         return r;
@@ -154,6 +159,13 @@ final class LuaIdentityQuery {
 
     private Result roster(ServerConnectionData data, ChannelData target) throws Exception {
         Result r = new Result();
+        if (includeState && offset == 0) {
+            r.channelState = new ArrayList<>();
+            for (String[] row : target.snapshotObservedModes(64, 2048)) {
+                if (valid(row[0], 8) && valid(row[1], 512) && valid(row[2], 32))
+                    Collections.addAll(r.channelState, row);
+            }
+        }
         int count = target.getMemberCount();
         List<ChannelData.Member> members = target.getMemberSnapshot(MAX_SCAN);
         r.complete = members.size() == count && data.getIdentityCache().membershipTrackingComplete();
@@ -176,7 +188,7 @@ final class LuaIdentityQuery {
                 .thenComparing(row -> row[0]));
         r.total = matches.size();
         int end = Math.min(r.total, offset + limit);
-        for (int i = offset; i < end; i++) Collections.addAll(r.users.fields, matches.get(i));
+        for (int i = offset; i < end; i++) addRow(r.users, matches.get(i));
         if (end < r.total) r.next = end;
         r.users.truncated = r.next >= 0 || !r.complete;
         if (target.getMemberCount() != count) {
@@ -208,12 +220,18 @@ final class LuaIdentityQuery {
         return unknown ? -1 : 1;
     }
 
+    private static void addRow(LuaUserSnapshot users, String[] row) {
+        for (int i = 0; i < LuaUserSnapshot.FIELDS; i++) users.fields.add(row[i]);
+        users.realnames.add(row[5]);
+    }
+
     private static String[] entry(ServerConnectionData data, ChannelData.Member member, String nick) {
         if (nick == null || nick.isEmpty() || !valid(nick, 95)) return null;
         String prefix = member.getNickPrefixes() == null ? "" : safe(member.getNickPrefixes().toString(), 31);
         IrcIdentityCache.Identity i = data.getIdentityCache().get(nick);
         return new String[]{nick, prefix, i == null ? "" : safe(i.ident, 95),
-                i == null ? "" : safe(i.host, 255), account(i)};
+                i == null ? "" : safe(i.host, 255), account(i),
+                i != null && valid(i.realname, 256) ? "1" + i.realname : ""};
     }
 
     /** Capture the actual message's immutable sender fields before posting to the worker. */
@@ -224,11 +242,16 @@ final class LuaIdentityQuery {
                     !data.getSupportList().getSupportedChannelTypes().contains(channel.charAt(0))) return null;
             ChannelData target = data.getJoinedChannelData(channel);
             String ident = safe(sender.getUser(), 95), host = safe(sender.getHost(), 255);
+            IrcIdentityCache.Identity observed = data.getIdentityCache().get(sender.getNick());
+            String realname = observed != null && observed.realname != null && !ident.isEmpty() && !host.isEmpty() &&
+                    ident.equals(observed.ident) && host.equalsIgnoreCase(observed.host) &&
+                    valid(observed.realname, 256) ? "1" + observed.realname : "";
             if (sender.hasLiveIdentityObservation()) {
                 if (!sender.wasLiveChannelMember()) return null;
                 String prefix = sender.getNickPrefixes() == null ? "" :
                         safe(sender.getNickPrefixes().toString(), 31);
-                return new String[]{ident, host, prefix, safe(sender.getObservedAccount(), 95)};
+                return new String[]{ident, host, prefix, safe(sender.getObservedAccount(), 95),
+                        valid(sender.getObservedRealname(), 256) ? "1" + sender.getObservedRealname() : ""};
             }
             ChannelData.Member member = target.getMember(sender.getUserUUID());
             if (member == null) return null; // Never imply an absent user's privilege is known.
@@ -238,7 +261,7 @@ final class LuaIdentityQuery {
             String prefix = sender.getNickPrefixes() == null ?
                     (member.getNickPrefixes() == null ? "" : safe(member.getNickPrefixes().toString(), 31)) :
                     safe(sender.getNickPrefixes().toString(), 31);
-            return new String[]{ident, host, prefix, acct};
+            return new String[]{ident, host, prefix, acct, realname};
         } catch (Exception unavailable) { return null; }
     }
 

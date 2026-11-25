@@ -21,6 +21,10 @@ import java.util.UUID;
  */
 final class LuaScriptJournal {
     private final Context context;
+    // Bounded per-script/network counters; size is read from the actual file.
+    private final java.util.LinkedHashMap<String,long[]> results = new java.util.LinkedHashMap<String,long[]>(32, 0.75f, true) {
+        @Override protected boolean removeEldestEntry(java.util.Map.Entry<String,long[]> eldest) { return size() > 128; }
+    };
     LuaScriptJournal(Context context) { this.context = context.getApplicationContext(); }
 
     private File file(String script, String server) {
@@ -47,6 +51,16 @@ final class LuaScriptJournal {
             out.write(line.getBytes(StandardCharsets.UTF_8));
             out.write('\n');
         }
+    }
+
+    synchronized void recordResult(String script, String server, boolean success) {
+        long[] counts = results.computeIfAbsent(script + ":" + server, k -> new long[2]);
+        counts[success ? 0 : 1]++;
+    }
+
+    synchronized String status(String script, String server) {
+        long[] counts = results.get(script + ":" + server);
+        return size(script, server) + " " + (counts == null ? 0 : counts[0]) + " " + (counts == null ? 0 : counts[1]);
     }
 
     synchronized long size(String script, String server) {

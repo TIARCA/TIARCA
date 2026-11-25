@@ -23,6 +23,8 @@ import java.util.Map;
 import io.mrarm.chatlib.dto.MessageId;
 import io.mrarm.chatlib.dto.MessageInfo;
 import io.mrarm.chatlib.irc.IRCConnection;
+import io.mrarm.chatlib.irc.ServerConnectionApi;
+import io.mrarm.chatlib.irc.ServerConnectionData;
 import io.mrarm.chatlib.message.MessageListener;
 import io.mrarm.irc.job.ServerPingScheduler;
 import io.mrarm.irc.lua.LuaScriptDispatcher;
@@ -74,6 +76,7 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
     private LuaScriptDispatcher luaScripts;
 
     private final Map<ServerConnectionInfo, MessageListener> messageListeners = new HashMap<>();
+    private final Map<ServerConnectionInfo, ServerConnectionData.IdentityObservationListener> identityListeners = new HashMap<>();
     private final Map<ServerConnectionInfo, ServerConnectionInfo.InfoChangeListener> stateListeners =
             new HashMap<>();
     private final Map<ServerConnectionInfo, IRCConnection.DisconnectListener> disconnectListeners =
@@ -215,6 +218,14 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
             onMessage(connection, channel, info, id);
         };
         messageListeners.put(connection, listener);
+        if (connection.getApiInstance() instanceof ServerConnectionApi) {
+            ServerConnectionData data = ((ServerConnectionApi) connection.getApiInstance()).getServerConnectionData();
+            ServerConnectionData.IdentityObservationListener observer = (event, nick, identity) -> {
+                if (luaScripts != null) luaScripts.onIdentityObservation(connection, data, event, nick, identity);
+            };
+            identityListeners.put(connection, observer);
+            data.addIdentityObservationListener(observer);
+        }
         connection.getApiInstance().getMessageStorageApi().subscribeChannelMessages(null, listener, null, null);
 
         String serverId = DiagnosticLog.pseudonym("server", connection.getUUID().toString());
@@ -249,6 +260,9 @@ public class IRCService extends Service implements ServerConnectionManager.Conne
 
     @Override
     public void onConnectionRemoved(ServerConnectionInfo connection) {
+        ServerConnectionData.IdentityObservationListener observer = identityListeners.remove(connection);
+        if (observer != null && connection.getApiInstance() instanceof ServerConnectionApi)
+            ((ServerConnectionApi) connection.getApiInstance()).getServerConnectionData().removeIdentityObservationListener(observer);
         MessageListener listener = messageListeners.remove(connection);
         if (listener != null)
             connection.getApiInstance().getMessageStorageApi().unsubscribeChannelMessages(null, listener, null, null);

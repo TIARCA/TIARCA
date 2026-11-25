@@ -21,7 +21,7 @@
 #define MAX_USERS 128
 #define MAX_STORAGE 32
 #define MAX_STORAGE_BYTES (128u * 1024u)
-#define EVENT_KINDS 14
+#define EVENT_KINDS 20
 #define IDENTITY_V2_FLAG (1 << 20)
 #define MAX_SOURCE 24576
 #define SCRIPT_MEMORY (2u * 1024u * 1024u)
@@ -44,6 +44,7 @@ typedef struct {
     char ident[97];
     char host[257];
     char account[97];
+    char realname[258];
 } UserSnapshot;
 
 typedef struct {
@@ -132,6 +133,12 @@ static int event_kind(const char *name) {
     if (!strcmp(name, "history")) return 11;
     if (!strcmp(name, "moderation_log")) return 12;
     if (!strcmp(name, "identity")) return 13;
+    if (!strcmp(name, "mode")) return 14;
+    if (!strcmp(name, "topic")) return 15;
+    if (!strcmp(name, "own_message")) return 16;
+    if (!strcmp(name, "account")) return 17;
+    if (!strcmp(name, "chghost")) return 18;
+    if (!strcmp(name, "journal_status")) return 19;
     return -1;
 }
 
@@ -278,10 +285,13 @@ static int script_query_users(lua_State *L) {
     if (!channel[0] || !fields[0][0] || offset < 0 || offset > 65536 ||
             limit < 1 || limit > MAX_USERS)
         return luaL_error(L, "tiarca.get_users: invalid token or page");
+    lua_getfield(L, 2, "state");
+    int include_state = lua_toboolean(L, -1);
+    lua_pop(L, 1);
     char value[513];
-    int n = snprintf(value, sizeof(value), "r\t%s\t%lld\t%lld\t%s\t%s\t%s\t%s\t%s\t%s",
+    int n = snprintf(value, sizeof(value), "r\t%s\t%lld\t%lld\t%s\t%s\t%s\t%s\t%s\t%s%s",
             fields[0], (long long)offset, (long long)limit, fields[1], fields[2],
-            fields[3], fields[4], fields[5], fields[6]);
+            fields[3], fields[4], fields[5], fields[6], include_state ? "\tstate" : "");
     if (n < 0 || n >= (int)sizeof(value))
         return luaL_error(L, "tiarca.get_users: query too large");
     submit_query(L, channel, value);
@@ -352,6 +362,7 @@ static void push_users(lua_State *L) {
         if (u->ident[0]) set_field(L, "ident", u->ident);
         if (u->host[0]) set_field(L, "host", u->host);
         if (u->account[0]) set_field(L, "account", u->account);
+        if (u->realname[0] == '1') set_field(L, "realname", u->realname + 1);
         lua_pushboolean(L, u->account[0] != 0);
         lua_setfield(L, -2, "account_known");
         if (u->ident[0] && u->host[0]) {
@@ -678,6 +689,7 @@ static int script_show_list(lua_State *L) {
 /* General script-owned, append-only JSONL journal. The host validates the JSON. */
 static int script_journal_append(lua_State *L) {
     require_storage(L);
+    if (context(L)->current_kind == 19) return luaL_error(L, "journal append unavailable in status callback");
     size_t n;
     const char *line = luaL_checklstring(L, 1, &n);
     if (n == 0 || n > 8192 || memchr(line, '\n', n) ||
@@ -688,6 +700,14 @@ static int script_journal_append(lua_State *L) {
 }
 
 /* Explicit, user-initiated export, not a network operation. */
+static int script_journal_stats(lua_State *L) {
+    require_storage(L);
+    if (context(L)->current_kind != 3 || lua_gettop(L) != 0)
+        return luaL_error(L, "tiarca.journal.stats: local command only");
+    add_action(L, "jstats", "", 0, "1", 1);
+    return 0;
+}
+
 static int script_journal_export(lua_State *L) {
     require_storage(L);
     if (lua_gettop(L) != 0)
@@ -824,6 +844,8 @@ static void install_libraries(lua_State *L) {
     lua_newtable(L);
     lua_pushcfunction(L, script_journal_append);
     lua_setfield(L, -2, "append");
+    lua_pushcfunction(L, script_journal_stats);
+    lua_setfield(L, -2, "stats");
     lua_pushcfunction(L, script_journal_export);
     lua_setfield(L, -2, "export");
     lua_pushcfunction(L, script_journal_rotate);
@@ -985,21 +1007,23 @@ static void set_field(lua_State *L, const char *name, const char *value) {
 }
 
 JNIEXPORT jobjectArray JNICALL
-Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchVersioned(JNIEnv *env, jclass unused,
+Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchWithMetadata(JNIEnv *env, jclass unused,
         jstring jid, jstring jevent, jbyteArray jserver, jbyteArray jchannel,
         jbyteArray jnick, jbyteArray jtext, jbyteArray jtype, jlong timestamp,
         jobjectArray jchannels, jintArray jcounts, jboolean jtruncated,
         jobjectArray jroster, jboolean jrostertruncated,
         jboolean jcanreadusers, jobjectArray jstorage, jboolean jcanstore,
-        jobjectArray jhistoryidentity, jlong storage_revision) {
+        jobjectArray jhistoryidentity, jlong storage_revision, jbyteArray jsourceid,
+        jobjectArray jrosterrealnames, jobjectArray jchannelstate) {
     (void)unused;
-    char server[64], channel[97], nick[97], text[2049], type[97];
+    char server[64], channel[97], nick[97], text[2049], type[97], source_id[97];
     if (!jid || !jevent ||
         !copy_java_bytes(env, jserver, server, sizeof(server)) ||
         !copy_java_bytes(env, jchannel, channel, sizeof(channel)) ||
         !copy_java_bytes(env, jnick, nick, sizeof(nick)) ||
         !copy_java_bytes(env, jtext, text, sizeof(text)) ||
-        !copy_java_bytes(env, jtype, type, sizeof(type)))
+        !copy_java_bytes(env, jtype, type, sizeof(type)) ||
+        !copy_java_bytes(env, jsourceid, source_id, sizeof(source_id)))
         return NULL;
     const char *id = (*env)->GetStringUTFChars(env, jid, NULL);
     const char *event_name = (*env)->GetStringUTFChars(env, jevent, NULL);
@@ -1058,7 +1082,36 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchVersioned(JNIEnv *env, jclass unu
         if (!ok) return NULL;
         if (index % 5 == 0) {
             if (!entry->nick[0]) return NULL;
+            entry->realname[0] = 0;
             s->user_count++;
+        }
+    }
+    if (jrosterrealnames) {
+        jsize count_realnames = (*env)->GetArrayLength(env, jrosterrealnames);
+        if (count_realnames != 0 && (jcanreadusers != JNI_TRUE || count_realnames != s->user_count || kind != 13)) return NULL;
+        for (int i = 0; i < count_realnames; i++) {
+            jbyteArray field = (jbyteArray)(*env)->GetObjectArrayElement(env, jrosterrealnames, i);
+            if (!field) return NULL;
+            int ok = copy_java_bytes(env, field, s->users[i].realname, sizeof(s->users[i].realname));
+            (*env)->DeleteLocalRef(env, field);
+            if (!ok) return NULL;
+        }
+    }
+    // Only the requesting identity callback can receive the bounded public mode cache.
+    struct { char mode[9], param[513], kind[33]; } mode_state[64];
+    int mode_count = -1;
+    if (jchannelstate) {
+        jsize mode_fields = (*env)->GetArrayLength(env, jchannelstate);
+        if (kind != 13 || jcanreadusers != JNI_TRUE || mode_fields > 64 * 3 || mode_fields % 3) return NULL;
+        mode_count = mode_fields / 3;
+        const size_t mode_caps[] = {9, 513, 33};
+        for (int i = 0; i < mode_fields; i++) {
+            jbyteArray field = (jbyteArray)(*env)->GetObjectArrayElement(env, jchannelstate, i);
+            if (!field) return NULL;
+            char *dest[] = {mode_state[i/3].mode, mode_state[i/3].param, mode_state[i/3].kind};
+            int ok = copy_java_bytes(env, field, dest[i%3], mode_caps[i%3]);
+            (*env)->DeleteLocalRef(env, field);
+            if (!ok) return NULL;
         }
     }
     if (!jstorage) return NULL;
@@ -1092,18 +1145,19 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchVersioned(JNIEnv *env, jclass unu
     s->storage_revision = s->can_store ? storage_revision : 0;
     }
     char historical_ident[97] = "", historical_host[257] = "";
-    char sender_prefix[33] = "", sender_account[97] = "";
+    char sender_prefix[33] = "", sender_account[97] = "", sender_realname[258] = "";
     int sender_present = 0;
     if (jhistoryidentity) {
         jsize histFields = (*env)->GetArrayLength(env, jhistoryidentity);
-        if (histFields != 0 && histFields != 2 && histFields != 4) return NULL;
-        if (histFields == 4) {
+        if (histFields != 0 && histFields != 2 && histFields != 4 && histFields != 5) return NULL;
+        if (histFields == 4 || histFields == 5) {
             if (jcanreadusers != JNI_TRUE || (kind != 0 && kind != 4 && kind != 5 &&
-                    kind != 6 && kind != 7 && kind != 9 && kind != 10)) return NULL;
-            char *dest[] = {historical_ident, historical_host, sender_prefix, sender_account};
+                    kind != 6 && kind != 7 && kind != 9 && kind != 10 &&
+                    kind != 14 && kind != 15 && kind != 16 && kind != 17 && kind != 18)) return NULL;
+            char *dest[] = {historical_ident, historical_host, sender_prefix, sender_account, sender_realname};
             size_t caps[] = {sizeof(historical_ident), sizeof(historical_host),
-                    sizeof(sender_prefix), sizeof(sender_account)};
-            for (int i = 0; i < 4; i++) {
+                    sizeof(sender_prefix), sizeof(sender_account), sizeof(sender_realname)};
+            for (int i = 0; i < histFields; i++) {
                 jbyteArray field = (jbyteArray)(*env)->GetObjectArrayElement(env, jhistoryidentity, i);
                 if (!field) return NULL;
                 int ok = copy_java_bytes(env, field, dest[i], caps[i]);
@@ -1144,6 +1198,7 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchVersioned(JNIEnv *env, jclass unu
         set_field(L, "nick", nick);
         set_field(L, "text", text);
         set_field(L, "message_type", type);
+        if (source_id[0]) set_field(L, "source_id", source_id);
         if (kind == 11) {
             if (historical_ident[0]) set_field(L, "ident", historical_ident);
             if (historical_host[0]) set_field(L, "host", historical_host);
@@ -1151,10 +1206,11 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchVersioned(JNIEnv *env, jclass unu
         if (sender_present) {
             lua_createtable(L, 0, 6);
             set_field(L, "nick", nick);
-            set_field(L, "prefix", sender_prefix);
+            if (kind != 17 && kind != 18) set_field(L, "prefix", sender_prefix);
             if (historical_ident[0]) set_field(L, "ident", historical_ident);
             if (historical_host[0]) set_field(L, "host", historical_host);
             if (sender_account[0]) set_field(L, "account", sender_account);
+            if (sender_realname[0] == '1') set_field(L, "realname", sender_realname + 1);
             if (historical_ident[0] && historical_host[0]) {
                 lua_pushfstring(L, "%s!%s@%s", nick, historical_ident, historical_host);
                 lua_setfield(L, -2, "mask");
@@ -1178,6 +1234,18 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchVersioned(JNIEnv *env, jclass unu
             lua_pushinteger(L, total); lua_setfield(L, -2, "total");
             if (next >= 0) { lua_pushinteger(L, next); lua_setfield(L, -2, "next_offset"); }
             lua_pushboolean(L, complete); lua_setfield(L, -2, "complete");
+            if (mode_count >= 0) {
+                lua_createtable(L, mode_count, 0);
+                for (int i = 0; i < mode_count; i++) {
+                    lua_createtable(L, 0, 3);
+                    set_field(L, "mode", mode_state[i].mode);
+                    set_field(L, "param", mode_state[i].param);
+                    set_field(L, "kind", mode_state[i].kind);
+                    lua_rawseti(L, -2, i+1);
+                }
+                lua_setfield(L, -2, "channel_modes");
+                lua_pushboolean(L, 1); lua_setfield(L, -2, "channel_modes_partial");
+            }
             if (query_kind[0] == 'c') {
                 push_channels(L); lua_setfield(L, -2, "channels");
             } else if (s->can_read_users) {
@@ -1191,7 +1259,8 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchVersioned(JNIEnv *env, jclass unu
         }
         const char *event_names[] = {"message", "connected", "disconnected", "command",
                                     "join", "part", "quit", "nick", "timer",
-                                    "kick", "ban", "history", "moderation_log", "identity"};
+                                    "kick", "ban", "history", "moderation_log", "identity",
+                                    "mode", "topic", "own_message", "account", "chghost", "journal_status"};
         set_field(L, "type", event_names[kind]);
         lua_pushinteger(L, (lua_Integer)timestamp);
         lua_setfield(L, -2, "timestamp");

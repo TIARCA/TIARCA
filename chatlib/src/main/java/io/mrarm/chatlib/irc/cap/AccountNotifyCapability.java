@@ -11,7 +11,9 @@ public final class AccountNotifyCapability extends Capability {
     @Override public Object[] getHandledCommands() { return new Object[]{"ACCOUNT"}; }
     @Override public void handle(ServerConnectionData connection, MessagePrefix sender,
             String command, List<String> params, Map<String, String> tags) {
-        if (sender != null && !params.isEmpty())
+        if (sender != null && !params.isEmpty()) {
             connection.getIdentityCache().note(sender.getNick(), null, null, params.get(0));
+            connection.notifyIdentityObservation("account", sender.getNick());
+        }
     }
 }
