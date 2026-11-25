@@ -156,7 +156,7 @@ local function collectMessage(e)
 end
 tiarca.on("message",collectMessage)
 tiarca.on("own_message",collectMessage)
-for _,name in ipairs({"join","part","quit","nick","kick","mode","topic","moderation_log"}) do
+for _,name in ipairs({"join","part","quit","nick","kick","mode","topic","account","chghost","moderation_log"}) do
  local eventName=name
  tiarca.on(eventName,function(e)
   if not scope(e) then return end
