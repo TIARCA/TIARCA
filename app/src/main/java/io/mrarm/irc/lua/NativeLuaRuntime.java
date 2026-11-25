@@ -48,12 +48,23 @@ final class NativeLuaRuntime {
     }
 
     /** Version zero forces a fresh snapshot (legacy host tests). */
-    static native byte[][] dispatchVersioned(String scriptId, String event, byte[] server,
+    static byte[][] dispatchVersioned(String scriptId, String event, byte[] server,
             byte[] channel, byte[] nick, byte[] text, byte[] messageType, long timestamp,
             byte[][] channelNames, int[] memberCounts, boolean channelsTruncated,
             byte[][] userFields, boolean usersTruncated, boolean canReadUsers,
             byte[][] storagePairs, boolean canUseStorage, byte[][] historyIdentity,
-            long storageVersion);
+            long storageVersion) {
+        return dispatchWithMetadata(scriptId, event, server, channel, nick, text, messageType,
+                timestamp, channelNames, memberCounts, channelsTruncated, userFields, usersTruncated,
+                canReadUsers, storagePairs, canUseStorage, historyIdentity, storageVersion, new byte[0]);
+    }
+
+    static native byte[][] dispatchWithMetadata(String scriptId, String event, byte[] server,
+            byte[] channel, byte[] nick, byte[] text, byte[] messageType, long timestamp,
+            byte[][] channelNames, int[] memberCounts, boolean channelsTruncated,
+            byte[][] userFields, boolean usersTruncated, boolean canReadUsers,
+            byte[][] storagePairs, boolean canUseStorage, byte[][] historyIdentity,
+            long storageVersion, byte[] sourceId);
     static native void unload(String scriptId);
     static native void clear();
 
