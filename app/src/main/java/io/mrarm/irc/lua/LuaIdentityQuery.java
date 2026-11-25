@@ -232,7 +232,8 @@ final class LuaIdentityQuery {
                 if (!sender.wasLiveChannelMember()) return null;
                 String prefix = sender.getNickPrefixes() == null ? "" :
                         safe(sender.getNickPrefixes().toString(), 31);
-                return new String[]{ident, host, prefix, safe(sender.getObservedAccount(), 95), realname};
+                return new String[]{ident, host, prefix, safe(sender.getObservedAccount(), 95),
+                        valid(sender.getObservedRealname(), 256) ? "1" + sender.getObservedRealname() : ""};
             }
             ChannelData.Member member = target.getMember(sender.getUserUUID());
             if (member == null) return null; // Never imply an absent user's privilege is known.
