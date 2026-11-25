@@ -37,6 +37,7 @@ import java.util.Arrays;
 import io.mrarm.chatlib.irc.IrcIdentityCache;
 import io.mrarm.chatlib.irc.IRCConnection;
 import io.mrarm.chatlib.irc.ServerConnectionData;
+import io.mrarm.irc.R;
 import io.mrarm.irc.util.ChannelOperatorUtils;
 import io.mrarm.irc.dialog.OperatorCommandComposer;
 import io.mrarm.chatlib.dto.MessageSenderInfo;
@@ -1547,6 +1548,94 @@ public final class LuaScriptDispatcher {
         PrivateTabWatcher watcher = privateTabWatchers.remove(server);
         if (watcher != null)
             watcher.connection.removeOnChannelListChangeListener(watcher.listener);
+    }
+
+    private boolean isAutoModPrivateTab(String networkId, String nick) {
+        String scriptId = privateTabs.ownerScriptId(networkId, nick);
+        LuaScriptStore.Script owner = scriptId == null ? null : store.find(scriptId);
+        return owner != null && ("automod_unificato.lua".equals(owner.name) ||
+                "automod_v4.lua".equals(owner.name) ||
+                "automod_antiripetizione.lua".equals(owner.name));
+    }
+
+    /** User-approved close selection across all networks; no IRC commands are sent. */
+    public void showPrivateCloseDialog(android.app.Activity activity) {
+        main.post(() -> {
+            if (activity.isFinishing() || activity.isDestroyed()) return;
+            final List<ServerConnectionInfo> owners = new ArrayList<>();
+            final List<String> nicks = new ArrayList<>();
+            final List<String> labels = new ArrayList<>();
+            for (ServerConnectionInfo conn : ServerConnectionManager
+                    .getInstance(context).getConnections()) {
+                List<String> channels = conn.getChannels();
+                if (channels == null) continue;
+                for (String nick : channels) {
+                    if (nick == null || nick.isEmpty() ||
+                            "#&+!".indexOf(nick.charAt(0)) >= 0) continue;
+                    owners.add(conn);
+                    nicks.add(nick);
+                    labels.add(nick + "  ·  " + conn.getName() +
+                            (isAutoModPrivateTab(conn.getUUID().toString(), nick)
+                                    ? "  (AutoMod)" : ""));
+                }
+            }
+            if (nicks.isEmpty()) {
+                new androidx.appcompat.app.AlertDialog.Builder(activity)
+                        .setTitle(R.string.lua_close_pvt_title)
+                        .setMessage(R.string.lua_close_pvt_empty)
+                        .setPositiveButton("OK", null).show();
+                return;
+            }
+            final boolean[] selection = new boolean[nicks.size()];
+            for (int i = 0; i < selection.length; i++)
+                selection[i] = isAutoModPrivateTab(
+                        owners.get(i).getUUID().toString(), nicks.get(i));
+            androidx.appcompat.app.AlertDialog dialog =
+                    new androidx.appcompat.app.AlertDialog.Builder(activity)
+                    .setTitle(R.string.lua_close_pvt_title)
+                    .setMultiChoiceItems(labels.toArray(new String[0]), selection,
+                            (d, which, checked) -> selection[which] = checked)
+                    .setNegativeButton(R.string.action_cancel, null)
+                    .setNeutralButton(R.string.lua_close_pvt_select_all, null)
+                    .setPositiveButton(R.string.lua_close_pvt_selected, (d, which) -> {
+                        int attempted = 0, closed = 0;
+                        for (int i = 0; i < selection.length; i++) {
+                            if (!selection[i]) continue;
+                            attempted++;
+                            ServerConnectionInfo conn = owners.get(i);
+                            String nick = nicks.get(i);
+                            try {
+                                if (conn.hasOpenConversation(nick)) {
+                                    conn.closePrivateConversation(nick, "");
+                                    if (!conn.hasOpenConversation(nick)) closed++;
+                                }
+                            } catch (RuntimeException ignored) {
+                                // Continue with the remaining user-approved tabs.
+                            }
+                        }
+                        for (ServerConnectionInfo conn : owners) {
+                            privateTabs.prune(conn.getUUID().toString(), conn.getChannels());
+                        }
+                        android.widget.Toast.makeText(activity,
+                                activity.getString(R.string.lua_close_pvt_result,
+                                        closed, attempted - closed), android.widget.Toast.LENGTH_LONG)
+                                .show();
+                    }).create();
+            dialog.setOnShowListener(d -> dialog.getButton(
+                    androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL)
+                    .setOnClickListener(v -> {
+                        boolean all = true;
+                        for (boolean item : selection) if (!item) { all = false; break; }
+                        for (int i = 0; i < selection.length; i++) {
+                            selection[i] = !all;
+                            dialog.getListView().setItemChecked(i, !all);
+                        }
+                        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL)
+                                .setText(all ? R.string.lua_close_pvt_select_all :
+                                        R.string.lua_close_pvt_deselect_all);
+                    }));
+            dialog.show();
+        });
     }
 
     /** Local-only cleanup. Does not send IRC messages or touch moderation history. */
