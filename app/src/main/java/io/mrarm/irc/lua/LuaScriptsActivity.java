@@ -31,6 +31,7 @@ import io.mrarm.irc.config.ServerConfigManager;
 public final class LuaScriptsActivity extends ThemedActivity {
     // Register before the Activity reaches STARTED; Android restores pending
     // document selections across an Activity recreation.
+    private String updateScriptId;
     private final ActivityResultLauncher<String[]> luaPicker =
             registerForActivityResult(new ActivityResultContracts.OpenDocument(), selected -> {
                 String target = updateScriptId;
@@ -40,7 +41,6 @@ public final class LuaScriptsActivity extends ThemedActivity {
                     else prepareUpdate(target, selected);
                 }
             });
-    private String updateScriptId;
     private LuaScriptStore store;
     private LinearLayout list;
     private int padding;
