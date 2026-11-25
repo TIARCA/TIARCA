@@ -32,6 +32,7 @@ public final class LuaDiagnosticService extends Service {
     public static final String EXTRA_HISTORY_IDENT = "history_ident";
     public static final String EXTRA_SENDER = "sender";
     public static final String EXTRA_ROSTER_REALNAMES = "roster_realnames";
+    public static final String EXTRA_CHANNEL_STATE = "channel_state";
     public static final String EXTRA_SOURCE_ID = "source_id";
     public static final String EXTRA_HISTORY_HOST = "history_host";
     public static final String EXTRA_TIME = "time";
@@ -333,6 +334,17 @@ public final class LuaDiagnosticService extends Service {
                                     for (int i = 0; i < namesExtra.size(); i++)
                                         rosterRealnames[i] = NativeLuaRuntime.utf8(LuaIdentityQuery.valid(namesExtra.get(i), 257) ? namesExtra.get(i) : "");
                                 }
+                                java.util.ArrayList<String> modeFields = request.getStringArrayList(EXTRA_CHANNEL_STATE);
+                                byte[][] channelState = null;
+                                if ("identity".equals(event) && request.getBoolean(EXTRA_CAN_READ_USERS, false) &&
+                                        modeFields != null && modeFields.size() <= 64 * 3 && modeFields.size() % 3 == 0) {
+                                    channelState = new byte[modeFields.size()][];
+                                    int[] caps = {8, 512, 32};
+                                    for (int i = 0; i < modeFields.size(); i++) {
+                                        if (!LuaIdentityQuery.valid(modeFields.get(i), caps[i%3])) { channelState = null; break; }
+                                        channelState[i] = NativeLuaRuntime.utf8(modeFields.get(i));
+                                    }
+                                }
                                 long nativeStart = System.nanoTime();
                                 byte[][] nativeActions = NativeLuaRuntime.dispatchWithMetadata(runtimeId, event,
                                         NativeLuaRuntime.utf8(server), NativeLuaRuntime.utf8(channel),
@@ -345,7 +357,7 @@ public final class LuaDiagnosticService extends Service {
                                         request.getBoolean(EXTRA_CAN_READ_USERS, false),
                                         storagePairs, canStore,
                                         observedIdentity, storageVersion,
-                                        NativeLuaRuntime.utf8(request.getString(EXTRA_SOURCE_ID, "")), rosterRealnames);
+                                        NativeLuaRuntime.utf8(request.getString(EXTRA_SOURCE_ID, "")), rosterRealnames, channelState);
                                 request.putLong(EXTRA_NATIVE_NANOS, System.nanoTime() - nativeStart);
                         if (nativeActions == null || nativeActions.length < 1 ||
                                 (nativeActions.length - 1) % 3 != 0 ||
