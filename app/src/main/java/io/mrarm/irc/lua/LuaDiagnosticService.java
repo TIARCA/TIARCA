@@ -309,10 +309,10 @@ public final class LuaDiagnosticService extends Service {
                                         };
                                     } else {
                                         String[] sender = request.getStringArray(EXTRA_SENDER);
-                                        if (sender != null && sender.length == 4) {
-                                            int[] caps = {95, 255, 31, 95};
-                                            observedIdentity = new byte[4][];
-                                            for (int i = 0; i < 4; i++) {
+                                        if (sender != null && (sender.length == 4 || sender.length == 5)) {
+                                            int[] caps = {95, 255, 31, 95, 257};
+                                            observedIdentity = new byte[sender.length][];
+                                            for (int i = 0; i < sender.length; i++) {
                                                 if (!LuaIdentityQuery.valid(sender[i], caps[i])) {
                                                     observedIdentity = new byte[0][];
                                                     break;
