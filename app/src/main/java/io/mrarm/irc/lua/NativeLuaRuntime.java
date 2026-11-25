@@ -56,7 +56,7 @@ final class NativeLuaRuntime {
             long storageVersion) {
         return dispatchWithMetadata(scriptId, event, server, channel, nick, text, messageType,
                 timestamp, channelNames, memberCounts, channelsTruncated, userFields, usersTruncated,
-                canReadUsers, storagePairs, canUseStorage, historyIdentity, storageVersion, new byte[0], new byte[0][]);
+                canReadUsers, storagePairs, canUseStorage, historyIdentity, storageVersion, new byte[0], new byte[0][], null);
     }
 
     static native byte[][] dispatchWithMetadata(String scriptId, String event, byte[] server,
@@ -64,7 +64,7 @@ final class NativeLuaRuntime {
             byte[][] channelNames, int[] memberCounts, boolean channelsTruncated,
             byte[][] userFields, boolean usersTruncated, boolean canReadUsers,
             byte[][] storagePairs, boolean canUseStorage, byte[][] historyIdentity,
-            long storageVersion, byte[] sourceId, byte[][] rosterRealnames);
+            long storageVersion, byte[] sourceId, byte[][] rosterRealnames, byte[][] channelState);
     static native void unload(String scriptId);
     static native void clear();
 
