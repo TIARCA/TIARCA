@@ -65,3 +65,5 @@ Type `/lua ping`. No IRC message is sent.
 **Note:** APIs do not promise delivery/ban confirmation. For full semantics, quotas, and preconditions consult the [technical source](../../LUA_SCRIPTING_MVP.md); Java/C implementation remains authoritative.
 
 V4 also prefers observed account for timed bans if supported. V4 voice gate limited to `automod_v4.lua`, sender and consents; halfops and above protected in ordinary V4 moderation. [Migration](MIGRATION.md) for scope, tokens, filters and limits.
+
+For v2 roster requests, optional `state=true` adds `event.channel_modes` on the first result page (bounded local observations only; `channel_modes_partial=true`). Keep the option identical for continuation pages. Values that may contain channel passwords are redacted. `event.user` and `event.users` include `realname` when observed.
