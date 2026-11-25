@@ -88,7 +88,7 @@ public class LuaIdentityQueryTest {
         MessageSenderInfo original = new MessageSenderInfo("Alice", "ident", "host",
                 new NickPrefixList("+"), id, false, true, true, "oldAccount");
         data.getIdentityCache().note("Alice", null, null, "newAccount");
-        assertArrayEquals(new String[]{"ident", "host", "+", "oldAccount"},
+        assertArrayEquals(new String[]{"ident", "host", "+", "oldAccount", ""},
                 LuaIdentityQuery.sender(data, "#room", original));
         assertNull(LuaIdentityQuery.sender(data, "#private", original));
         assertEquals("not_observed", LuaIdentityQuery.parse("#room", "u\ttoken\tNobody")
@@ -159,7 +159,7 @@ public class LuaIdentityQueryTest {
         assertTrue(original.hasLiveIdentityObservation());
         assertTrue(original.wasLiveChannelMember());
         data.getIdentityCache().note("Alice", null, null, "*");
-        assertArrayEquals(new String[]{"ident", "host", "", "oldAccount"},
+        assertArrayEquals(new String[]{"ident", "host", "", "oldAccount", "1Alice"},
                 LuaIdentityQuery.sender(data, "#room", original));
     }
 }
