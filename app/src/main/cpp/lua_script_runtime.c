@@ -21,7 +21,7 @@
 #define MAX_USERS 128
 #define MAX_STORAGE 32
 #define MAX_STORAGE_BYTES (128u * 1024u)
-#define EVENT_KINDS 19
+#define EVENT_KINDS 20
 #define IDENTITY_V2_FLAG (1 << 20)
 #define MAX_SOURCE 24576
 #define SCRIPT_MEMORY (2u * 1024u * 1024u)
@@ -137,6 +137,7 @@ static int event_kind(const char *name) {
     if (!strcmp(name, "own_message")) return 16;
     if (!strcmp(name, "account")) return 17;
     if (!strcmp(name, "chghost")) return 18;
+    if (!strcmp(name, "journal_status")) return 19;
     return -1;
 }
 
@@ -683,6 +684,7 @@ static int script_show_list(lua_State *L) {
 /* General script-owned, append-only JSONL journal. The host validates the JSON. */
 static int script_journal_append(lua_State *L) {
     require_storage(L);
+    if (context(L)->current_kind == 19) return luaL_error(L, "journal append unavailable in status callback");
     size_t n;
     const char *line = luaL_checklstring(L, 1, &n);
     if (n == 0 || n > 8192 || memchr(line, '\n', n) ||
@@ -693,6 +695,14 @@ static int script_journal_append(lua_State *L) {
 }
 
 /* Explicit, user-initiated export, not a network operation. */
+static int script_journal_stats(lua_State *L) {
+    require_storage(L);
+    if (context(L)->current_kind != 3 || lua_gettop(L) != 0)
+        return luaL_error(L, "tiarca.journal.stats: local command only");
+    add_action(L, "jstats", "", 0, "1", 1);
+    return 0;
+}
+
 static int script_journal_export(lua_State *L) {
     require_storage(L);
     if (lua_gettop(L) != 0)
@@ -829,6 +839,8 @@ static void install_libraries(lua_State *L) {
     lua_newtable(L);
     lua_pushcfunction(L, script_journal_append);
     lua_setfield(L, -2, "append");
+    lua_pushcfunction(L, script_journal_stats);
+    lua_setfield(L, -2, "stats");
     lua_pushcfunction(L, script_journal_export);
     lua_setfield(L, -2, "export");
     lua_pushcfunction(L, script_journal_rotate);
@@ -1201,7 +1213,7 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_dispatchWithMetadata(JNIEnv *env, jclass 
         const char *event_names[] = {"message", "connected", "disconnected", "command",
                                     "join", "part", "quit", "nick", "timer",
                                     "kick", "ban", "history", "moderation_log", "identity",
-                                    "mode", "topic", "own_message", "account", "chghost"};
+                                    "mode", "topic", "own_message", "account", "chghost", "journal_status"};
         set_field(L, "type", event_names[kind]);
         lua_pushinteger(L, (lua_Integer)timestamp);
         lua_setfield(L, -2, "timestamp");
