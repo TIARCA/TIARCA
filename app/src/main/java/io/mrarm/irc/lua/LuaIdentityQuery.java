@@ -146,7 +146,7 @@ final class LuaIdentityQuery {
         }
         String[] row = entry(data, member, observed);
         if (row == null) return unavailable();
-        Collections.addAll(r.users.fields, row);
+        addRow(r.users, row);
         r.total = 1;
         r.complete = !row[2].isEmpty() && !row[3].isEmpty() && !row[4].isEmpty();
         return r;
@@ -176,7 +176,7 @@ final class LuaIdentityQuery {
                 .thenComparing(row -> row[0]));
         r.total = matches.size();
         int end = Math.min(r.total, offset + limit);
-        for (int i = offset; i < end; i++) Collections.addAll(r.users.fields, matches.get(i));
+        for (int i = offset; i < end; i++) addRow(r.users, matches.get(i));
         if (end < r.total) r.next = end;
         r.users.truncated = r.next >= 0 || !r.complete;
         if (target.getMemberCount() != count) {
@@ -208,12 +208,18 @@ final class LuaIdentityQuery {
         return unknown ? -1 : 1;
     }
 
+    private static void addRow(LuaUserSnapshot users, String[] row) {
+        for (int i = 0; i < LuaUserSnapshot.FIELDS; i++) users.fields.add(row[i]);
+        users.realnames.add(row[5]);
+    }
+
     private static String[] entry(ServerConnectionData data, ChannelData.Member member, String nick) {
         if (nick == null || nick.isEmpty() || !valid(nick, 95)) return null;
         String prefix = member.getNickPrefixes() == null ? "" : safe(member.getNickPrefixes().toString(), 31);
         IrcIdentityCache.Identity i = data.getIdentityCache().get(nick);
         return new String[]{nick, prefix, i == null ? "" : safe(i.ident, 95),
-                i == null ? "" : safe(i.host, 255), account(i)};
+                i == null ? "" : safe(i.host, 255), account(i),
+                i != null && valid(i.realname, 256) ? "1" + i.realname : ""};
     }
 
     /** Capture the actual message's immutable sender fields before posting to the worker. */
