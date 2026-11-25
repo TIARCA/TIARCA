@@ -224,11 +224,15 @@ final class LuaIdentityQuery {
                     !data.getSupportList().getSupportedChannelTypes().contains(channel.charAt(0))) return null;
             ChannelData target = data.getJoinedChannelData(channel);
             String ident = safe(sender.getUser(), 95), host = safe(sender.getHost(), 255);
+            IrcIdentityCache.Identity observed = data.getIdentityCache().get(sender.getNick());
+            String realname = observed != null && observed.realname != null && !ident.isEmpty() && !host.isEmpty() &&
+                    ident.equals(observed.ident) && host.equalsIgnoreCase(observed.host) &&
+                    valid(observed.realname, 256) ? "1" + observed.realname : "";
             if (sender.hasLiveIdentityObservation()) {
                 if (!sender.wasLiveChannelMember()) return null;
                 String prefix = sender.getNickPrefixes() == null ? "" :
                         safe(sender.getNickPrefixes().toString(), 31);
-                return new String[]{ident, host, prefix, safe(sender.getObservedAccount(), 95)};
+                return new String[]{ident, host, prefix, safe(sender.getObservedAccount(), 95), realname};
             }
             ChannelData.Member member = target.getMember(sender.getUserUUID());
             if (member == null) return null; // Never imply an absent user's privilege is known.
@@ -238,7 +242,7 @@ final class LuaIdentityQuery {
             String prefix = sender.getNickPrefixes() == null ?
                     (member.getNickPrefixes() == null ? "" : safe(member.getNickPrefixes().toString(), 31)) :
                     safe(sender.getNickPrefixes().toString(), 31);
-            return new String[]{ident, host, prefix, acct};
+            return new String[]{ident, host, prefix, acct, realname};
         } catch (Exception unavailable) { return null; }
     }
 
