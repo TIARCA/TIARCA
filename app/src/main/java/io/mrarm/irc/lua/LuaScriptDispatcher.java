@@ -116,6 +116,29 @@ public final class LuaScriptDispatcher {
     private boolean bound; // main thread only
     private boolean running; // main thread only
     private long lastBindAttemptMs; // main thread only
+    // Keep a replacement Messenger unpublished until the preceding exit is classified.
+    // All fields below are main-looper only.
+    private Messenger deferredRemote;
+    private LuaSandboxExit.Identity sandboxIdentity;
+    private ExitCheck exitCheck;
+    private long crashGeneration;
+    private static final int EXIT_LOOKUP_ATTEMPTS = 4;
+    private static final long EXIT_LOOKUP_DELAY_MS = 250L;
+
+    private static final class ExitCheck {
+        final LuaSandboxExit.Identity identity;
+        final Pending active;
+        final long observedAt;
+        final long generation;
+
+        ExitCheck(LuaSandboxExit.Identity identity, Pending active, long observedAt,
+                  long generation) {
+            this.identity = identity;
+            this.active = active;
+            this.observedAt = observedAt;
+            this.generation = generation;
+        }
+    }
     private final Messenger replies = new Messenger(
             new Handler(Looper.getMainLooper(), this::handleReply));
 
@@ -205,22 +228,21 @@ public final class LuaScriptDispatcher {
 
     private final ServiceConnection connection = new ServiceConnection() {
         @Override public void onServiceConnected(ComponentName name, IBinder service) {
-            remote = new Messenger(service);
-            io.post(LuaScriptDispatcher.this::loadAll);
+            if (!running || !bound) return;
+            deferredRemote = new Messenger(service);
+            publishReplacement();
         }
 
         @Override public void onServiceDisconnected(ComponentName name) {
             lastBindAttemptMs = SystemClock.elapsedRealtime();
-            disableInFlightAfterCrash();
-            clearPending();
-            remote = null;
-            // With BIND_AUTO_CREATE Android may reconnect; then loadAll runs again.
+            onSandboxLost();
+            // BIND_AUTO_CREATE may reconnect before Android publishes the exit record.
+            // publishReplacement() waits for the bounded lookup to finish.
         }
 
         @Override public void onBindingDied(ComponentName name) {
-            disableInFlightAfterCrash();
-            clearPending();
-            remote = null;
+            // A binding can become invalid after package changes without a script crash.
+            onSandboxLost();
             main.post(() -> {
                 if (bound) {
                     context.unbindService(connection);
@@ -263,6 +285,7 @@ public final class LuaScriptDispatcher {
         main.post(() -> {
             running = true; // Allow on-demand script validation from Settings.
             crashTracker.reset();
+            crashGeneration++;
             io.post(moderationPacer::clear); // Invalidate queued actions on permission/script changes.
             abortRestarts();
             reconcileBinding();
@@ -284,7 +307,7 @@ public final class LuaScriptDispatcher {
      * period; never revive a script disabled by the crash guard or /lua stop.
      */
     private void recoverMissingSandbox() {
-        if (!running || remote != null || !store.anyEnabled()) return;
+        if (!running || remote != null || exitCheck != null || !store.anyEnabled()) return;
         long now = SystemClock.elapsedRealtime();
         if (now - lastBindAttemptMs < BIND_RETRY_GRACE_MS) return;
         boolean needed = false;
@@ -317,32 +340,83 @@ public final class LuaScriptDispatcher {
             } catch (RuntimeException error) {
                 bound = false;
             }
-        } else if (!needed && bound) {
+        } else if (!needed) {
             crashTracker.reset();
+            crashGeneration++;
+            exitCheck = null;
+            deferredRemote = null;
+            sandboxIdentity = null;
             clearPending();
             remote = null;
-            context.unbindService(connection);
-            bound = false;
+            if (bound) {
+                context.unbindService(connection);
+                bound = false;
+            }
         }
     }
 
-    private void disableInFlightAfterCrash() {
-        // A request waiting for a Binder reply is not necessarily executing.
-        // Attribute process death only to a worker-acknowledged request.
-        Pending active = pending.get(crashTracker.activeRequestId());
-        if (active == null) {
-            crashTracker.clearActive(); // Idle sandbox may be reclaimed by Android.
+    private void publishReplacement() {
+        if (exitCheck != null || deferredRemote == null || !running || !bound) return;
+        if (!store.anyEnabled()) {
+            reconcileBinding();
             return;
         }
-        if (crashTracker.terminated(active.scriptId, active.isEvent)) {
-            store.fail(active.scriptId,
-                    "Lua sandbox terminated twice while loading or executing this script");
+        remote = deferredRemote;
+        deferredRemote = null;
+        sandboxIdentity = null;
+        io.post(this::loadAll);
+    }
+
+    private void onSandboxLost() {
+        boolean wasPublished = remote != null;
+        remote = null;
+        deferredRemote = null;
+        if (!wasPublished) return; // No script ran on the unpublished replacement.
+        Pending active = pending.get(crashTracker.activeRequestId());
+        ExitCheck check = new ExitCheck(sandboxIdentity, active,
+                System.currentTimeMillis(), crashGeneration);
+        sandboxIdentity = null;
+        clearPending();
+        exitCheck = check;
+        // Query ActivityManager on the IPC worker, never block the UI thread.
+        io.post(() -> lookupSandboxExit(check, 1));
+    }
+
+    private void lookupSandboxExit(ExitCheck check, int attempt) {
+        LuaSandboxExit.Result result = LuaSandboxExit.lookup(context,
+                check.identity, check.observedAt);
+        if (result.retryable && attempt < EXIT_LOOKUP_ATTEMPTS) {
+            io.postDelayed(() -> lookupSandboxExit(check, attempt + 1), EXIT_LOOKUP_DELAY_MS);
         } else {
-            store.recordLog(active.scriptId,
-                    "Lua sandbox restarted after an unexpected termination; retrying");
-            console.log(active.server, active.scriptId,
-                    "Isolated Lua process terminated; recovering after first failure");
+            main.post(() -> finishSandboxExit(check, result));
         }
+    }
+
+    private void finishSandboxExit(ExitCheck check, LuaSandboxExit.Result result) {
+        if (exitCheck != check) return; // Stopped or superseded.
+        exitCheck = null;
+        String detail = "Isolated Lua process terminated: " + result.label
+                + " (pid " + (check.identity == null ? "unknown" : check.identity.pid)
+                + ", observed " + check.observedAt + ")";
+        android.util.Log.i("TiarcaLua", detail);
+        Pending active = check.active;
+        if (active != null && check.generation == crashGeneration) {
+            LuaScriptStore.Script script = store.find(active.scriptId);
+            if (script != null && script.enabled) {
+                // A confirmed system kill is not a strike against a Lua script.
+                // Unclassified deaths retain the bounded legacy crash guard.
+                if (result.penalize && crashTracker.terminated(active.scriptId, active.isEvent)) {
+                    store.fail(active.scriptId,
+                            "Lua sandbox terminated twice while loading or executing this script: "
+                                    + result.label);
+                } else {
+                    store.recordLog(active.scriptId, detail);
+                }
+                console.log(active.server, active.scriptId, detail);
+            }
+        }
+        if (!store.anyEnabled()) reconcileBinding();
+        else publishReplacement();
     }
 
     private void abortRestarts() {
@@ -1159,9 +1233,11 @@ public final class LuaScriptDispatcher {
         int requestId = data.getInt(LuaDiagnosticService.EXTRA_REQUEST_ID);
         if (message.what == LuaDiagnosticService.RESPONSE_SCRIPT_STARTED) {
             Pending started = pending.get(requestId);
-            if (started != null && started.scriptId.equals(
-                    data.getString(LuaDiagnosticService.EXTRA_SCRIPT_ID)))
+            if (remote != null && started != null && started.scriptId.equals(
+                    data.getString(LuaDiagnosticService.EXTRA_SCRIPT_ID))) {
                 crashTracker.started(requestId);
+                sandboxIdentity = LuaSandboxExit.Identity.fromStarted(data);
+            }
             return true;
         }
         if (message.what != LuaDiagnosticService.RESPONSE_SCRIPT) return true;
