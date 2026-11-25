@@ -24,6 +24,7 @@
 | `tiarca.storage.set(chiave, valore)` | Richiede salvataggio stringa UTF-8 | Dati persistenti |
 | `tiarca.storage.delete(chiave)` | Richiede cancellazione | Dati persistenti |
 | `tiarca.journal.append(json)` | Aggiunge una riga JSONL privata dello script alla rete dell'evento, senza limite circolare | Dati persistenti; callback |
+| `tiarca.journal.stats()` | Byte del file e contatori limitati di scritture/errori via `journal_status` | Dati persistenti; comando locale |
 | `tiarca.journal.export()` | Richiede selettore Android per il JSONL della rete corrente | Dati persistenti; comando locale |
 | `tiarca.journal.rotate()` | Archivia senza distruggere il JSONL attivo e richiede la condivisione Android; le nuove righe partono da un registro vuoto | Dati persistenti; comando locale |
 | `tiarca.journal.export_archive()` | Riesporta l'ultimo archivio privato conservato dopo la rotazione | Dati persistenti; comando locale |
