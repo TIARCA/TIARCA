@@ -116,7 +116,7 @@ local function write(e,kind,build)
   ',"id":'..sequence..',"ts":'..(tonumber(e.timestamp) or 0)..
   ',"s":'..server..',"ch":'..channel..',"type":'..q(kind)..
   (#defs>0 and ',"defs":['..table.concat(defs,",")..']' or "")..
-  (st.lost and ',"local_gap":'..st.lost or "")..(e.source_id and ',"source_id":'..q(e.source_id) or "")..data.."}"
+  (st.lost and ',"local_gap":'..st.lost or "")..(st.diskGap and ',"disk_gap":'..st.diskGap or "")..(e.source_id and ',"source_id":'..q(e.source_id) or "")..data.."}"
  if #line>8192 then
   st.rejected=st.rejected+1;st.lost=(st.lost or 0)+1;d.seq=sequence
   tiarca.log("Harvester: record over journal limit; collection incomplete")
@@ -131,7 +131,7 @@ local function write(e,kind,build)
  for _,key in ipairs(keys) do
   d.map[key]=staged[key]; entries=entries+1; bytes=bytes+#key
  end
- d.next=nextId;d.seq=sequence;st.lost=nil
+ d.next=nextId;d.seq=sequence;st.lost=nil;st.diskGap=nil
  if kind=="message" then st.messages=st.messages+1 else st.events=st.events+1 end
  st.bytes=st.bytes+#line+1
  return true
@@ -248,6 +248,16 @@ tiarca.on("timer",function(e)
 end)
 
 local function show(s) tiarca.show("Harvester V1",s) end
+tiarca.on("journal_status",function(e)
+ local st=counter(e.server)
+ if e.message_type=="error" then
+  st.diskGap=(st.diskGap or 0)+1
+  reset() -- no references to definitions that might not have reached disk
+ elseif e.message_type=="stats" then
+  local b,w,f,queue,slot,ipc=(e.text or ""):match("^(%d+) (%d+) (%d+) (%d+) (%d+) (%d+)$")
+  if b then show("Disk: "..b.." B; writes: "..w.."; errors: "..f.."; global engine: input full "..queue..", slot full "..slot..", IPC failed "..ipc.." (process counters)") end
+ end
+end)
 local function change(e,c,what,ch)
  save(e.server,c)
  if c.on or what=="off" then
@@ -305,7 +315,8 @@ tiarca.on("command",function(e)
   show((c.on and "ON" or "OFF").."; channels: "..#channelList(c)..
    "; messages: "..st.messages.."; events: "..st.events..
    "; bytes queued: "..st.bytes.."; local rejections: "..st.rejected..
-   " (this VM; disk writes and host drops not acknowledged)")
+   " (this VM; queued counts)")
+  if op=="stats" then tiarca.journal.stats() end
  elseif op=="snapshot" then
   local ch=arg~="" and arg or e.channel
   if not scope({server=e.server,channel=ch}) then show("Enable collection for this channel first");return end
