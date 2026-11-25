@@ -1,6 +1,11 @@
 package io.mrarm.irc.chat;
 
+import android.app.Activity;
 import android.text.Layout;
+import androidx.recyclerview.widget.RecyclerView;
+import org.robolectric.Robolectric;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotNull;
 import android.text.StaticLayout;
 import android.text.TextPaint;
 
@@ -32,6 +37,28 @@ public class ChatSelectTouchListenerTest {
 
         assertEquals(0, ChatSelectTouchListener.clampLayoutOffset(layout, -4));
         assertEquals(5, ChatSelectTouchListener.clampLayoutOffset(layout, 200));
+    }
+
+    @Test
+    public void disposingSelectionUnregistersObserverAndCannotReattach() throws Exception {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        RecyclerView recycler = new RecyclerView(activity);
+        activity.setContentView(recycler);
+        ChatSelectTouchListener listener = new ChatSelectTouchListener(recycler);
+        recycler.addOnItemTouchListener(listener);
+        // Explicitly exercise the attach callback even on a headless window.
+        listener.onViewAttachedToWindow(recycler);
+        java.lang.reflect.Field observer = ChatSelectTouchListener.class.getDeclaredField("mRegisteredObserver");
+        observer.setAccessible(true);
+        assertNotNull(observer.get(listener));
+        listener.onViewDetachedFromWindow(recycler);
+        assertNull(observer.get(listener));
+        listener.onViewAttachedToWindow(recycler);
+        assertNotNull(observer.get(listener));
+        listener.dispose();
+        listener.dispose();
+        listener.onViewAttachedToWindow(recycler);
+        assertNull(observer.get(listener));
     }
 
     private static Layout layout(String text) {

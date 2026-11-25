@@ -29,6 +29,11 @@ public class RecyclerViewScrollerRunnable implements Runnable {
         mPrevTime = AnimationUtils.currentAnimationTimeMillis();
     }
 
+    public void stop() {
+        mScrollDir = 0;
+        mRecyclerView.removeCallbacks(this);
+    }
+
     @Override
     public void run() {
         if (mScrollDir == 0)
@@ -41,7 +46,7 @@ public class RecyclerViewScrollerRunnable implements Runnable {
         mRecyclerView.scrollBy(0, (int) (delta * mAutoscrollAmount * mScrollDir));
         if (mScrolledListener != null)
             mScrolledListener.onScrolled(mScrollDir);
-        mRecyclerView.postOnAnimation(this);
+        if (mScrollDir != 0) mRecyclerView.postOnAnimation(this);
     }
 
 

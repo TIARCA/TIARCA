@@ -84,6 +84,8 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
     private MessageSenderInfo mChannelTopicSetBy;
     private Date mChannelTopicSetOn;
     private RecyclerView mRecyclerView;
+    private ChatSelectTouchListener mSelectTouchListener;
+    private volatile boolean mDestroyed;
     private ScrollPosLinearLayoutManager mLayoutManager;
     private ChatMessagesAdapter mAdapter;
     private ServerStatusMessagesAdapter mStatusAdapter;
@@ -194,15 +196,16 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
                     (StatusMessageList messages) -> {
                         Log.i(TAG, "Got server status message list: " +
                                 messages.getMessages().size() + " messages");
-                        mStatusMessages = messages.getMessages();
-                        mNeedsUnsubscribeStatusMessages = true;
                         updateMessageList(() -> {
+                            mStatusMessages = messages.getMessages();
                             mStatusAdapter.setMessages(messages);
                             if (mRecyclerView != null)
                                 mRecyclerView.scrollToPosition(mStatusAdapter.getItemCount() - 1);
+                            if (!mNeedsUnsubscribeStatusMessages) {
+                                connectionInfo.getApiInstance().subscribeStatusMessages(ChatMessagesFragment.this, null, null);
+                                mNeedsUnsubscribeStatusMessages = true;
+                            }
                         });
-
-                        connectionInfo.getApiInstance().subscribeStatusMessages(ChatMessagesFragment.this, null, null);
                     }, null);
         }
 
@@ -211,9 +214,10 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
 
     @Override
     public void onDestroy() {
+        mDestroyed = true;
+        ++mMessageWindowGeneration;
+        mMainHandler.removeCallbacksAndMessages(null);
         super.onDestroy();
-
-        mMainHandler.removeCallbacks(mReleaseOffscreenMessages);
 
         SettingsHelper.unregisterCallbacks(this);
 
@@ -298,6 +302,7 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
             mRecyclerView.setAdapter(mAdapter);
 
             ChatSelectTouchListener selectTouchListener = new ChatSelectTouchListener(mRecyclerView);
+            mSelectTouchListener = selectTouchListener;
             selectTouchListener.setActionModeStateCallback((android.view.ActionMode actionMode,
                                                             boolean visible) -> {
                 if (actionMode.getType() == android.view.ActionMode.TYPE_FLOATING)
@@ -394,14 +399,23 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
 
     @Override
     public void onDestroyView() {
-        super.onDestroyView();
-
+        if (mSelectTouchListener != null) {
+            mSelectTouchListener.dispose();
+            mSelectTouchListener = null;
+        }
+        if (mAdapter != null) mAdapter.setSelectListener(null);
+        if (mRecyclerView != null) {
+            mRecyclerView.clearOnScrollListeners();
+            mRecyclerView.setAdapter(null);
+            mRecyclerView.setLayoutManager(null);
+        }
+        if (mJumpToLatest != null) mJumpToLatest.setOnClickListener(null);
         synchronized (this) {
             mRecyclerView = null;
+            mJumpToLatest = null;
+            mLayoutManager = null;
         }
-        if (mAdapter != null) {
-            mAdapter.setSelectListener(null);
-        }
+        super.onDestroyView();
     }
 
     private boolean isPrivateConversation() {
@@ -462,12 +476,11 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
                 mLoadOlderIdentifier = messages.getOlder();
                 mLoadNewerIdentifier = nearMessage == null ? null : messages.getNewer();
                 mIsLoadingMore = false;
+                if (!mNeedsUnsubscribeMessages) {
+                    mConnection.getApiInstance().getMessageStorageApi().subscribeChannelMessages(mChannelName, ChatMessagesFragment.this, null, null);
+                    mNeedsUnsubscribeMessages = true;
+                }
             });
-
-            if (!mNeedsUnsubscribeMessages) {
-                mConnection.getApiInstance().getMessageStorageApi().subscribeChannelMessages(mChannelName, ChatMessagesFragment.this, null, null);
-                mNeedsUnsubscribeMessages = true;
-            }
         };
         MessageStorageApi storage = mConnection.getApiInstance().getMessageStorageApi();
         if (nearMessage != null) {
@@ -705,8 +718,9 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
     private void updateMessageList(Runnable r) {
         // Chatlib callbacks may arrive from its network thread. Keep every adapter and view
         // mutation on Android's main thread, including while the Fragment view is being rebuilt.
+        if (mDestroyed) return;
         mMainHandler.post(() -> {
-            if (!isAdded())
+            if (mDestroyed || !isAdded())
                 return;
             r.run();
         });
@@ -810,6 +824,7 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
 
     @Override
     public void onMemberListChanged(List<NickWithPrefix> list) {
+        if (mDestroyed) return;
         List<NickWithPrefix> sorted = list != null ? new ArrayList<>(list) : new ArrayList<>();
         sortMembers(sorted);
         this.mMembers = sorted;
