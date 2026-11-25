@@ -966,6 +966,7 @@ public final class LuaScriptDispatcher {
                             channels.truncated);
                     data.putStringArrayList(LuaDiagnosticService.EXTRA_USER_FIELDS,
                             users.fields);
+                    data.putStringArrayList(LuaDiagnosticService.EXTRA_ROSTER_REALNAMES, users.realnames);
                     data.putBoolean(LuaDiagnosticService.EXTRA_USERS_TRUNCATED,
                             users.truncated);
                     data.putBoolean(LuaDiagnosticService.EXTRA_CAN_READ_USERS,
