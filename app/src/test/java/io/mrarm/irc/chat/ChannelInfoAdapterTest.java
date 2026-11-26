@@ -15,6 +15,19 @@ import static org.junit.Assert.assertTrue;
 public class ChannelInfoAdapterTest {
 
     @Test
+    public void membersHeaderChangesWhenTotalChanges() {
+        ChannelInfoAdapter.AdapterItem old = ChannelInfoAdapter.AdapterItem.headerMembers(100);
+        ChannelInfoAdapter.AdapterItem next = ChannelInfoAdapter.AdapterItem.headerMembers(101);
+        ChannelInfoAdapter.AdapterItemDiffCallback diff = new ChannelInfoAdapter.AdapterItemDiffCallback(
+                Collections.singletonList(old), Collections.singletonList(next));
+        assertTrue(diff.areItemsTheSame(0, 0));
+        assertFalse(diff.areContentsTheSame(0, 0));
+        assertTrue(new ChannelInfoAdapter.AdapterItemDiffCallback(
+                Collections.singletonList(next), Collections.singletonList(
+                        ChannelInfoAdapter.AdapterItem.headerMembers(101))).areContentsTheSame(0, 0));
+    }
+
+    @Test
     public void memberSearchIsShownOnlyForChannelsWithAtLeastThirtyMembers() {
         assertFalse(ChannelInfoAdapter.isMemberSearchVisible(29));
         assertTrue(ChannelInfoAdapter.isMemberSearchVisible(30));

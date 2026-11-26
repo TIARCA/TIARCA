@@ -172,6 +172,8 @@ public final class LuaScriptStore {
         storage = new LuaScriptStorage(directory);
         approvalMarker = new File(context.getNoBackupFilesDir(), "lua_approvals_v1");
         load();
+        for (Script script : scripts)
+            pruneSources(script.id, currentSourceFile(script));
         if (!approvalMarker.exists()) {
             // Android Auto Backup restores the script sources and index, but not
             // files in getNoBackupFilesDir(). Never inherit script permissions.
@@ -298,6 +300,9 @@ public final class LuaScriptStore {
             index.failWrite(stream);
             throw error;
         }
+        // AtomicFile can report a failed rename only through logging.
+        if (!java.util.Arrays.equals(bytes, index.readFully()))
+            throw new IOException("Lua index write verification failed");
     }
 
     private static boolean validId(String id) {
@@ -376,7 +381,7 @@ public final class LuaScriptStore {
     }
 
     public synchronized byte[] sourceBytes(Script script) throws IOException {
-        try (InputStream input = new java.io.FileInputStream(sourceFile(script.id))) {
+        try (InputStream input = new java.io.FileInputStream(currentSourceFile(script))) {
             byte[] bytes = readBounded(input, MAX_SOURCE_BYTES);
             checkedSource(bytes);
             if (!hash(bytes).equals(script.sha256))
@@ -385,8 +390,33 @@ public final class LuaScriptStore {
         }
     }
 
+    // Updated sources are staged under their digest. The atomic index is the
+    // commit point: a process death before it changes leaves the old source valid.
+    private File versionedSourceFile(Script script) {
+        return new File(directory, script.id + "." + script.sha256 + ".lua");
+    }
+
+    private File currentSourceFile(Script script) {
+        File versioned = versionedSourceFile(script);
+        return versioned.isFile() ? versioned : sourceFile(script.id);
+    }
+
+    private void pruneSources(String id, File keep) {
+        File[] files = directory.listFiles();
+        if (files == null) return;
+        for (File file : files) {
+            String name = file.getName();
+            if ((name.equals(id + ".lua") ||
+                    (name.startsWith(id + ".") && name.endsWith(".lua"))) &&
+                    !file.equals(keep)) file.delete();
+        }
+    }
+
     private void writeSource(String id, byte[] data) throws IOException {
-        File file = sourceFile(id);
+        writeSourceFile(sourceFile(id), data);
+    }
+
+    private void writeSourceFile(File file, byte[] data) throws IOException {
         try (FileOutputStream output = new FileOutputStream(file)) {
             output.write(data);
             output.getFD().sync();
@@ -417,7 +447,16 @@ public final class LuaScriptStore {
         return script;
     }
 
-    public Script importFromUri(Uri uri) throws IOException {
+    static final class SourceDocument {
+        final String name;
+        final byte[] bytes;
+        SourceDocument(String name, byte[] bytes) {
+            this.name = name;
+            this.bytes = bytes;
+        }
+    }
+
+    SourceDocument readDocument(Uri uri) throws IOException {
         String display = null;
         try (Cursor cursor = context.getContentResolver().query(uri,
                 new String[]{OpenableColumns.DISPLAY_NAME}, null, null, null)) {
@@ -430,11 +469,44 @@ public final class LuaScriptStore {
         try (InputStream input = context.getContentResolver().openInputStream(uri)) {
             bytes = readBounded(input, MAX_SOURCE_BYTES);
         }
-        // A remote SAF provider can stall. Never hold the shared script-store
-        // monitor (also used by live IRC listeners) while reading that stream.
+        if (!validScriptName(display)) throw new IOException("Invalid .lua filename");
+        checkedSource(bytes);
+        return new SourceDocument(display, bytes);
+    }
+
+    public Script importFromUri(Uri uri) throws IOException {
+        // Read potentially remote SAF streams outside the store monitor.
+        SourceDocument document = readDocument(uri);
         synchronized (this) {
-            return importData(display, bytes, null);
+            return importData(document.name, document.bytes, null);
         }
+    }
+
+    /** Explicit, confirmed replacement: never remove or recreate the storage UUID. */
+    synchronized Script updateSource(Script expected, SourceDocument document) throws IOException {
+        Script before = find(expected.id);
+        if (before != expected) throw new IOException("Lua script changed; select it again");
+        if (!validScriptName(document.name)) throw new IOException("Invalid .lua filename");
+        checkedSource(document.bytes);
+        String digest = hash(document.bytes);
+        if (digest.equals(before.sha256)) return before;
+        for (Script other : scripts)
+            if (!other.id.equals(before.id) && other.sha256.equals(digest))
+                throw new IOException("Script already imported");
+        Script after = new Script(before.id, before.name, digest, before.serverIds,
+                before.enabled, before.allowSend, before.allowUserInfo,
+                before.allowModeration, before.allowStorage, "");
+        File staged = versionedSourceFile(after);
+        writeSourceFile(staged, document.bytes);
+        // If metadata save fails, replace() restores the old in-memory entry.
+        // The previous source and all persistent state remain untouched.
+        replace(before, after);
+        ephemeralLogs.remove(before.id);
+        ephemeralOutputs.remove(before.id);
+        // A coordinator load may still hold the previous Script snapshot.
+        // Keep old sources until the next app process starts, rather than
+        // letting an in-flight read disable the newly updated script.
+        return after;
     }
 
     public synchronized void enable(String id, String serverId, boolean send) throws IOException {
@@ -572,7 +644,7 @@ public final class LuaScriptStore {
             scripts.add(position, s);
             throw error;
         }
-        sourceFile(id).delete();
+        pruneSources(id, null);
         ephemeralLogs.remove(id);
         ephemeralOutputs.remove(id);
         storage.delete(id);

@@ -31,9 +31,15 @@ import io.mrarm.irc.config.ServerConfigManager;
 public final class LuaScriptsActivity extends ThemedActivity {
     // Register before the Activity reaches STARTED; Android restores pending
     // document selections across an Activity recreation.
+    private String updateScriptId;
     private final ActivityResultLauncher<String[]> luaPicker =
             registerForActivityResult(new ActivityResultContracts.OpenDocument(), selected -> {
-                if (selected != null) importScript(selected);
+                String target = updateScriptId;
+                updateScriptId = null;
+                if (selected != null) {
+                    if (target == null) importScript(selected);
+                    else prepareUpdate(target, selected);
+                }
             });
     private LuaScriptStore store;
     private LinearLayout list;
@@ -41,6 +47,8 @@ public final class LuaScriptsActivity extends ThemedActivity {
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (savedInstanceState != null)
+            updateScriptId = savedInstanceState.getString("lua_update_script_id");
         setTitle(R.string.lua_scripts_title);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         store = LuaScriptStore.get(this);
@@ -51,6 +59,11 @@ public final class LuaScriptsActivity extends ThemedActivity {
         list.setPadding(padding, padding, padding, padding);
         scroll.addView(list);
         setContentView(scroll);
+    }
+
+    @Override protected void onSaveInstanceState(Bundle outState) {
+        outState.putString("lua_update_script_id", updateScriptId);
+        super.onSaveInstanceState(outState);
     }
 
     @Override protected void onResume() {
@@ -155,6 +168,10 @@ public final class LuaScriptsActivity extends ThemedActivity {
                     render();
                 }));
             }
+            list.addView(button(R.string.lua_scripts_update, () -> {
+                updateScriptId = s.id;
+                luaPicker.launch(new String[]{"*/*"});
+            }));
             list.addView(button(R.string.lua_scripts_delete, () ->
                     new AlertDialog.Builder(this)
                             .setTitle(R.string.lua_scripts_delete)
@@ -298,7 +315,41 @@ public final class LuaScriptsActivity extends ThemedActivity {
     private void openPicker() {
         // .lua has no consistently advertised MIME type across file providers.
         // Keep the original "*/*" filter; importFromUri verifies name/content.
+        updateScriptId = null;
         luaPicker.launch(new String[]{"*/*"});
+    }
+
+    private void prepareUpdate(String id, Uri selected) {
+        LuaScriptStore.Script before = store.find(id);
+        if (before == null) return;
+        new Thread(() -> {
+            try {
+                LuaScriptStore.SourceDocument document = store.readDocument(selected);
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    new AlertDialog.Builder(this)
+                            .setTitle(R.string.lua_scripts_update)
+                            .setMessage(getString(R.string.lua_scripts_update_confirm,
+                                    before.name, document.name))
+                            .setNegativeButton(android.R.string.cancel, null)
+                            .setPositiveButton(R.string.lua_scripts_update, (dialog, which) -> {
+                                try {
+                                    store.updateSource(before, document);
+                                    LuaScriptDispatcher.get(this).reload();
+                                    Toast.makeText(this, R.string.lua_scripts_updated,
+                                            Toast.LENGTH_SHORT).show();
+                                    render();
+                                } catch (IOException error) {
+                                    failure(error);
+                                }
+                            }).show();
+                });
+            } catch (IOException error) {
+                runOnUiThread(() -> {
+                    if (!isFinishing() && !isDestroyed()) failure(error);
+                });
+            }
+        }, "tiarca-lua-update").start();
     }
 
     private void importScript(Uri selected) {
