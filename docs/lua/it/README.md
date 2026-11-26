@@ -17,6 +17,10 @@ end)
 
 In una build che include Lua: **Impostazioni → Script Lua (sperimentale)** → importa il file tramite selettore documenti Android → abilitalo → scegli esplicitamente le reti IRC. Lo script è inizialmente disabilitato. Per questo esempio non occorrono autorizzazioni aggiuntive. Il messaggio va nel log locale dello script, **non** in un canale.
 
+## Aggiornare uno script
+
+In una build che include la funzione, usa **Aggiorna script** nella scheda dello script già importato, seleziona il nuovo file Lua e conferma. Il nome, l'identificativo, le reti, le autorizzazioni e lo storage persistente restano invariati; i dati in memoria vengono reinizializzati. Verifica che il nuovo codice sia affidabile e compatibile con il formato dei dati salvati. Eliminare e reimportare uno script, invece, cancella lo storage associato.
+
 ## Il modello di esecuzione
 
 - Registra callback con `tiarca.on(nome_evento, funzione)`. Gli eventi sono normalizzati, non messaggi IRC RAW.

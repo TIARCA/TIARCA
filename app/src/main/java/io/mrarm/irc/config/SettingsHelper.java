@@ -89,10 +89,14 @@ public class SettingsHelper implements SharedPreferences.OnSharedPreferenceChang
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        if (sListeners.containsKey(key)) {
-            for (SettingChangeCallback l : sListeners.get(key))
-                l.onSettingChanged(key);
+        final List<SettingChangeCallback> snapshot;
+        synchronized (sListeners) {
+            List<SettingChangeCallback> listeners = sListeners.get(key);
+            if (listeners == null) return;
+            snapshot = new ArrayList<>(listeners);
         }
+        for (SettingChangeCallback listener : snapshot)
+            listener.onSettingChanged(key);
     }
 
     public static Object getDefaultValue(String key) {
@@ -130,20 +134,23 @@ public class SettingsHelper implements SharedPreferences.OnSharedPreferenceChang
     public static class ListenerHandle {
 
         private final Map<String, List<SettingChangeCallback>> mCallbacks = new HashMap<>();
+        private volatile boolean cancelled; // Also invalidates queued annotated UI callbacks.
 
         private ListenerHandle() {
         }
 
         public ListenerHandle cancel() {
             synchronized (sListeners) {
+                cancelled = true;
                 for (Map.Entry<String, List<SettingChangeCallback>> e : mCallbacks.entrySet()) {
                     List<SettingChangeCallback> globalList = sListeners.get(e.getKey());
                     if (globalList == null)
                         continue;
                     globalList.removeAll(e.getValue());
+                    if (globalList.isEmpty()) sListeners.remove(e.getKey());
                 }
+                mCallbacks.clear();
             }
-            mCallbacks.clear();
             return this;
         }
 
@@ -154,14 +161,13 @@ public class SettingsHelper implements SharedPreferences.OnSharedPreferenceChang
                     globalList = new ArrayList<>();
                     sListeners.put(property, globalList);
                 }
-                globalList.add(cb);
+                // A registration belongs to this handle, not to another handle
+                // that happens to use the same callback object.
+                SettingChangeCallback registered = name -> cb.onSettingChanged(name);
+                globalList.add(registered);
+                mCallbacks.computeIfAbsent(property, ignored -> new ArrayList<>()).add(registered);
+                cancelled = false;
             }
-            List<SettingChangeCallback> localList = sListeners.get(property);
-            if (localList == null) {
-                localList = new ArrayList<>();
-                sListeners.put(property, localList);
-            }
-            localList.add(cb);
             return this;
         }
 
@@ -183,7 +189,8 @@ public class SettingsHelper implements SharedPreferences.OnSharedPreferenceChang
     }
 
     private static final HashMap<Class<?>, ClassCallbackInfo> sCallbacks = new HashMap<>();
-    private static final WeakHashMap<Object, WeakReference<ListenerHandle>> sRegisteredListeners = new WeakHashMap<>();
+    // Keep cancellation handles alive; their annotated callbacks hold only weak targets.
+    private static final WeakHashMap<Object, ListenerHandle> sRegisteredListeners = new WeakHashMap<>();
     private static final Handler sUiHandler = new Handler(Looper.getMainLooper());
 
     private static synchronized ClassCallbackInfo resolveCallbacks(Class<?> c) {
@@ -213,20 +220,16 @@ public class SettingsHelper implements SharedPreferences.OnSharedPreferenceChang
         ClassCallbackInfo c = resolveCallbacks(o.getClass());
         ListenerHandle handle = changeEvent();
         for (ClassCallbackInfo.MethodInfo m : c.methods) {
-            SettingChangeCallback cb = m.createCallback(o);
+            SettingChangeCallback cb = m.createCallback(o, handle);
             for (String k : m.keys)
                 handle.listen(k, cb);
         }
-        sRegisteredListeners.put(o, new WeakReference<>(handle));
+        sRegisteredListeners.put(o, handle);
     }
 
     public static synchronized void unregisterCallbacks(Object o) {
-        WeakReference<ListenerHandle> h = sRegisteredListeners.remove(o);
-        if (h != null) {
-            ListenerHandle hh = h.get();
-            if (hh != null)
-                hh.cancel();
-        }
+        ListenerHandle handle = sRegisteredListeners.remove(o);
+        if (handle != null) handle.cancel();
     }
 
     private static class ClassCallbackInfo {
@@ -242,38 +245,32 @@ public class SettingsHelper implements SharedPreferences.OnSharedPreferenceChang
                 this.onUi = onUi;
             }
 
-            private SettingChangeCallback createBaseCallback(Object o) {
-                if (this.method.getParameterTypes().length > 0) {
-                    return (n) -> {
-                        try {
-                            this.method.invoke(o, n);
-                        } catch (Exception e) {
-                            throw new RuntimeException(e);
-                        }
-                    };
-                } else {
-                    return (n) -> {
-                        try {
-                            this.method.invoke(o);
-                        } catch (Exception e) {
-                            throw new RuntimeException(e);
-                        }
-                    };
-                }
-            }
-
-            private SettingChangeCallback createCallback(Object o) {
-                if (onUi) {
-                    SettingChangeCallback base = createBaseCallback(o);
-                    return (n) -> {
-                        if (Looper.getMainLooper().getThread() == Thread.currentThread())
-                            base.onSettingChanged(n);
+            private SettingChangeCallback createCallback(Object o, ListenerHandle handle) {
+                WeakReference<Object> target = new WeakReference<>(o);
+                SettingChangeCallback invoke = name -> {
+                    if (handle.cancelled) return;
+                    Object owner = target.get();
+                    if (owner == null) {
+                        handle.cancel();
+                        return;
+                    }
+                    try {
+                        if (method.getParameterTypes().length > 0)
+                            method.invoke(owner, name);
                         else
-                            sUiHandler.post(() -> base.onSettingChanged(n));
-                    };
-                } else {
-                    return createBaseCallback(o);
-                }
+                            method.invoke(owner);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                };
+                if (!onUi) return invoke;
+                return name -> {
+                    if (handle.cancelled) return;
+                    if (Looper.getMainLooper().getThread() == Thread.currentThread())
+                        invoke.onSettingChanged(name);
+                    else
+                        sUiHandler.post(() -> invoke.onSettingChanged(name));
+                };
             }
         }
 

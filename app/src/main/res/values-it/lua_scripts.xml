@@ -40,4 +40,7 @@
     <string name="lua_scripts_view_output">Visualizza risultato script</string>
     <string name="lua_scripts_copy_label">Risultato script Lua</string>
     <string name="lua_scripts_copied">Elemento copiato</string>
+    <string name="lua_scripts_update">Aggiorna script</string>
+    <string name="lua_scripts_update_confirm">Sostituire il codice di %1$s con %2$s? I dati salvati, il nome dello script, le reti e le autorizzazioni esistenti vengono conservati. Continua solo se ritieni affidabile il nuovo codice e compatibile con i dati salvati.</string>
+    <string name="lua_scripts_updated">Script aggiornato</string>
 </resources>

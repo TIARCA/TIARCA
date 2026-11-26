@@ -16,6 +16,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.widget.TextView;
 
 import io.mrarm.irc.R;
@@ -30,7 +31,12 @@ public class ChatSelectTouchListener implements RecyclerView.OnItemTouchListener
     private static final int MAX_CLICK_DURATION = 200;
     private static final int MAX_CLICK_DISTANCE = 30;
 
-    private RecyclerView mRecyclerView;
+    private final RecyclerView mRecyclerView;
+    private final ViewTreeObserver.OnScrollChangedListener mScrollObserver = this::showHandles;
+    private final ViewTreeObserver.OnGlobalLayoutListener mLayoutObserver = this::showHandles;
+    private ViewTreeObserver mRegisteredObserver;
+    private boolean mDisposed;
+    private HandleMoveListener mLeftMoveListener, mRightMoveListener;
 
     private BaseActionModeCallback mActionModeCallback;
     private ActionModeCallback2 mActionModeCallback2;
@@ -77,22 +83,72 @@ public class ChatSelectTouchListener implements RecyclerView.OnItemTouchListener
         });
         mActionModeCallback = new BaseActionModeCallback();
         mActionModeCallback2 = new ActionModeCallback2(mActionModeCallback);
-        recyclerView.getViewTreeObserver().addOnScrollChangedListener(this::showHandles);
-        recyclerView.getViewTreeObserver().addOnGlobalLayoutListener(this::showHandles);
         recyclerView.addOnAttachStateChangeListener(this);
+        if (recyclerView.isAttachedToWindow()) registerObservers();
     }
 
     public void setDeleteSelectionListener(DeleteSelectionListener listener) {
         mDeleteSelectionListener = listener;
     }
 
+    private void registerObservers() {
+        if (mDisposed || mRegisteredObserver != null) return;
+        mRegisteredObserver = mRecyclerView.getViewTreeObserver();
+        mRegisteredObserver.addOnScrollChangedListener(mScrollObserver);
+        mRegisteredObserver.addOnGlobalLayoutListener(mLayoutObserver);
+    }
+
+    private void unregisterObservers() {
+        ViewTreeObserver observer = mRegisteredObserver;
+        mRegisteredObserver = null;
+        if (observer == null) return;
+        if (!observer.isAlive()) observer = mRecyclerView.getViewTreeObserver();
+        if (observer.isAlive()) {
+            observer.removeOnScrollChangedListener(mScrollObserver);
+            observer.removeOnGlobalLayoutListener(mLayoutObserver);
+        }
+    }
+
     @Override
     public void onViewAttachedToWindow(View v) {
+        registerObservers();
     }
 
     @Override
     public void onViewDetachedFromWindow(View v) {
-        clearSelection();
+        unregisterObservers();
+        releaseSelection();
+    }
+
+    /** Permanent teardown before the Fragment detaches its adapter. */
+    public void dispose() {
+        if (mDisposed) return;
+        mDisposed = true;
+        unregisterObservers();
+        mRecyclerView.removeOnAttachStateChangeListener(this);
+        mRecyclerView.removeOnItemTouchListener(this);
+        releaseSelection();
+        mActionModeStateCallback = null;
+        mDeleteSelectionListener = null;
+    }
+
+    private void releaseSelection() {
+        mSelectionLongPressMode = false;
+        mScroller.stop();
+        if (mLeftMoveListener != null) mLeftMoveListener.mScroller.stop();
+        if (mRightMoveListener != null) mRightMoveListener.mScroller.stop();
+        if (mRecyclerView.getAdapter() instanceof AdapterInterface)
+            clearSelection();
+        else
+            hideActionModeForSelection();
+        if (mLeftHandle != null) {
+            mLeftHandle.hide();
+            mLeftHandle.setOnMoveListener(null);
+            mRightHandle.hide();
+            mRightHandle.setOnMoveListener(null);
+            mLeftHandle = mRightHandle = null;
+        }
+        mLeftMoveListener = mRightMoveListener = null;
     }
 
     public void setActionModeStateCallback(ActionModeStateCallback callback) {
@@ -102,8 +158,10 @@ public class ChatSelectTouchListener implements RecyclerView.OnItemTouchListener
     private void createHandles() {
         mLeftHandle = new TextSelectionHandlePopup(mRecyclerView.getContext(), false);
         mRightHandle = new TextSelectionHandlePopup(mRecyclerView.getContext(), true);
-        mLeftHandle.setOnMoveListener(new HandleMoveListener(false));
-        mRightHandle.setOnMoveListener(new HandleMoveListener(true));
+        mLeftMoveListener = new HandleMoveListener(false);
+        mRightMoveListener = new HandleMoveListener(true);
+        mLeftHandle.setOnMoveListener(mLeftMoveListener);
+        mRightHandle.setOnMoveListener(mRightMoveListener);
     }
 
     private void showHandle(TextSelectionHandlePopup handle, long id, int offset) {
@@ -121,10 +179,16 @@ public class ChatSelectTouchListener implements RecyclerView.OnItemTouchListener
     }
 
     private void showHandles() {
-        if (mLeftHandle == null)
-            createHandles();
-        if (mSelectionLongPressMode)
+        if (mDisposed || !mRecyclerView.isAttachedToWindow()) return;
+        if (mSelectionLongPressMode) return;
+        if (mSelectionStartId == -1) {
+            if (mLeftHandle != null) {
+                mLeftHandle.hide();
+                mRightHandle.hide();
+            }
             return;
+        }
+        if (mLeftHandle == null) createHandles();
         showHandle(mLeftHandle, mSelectionStartId, mSelectionStartOffset);
         showHandle(mRightHandle, mSelectionEndId, mSelectionEndOffset);
         if (!mLeftHandle.isVisible() && !mRightHandle.isVisible() && mSelectionStartId != -1)
@@ -540,7 +604,8 @@ public class ChatSelectTouchListener implements RecyclerView.OnItemTouchListener
             mCurrentActionMode = mode;
             MenuInflater inflater = mode.getMenuInflater();
             inflater.inflate(R.menu.menu_context_messages, menu);
-            mActionModeStateCallback.onActionModeStateChanged(mode, true);
+            if (mActionModeStateCallback != null)
+                mActionModeStateCallback.onActionModeStateChanged(mode, true);
             return true;
         }
 
@@ -577,7 +642,8 @@ public class ChatSelectTouchListener implements RecyclerView.OnItemTouchListener
 
         @Override
         public void onDestroyActionMode(ActionMode mode) {
-            mActionModeStateCallback.onActionModeStateChanged(mode, false);
+            if (mActionModeStateCallback != null)
+                mActionModeStateCallback.onActionModeStateChanged(mode, false);
             mCurrentActionMode = null;
             if (mode.getType() != ActionMode.TYPE_FLOATING)
                 clearSelection();

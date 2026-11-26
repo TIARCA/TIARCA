@@ -55,6 +55,9 @@ public final class LuaDiagnosticService extends Service {
     public static final String EXTRA_RESULT = "result";
     public static final String EXTRA_ISOLATED = "isolated";
     public static final String EXTRA_PID = "pid";
+    public static final String EXTRA_PROCESS_UID = "process_uid";
+    public static final String EXTRA_PROCESS_NAME = "process_name";
+    public static final String EXTRA_STARTED_AT = "started_at";
 
     private static final long SCRIPT_TIMEOUT_MS = 3000L;
     private final Handler watchdog = new Handler(Looper.getMainLooper());
@@ -141,6 +144,11 @@ public final class LuaDiagnosticService extends Service {
                 message.getData().getString(EXTRA_SCRIPT_ID));
         startedData.putInt(EXTRA_REQUEST_ID,
                 message.getData().getInt(EXTRA_REQUEST_ID));
+        // Host-only metadata; never read from Lua or exposed as script input.
+        startedData.putInt(EXTRA_PID, Process.myPid());
+        startedData.putInt(EXTRA_PROCESS_UID, Process.myUid());
+        startedData.putString(EXTRA_PROCESS_NAME, android.app.Application.getProcessName());
+        startedData.putLong(EXTRA_STARTED_AT, System.currentTimeMillis());
         started.setData(startedData);
         try {
             message.replyTo.send(started);

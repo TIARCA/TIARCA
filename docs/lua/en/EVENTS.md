@@ -24,7 +24,7 @@ Register events with `tiarca.on("name", function(event) ... end)`. The callback 
 | `own_message` | Local user public message observation | Separate from `message`, never triggers legacy message callbacks; not a delivery guarantee |
 | `account` | Observed IRCv3 ACCOUNT | Identities consent; `sender.account` is new account or `*`; shared channels only |
 | `chghost` | Observed IRCv3 CHGHOST | Identities consent; `sender.ident/host` are new values; shared channels only |
-| `journal_status` | Scoped journal stats or append error | Storage consent; `message_type` stats/error; stats text contains bytes, writes, failures, global input-full, slot-full, IPC-failed counts; error text is `append_failed`; no journal append in callback |
+| `journal_status` | Scoped journal stats or append error | Storage consent; `message_type` stats/error/sandbox_gap; sandbox_gap text contains duration ms, global unavailable ingress, global cancelled slots (best effort after recovery); stats text contains bytes, writes, failures, global input-full, slot-full, IPC-failed counts; error text is `append_failed`; no journal append in callback |
 | `timer` | Approximately 60-second tick | Only with running IRC service and connected network; not an accurate alarm |
 
 Common fields: `type`, `server` (server configuration UUID, **not** hostname), `channel`, `nick`, `text`, `message_type` (`normal`, `notice`, `me`), `timestamp` (Unix seconds). Fields are event-dependent and may be empty.

@@ -17,6 +17,10 @@ end)
 
 On a Lua-enabled build: **Settings → Lua scripts (experimental)** → import the file through Android's document picker → enable it → explicitly select IRC networks. Imported scripts are disabled initially. This example needs no additional capability. The text appears in the script's local log, **not** in an IRC channel.
 
+## Updating a script
+
+In a build with this feature, choose **Update script** on the existing script, select the new Lua file and confirm. The name, identifier, networks, permissions and persistent storage are retained; in-memory state is reset. Only use trusted code compatible with the stored data format. Deleting and reimporting a script instead removes its storage.
+
 ## Execution model
 
 - Register callbacks using `tiarca.on(event_name, function)`. Events are normalized, not raw IRC protocol messages.
