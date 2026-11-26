@@ -173,12 +173,17 @@ public final class HostLuaRuntimeTest {
     }
 
     private static String[] v4Event(String event, String nick, String text, long time,
-                                    String prefix, String account) {
+                                    String prefix, String account, String... mentions) {
+        byte[][] roster = new byte[mentions.length * 5][];
+        for (int i = 0; i < mentions.length; i++) {
+            roster[5*i] = bytes(mentions[i]);
+            for (int j = 1; j < 5; j++) roster[5*i+j] = bytes("");
+        }
         byte[][] sender = prefix == null ? new byte[0][] :
                 new byte[][]{bytes("ident"), bytes("host.example"), bytes(prefix), bytes(account)};
         return collect(NativeLuaRuntime.dispatchWithIdentity(OTHER, event,
                 bytes("test-server"), bytes("#room"), bytes(nick), bytes(text), bytes("normal"), time,
-                new byte[0][], new int[0], false, new byte[0][], false, true,
+                new byte[0][], new int[0], false, roster, false, true,
                 automodSnapshot(), true, sender));
     }
 
@@ -213,6 +218,201 @@ public final class HostLuaRuntimeTest {
                 automodStorage.get("v4.allow").contains("voiceacct"), "Verified result persists");
         check(v4Event("message", "Voice", "cerco ragazza", t+7, "+", "voiceacct").length == 1,
                 "Whitelist applies immediately");
+        // A mention must be verified and must not erase a real announcement.
+        check(v4Event("message", "Ajejeje", "M99", t+10, "", "aje", "M99").length == 1 &&
+                v4Event("message", "Ajejeje", "M99 ti ricordi quella ragazza della foto?",
+                        t+11, "", "aje", "M99").length == 1,
+                "V4 verified M99 conversation is not an announcement");
+        String[][] ads = {{"m 99", "m"}, {"m-99", "m-99"}, {"cerco F35", "F35"},
+                {"F35 pvt", "F35", "pvt"}, {"io F35", "F35"},
+                {"F35 cerco uomo", "F35"}, {"ragazze in pvt", "pvt"},
+                {"donna Roma", "Roma"}, {"M99", ""}};
+        for (int i = 0; i < ads.length; i++) {
+            String[] row = ads[i];
+            String account = "mention-regression-" + i;
+            String[] hits = row[1].isEmpty() ? new String[0] :
+                    java.util.Arrays.copyOfRange(row, 1, row.length);
+            String[] one = v4Event("message", "Tester"+i, row[0], t+12, "", account, hits);
+            String[] two = v4Event("message", "Tester"+i, row[0], t+13, "", account, hits);
+            check("OK".equals(one[0]) && java.util.Arrays.toString(two).contains("motore B"),
+                    "V4 preserves announcement: "+row[0]+" "+java.util.Arrays.toString(two));
+        }
+        // Weak fragments cannot become a B violation merely through repetition.
+        String[] weak = {"qualcuno?", "Nessuna", "Nessuna?", "F", "3", "08?", "2007",
+                "07-09", "07/09", "io bologna", "Chat f", "ragazze per parlare?",
+                "f 23 qualcuno in chat?", "Qualcuna che mi fa compagnia mentre lavoro?",
+                "Ragaaa ma qualcuna simpatica che cerca compagnia c'e?",
+                "Bella genteee, ci sta qualcuno intenzionato a farmi compagnia in chat?",
+                "Maxto: ma infatti si altrimenti sclero con gli admin di sto canale " +
+                        "non si puo chiedere alla chat se qualcuno cerca compagnia"};
+        for (int i = 0; i < weak.length; i++) {
+            String account = "permissive-" + i;
+            for (int j = 0; j < 2; j++) {
+                String[] response = v4Event("message", "Weak"+i, weak[i], t+20+j, "", account);
+                check("OK".equals(response[0]) &&
+                                !java.util.Arrays.toString(response).contains("motore B"),
+                        "Weak message must not trigger B: "+weak[i]);
+            }
+        }
+        check(v4Event("message", "Asia", "F", t+30, "", "asia").length == 1 &&
+                v4Event("message", "Asia", "3", t+30+728, "", "asia").length == 1,
+                "Unrelated numeric fragments cannot combine into an ad");
+        String[] strong = {"F?", "ragazze?", "f x chat?", "donna x chattare",
+                "cerco donna sposata con cui parlare", "qualcuna per conoscenza?",
+                "F per compagnia va bene qualsiasi eta", "ragazze di Roma?",
+                "cerco f", "f in pvt?"};
+        for (int i = 0; i < strong.length; i++) {
+            String account = "strong-" + i;
+            String[] one = v4Event("message", "Strong"+i, strong[i], t+800, "", account);
+            String[] two = v4Event("message", "Strong"+i, strong[i], t+801, "", account);
+            check("OK".equals(one[0]) && java.util.Arrays.toString(two).contains("motore B"),
+                    "Explicit repeated ad still detected: "+strong[i]);
+        }
+        String generic = "qualcuno vuole fare due chiacchiere";
+        for (int i = 0; i < 2; i++)
+            check(v4Event("message", "Repeat", generic, t+810+i, "", "repeat").length == 1,
+                    "Ordinary chat not immediately sanctioned");
+        check(java.util.Arrays.toString(v4Event("message", "Repeat", generic,
+                        t+812, "", "repeat")).contains("motore A"),
+                "Repeated ordinary chat remains subject to Engine A");
+        check(v4Event("message", "Greeting", "M99: felice pomeriggio a te",
+                t+14, "", "greetacct", "M99").length == 1 &&
+                v4Event("message", "Greeting", "Sarah felice pomeriggio a te",
+                t+15, "", "greetacct", "Sarah").length == 1 &&
+                v4Event("message", "Greeting", "Gianna felice pomeriggio a te",
+                t+16, "", "greetacct", "Gianna").length == 1,
+                "V4 personalized greetings remain ignored");
+        NativeLuaRuntime.unload(OTHER);
+        automodStorage.clear();
+        automodActive = false;
+    }
+
+    private static int v4Shard(String id) {
+        int n = 0;
+        for (byte b : bytes(id)) n = (n * 33 + (b & 255)) % 20;
+        return n;
+    }
+
+    private static String v4ShardKey(int n) {
+        return String.format(java.util.Locale.ROOT, "v4.s%02d", n);
+    }
+
+    private static void checkV4LargeHistory() throws Exception {
+        byte[] source = Files.readAllBytes(Path.of("docs/lua-examples/automod_v4.lua"));
+        check(source.length <= 24576, "V4 source quota");
+        automodStorage.clear();
+        automodActive = true;
+        long t = 1794400000L;
+        // Legacy-format archive: populate all twenty shards, below the 128 KiB
+        // total storage quota, but far above the original full-scan CPU budget.
+        int[] counts = new int[20];
+        java.util.Set<String> expired = new java.util.HashSet<>();
+        java.util.Map<String, String> retained = new java.util.HashMap<>();
+        for (int i = 0, added = 0; added < 1200; i++) {
+            String server = i % 3 == 0 ? "other-server" : "test-server";
+            String id = server + "/a:archive" + "x".repeat(32) + i;
+            int shard = v4Shard(id);
+            if (counts[shard] >= 60) continue;
+            counts[shard]++;
+            added++;
+            boolean remove = server.equals("test-server") && i % 2 == 0;
+            long at = remove || server.equals("other-server") ? t - 86401 : t - 10;
+            String row = id + "\t2\t" + at + "\t1";
+            automodStorage.merge(v4ShardKey(shard), row, (a, b) -> a + "\n" + b);
+            if (remove) expired.add(id);
+            else retained.put(id, row);
+        }
+        String target = "test-server/a:targetaccount";
+        String targetShard = v4ShardKey(v4Shard(target));
+        automodStorage.merge(targetShard, target + "\t2\t" + (t - 10) + "\t1",
+                (a, b) -> a + "\n" + b);
+        int total = automodStorage.entrySet().stream()
+                .mapToInt(e -> bytes(e.getKey()).length + bytes(e.getValue()).length).sum();
+        check(total > 65536 && total < 128 * 1024, "Realistic large archive within quota");
+        check(automodStorage.values().stream().allMatch(v -> bytes(v).length <= 8192),
+                "Every shard fits the legacy value quota");
+
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, source))), "Large V4 VM loads");
+        check("OK".equals(v4Event("command", "me", "mod canali add #room", t, null, "")[0]),
+                "Configuration does not scan the complete archive");
+        check("OK".equals(v4Event("command", "me", "mod modo live", t, null, "")[0]),
+                "Live mode configured with large archive");
+        java.util.Map<String, String> before = new java.util.HashMap<>(automodStorage);
+        check("OK".equals(v4Event("message", "Target", "cerco ragazza", t+1, "", "targetaccount")[0]),
+                "First ad with large archive");
+        String[] detection = v4Event("message", "Target", "cerco donna", t+2, "", "targetaccount");
+        check("OK".equals(detection[0]) && java.util.Arrays.toString(detection).contains("infrazione 3"),
+                "Persisted level survives and advances without budget exhaustion");
+        check(automodStorage.get(targetShard).contains(target + "\t3\t" + (t+2) + "\t1"),
+                "Only target level advances");
+        before.forEach((key, value) -> {
+            if (!key.equals(targetShard)) check(value.equals(automodStorage.get(key)),
+                    "Unrelated storage remains unchanged: " + key);
+        });
+        for (int i = 0; i < 20; i++) {
+            java.util.Map<String, String> previous = new java.util.HashMap<>(automodStorage);
+            String[] tick = v4Event("timer", "", "", t+3+i, null, "");
+            check("OK".equals(tick[0]), "Bounded archive cleanup tick " + i);
+            String cleaned = v4ShardKey(i);
+            previous.forEach((key, value) -> {
+                if (!key.equals(cleaned)) check(value.equals(automodStorage.get(key)),
+                        "Timer must touch only its scheduled shard");
+            });
+        }
+        java.util.Map<String, String> actual = new java.util.HashMap<>();
+        for (int i = 0; i < 20; i++) {
+            for (String row : automodStorage.getOrDefault(v4ShardKey(i), "").split("\n")) {
+                if (!row.isEmpty()) actual.put(row.substring(0, row.indexOf('\t')), row);
+            }
+        }
+        for (String id : expired) check(!actual.containsKey(id), "Expired row removed");
+        retained.forEach((id, row) -> check(row.equals(actual.get(id)),
+                "Fresh or other-network row preserved: " + id));
+        check(actual.size() == retained.size()+1, "No history lost or invented");
+
+        NativeLuaRuntime.unload(OTHER);
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, source))), "V4 reloads");
+        check("OK".equals(v4Event("message", "Target", "cerco ragazza", t+30, "", "targetaccount")[0]),
+                "Detection resumes after VM reload");
+        detection = v4Event("message", "Target", "cerco donna", t+31, "", "targetaccount");
+        check("OK".equals(detection[0]) && java.util.Arrays.toString(detection).contains("infrazione 4"),
+                "Escalation persists across restart");
+        NativeLuaRuntime.unload(OTHER);
+
+        // A malformed shard must not be silently overwritten or trigger a sanction.
+        automodStorage.put(targetShard, "invalid-row");
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, source))), "Reload with malformed shard");
+        v4Event("message", "Target", "cerco ragazza", t+40, "", "targetaccount");
+        String[] malformed = v4Event("message", "Target", "cerco donna", t+41, "", "targetaccount");
+        check("OK".equals(malformed[0]) &&
+                java.util.Arrays.toString(malformed).contains("moderazione sospesa") &&
+                !java.util.Arrays.asList(malformed).contains("tmute") &&
+                !java.util.Arrays.asList(malformed).contains("kick") &&
+                "invalid-row".equals(automodStorage.get(targetShard)),
+                "Corrupt history fails closed without overwriting it");
+        // A bad shard cannot stop other users or permanently latch the VM off.
+        String healthy = "healthy";
+        while (v4Shard("test-server/a:" + healthy) == v4Shard(target)) healthy += "x";
+        v4Event("message", "Healthy", "cerco ragazza", t+42, "", healthy);
+        String[] independent = v4Event("message", "Healthy", "cerco donna", t+43, "", healthy);
+        check("OK".equals(independent[0]) && java.util.Arrays.toString(independent).contains("infrazione 1"),
+                "Healthy shard continues after malformed archive");
+        automodStorage.put(targetShard, target + "\t4\t" + (t+31) + "\t1");
+        String[] recovered = v4Event("message", "Target", "cerco ragazza", t+44, "", "targetaccount");
+        check("OK".equals(recovered[0]) && java.util.Arrays.toString(recovered).contains("infrazione 5"),
+                "Restored shard resumes with original history without restarting");
+        String config = automodStorage.get("v4.cfg");
+        NativeLuaRuntime.unload(OTHER);
+        automodStorage.put("v4.cfg", config + "\ninvalid-row");
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, source))), "V4 with invalid config");
+        check(v4Event("message", "Healthy", "cerco ragazza", t+45, "", healthy).length == 1,
+                "Invalid configuration prevents moderation");
+        automodStorage.put("v4.cfg", config);
+        check("OK".equals(v4Event("timer", "", "", t+46, null, "")[0]), "Timer retries configuration");
+        v4Event("message", "Healthy", "cerco ragazza", t+47, "", healthy);
+        String[] resumed = v4Event("message", "Healthy", "cerco donna", t+48, "", healthy);
+        check("OK".equals(resumed[0]) && java.util.Arrays.toString(resumed).contains("infrazione 2"),
+                "Configuration recovery restores live mode, channels and escalation");
         NativeLuaRuntime.unload(OTHER);
         automodStorage.clear();
         automodActive = false;
@@ -318,6 +518,7 @@ public final class HostLuaRuntimeTest {
         checkHarvester();
         checkStorageRevisions();
         checkV4Identity();
+        checkV4LargeHistory();
         // Read subscriptions from the actual loaded VM, not Lua source text.
         check(NativeLuaRuntime.eventMask(OTHER) == -1, "Absent VM has no known mask");
         check("OK".equals(decode(NativeLuaRuntime.load(OTHER,

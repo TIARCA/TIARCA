@@ -44,3 +44,5 @@ V2: `event.sender` può mancare; dati osservati e autorizzati, per messaggi live
 `source_id` identifica la stessa osservazione in `message`, `own_message` e nel report di moderazione derivato: non è un msgid IRC né conferma della sanzione. `sender.realname` è disponibile solo se osservato e con consenso identità; ignoto = nil.
 
 Roster v2: `users[].realname` o `user.realname` quando osservato. Con `state=true`, la prima pagina può includere `channel_modes` con voci `{mode,param,kind}` e `channel_modes_partial=true`. Nessuna garanzia di lista IRC completa.
+
+Per AutoMod v4 (`automod_v4.lua`) con consenso identità e opt-in V2, `event.mentions` può contenere una mappa dei token originali verificati nell'indice locale del canale (chiave = token senza punteggiatura finale `,:;.!?`, valore = `true`). Massimo 64 token esaminati e 32 risultati; mittente escluso. Nessuna richiesta IRC né roster completo. Un campo assente o una chiave mancante non provano che il nickname sia assente dal canale; il messaggio originale resta invariato.

@@ -234,6 +234,34 @@ final class LuaIdentityQuery {
                 i != null && valid(i.realname, 256) ? "1" + i.realname : ""};
     }
 
+    /**
+     * Bounded point lookups of raw message tokens, not a roster snapshot.
+     * Only positive same-channel observations, no user creation or network requests.
+     * The wire rows carry the exact token spelling, no additional identity fields.
+     */
+    static LuaUserSnapshot mentions(ServerConnectionData data, String channel,
+                                    String sender, String text) {
+        LuaUserSnapshot out = new LuaUserSnapshot();
+        if (data == null || channel == null || channel.isEmpty() || text == null ||
+                !data.getSupportList().getSupportedChannelTypes().contains(channel.charAt(0)))
+            return out;
+        IrcIdentityCache cache = data.getIdentityCache();
+        IRCCaseMapping mapping = data.getSupportList().getCaseMapping();
+        java.util.HashSet<String> seen = new java.util.HashSet<>();
+        int checked = 0;
+        for (String token : text.split("\\s+")) {
+            if (++checked > 64 || out.fields.size() >= 32 * LuaUserSnapshot.FIELDS) break;
+            String candidate = token.replaceFirst("[,:;.!?]+$", "");
+            if (candidate.isEmpty() || candidate.length() > 64 ||
+                    !valid(candidate, 95) || mapping.equals(candidate, sender) ||
+                    !seen.add(candidate)) continue;
+            String observed = cache.sharedMemberNick(channel, candidate);
+            if (observed != null && mapping.equals(candidate, observed))
+                Collections.addAll(out.fields, candidate, "", "", "", "");
+        }
+        return out;
+    }
+
     /** Capture the actual message's immutable sender fields before posting to the worker. */
     static String[] sender(ServerConnectionData data, String channel, MessageSenderInfo sender) {
         if (data == null || sender == null || sender.getUserUUID() == null) return null;
