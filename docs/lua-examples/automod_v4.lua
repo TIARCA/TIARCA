@@ -210,7 +210,9 @@ local function saveAllow()
  return pcall(tiarca.storage.set,"v4.allow",raw)
 end
 local function load()
- if loaded then return not failed end
+ if loaded then return true end
+ if failed then return false end
+ configs,allow={},{}
  local ok,cfg=pcall(tiarca.storage.get,"v4.cfg")
  if not ok then failed=true;return false end
  for _,line in ipairs(eachline(cfg)) do
@@ -251,7 +253,7 @@ local function readPart(i)
  end
  end
  if yes then return history end
- failed=true;tiarca.log("AutoMod V4: archivio non leggibile; moderazione sospesa")
+ tiarca.log("AutoMod V4: archivio non leggibile; moderazione sospesa per blocco "..i)
 end
 local genericIdent=dict("guest webirc android user ident unknown anonymous irccloud mibbit")
 local function identify(e,now,window)
@@ -330,6 +332,12 @@ local function detected(e,id,engine,rule,pct,h,now,c)
  if old and old.epoch==c.epoch and now>=old.at and
  now-old.at<TTL then level=old.level end
  local nextLevel=math.min(5,level+1)
+ if c.mode=="live" then
+ history[id]={level=nextLevel,at=now,epoch=c.epoch}
+ local ok,err=savePart(n,history)
+ if not ok then
+ tiarca.log("AutoMod V4: archivio non scrivibile; moderazione sospesa: "..tostring(err));return end
+ end
  local label=c.mode=="live" and (level<5 and action(nextLevel) or "escalation") or "monitor"
  tiarca.log(string.format("AutoModV4 %s/%s %s %.1f%% infrazione %d (%s) motore %s",
  e.server:sub(1,8),e.channel,e.nick,pct,nextLevel,label,engine)..
@@ -338,15 +346,7 @@ local function detected(e,id,engine,rule,pct,h,now,c)
  engine=="A" and ((h.r2 or "-")..","..(h.r1 or "-")) or (h.a1 or "-")))
  tiarca.log(string.format("WatchdogV4 %s %s/%s %s %s score=%d",
  engine,e.server:sub(1,8),e.channel,e.nick,rule,h.score))
- if c.mode~="live" then return end
- history[id]={level=nextLevel,at=now,epoch=c.epoch}
- local ok,err=savePart(n,history)
- if not ok then
- failed=true
- tiarca.log("AutoMod V4: archivio non scrivibile; moderazione sospesa: "..tostring(err))
- return
- end
- if level<5 then sanction(e,nextLevel,engine) end
+ if c.mode=="live" and level<5 then sanction(e,nextLevel,engine) end
 end
 tiarca.on("message",function(e)
  if e.message_type~="normal" or not e.channel or
@@ -411,7 +411,8 @@ tiarca.on("nick",function(e)
  end
 end)
 tiarca.on("timer",function(e)
- if not load() then return end
+ failed=false
+ if not load() then tiarca.log("AutoMod V4: configurazione non leggibile");return end
  local now=tonumber(e.timestamp) or 0
  for key,h in pairs(watch) do
  local server=key:match("^(.-)/")
@@ -442,7 +443,7 @@ tiarca.on("timer",function(e)
  end
  end
  if touched and not savePart(n,history) then
- failed=true;tiarca.log("AutoMod V4: impossibile ripulire archivio")
+ tiarca.log("AutoMod V4: impossibile ripulire blocco "..n)
  end
 end)
 local function show(s) tiarca.show("AutoMod V4",s) end
@@ -465,6 +466,7 @@ tiarca.on("command",function(e)
  if not op then if raw:match("^%s*mod%s*$") then help("") end;return end
  if op=="help" then help(rest);return end
  if op=="close" and rest=="" then tiarca.close_pms();return end
+ failed=false
  if not load() then show("Archivio non disponibile: moderazione sospesa");return end
  local c=config(e.server)
  if op=="stato" then

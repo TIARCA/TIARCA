@@ -390,6 +390,29 @@ public final class HostLuaRuntimeTest {
                 !java.util.Arrays.asList(malformed).contains("kick") &&
                 "invalid-row".equals(automodStorage.get(targetShard)),
                 "Corrupt history fails closed without overwriting it");
+        // A bad shard cannot stop other users or permanently latch the VM off.
+        String healthy = "healthy";
+        while (v4Shard("test-server/a:" + healthy) == v4Shard(target)) healthy += "x";
+        v4Event("message", "Healthy", "cerco ragazza", t+42, "", healthy);
+        String[] independent = v4Event("message", "Healthy", "cerco donna", t+43, "", healthy);
+        check("OK".equals(independent[0]) && java.util.Arrays.toString(independent).contains("infrazione 1"),
+                "Healthy shard continues after malformed archive");
+        automodStorage.put(targetShard, target + "\t4\t" + (t+31) + "\t1");
+        String[] recovered = v4Event("message", "Target", "cerco ragazza", t+44, "", "targetaccount");
+        check("OK".equals(recovered[0]) && java.util.Arrays.toString(recovered).contains("infrazione 5"),
+                "Restored shard resumes with original history without restarting");
+        String config = automodStorage.get("v4.cfg");
+        NativeLuaRuntime.unload(OTHER);
+        automodStorage.put("v4.cfg", config + "\ninvalid-row");
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, source))), "V4 with invalid config");
+        check(v4Event("message", "Healthy", "cerco ragazza", t+45, "", healthy).length == 1,
+                "Invalid configuration prevents moderation");
+        automodStorage.put("v4.cfg", config);
+        check("OK".equals(v4Event("timer", "", "", t+46, null, "")[0]), "Timer retries configuration");
+        v4Event("message", "Healthy", "cerco ragazza", t+47, "", healthy);
+        String[] resumed = v4Event("message", "Healthy", "cerco donna", t+48, "", healthy);
+        check("OK".equals(resumed[0]) && java.util.Arrays.toString(resumed).contains("infrazione 2"),
+                "Configuration recovery restores live mode, channels and escalation");
         NativeLuaRuntime.unload(OTHER);
         automodStorage.clear();
         automodActive = false;
