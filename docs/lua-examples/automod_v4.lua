@@ -1,7 +1,5 @@
--- AutoMod V4: detection + escalation.
--- Separate from Harvester; disable previous AutoMod scripts on these networks.
 local TTL,SHARDS=86400,20
-local configs,allow,history,watch,hostSeen,unresolved={},{},{},{},{},{}
+local configs,allow,watch,hostSeen,unresolved,cursor={},{},{},{},{},{}
 local loaded,failed=false,false
 local pending,seq={},0
 tiarca.identity_v2()
@@ -51,7 +49,6 @@ local function code(w)
  for _,v in ipairs(w) do if v:match("^[mf]%d%d?%d?%d?$") then return true end end
  return false
 end
--- Whole greetings only.
 local wish=dict("buon buona felice sereno serena splendido splendida ottimo ottima dolce bellissimo bellissima")
 local periods=dict("giorno giornata mattina mattinata pomeriggio sera serata notte nottata weekend")
 local greetPrefix={"ti auguro","vi auguro","auguro a tutti","auguro a tutte","auguro a te","auguro a voi","auguro"}
@@ -179,12 +176,10 @@ local function eachline(s)
  local out={} for line in (s or ""):gmatch("[^\n]+") do out[#out+1]=line end
  return out
 end
-local function savePart(n)
+local function savePart(n,history)
  local rows={}
  for key,r in pairs(history) do
- if partition(key)==n and r.level>0 then
  rows[#rows+1]=key.."\t"..r.level.."\t"..r.at.."\t"..r.epoch
- end
  end
  table.sort(rows)
  local raw=table.concat(rows,"\n")
@@ -241,19 +236,22 @@ local function load()
  if not key then failed=true;return false end
  allow[key]=nick
  end
- for i=0,SHARDS-1 do
+ loaded=true;return true
+end
+local function readPart(i)
+ local history={}
  local yes,part=pcall(tiarca.storage.get,shardKey(i))
- if not yes then failed=true;return false end
+ if yes then
  for _,line in ipairs(eachline(part)) do
  local key,lev,at,epoch=line:match("^([^\t]+)\t(%d+)\t(%d+)\t(%d+)$")
- if not key or history[key] or partition(key)~=i then
- failed=true;return false end
- history[key]={level=tonumber(lev),at=tonumber(at),epoch=tonumber(epoch)}
- if history[key].level<1 or history[key].level>5 then
- failed=true;return false end
+ lev=tonumber(lev)
+ if not key or history[key] or partition(key)~=i or lev<1 or lev>5 then
+ yes=false;break end
+ history[key]={level=lev,at=tonumber(at),epoch=tonumber(epoch)}
  end
  end
- loaded=true;return true
+ if yes then return history end
+ failed=true;tiarca.log("AutoMod V4: archivio non leggibile; moderazione sospesa")
 end
 local genericIdent=dict("guest webirc android user ident unknown anonymous irccloud mibbit")
 local function identify(e,now,window)
@@ -264,7 +262,6 @@ local function identify(e,now,window)
  local account=valid(u.account)
  if account=="*" or account=="0" then account="" end
  if account~="" then
- -- Protect the authenticated account despite a nickname change.
  if account=="micaela" or allow[e.server.."|"..account] then
  return nil,"WHITELIST" end
  return e.server.."/a:"..account
@@ -325,6 +322,9 @@ local function sanction(e,level,engine)
  end
 end
 local function detected(e,id,engine,rule,pct,h,now,c)
+ local n=partition(id)
+ local history=readPart(n)
+ if not history then return end
  local old=history[id]
  local level=0
  if old and old.epoch==c.epoch and now>=old.at and
@@ -339,11 +339,10 @@ local function detected(e,id,engine,rule,pct,h,now,c)
  tiarca.log(string.format("WatchdogV4 %s %s/%s %s %s score=%d",
  engine,e.server:sub(1,8),e.channel,e.nick,rule,h.score))
  if c.mode~="live" then return end
- -- At level five no new ban/kick, but each new detection renews the 24h TTL.
  history[id]={level=nextLevel,at=now,epoch=c.epoch}
- local ok,err=savePart(partition(id))
+ local ok,err=savePart(n,history)
  if not ok then
- history[id]=old;failed=true
+ failed=true
  tiarca.log("AutoMod V4: archivio non scrivibile; moderazione sospesa: "..tostring(err))
  return
  end
@@ -431,20 +430,19 @@ tiarca.on("timer",function(e)
  end
  local p=pending[e.server]
  if p and now-(tonumber(p.at) or 0)>60 then pending[e.server]=nil end
- local touched,parts={},0
+ local n=cursor[e.server] or 0
+ cursor[e.server]=(n+1)%SHARDS
+ local history=readPart(n)
+ if not history then return end
+ local touched=false
  for id,r in pairs(history) do
  if id:sub(1,#e.server+1)==e.server.."/" and
  (now-r.at>=TTL or (configs[e.server] and r.epoch~=configs[e.server].epoch)) then
- local n=partition(id)
- if touched[n] or parts<3 then
- touched[n]=true;history[id]=nil;parts=parts+1
+ history[id]=nil;touched=true
  end
  end
- end
- for n in pairs(touched) do
- if not savePart(n) then
+ if touched and not savePart(n,history) then
  failed=true;tiarca.log("AutoMod V4: impossibile ripulire archivio")
- end
  end
 end)
 local function show(s) tiarca.show("AutoMod V4",s) end

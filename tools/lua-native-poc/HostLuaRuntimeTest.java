@@ -287,6 +287,114 @@ public final class HostLuaRuntimeTest {
         automodActive = false;
     }
 
+    private static int v4Shard(String id) {
+        int n = 0;
+        for (byte b : bytes(id)) n = (n * 33 + (b & 255)) % 20;
+        return n;
+    }
+
+    private static String v4ShardKey(int n) {
+        return String.format(java.util.Locale.ROOT, "v4.s%02d", n);
+    }
+
+    private static void checkV4LargeHistory() throws Exception {
+        byte[] source = Files.readAllBytes(Path.of("docs/lua-examples/automod_v4.lua"));
+        check(source.length <= 24576, "V4 source quota");
+        automodStorage.clear();
+        automodActive = true;
+        long t = 1794400000L;
+        // Legacy-format archive: populate all twenty shards, below the 128 KiB
+        // total storage quota, but far above the original full-scan CPU budget.
+        int[] counts = new int[20];
+        java.util.Set<String> expired = new java.util.HashSet<>();
+        java.util.Map<String, String> retained = new java.util.HashMap<>();
+        for (int i = 0, added = 0; added < 1200; i++) {
+            String server = i % 3 == 0 ? "other-server" : "test-server";
+            String id = server + "/a:archive" + "x".repeat(32) + i;
+            int shard = v4Shard(id);
+            if (counts[shard] >= 60) continue;
+            counts[shard]++;
+            added++;
+            boolean remove = server.equals("test-server") && i % 2 == 0;
+            long at = remove || server.equals("other-server") ? t - 86401 : t - 10;
+            String row = id + "\t2\t" + at + "\t1";
+            automodStorage.merge(v4ShardKey(shard), row, (a, b) -> a + "\n" + b);
+            if (remove) expired.add(id);
+            else retained.put(id, row);
+        }
+        String target = "test-server/a:targetaccount";
+        String targetShard = v4ShardKey(v4Shard(target));
+        automodStorage.merge(targetShard, target + "\t2\t" + (t - 10) + "\t1",
+                (a, b) -> a + "\n" + b);
+        int total = automodStorage.entrySet().stream()
+                .mapToInt(e -> bytes(e.getKey()).length + bytes(e.getValue()).length).sum();
+        check(total > 65536 && total < 128 * 1024, "Realistic large archive within quota");
+        check(automodStorage.values().stream().allMatch(v -> bytes(v).length <= 8192),
+                "Every shard fits the legacy value quota");
+
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, source))), "Large V4 VM loads");
+        check("OK".equals(v4Event("command", "me", "mod canali add #room", t, null, "")[0]),
+                "Configuration does not scan the complete archive");
+        check("OK".equals(v4Event("command", "me", "mod modo live", t, null, "")[0]),
+                "Live mode configured with large archive");
+        java.util.Map<String, String> before = new java.util.HashMap<>(automodStorage);
+        check("OK".equals(v4Event("message", "Target", "cerco ragazza", t+1, "", "targetaccount")[0]),
+                "First ad with large archive");
+        String[] detection = v4Event("message", "Target", "cerco donna", t+2, "", "targetaccount");
+        check("OK".equals(detection[0]) && java.util.Arrays.toString(detection).contains("infrazione 3"),
+                "Persisted level survives and advances without budget exhaustion");
+        check(automodStorage.get(targetShard).contains(target + "\t3\t" + (t+2) + "\t1"),
+                "Only target level advances");
+        before.forEach((key, value) -> {
+            if (!key.equals(targetShard)) check(value.equals(automodStorage.get(key)),
+                    "Unrelated storage remains unchanged: " + key);
+        });
+        for (int i = 0; i < 20; i++) {
+            java.util.Map<String, String> previous = new java.util.HashMap<>(automodStorage);
+            String[] tick = v4Event("timer", "", "", t+3+i, null, "");
+            check("OK".equals(tick[0]), "Bounded archive cleanup tick " + i);
+            String cleaned = v4ShardKey(i);
+            previous.forEach((key, value) -> {
+                if (!key.equals(cleaned)) check(value.equals(automodStorage.get(key)),
+                        "Timer must touch only its scheduled shard");
+            });
+        }
+        java.util.Map<String, String> actual = new java.util.HashMap<>();
+        for (int i = 0; i < 20; i++) {
+            for (String row : automodStorage.getOrDefault(v4ShardKey(i), "").split("\n")) {
+                if (!row.isEmpty()) actual.put(row.substring(0, row.indexOf('\t')), row);
+            }
+        }
+        for (String id : expired) check(!actual.containsKey(id), "Expired row removed");
+        retained.forEach((id, row) -> check(row.equals(actual.get(id)),
+                "Fresh or other-network row preserved: " + id));
+        check(actual.size() == retained.size()+1, "No history lost or invented");
+
+        NativeLuaRuntime.unload(OTHER);
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, source))), "V4 reloads");
+        check("OK".equals(v4Event("message", "Target", "cerco ragazza", t+30, "", "targetaccount")[0]),
+                "Detection resumes after VM reload");
+        detection = v4Event("message", "Target", "cerco donna", t+31, "", "targetaccount");
+        check("OK".equals(detection[0]) && java.util.Arrays.toString(detection).contains("infrazione 4"),
+                "Escalation persists across restart");
+        NativeLuaRuntime.unload(OTHER);
+
+        // A malformed shard must not be silently overwritten or trigger a sanction.
+        automodStorage.put(targetShard, "invalid-row");
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, source))), "Reload with malformed shard");
+        v4Event("message", "Target", "cerco ragazza", t+40, "", "targetaccount");
+        String[] malformed = v4Event("message", "Target", "cerco donna", t+41, "", "targetaccount");
+        check("OK".equals(malformed[0]) &&
+                java.util.Arrays.toString(malformed).contains("moderazione sospesa") &&
+                !java.util.Arrays.asList(malformed).contains("tmute") &&
+                !java.util.Arrays.asList(malformed).contains("kick") &&
+                "invalid-row".equals(automodStorage.get(targetShard)),
+                "Corrupt history fails closed without overwriting it");
+        NativeLuaRuntime.unload(OTHER);
+        automodStorage.clear();
+        automodActive = false;
+    }
+
     private static String harvesterLine(String[] response) {
         check("OK".equals(response[0]), "Harvester callback: " + java.util.Arrays.toString(response));
         for (int i = 1; i < response.length; i += 3) {
@@ -382,6 +490,7 @@ public final class HostLuaRuntimeTest {
         checkHarvester();
         checkStorageRevisions();
         checkV4Identity();
+        checkV4LargeHistory();
         // Read subscriptions from the actual loaded VM, not Lua source text.
         check(NativeLuaRuntime.eventMask(OTHER) == -1, "Absent VM has no known mask");
         check("OK".equals(decode(NativeLuaRuntime.load(OTHER,
