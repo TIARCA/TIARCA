@@ -296,6 +296,11 @@ public final class HostLuaRuntimeTest {
                 "Journal failure is handled without recursive write");
         String recovery = harvesterLine(v4Event("message","Mario","after failed append",t+4,"+","*"));
         check(recovery.contains("\"disk_gap\":1") && recovery.contains("\"defs\""), "New segment after disk error");
+        String[] gap = harvesterEvent("journal_status","","2300 12 3","sandbox_gap",t+5,empty,empty,empty,null,"");
+        check(gap.length == 1 && "OK".equals(gap[0]), "Sandbox notification has no recursive journal action");
+        String withGap = harvesterLine(v4Event("message","Mario","after sandbox gap",t+6,"+","*"));
+        check(withGap.contains("\"sandbox_gap\":{\"duration_ms\":2300,\"global_ingress_unavailable\":12,\"global_slots_cancelled\":3}"), "Next record carries sandbox gap");
+        check(!harvesterLine(v4Event("message","Mario","another message",t+7,"+","*")).contains("\"sandbox_gap\""), "Gap reported only once");
         NativeLuaRuntime.unload(OTHER);
         check("OK".equals(decode(NativeLuaRuntime.load(OTHER, script))), "Harvester reload");
         String after = harvesterLine(v4Event("message", "Mario", "after restart", t+5, "+", "*"));

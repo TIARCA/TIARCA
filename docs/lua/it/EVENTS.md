@@ -24,7 +24,7 @@ Registra gli eventi con `tiarca.on("nome", function(event) ... end)`. Il callbac
 | `own_message` | Messaggio pubblico del proprio utente | Separato da `message`, non attiva callback legacy; non prova consegna |
 | `account` | ACCOUNT IRCv3 osservato | Consenso identità; `sender.account` nuovo account o `*`; solo canali condivisi |
 | `chghost` | CHGHOST IRCv3 osservato | Consenso identità; `sender.ident/host` nuovi valori; solo canali condivisi |
-| `journal_status` | Statistiche archivio o errore scrittura | Consenso storage; `message_type` stats/error; stats in `text`: byte, scritture, errori, contatori globali input-full, slot-full, IPC-failed; errore `append_failed`; append vietato nel callback |
+| `journal_status` | Statistiche archivio o errore scrittura | Consenso storage; `message_type` stats/error/sandbox_gap; sandbox_gap in `text`: durata ms, ingressi globali non disponibili, slot globali annullati (best effort dopo il recupero); stats in `text`: byte, scritture, errori, contatori globali input-full, slot-full, IPC-failed; errore `append_failed`; append vietato nel callback |
 | `timer` | Tick approssimativo di 60 secondi | Solo quando servizio IRC attivo e rete connessa; non è un allarme preciso |
 
 Campi comuni: `type`, `server` (UUID configurazione server, **non** hostname), `channel`, `nick`, `text`, `message_type` (`normal`, `notice`, `me`), `timestamp` (secondi Unix). I campi dipendono dall'evento e possono essere vuoti.

@@ -4,6 +4,26 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class LuaEngineMetricsTest {
+    @Test public void outageCountersExcludePausedIngressAndKeepSlotsSeparate() {
+        LuaEngineMetrics m = new LuaEngineMetrics();
+        m.unavailable(true);
+        m.beginOutage(100);
+        m.unavailable(false);
+        m.unavailable(true);
+        m.add(LuaEngineMetrics.Count.OUTAGE_SLOTS, 3);
+        m.beginOutage(200);
+        LuaEngineMetrics.Gap gap = m.endOutage(1100, true);
+        assertEquals(1000, gap.durationMs);
+        assertEquals(1, gap.ingress);
+        assertEquals(3, gap.slots);
+        assertEquals(1, m.count(LuaEngineMetrics.Count.RECOVERED));
+        assertNull(m.endOutage(1200, true));
+        m.beginOutage(2000);
+        assertTrue(m.outageLine(2300).contains("totale 1300 ms; attuale 300 ms"));
+        assertNull(m.endOutage(2400, false));
+        assertEquals(1, m.count(LuaEngineMetrics.Count.RECOVERED));
+    }
+
     @Test public void separateIngressDeliveryStorageAndMemory() {
         LuaEngineMetrics m = new LuaEngineMetrics();
         m.inc(LuaEngineMetrics.Count.RECEIVED);
