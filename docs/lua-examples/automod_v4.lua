@@ -1,8 +1,13 @@
+local api=tiarca
 local TTL,SHARDS=86400,20
+local DEFAULT_RAPID,MAX_AD_GROUPS=30,6
+local ranges={similarity={50,100},minutes={1,120},credit={0,3},minwords={3,12},rapid={0,120}}
+local parameters={somiglianza="similarity",soglia="similarity",finestra="minutes",
+minuti="minutes",credito="credit",minparole="minwords",raffica="rapid"}
 local configs,allow,watch,hostSeen,unresolved,cursor={},{},{},{},{},{}
 local loaded,failed=false,false
 local pending,seq={},0
-tiarca.identity_v2()
+api.identity_v2()
 local function words(s)
 local t={} for v in s:gmatch("%S+") do t[#t+1]=v end return t
 end
@@ -14,18 +19,13 @@ local single=dict("mxm ragazza ragazze donna donne")
 local chatTarget=dict("f m mxm donna donne uomo uomini")
 local search=dict("cerco cerca cercasi cerchiamo chi qualche qualke")
 local chatting=dict("chat chatta chattare chatto chiacchiera conoscenza conoscere compagnia amicizia amicizie parlare")
-local contact=dict("pvt priv privato privata scrivimi scrivetemi contattami contattatemi")
+local contact=dict("pvt priv privato privata prvt scrivimi scrivetemi contattami contattatemi")
 local encounter=dict("reale incontro incontri ospito ospitare uscire")
 local media=dict("cam call videochat whatsapp whatap whatsap telegram tg")
-local places=dict("parma caserta milano roma napoli biella veneto puglia lecce sicilia friuli piemonte marche toscana bari salerno genova torino calabria calabira siciliana verona enna viareggio firenze bologna palermo catania abruzzo molise umbria lazio sardegna lombardia campania")
-local greetings={
-["ciao"]=true,["salve"]=true,["sera"]=true,["buongiorno"]=true,
-["buonasera"]=true,["buonanotte"]=true,["buona sera"]=true,
-["buon pomeriggio"]=true,["buona serata"]=true,["buona notte"]=true,
-["ciao tutti"]=true,["ciao a tutti"]=true,["salve a tutti"]=true,
-["sera a tutti"]=true,["buonasera a tutti"]=true,
-["buongiorno a tutti"]=true,["buonanotte a tutti"]=true,
-["un saluto a tutti"]=true,["ciao chat"]=true}
+local places=dict("parma caserta brescia bergamo foggia avellino milano roma napoli biella veneto puglia lecce sicilia friuli piemonte marche toscana bari salerno genova torino calabria calabira siciliana verona enna viareggio firenze bologna palermo catania abruzzo molise umbria lazio sardegna lombardia campania")
+local greetings={}
+for s in ("ciao|salve|sera|buongiorno|buonasera|buonanotte|buona sera|buon pomeriggio|buona serata|"..
+"buona notte|ciao tutti|ciao a tutti|salve a tutti|sera a tutti|buonasera a tutti|buongiorno a tutti|buonanotte a tutti|un saluto a tutti|ciao chat"):gmatch("[^|]+") do greetings[s]=true end
 local function normalize(s)
 s=(s or ""):lower():gsub("à","a"):gsub("è","e"):gsub("é","e")
 s=s:gsub("ì","i"):gsub("ò","o"):gsub("ù","u")
@@ -68,7 +68,7 @@ end
 end
 if greetings[s] then return true end
 local a,b=s:match("^(%S+) (.+)$")
-return a and wish[a] and (periods[b] or b=="fine settimana")
+return wish[a] and (periods[b] or b=="fine settimana")
 end
 local function protected(n)
 return notNick[n] or people[n] or search[n] or chatting[n] or contact[n]
@@ -98,7 +98,10 @@ local s=normalize(raw)
 if s=="" then return "ignore","EMPTY" end
 if greetings[s] then return "ignore","GREETING" end
 local w=words(s)
-if not s:find("[^%d ]") then return "short","NUMERIC" end
+if not s:find("[^%d ]") then
+if raw:match("^%s*0%d%d?%s*[/%-]%s*0%d%d?%s*%??%s*$") then return "ad","NUMERIC" end
+return "short","NUMERIC"
+end
 if #w==1 and (single[w[1]] or code(w) or
 ((w[1]=="f" or w[1]=="m") and raw:find("?",1,true))) then return "ad","SINGLE" end
 if #w<2 then return "short","SHORT" end
@@ -155,10 +158,16 @@ for _,v in ipairs(wb) do if (counts[v] or 0)>0 then
 counts[v]=counts[v]-1;shared=shared+1 end end
 return 200*shared/(#wa+#wb)
 end
+local function adThreshold(rule,tokens)
+if rule=="WHO_GEO" or (rule=="SINGLE" and not code(tokens)) or
+   (rule=="CHAT" and not has(tokens,chatTarget)) then return 3 end
+return 2
+end
+
 local function config(server)
 local c=configs[server]
 if not c then c={on=true,a=true,b=true,mode="monitor",channels={},
-similarity=75,minutes=15,credit=2,minwords=3,epoch=1}
+similarity=75,minutes=15,credit=2,minwords=3,epoch=1,rapid=DEFAULT_RAPID}
 configs[server]=c end
 return c
 end
@@ -184,54 +193,56 @@ end
 table.sort(rows)
 local raw=table.concat(rows,"\n")
 if #raw>8192 then return false,"shard pieno (8192 byte)" end
-if raw=="" then return pcall(tiarca.storage.delete,shardKey(n)) end
-return pcall(tiarca.storage.set,shardKey(n),raw)
+if raw=="" then return pcall(api.storage.delete,shardKey(n)) end
+return pcall(api.storage.set,shardKey(n),raw)
 end
 local function saveConfig()
 local rows={}
 for server,c in pairs(configs) do
 local channels={} for ch in pairs(c.channels) do channels[#channels+1]=ch end
 table.sort(channels)
-rows[#rows+1]=table.concat({server,c.on and 1 or 0,c.mode,
+local row=table.concat({server,c.on and 1 or 0,c.mode,
 c.a and 1 or 0,c.b and 1 or 0,c.similarity,c.minutes,
 c.credit,c.minwords,c.epoch,table.concat(channels,",")},"\t")
+rows[#rows+1]=c.rapid==DEFAULT_RAPID and row or row.."\t"..c.rapid
 end
 table.sort(rows)
 local raw=table.concat(rows,"\n")
 if #raw>8192 or raw=="" then return false end
-return pcall(tiarca.storage.set,"v4.cfg",raw)
+return pcall(api.storage.set,"v4.cfg",raw)
 end
 local function saveAllow()
 local rows={} for key,nick in pairs(allow) do rows[#rows+1]=key.."\t"..nick end
 table.sort(rows)
 local raw=table.concat(rows,"\n")
 if #raw>8192 then return false end
-if raw=="" then return pcall(tiarca.storage.delete,"v4.allow") end
-return pcall(tiarca.storage.set,"v4.allow",raw)
+if raw=="" then return pcall(api.storage.delete,"v4.allow") end
+return pcall(api.storage.set,"v4.allow",raw)
 end
 local function load()
 if loaded then return true end
 if failed then return false end
 configs,allow={},{}
-local ok,cfg=pcall(tiarca.storage.get,"v4.cfg")
+local ok,cfg=pcall(api.storage.get,"v4.cfg")
 if not ok then failed=true;return false end
 for _,line in ipairs(eachline(cfg)) do
 local f={} for v in (line.."\t"):gmatch("(.-)\t") do f[#f+1]=v end
-if #f~=11 or (f[3]~="monitor" and f[3]~="live") then
+if (#f~=11 and #f~=12) or (f[3]~="monitor" and f[3]~="live") then
 failed=true;return false end
 local c=config(f[1])
 c.on=f[2]=="1";c.mode=f[3];c.a=f[4]=="1";c.b=f[5]=="1"
 c.similarity=tonumber(f[6]);c.minutes=tonumber(f[7])
 c.credit=tonumber(f[8]);c.minwords=tonumber(f[9])
 c.epoch=tonumber(f[10])
-if not c.similarity or c.similarity<50 or c.similarity>100 or
-not c.minutes or c.minutes<1 or c.minutes>120 or
-not c.credit or c.credit<0 or c.credit>3 or
-not c.minwords or c.minwords<3 or c.minwords>12 or
-not c.epoch then failed=true;return false end
+if f[12] then c.rapid=tonumber(f[12]) end
+for field,limits in pairs(ranges) do
+local n=c[field]
+if not n or n<limits[1] or n>limits[2] then failed=true;return false end
+end
+if not c.epoch then failed=true;return false end
 for ch in f[11]:gmatch("[^,]+") do c.channels[ch]=true end
 end
-local good,raw=pcall(tiarca.storage.get,"v4.allow")
+local good,raw=pcall(api.storage.get,"v4.allow")
 if not good then failed=true;return false end
 for _,line in ipairs(eachline(raw)) do
 local key,nick=line:match("^([^\t]+)\t([^\t]+)$")
@@ -242,7 +253,7 @@ loaded=true;return true
 end
 local function readPart(i)
 local history={}
-local yes,part=pcall(tiarca.storage.get,shardKey(i))
+local yes,part=pcall(api.storage.get,shardKey(i))
 if yes then
 for _,line in ipairs(eachline(part)) do
 local key,lev,at,epoch=line:match("^([^\t]+)\t(%d+)\t(%d+)\t(%d+)$")
@@ -253,7 +264,7 @@ history[key]={level=lev,at=tonumber(at),epoch=tonumber(epoch)}
 end
 end
 if yes then return history end
-tiarca.log("AutoMod V4: archivio non leggibile; moderazione sospesa per blocco "..i)
+api.log("V4: archivio non leggibile; moderazione sospesa per blocco "..i)
 end
 local genericIdent=dict("guest webirc android user ident unknown anonymous irccloud mibbit")
 local function identify(e,now,window)
@@ -287,7 +298,7 @@ local function getWatch(id,channel,now,window)
 local key=id.."\0"..channel:lower()
 local h=watch[key]
 if not h or now<h.last or now-h.last>window then
-h={score=0,ads=0,adAt=0,ref=nil,rep=0,refAt=0,
+h={score=0,ref=nil,rep=0,refAt=0,
 credited=false,last=now}
 watch[key]=h
 end
@@ -309,8 +320,8 @@ local function sanction(e,level,engine)
 local problem=engine=="A" and "messaggi ripetuti" or "annunci ripetuti"
 local ch,nick=e.channel,e.nick
 if level==1 then
- tiarca.pm(nick,"Ciao "..nick..", su "..ch.." sono stati rilevati "..
-  problem..". Ti invitiamo a partecipare alla conversazione evitando altre ripetizioni.")
+ api.pm(nick,"Ciao "..nick..", su "..ch.." sono stati rilevati "..
+  problem..". Evita altre ripetizioni.")
  return
 end
 local ban=action(e,level)=="tbankick"
@@ -320,18 +331,18 @@ local msg="Su "..ch.." continuano "..problem..". E' stato richiesto un "..
  (ban and "ban" or "mute").." di "..time.."."
 if ban then msg=msg.." E' stata richiesta anche l'espulsione."
 elseif hasVoice(e) then msg=msg.." Verra' rimosso anche il voice." end
-if level==4 then msg=msg.." Un'altra infrazione comportera' un ban di 24 ore."
-elseif level==5 then msg=msg.." Contatta un operatore in caso di errore." end
-tiarca.pm(nick,msg)
+if level==4 then msg=msg.." Alla prossima infrazione: ban di 24 ore."
+elseif level==5 then msg=msg.." Per errori contatta un operatore." end
+api.pm(nick,msg)
 if ban then
- tiarca.tban(ch,nick,duration)
- tiarca.kick(ch,nick,"Messaggi ripetuti")
+ api.tban(ch,nick,duration)
+ api.kick(ch,nick,"Messaggi ripetuti")
 else
- tiarca.tmute(ch,nick,duration)
- if hasVoice(e) then tiarca.mode(ch,nick,"-v") end
+ api.tmute(ch,nick,duration)
+ if hasVoice(e) then api.mode(ch,nick,"-v") end
 end
 end
-local function detected(e,id,engine,rule,pct,h,now,c)
+local function detected(e,id,engine,rule,pct,h,now,c,ad,threshold)
 local n=partition(id)
 local history=readPart(n)
 if not history then return end
@@ -344,19 +355,20 @@ if c.mode=="live" then
 history[id]={level=nextLevel,at=now,epoch=c.epoch}
 local ok,err=savePart(n,history)
 if not ok then
-tiarca.log("AutoMod V4: archivio non scrivibile; moderazione sospesa: "..tostring(err));return end
+api.log("V4: archivio non scrivibile; moderazione sospesa: "..tostring(err));return end
 end
 local label=c.mode=="live" and (level<5 and action(e,nextLevel) or "escalation") or "monitor"
-tiarca.log(string.format("AutoModV4 %s/%s %s %.1f%% infrazione %d (%s) motore %s",
+api.log(string.format("AutoModV4 %s/%s %s %.1f%% infrazione %d (%s) motore %s",
 e.server:sub(1,8),e.channel,e.nick,pct,nextLevel,label,engine)..
 string.format(" rule %s score %d threshold %d count %d refs %s",rule,h.score,
-engine=="A" and c.similarity or 2,engine=="A" and h.rep or h.ads,
-engine=="A" and ((h.r2 or "-")..","..(h.r1 or "-")) or (h.a1 or "-")))
-tiarca.log(string.format("WatchdogV4 %s %s/%s %s %s score=%d",
+threshold or c.similarity,ad and ad.count or h.rep,
+ad and ((threshold==3 and ((ad.previous or "-")..",") or "")..(ad.source or "-")) or
+((h.r2 or "-")..","..(h.r1 or "-"))))
+api.log(string.format("WatchdogV4 %s %s/%s %s %s score=%d",
 engine,e.server:sub(1,8),e.channel,e.nick,rule,h.score))
 if c.mode=="live" and level<5 then sanction(e,nextLevel,engine) end
 end
-tiarca.on("message",function(e)
+api.on("message",function(e)
 if e.message_type~="normal" or not e.channel or
 not e.channel:match("^[#&+!]") or not e.nick or not load() then return end
 local c=config(e.server)
@@ -373,7 +385,7 @@ if not id then
 if why~="WHITELIST" and why~="PROTECTED" then
 local k=e.server.."/"..e.channel:lower().."/"..e.nick:lower()
 if not unresolved[k] or now-unresolved[k]>window then
-tiarca.log("AutoMod V4: identita incerta per "..e.nick..
+api.log("V4: identita incerta per "..e.nick..
 " in "..e.channel.." ("..tostring(why).."); controllo sospeso")
 unresolved[k]=now
 end
@@ -382,13 +394,34 @@ return
 end
 local h=getWatch(id,e.channel,now,window)
 h.last=now
-if h.adAt>0 and now-h.adAt>window then h.ads=0;h.a1=nil end
 if h.refAt>0 and now-h.refAt>window then h.rep=0;h.ref=nil;h.r1=nil;h.r2=nil end
 if kind=="ad" and c.b then
-h.score=h.score+1;h.ads=h.ads+1;h.adAt=now
-if h.ads>=2 and h.score>=2 then
-detected(e,id,"B",rule,100,h,now,c) end
-h.a1=e.source_id
+local text=normalize(raw):gsub("%f[%a]prvt%f[%A]","pvt")
+local threshold=adThreshold(rule,words(text))
+local ads=h.adGroups or {}
+h.adGroups=ads
+local ad=ads[text]
+if ad and e.source_id and e.source_id==ad.source then return end
+if not ad then
+if (h.groups or 0)>=MAX_AD_GROUPS then
+local oldest
+for key,r in pairs(ads) do
+if not oldest or r.at<ads[oldest].at then oldest=key end end
+ads[oldest]=nil
+else h.groups=(h.groups or 0)+1 end
+end
+h.score=h.score+1
+if not ad or now-ad.first>window then
+ads[text]={first=now,at=now,count=1,source=e.source_id}
+return
+end
+ad.count=ad.count+1
+local rapid=c.rapid>0 and now-ad.at<=c.rapid
+if rapid or (ad.count>=threshold and h.score>=threshold) then
+detected(e,id,"B",rapid and "RAPID_"..rule or rule,100,h,now,c,ad,rapid and 2 or threshold)
+end
+ad.previous,ad.source=ad.source,e.source_id
+ad.at=now
 elseif kind=="normal" and c.a then
 local s=normalize(e.text or "")
 if #words(s)<c.minwords then
@@ -411,31 +444,32 @@ elseif kind=="normal" then
 h.score=math.max(-c.credit,h.score-1)
 end
 end)
-tiarca.on("nick",function(e)
+api.on("nick",function(e)
 if not e.nick or not e.text then return end
 for key,s in pairs(hostSeen) do
 if key:sub(1,#e.server+1)==e.server.."/" and
 s.nick==e.nick:lower() then s.nick=e.text:lower() end
 end
 end)
-tiarca.on("timer",function(e)
+local function lifetime(server)
+local c=configs[server]
+return 60*(c and c.minutes or 15)
+end
+api.on("timer",function(e)
 failed=false
-if not load() then tiarca.log("AutoMod V4: configurazione non leggibile");return end
+if not load() then api.log("V4: config non leggibile");return end
 local now=tonumber(e.timestamp) or 0
 for key,h in pairs(watch) do
 local server=key:match("^(.-)/")
-local c=configs[server]
-if now-h.last>60*(c and c.minutes or 15) then watch[key]=nil end
+if now-h.last>lifetime(server) then watch[key]=nil end
 end
 for key,s in pairs(hostSeen) do
 local server=key:match("^(.-)/")
-local c=configs[server]
-if now-s.at>60*(c and c.minutes or 15) then hostSeen[key]=nil end
+if now-s.at>lifetime(server) then hostSeen[key]=nil end
 end
 for key,at in pairs(unresolved) do
 local server=key:match("^(.-)/")
-local c=configs[server]
-if now-at>60*(c and c.minutes or 15) then unresolved[key]=nil end
+if now-at>lifetime(server) then unresolved[key]=nil end
 end
 local p=pending[e.server]
 if p and now-(tonumber(p.at) or 0)>60 then pending[e.server]=nil end
@@ -451,47 +485,47 @@ history[id]=nil;touched=true
 end
 end
 if touched and not savePart(n,history) then
-tiarca.log("AutoMod V4: impossibile ripulire blocco "..n)
+api.log("V4: pulizia fallita: "..n)
 end
 end)
-local function show(s) tiarca.show("AutoMod V4",s) end
+local function show(s) api.show("AutoMod V4",s) end
 local function help(topic)
 if topic=="" or topic=="generale" then
 show("/lua mod stato | on | off | modo monitor|live | canali add|drop #canale | canali list | close | reset")
-show("Guide: /lua mod help watchdog | help whitelist | help azioni")
+show("Guide: watchdog, whitelist, azioni")
 elseif topic=="watchdog" or topic=="parametri" then
-show("/lua mod motore ripetizioni|annunci on|off; parametro somiglianza 50..100 | finestra 1..120 | credito 0..3 | minparole 3..12")
-show("Default 75%, 15 minuti, credito -2. Trigger: 3 ripetizioni o 2 annunci; i messaggi conversazionali sottraggono 1.")
+show("motore ripetizioni|annunci on|off; parametro somiglianza|finestra|credito|minparole|raffica N")
+show("Annunci: 2 espliciti o 3 generici. Raffica 30s; 0 disattiva.")
 elseif topic=="whitelist" then
-show("/lua mod whitelist add NICK [#canale] | drop NICK | list. Serve account NickServ autenticato.")
+show("/lua mod whitelist add NICK [#canale] | drop NICK | list")
 elseif topic=="azioni" then
-show("Escalation 24h: avviso PVT; mute 2m e 15m (devoice se +v); 3h ban+kick se account o +v, altrimenti mute; ban+kick 24h.")
+show("Escalation 24h: avviso; mute 2m e 15m; 3h ban+kick per account o +v, altrimenti mute; ban+kick 24h.")
 else show("Argomenti: watchdog, parametri, whitelist, azioni") end
 end
-tiarca.on("command",function(e)
+api.on("command",function(e)
 local raw=e.text or ""
 local op,rest=raw:match("^%s*mod%s+(%S+)%s*(.-)%s*$")
 if not op then if raw:match("^%s*mod%s*$") then help("") end;return end
 if op=="help" then help(rest);return end
-if op=="close" and rest=="" then tiarca.close_pms();return end
+if op=="close" and rest=="" then api.close_pms();return end
 failed=false
-if not load() then show("Archivio non disponibile: moderazione sospesa");return end
+if not load() then show("Archivio indisponibile; moderazione sospesa");return end
 local c=config(e.server)
 if op=="stato" then
 local n=0 for _ in pairs(c.channels) do n=n+1 end
-show(string.format("%s; modo %s; ripetizioni %s; annunci %s; canali %d; somiglianza %d%%; finestra %dm; credito -%d; minparole %d",
+show(string.format("%s; modo %s; ripetizioni %s; annunci %s; canali %d; somiglianza %d%%; finestra %dm; credito -%d; minparole %d; raffica %ds",
 c.on and "ON" or "OFF",c.mode,c.a and "ON" or "OFF",
-c.b and "ON" or "OFF",n,c.similarity,c.minutes,c.credit,c.minwords))
+c.b and "ON" or "OFF",n,c.similarity,c.minutes,c.credit,c.minwords,c.rapid))
 return
 end
-local old={on=c.on,mode=c.mode,a=c.a,b=c.b,channels={},
-similarity=c.similarity,minutes=c.minutes,credit=c.credit,
-minwords=c.minwords,epoch=c.epoch}
+local old={}
+for field,value in pairs(c) do old[field]=value end
+old.channels={}
 for ch in pairs(c.channels) do old.channels[ch]=true end
 local function finish()
 if saveConfig() then show("Configurazione aggiornata") else
 configs[e.server]=old
-show("Salvataggio fallito: modifica annullata") end
+show("Modifica annullata: salvataggio fallito") end
 end
 if (op=="on" or op=="off") and rest=="" then
 c.on=op=="on";finish()
@@ -508,20 +542,12 @@ finish()
 elseif op=="parametro" then
 local name,value=rest:match("^(%S+)%s+(%d+)$")
 local n=tonumber(value)
-if not n then help("parametri");return end
-if name=="somiglianza" or name=="soglia" then
-if n<50 or n>100 then show("Somiglianza: 50..100");return end
-c.similarity=n
-elseif name=="finestra" or name=="minuti" then
-if n<1 or n>120 then show("Finestra: 1..120 minuti");return end
-c.minutes=n
-elseif name=="credito" then
-if n<0 or n>3 then show("Credito: 0..3");return end
-c.credit=n
-elseif name=="minparole" then
-if n<3 or n>12 then show("Minparole: 3..12");return end
-c.minwords=n
-else help("parametri");return end
+local field=parameters[name]
+if not n or not field then help("parametri");return end
+local limits=ranges[field]
+if n<limits[1] or n>limits[2] then
+show(name..": "..limits[1]..".."..limits[2]);return end
+c[field]=n
 finish()
 elseif op=="canali" then
 if rest=="list" then
@@ -554,7 +580,7 @@ for key,v in pairs(allow) do if v==nick:lower() then
 previous[key]=v;allow[key]=nil end end
 if not next(previous) then show("Nickname non presente");return end
 if not saveAllow() then for key,v in pairs(previous) do allow[key]=v end
-show("Salvataggio fallito")
+show("Errore salvataggio")
 else show("Esclusione rimossa") end
 return
 end
@@ -563,17 +589,17 @@ if ch=="" then
 if source~="" then ch=source
 else
 for name in pairs(c.channels) do
-if ch~="" then show("Specificare #canale dopo il nickname");return end
+if ch~="" then show("Indicare #canale dopo il nick");return end
 ch=name
 end
 end
 end
 if not c.channels[ch:lower()] or (source~="" and source:lower()~=ch:lower()) then
-show("Usare un canale monitorato o indicarlo dalla scheda server");return end
+show("Indicare un canale monitorato");return end
 seq=seq+1
 local token="v4w"..seq
-local ok=pcall(tiarca.get_user,ch,nick,token)
-if not ok then show("Ricerca identita non disponibile");return end
+local ok=pcall(api.get_user,ch,nick,token)
+if not ok then show("Ricerca identita indisponibile");return end
 pending[e.server]={token=token,nick=nick,channel=ch:lower(),at=e.timestamp}
 show("Ricerca account in corso")
 elseif op=="reset" and rest=="" then
@@ -583,12 +609,12 @@ if saveConfig() then
 for key in pairs(watch) do
 if key:sub(1,#e.server+1)==e.server.."/" then watch[key]=nil end
 end
-show("Cronologia Watchdog ed escalation azzerata")
+show("Cronologia ed escalation azzerate")
 else c.epoch=old.epoch;show("Reset non riuscito") end
-else show("Comando sconosciuto: /lua mod help") end
+else show("Comando ignoto: /lua mod help") end
 end)
 
-tiarca.on("identity",function(e)
+api.on("identity",function(e)
 local p=pending[e.server]
 if not p or e.token~=p.token or e.query~="user" then return end
 pending[e.server]=nil
@@ -600,6 +626,6 @@ e.channel:lower()~=p.channel or account=="" or account=="*" or account=="0" then
 show("Account NickServ non verificato");return end
 local key=e.server.."|"..account
 local previous=allow[key];allow[key]=p.nick:lower()
-if not saveAllow() then allow[key]=previous;show("Salvataggio fallito")
+if not saveAllow() then allow[key]=previous;show("Errore salvataggio")
 else show("Whitelist aggiornata: "..p.nick.." ("..account..")") end
 end)

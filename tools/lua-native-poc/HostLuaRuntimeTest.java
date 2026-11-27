@@ -198,11 +198,11 @@ public final class HostLuaRuntimeTest {
         check("OK".equals(v4Event("command", "me", "mod canali add #room", t, null, "")[0]),
                 "Configure V4");
         String[] first = v4Event("message", "Voice", "cerco ragazza", t+1, "+", "voiceacct");
-        String[] second = v4Event("message", "Voice", "cerco donna", t+2, "+", "voiceacct");
+        String[] second = v4Event("message", "Voice", "cerco ragazza", t+2, "+", "voiceacct");
         check(first.length == 1 && java.util.Arrays.toString(second).contains("AutoModV4"),
                 "Voice detection works without roster or query");
         check(v4Event("message", "Operator", "cerco ragazza", t+3, "@+", "opacct").length == 1 &&
-                v4Event("message", "Operator", "cerco donna", t+4, "@+", "opacct").length == 1,
+                v4Event("message", "Operator", "cerco ragazza", t+4, "@+", "opacct").length == 1,
                 "Higher prefixes excluded");
         String[] unknown = v4Event("message", "Unknown", "cerco ragazza", t+5, null, "");
         check(java.util.Arrays.toString(unknown).contains("UNKNOWN"), "No sender fails closed");
@@ -239,7 +239,7 @@ public final class HostLuaRuntimeTest {
         }
         // Weak fragments cannot become a B violation merely through repetition.
         String[] weak = {"qualcuno?", "Nessuna", "Nessuna?", "F", "3", "08?", "2007",
-                "07-09", "07/09", "io bologna", "Chat f", "ragazze per parlare?",
+                "io bologna", "Chat f", "ragazze per parlare?",
                 "f 23 qualcuno in chat?", "Qualcuna che mi fa compagnia mentre lavoro?",
                 "Ragaaa ma qualcuna simpatica che cerca compagnia c'e?",
                 "Bella genteee, ci sta qualcuno intenzionato a farmi compagnia in chat?",
@@ -268,6 +268,29 @@ public final class HostLuaRuntimeTest {
             check("OK".equals(one[0]) && java.util.Arrays.toString(two).contains("motore B"),
                     "Explicit repeated ad still detected: "+strong[i]);
         }
+        String different = java.util.Arrays.toString(v4Event("message", "Local", "Chi di Bologna?",
+                t+811, "", "locals"));
+        check(!different.contains("motore B"), "The first generic ad does not trigger");
+        different = java.util.Arrays.toString(v4Event("message", "Local", "Chi di Verona?",
+                t+820, "", "locals"));
+        check(!different.contains("motore B"), "Different cities do not accumulate");
+        v4Event("message", "Numeric", "07-09", t+830, "", "numerics");
+        check(java.util.Arrays.toString(v4Event("message", "Numeric", "07/09",
+                t+850, "", "numerics")).contains("RAPID_NUMERIC"), "Numeric separators are equivalent");
+        v4Event("command", "me", "mod modo live", t+860, null, "");
+        for (int i = 0; i < 4; i++) {
+            String response = java.util.Arrays.toString(v4Event("message", "Rapid", "F?",
+                    t+861+30*i, "", "rapid-account"));
+            if (i > 0) check(response.contains("RAPID_SINGLE") && response.contains("infrazione "+i),
+                    "Each quick duplicate advances at the inclusive limit: "+response);
+            else check(!response.contains("motore B"), "Initial rapid ad does not trigger");
+        }
+        v4Event("command", "me", "mod modo monitor", t+952, null, "");
+        v4Event("message", "Slow", "F?", t+953, "", "slow-account");
+        check(!java.util.Arrays.toString(v4Event("message", "Slow", "F?", t+984,
+                "", "slow-account")).contains("motore B"), "31 seconds uses the normal generic threshold");
+        check(java.util.Arrays.toString(v4Event("message", "Slow", "F?", t+1015,
+                "", "slow-account")).contains("threshold 3 count 3"), "Generic ad triggers at the third copy");
         String generic = "qualcuno vuole fare due chiacchiere";
         for (int i = 0; i < 2; i++)
             check(v4Event("message", "Repeat", generic, t+810+i, "", "repeat").length == 1,
@@ -340,7 +363,7 @@ public final class HostLuaRuntimeTest {
         java.util.Map<String, String> before = new java.util.HashMap<>(automodStorage);
         check("OK".equals(v4Event("message", "Target", "cerco ragazza", t+1, "", "targetaccount")[0]),
                 "First ad with large archive");
-        String[] detection = v4Event("message", "Target", "cerco donna", t+2, "", "targetaccount");
+        String[] detection = v4Event("message", "Target", "cerco ragazza", t+2, "", "targetaccount");
         check("OK".equals(detection[0]) && java.util.Arrays.toString(detection).contains("infrazione 3"),
                 "Persisted level survives and advances without budget exhaustion");
         check(automodStorage.get(targetShard).contains(target + "\t3\t" + (t+2) + "\t1"),
@@ -374,7 +397,7 @@ public final class HostLuaRuntimeTest {
         check("OK".equals(decode(NativeLuaRuntime.load(OTHER, source))), "V4 reloads");
         check("OK".equals(v4Event("message", "Target", "cerco ragazza", t+30, "", "targetaccount")[0]),
                 "Detection resumes after VM reload");
-        detection = v4Event("message", "Target", "cerco donna", t+31, "", "targetaccount");
+        detection = v4Event("message", "Target", "cerco ragazza", t+31, "", "targetaccount");
         check("OK".equals(detection[0]) && java.util.Arrays.toString(detection).contains("infrazione 4"),
                 "Escalation persists across restart");
         NativeLuaRuntime.unload(OTHER);
@@ -383,7 +406,7 @@ public final class HostLuaRuntimeTest {
         automodStorage.put(targetShard, "invalid-row");
         check("OK".equals(decode(NativeLuaRuntime.load(OTHER, source))), "Reload with malformed shard");
         v4Event("message", "Target", "cerco ragazza", t+40, "", "targetaccount");
-        String[] malformed = v4Event("message", "Target", "cerco donna", t+41, "", "targetaccount");
+        String[] malformed = v4Event("message", "Target", "cerco ragazza", t+41, "", "targetaccount");
         check("OK".equals(malformed[0]) &&
                 java.util.Arrays.toString(malformed).contains("moderazione sospesa") &&
                 !java.util.Arrays.asList(malformed).contains("tmute") &&
@@ -394,7 +417,7 @@ public final class HostLuaRuntimeTest {
         String healthy = "healthy";
         while (v4Shard("test-server/a:" + healthy) == v4Shard(target)) healthy += "x";
         v4Event("message", "Healthy", "cerco ragazza", t+42, "", healthy);
-        String[] independent = v4Event("message", "Healthy", "cerco donna", t+43, "", healthy);
+        String[] independent = v4Event("message", "Healthy", "cerco ragazza", t+43, "", healthy);
         check("OK".equals(independent[0]) && java.util.Arrays.toString(independent).contains("infrazione 1"),
                 "Healthy shard continues after malformed archive");
         automodStorage.put(targetShard, target + "\t4\t" + (t+31) + "\t1");
@@ -410,7 +433,7 @@ public final class HostLuaRuntimeTest {
         automodStorage.put("v4.cfg", config);
         check("OK".equals(v4Event("timer", "", "", t+46, null, "")[0]), "Timer retries configuration");
         v4Event("message", "Healthy", "cerco ragazza", t+47, "", healthy);
-        String[] resumed = v4Event("message", "Healthy", "cerco donna", t+48, "", healthy);
+        String[] resumed = v4Event("message", "Healthy", "cerco ragazza", t+48, "", healthy);
         check("OK".equals(resumed[0]) && java.util.Arrays.toString(resumed).contains("infrazione 2"),
                 "Configuration recovery restores live mode, channels and escalation");
         NativeLuaRuntime.unload(OTHER);
