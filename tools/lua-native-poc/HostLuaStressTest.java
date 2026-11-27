@@ -98,7 +98,7 @@ public final class HostLuaStressTest {
             Arrival arrival=queue.poll(100,TimeUnit.MILLISECONDS);
             if (arrival==null) continue;
             long before=System.nanoTime();
-            byte[][] result=run("message",arrival.member.nick,"cerco donna",
+            byte[][] result=run("message",arrival.member.nick,"cerco ragazza",
                     T+2+(arrival.due-start)/1_000_000_000L,arrival.member.sender,stored,2);
             long end=System.nanoTime();
             latency[processed]=end-arrival.due;
