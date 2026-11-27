@@ -23,7 +23,6 @@ import android.widget.TextView;
 
 import java.util.Date;
 import java.util.List;
-import java.util.UUID;
 
 import io.mrarm.chatlib.dto.NickWithPrefix;
 import io.mrarm.irc.ChannelNotificationManager;
@@ -76,17 +75,20 @@ public class ChatFragment extends Fragment implements
 
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View rootView = inflater.inflate(R.layout.chat_fragment, container, false);
-
-        UUID connectionUUID = UUID.fromString(getArguments().getString(ARG_SERVER_UUID));
-        mConnectionInfo = ServerConnectionManager.getInstance(getContext()).getConnection(connectionUUID);
-        String requestedChannel = getArguments().getString(ARG_CHANNEL_NAME);
-        String requestedMessageId = getArguments().getString(ARG_MESSAGE_ID);
-
+        Bundle args = getArguments();
+        mConnectionInfo = ServerConnectionManager.getInstance(requireContext())
+                .getConnectionForSavedState(args == null ? null : args.getString(ARG_SERVER_UUID));
         if (mConnectionInfo == null) {
-            ((MainActivity) getActivity()).openManageServers();
+            // The Activity may still be restoring its own views. Defer navigation
+            // and check that this is still the displayed fragment before replacing it.
+            MainActivity activity = (MainActivity) requireActivity();
+            activity.getWindow().getDecorView().post(() -> activity.recoverUnavailableChat(this));
             return null;
         }
+
+        View rootView = inflater.inflate(R.layout.chat_fragment, container, false);
+        String requestedChannel = args.getString(ARG_CHANNEL_NAME);
+        String requestedMessageId = args.getString(ARG_MESSAGE_ID);
 
         mAppBar = rootView.findViewById(R.id.appbar);
 
@@ -185,7 +187,8 @@ public class ChatFragment extends Fragment implements
             mViewPager.unregisterOnPageChangeCallback(mPageChangeCallback);
         if (mTabLayoutMediator != null)
             mTabLayoutMediator.detach();
-        mSendHelper.setCurrentChannel(null);
+        if (mSendHelper != null)
+            mSendHelper.setCurrentChannel(null);
         if (mConnectionInfo == null) {
             super.onDestroyView();
             return;
@@ -406,7 +409,7 @@ public class ChatFragment extends Fragment implements
     }
 
     public String getCurrentChannel() {
-        if (mForceServerMenuContext)
+        if (mForceServerMenuContext || mSectionsPagerAdapter == null || mViewPager == null)
             return null;
         return mSectionsPagerAdapter.getChannel(mViewPager.getCurrentItem());
     }

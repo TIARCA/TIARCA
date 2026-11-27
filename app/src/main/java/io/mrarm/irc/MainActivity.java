@@ -258,6 +258,20 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
         });
         setChannelInfoDrawerVisible(false);
 
+        // FragmentActivity restores nested chat fragments during super.onCreate().
+        // Once the drawer and content frame exist, discard an orphaned chat before
+        // it can build its pager or handle user actions.
+        Fragment restored = getCurrentFragment();
+        if (savedInstanceState != null && restored instanceof ChatFragment) {
+            Bundle args = restored.getArguments();
+            if (ServerConnectionManager.getInstance(this).getConnectionForSavedState(
+                    args == null ? null : args.getString(ChatFragment.ARG_SERVER_UUID)) == null) {
+                openManageServers();
+                getSupportFragmentManager().executePendingTransactions();
+                return;
+            }
+        }
+
         if (savedInstanceState != null && savedInstanceState.getString(ARG_SERVER_UUID) != null)
             return;
 
@@ -394,8 +408,11 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
         super.onSaveInstanceState(outState);
         if (getCurrentFragment() instanceof ChatFragment) {
             ChatFragment chat = ((ChatFragment) getCurrentFragment());
-            outState.putString(ARG_SERVER_UUID, chat.getConnectionInfo().getUUID().toString());
-            outState.putString(ARG_CHANNEL_NAME, chat.getCurrentChannel());
+            ServerConnectionInfo connection = chat.getConnectionInfo();
+            if (connection != null) {
+                outState.putString(ARG_SERVER_UUID, connection.getUUID().toString());
+                outState.putString(ARG_CHANNEL_NAME, chat.getCurrentChannel());
+            }
         }
     }
 
@@ -404,8 +421,12 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
         super.onRestoreInstanceState(savedInstanceState);
         String serverUUID = savedInstanceState.getString(ARG_SERVER_UUID);
         if (serverUUID != null) {
-            ServerConnectionInfo server = ServerConnectionManager.getInstance(this).getConnection(UUID.fromString(serverUUID));
-            openServer(server, savedInstanceState.getString(ARG_CHANNEL_NAME));
+            ServerConnectionInfo server = ServerConnectionManager.getInstance(this)
+                    .getConnectionForSavedState(serverUUID);
+            if (server != null)
+                openServer(server, savedInstanceState.getString(ARG_CHANNEL_NAME));
+            else if (!(getCurrentFragment() instanceof ServerListFragment))
+                openManageServers();
         }
     }
 
@@ -432,11 +453,9 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
         // Resuming an already selected PVT is not a user acknowledgement: its
         // messages may have arrived while the app was in the background.
         mDCCDialogHandler.onResume();
-        if (getCurrentFragment() instanceof ChatFragment && !ServerConnectionManager
-                .getInstance(this).hasConnection(((ChatFragment) getCurrentFragment())
-                        .getConnectionInfo().getUUID())) {
-            openManageServers();
-        }
+        Fragment current = getCurrentFragment();
+        if (current instanceof ChatFragment)
+            recoverUnavailableChat((ChatFragment) current);
     }
 
     @Override
@@ -650,6 +669,17 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
         return openServer(server, channel, null, false);
     }
 
+    /** Only recover the chat that is still displayed; never replace a newer selection. */
+    public void recoverUnavailableChat(ChatFragment chat) {
+        if (isFinishing() || isDestroyed() || getSupportFragmentManager().isStateSaved() ||
+                getCurrentFragment() != chat)
+            return;
+        ServerConnectionInfo connection = chat.getConnectionInfo();
+        if (connection == null || ServerConnectionManager.getInstance(this)
+                .getConnection(connection.getUUID()) != connection)
+            openManageServers();
+    }
+
     public void openManageServers() {
         dismissFragmentDialog();
         setChannelInfoDrawerVisible(false);
@@ -750,6 +780,8 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
         boolean hasChanges = false;
         if (getCurrentFragment() instanceof ChatFragment) {
             ChatFragment fragment = ((ChatFragment) getCurrentFragment());
+            if (fragment.getConnectionInfo() == null || fragment.getSendMessageHelper() == null)
+                return false;
             ServerConnectionApi api = ((ServerConnectionApi) fragment.getConnectionInfo().getApiInstance());
             boolean connected = fragment.getConnectionInfo().isConnected();
             boolean wasConnected = !menu.findItem(R.id.action_reconnect).isVisible();

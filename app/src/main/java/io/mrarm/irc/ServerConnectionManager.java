@@ -340,6 +340,17 @@ public class ServerConnectionManager {
         }
     }
 
+    /** Resolve a saved UI reference without creating a new IRC session. */
+    public ServerConnectionInfo getConnectionForSavedState(String uuid) {
+        if (uuid == null)
+            return null;
+        try {
+            return getConnection(UUID.fromString(uuid));
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
+    }
+
     public boolean hasConnection(UUID uuid) {
         synchronized (this) {
             return mConnectionsMap.containsKey(uuid);
