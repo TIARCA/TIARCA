@@ -15,6 +15,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -24,7 +25,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.UUID;
 
 import io.mrarm.chatlib.ChannelInfoListener;
 import io.mrarm.chatlib.ResponseCallback;
@@ -156,11 +156,17 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        UUID connectionUUID = UUID.fromString(getArguments().getString(ARG_SERVER_UUID));
-        ServerConnectionInfo connectionInfo = ServerConnectionManager.getInstance(getContext())
-                .getConnection(connectionUUID);
+        Bundle args = getArguments();
+        ServerConnectionInfo connectionInfo = ServerConnectionManager.getInstance(requireContext())
+                .getConnectionForSavedState(args == null ? null : args.getString(ARG_SERVER_UUID));
         mConnection = connectionInfo;
-        mChannelName = getArguments().getString(ARG_CHANNEL_NAME);
+        mChannelName = args == null ? null : args.getString(ARG_CHANNEL_NAME);
+        if (connectionInfo == null) {
+            // Nested fragments can be restored before their parent has a view.
+            // Leave the orphan inert until MainActivity replaces the parent chat.
+            Log.w(TAG, "Skipping restoration of a chat page without a server connection");
+            return;
+        }
 
         if (mChannelName != null) {
             mAdapter = new ChatMessagesAdapter(this, new ArrayList<>(), new ArrayList<>());
@@ -219,6 +225,8 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
         mMainHandler.removeCallbacksAndMessages(null);
         super.onDestroy();
 
+        if (mConnection == null)
+            return;
         SettingsHelper.unregisterCallbacks(this);
 
         if (mNeedsUnsubscribeChannelInfo)
@@ -235,6 +243,9 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+        // ViewPager2 expects a view even if a stale page briefly survives restoration.
+        if (mConnection == null)
+            return new FrameLayout(requireContext());
 
         View rootView = inflater.inflate(R.layout.chat_messages_fragment, container, false);
         synchronized (this) {
@@ -615,6 +626,8 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
     @Override
     public void onResume() {
         super.onResume();
+        if (mConnection == null)
+            return;
         mIsResumed = true;
         mMainHandler.removeCallbacks(mReleaseOffscreenMessages);
         if (mMessagesReleased && mConnection != null && mChannelName != null) {
@@ -667,6 +680,8 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
         if (mAdapter != null)
             mMainHandler.postDelayed(mReleaseOffscreenMessages, OFFSCREEN_RELEASE_DELAY_MS);
         super.onPause();
+        if (mConnection == null)
+            return;
         MainActivity activity = (MainActivity) getActivity();
         if (mConnection != null && (activity == null || !activity.isAppExiting()))
             mConnection.getNotificationManager().getChannelManager(mChannelName, true).setOpened(getContext(), false);
@@ -702,6 +717,8 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
     }
 
     void updateParentCurrentChannel() {
+        if (mConnection == null)
+            return;
         mMainHandler.post(() -> {
             Fragment parent = getParentFragment();
             if (!isAdded() || !(parent instanceof ChatFragment))
