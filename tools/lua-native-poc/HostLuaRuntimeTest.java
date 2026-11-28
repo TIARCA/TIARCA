@@ -174,13 +174,20 @@ public final class HostLuaRuntimeTest {
 
     private static String[] v4Event(String event, String nick, String text, long time,
                                     String prefix, String account, String... mentions) {
+        String host = "host-" + (account.isEmpty() ? nick : account) + ".example";
+        return v4EventIdentity(event, nick, text, time, prefix, account, "ident", host, mentions);
+    }
+
+    private static String[] v4EventIdentity(String event, String nick, String text, long time,
+                                           String prefix, String account, String ident,
+                                           String host, String... mentions) {
         byte[][] roster = new byte[mentions.length * 5][];
         for (int i = 0; i < mentions.length; i++) {
             roster[5*i] = bytes(mentions[i]);
             for (int j = 1; j < 5; j++) roster[5*i+j] = bytes("");
         }
         byte[][] sender = prefix == null ? new byte[0][] :
-                new byte[][]{bytes("ident"), bytes("host.example"), bytes(prefix), bytes(account)};
+                new byte[][]{bytes(ident), bytes(host), bytes(prefix), bytes(account)};
         return collect(NativeLuaRuntime.dispatchWithIdentity(OTHER, event,
                 bytes("test-server"), bytes("#room"), bytes(nick), bytes(text), bytes("normal"), time,
                 new byte[0][], new int[0], false, roster, false, true,
@@ -189,7 +196,7 @@ public final class HostLuaRuntimeTest {
 
     private static void checkV4Identity() throws Exception {
         byte[] source = Files.readAllBytes(Path.of("docs/lua-examples/automod_v4.lua"));
-        check(source.length <= 24576, "V4 source quota");
+        check(source.length <= 40960, "V4 source quota");
         check("OK".equals(decode(NativeLuaRuntime.load(OTHER, source))), "V4 loads");
         check((NativeLuaRuntime.eventMask(OTHER) & (1 << 20)) != 0, "V4 opts in");
         automodStorage.clear();
@@ -310,6 +317,76 @@ public final class HostLuaRuntimeTest {
         automodActive = false;
     }
 
+    private static void checkV4RefinementsAndGraph() throws Exception {
+        byte[] source = Files.readAllBytes(Path.of("docs/lua-examples/automod_v4.lua"));
+        check(source.length <= 40960, "Refined V4 fits source quota");
+        check(!"OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes("--" + "x".repeat(40959))))),
+                "Native source quota still enforced");
+        automodStorage.clear();
+        automodActive = true;
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, source))), "Refined V4 loads");
+        long t = 1794401000L;
+        v4Event("command", "me", "mod canali add #room", t, null, "");
+        v4Event("message", "Contact", "\u00a0F per privato?", t+1, "", "contact");
+        check(java.util.Arrays.toString(v4Event("message", "Contact", "F per privatoo?",
+                t+17, "", "contact")).contains("RAPID_CONTACT"), "Unicode and trailing letters");
+        check(java.util.Arrays.toString(v4Event("message", "Contact", "una tipa per pvt?",
+                t+29, "", "contact")).contains("motore B"), "Equivalent contact phrases share group");
+        v4Event("message", "Geo", "Ragazzi pugliesi ci siete", t+40, "", "geo");
+        check(java.util.Arrays.toString(v4Event("message", "Geo", "Ragazzi dalla Pugliaaa?",
+                t+61, "", "geo")).contains("RAPID_GEO"), "Demonym and geographic alias");
+        for (int i=0; i<3; i++) {
+            check(v4Event("message", "Hello", "Ciao ragazzi pugliesi", t+70+i, "", "hello").length==1,
+                    "Geographic greeting remains ignored");
+            check(v4Event("message", "Hmm", "mmm", t+70+i, "", "hmm").length==1,
+                    "Short hesitation not transformed to gender code");
+        }
+        v4Event("message", "Code", "Io m06 cerco ragazza coetanea che vuole parlare",
+                t+80, "", "code");
+        check(java.util.Arrays.toString(v4Event("message", "Code",
+                "Io m06 cerco ragazza coetanea che vuole parlare", t+81, "", "code"))
+                .contains("MCODE"), "Explicit code is not swallowed by CHAT");
+        String repeated = "forza sveglia che mi fate venire sonno";
+        v4Event("message", "Repeat", repeated, t+100, "", "repeat");
+        v4Event("message", "Repeat", "qui oggi piove davvero tanto", t+110, "", "repeat");
+        v4Event("message", "Repeat", repeated, t+120, "", "repeat");
+        v4Event("message", "Repeat", "io sto guardando la televisione", t+125, "", "repeat");
+        check(java.util.Arrays.toString(v4Event("message", "Repeat", repeated,
+                t+130, "", "repeat")).contains("RAPID_SIMILAR"), "Nonconsecutive exact burst");
+        // A--B same account, B--C same host, C--D same meaningful ident/domain.
+        v4EventIdentity("message", "First", "F per privato?", t+200, "", "alpha",
+                "ident-one", "simosnap-aaa.vodafone.it");
+        v4EventIdentity("message", "Second", "ciao", t+201, "", "alpha",
+                "ident-two", "simosnap-bbb.vodafone.it");
+        v4EventIdentity("message", "Third", "ciao", t+202, "", "beta",
+                "ident-three", "simosnap-bbb.vodafone.it");
+        String graph = java.util.Arrays.toString(v4EventIdentity("message", "Fourth",
+                "F per pvt?", t+203, "", "gamma", "ident-three", "simosnap-ccc.vodafone.it"));
+        check(graph.contains("RAPID_CONTACT") && graph.contains("aliases ") &&
+                graph.contains("First") && graph.contains("Third"), "Transitive cross-account graph: " + graph);
+        v4Event("command", "me", "mod modo live", t+204, null, "");
+        String warning = java.util.Arrays.toString(v4EventIdentity("message", "Fourth",
+                "F per privato?", t+205, "", "gamma", "ident-three", "simosnap-ccc.vodafone.it"));
+        check(warning.contains("infrazione 1 (avviso)"), "Monitor did not advance escalation");
+        NativeLuaRuntime.unload(OTHER);
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, source))), "Graph VM reload");
+        v4EventIdentity("message", "Fifth", "F per privato?", t+210, "", "delta",
+                "ident-three", "simosnap-ddd.vodafone.it");
+        String mute = java.util.Arrays.toString(v4EventIdentity("message", "Fifth",
+                "F per pvt?", t+211, "", "delta", "ident-three", "simosnap-ddd.vodafone.it"));
+        check(mute.contains("infrazione 2 (tmute)") && mute.contains("Fourth"),
+                "Escalation and observed aliases survive restart: " + mute);
+        v4EventIdentity("message", "Fifth", "F per privato?", t+220, "", "epsilon",
+                "other-ident", "simosnap-eee.telecomitalia.it");
+        String independent = java.util.Arrays.toString(v4EventIdentity("message", "Fifth",
+                "F per pvt?", t+221, "", "epsilon", "other-ident", "simosnap-eee.telecomitalia.it"));
+        check(independent.contains("infrazione 1 (avviso)"),
+                "Same nickname with different domain does not inherit sanctions: " + independent);
+        NativeLuaRuntime.unload(OTHER);
+        automodStorage.clear();
+        automodActive = false;
+    }
+
     private static int v4Shard(String id) {
         int n = 0;
         for (byte b : bytes(id)) n = (n * 33 + (b & 255)) % 20;
@@ -322,7 +399,7 @@ public final class HostLuaRuntimeTest {
 
     private static void checkV4LargeHistory() throws Exception {
         byte[] source = Files.readAllBytes(Path.of("docs/lua-examples/automod_v4.lua"));
-        check(source.length <= 24576, "V4 source quota");
+        check(source.length <= 40960, "V4 source quota");
         automodStorage.clear();
         automodActive = true;
         long t = 1794400000L;
@@ -415,7 +492,8 @@ public final class HostLuaRuntimeTest {
                 "Corrupt history fails closed without overwriting it");
         // A bad shard cannot stop other users or permanently latch the VM off.
         String healthy = "healthy";
-        while (v4Shard("test-server/a:" + healthy) == v4Shard(target)) healthy += "x";
+        while (v4Shard("test-server/a:" + healthy) == v4Shard(target) ||
+                v4Shard("test-server/h:host-" + healthy + ".example") == v4Shard(target)) healthy += "x";
         v4Event("message", "Healthy", "cerco ragazza", t+42, "", healthy);
         String[] independent = v4Event("message", "Healthy", "cerco ragazza", t+43, "", healthy);
         check("OK".equals(independent[0]) && java.util.Arrays.toString(independent).contains("infrazione 1"),
@@ -459,7 +537,7 @@ public final class HostLuaRuntimeTest {
 
     private static void checkHarvester() throws Exception {
         byte[] script = Files.readAllBytes(Path.of("docs/lua-examples/harvester.lua"));
-        check(script.length <= 24576, "Harvester source quota");
+        check(script.length <= 40960, "Harvester source quota");
         automodStorage.clear();
         automodActive = true;
         check("OK".equals(decode(NativeLuaRuntime.load(OTHER, script))), "Harvester loads");
@@ -541,6 +619,7 @@ public final class HostLuaRuntimeTest {
         checkHarvester();
         checkStorageRevisions();
         checkV4Identity();
+        checkV4RefinementsAndGraph();
         checkV4LargeHistory();
         // Read subscriptions from the actual loaded VM, not Lua source text.
         check(NativeLuaRuntime.eventMask(OTHER) == -1, "Absent VM has no known mask");
@@ -772,7 +851,7 @@ public final class HostLuaRuntimeTest {
                 "C3 must reject missing user-data permission");
         byte[] announcements = Files.readAllBytes(
                 Path.of("docs/lua-examples/automod_annunci.lua"));
-        check(announcements.length <= 24576 &&
+        check(announcements.length <= 40960 &&
                         "OK".equals(decode(NativeLuaRuntime.load(OTHER, announcements))),
                 "AutoMod B must load under source size and runtime limits");
         String presence = "tiarca.on('join', function(e) tiarca.log('joined:'..e.nick) end) "
@@ -896,7 +975,7 @@ public final class HostLuaRuntimeTest {
         // Import the actual user-facing AutoMod source. Also check size.
         byte[] automod = Files.readAllBytes(
                 Path.of("docs/lua-examples/automod_antiripetizione.lua"));
-        check(automod.length <= 24576, "AutoMod fits 24 KiB source limit");
+        check(automod.length <= 40960, "AutoMod fits 40 KiB source limit");
         check("OK".equals(decode(NativeLuaRuntime.load(OTHER, automod))),
                 "AutoMod loads into official Lua native sandbox");
         automodActive = true;
@@ -1681,8 +1760,8 @@ public final class HostLuaRuntimeTest {
                 "Persisted ALL channel scope is restored after reload");
 
         // Collector V2: source must remain importable within native Lua limit.
-        check(bytes(collectorSource).length <= 24576,
-                "Collector V2 must fit the Lua 24 KiB source limit");
+        check(bytes(collectorSource).length <= 40960,
+                "Collector V2 must fit the Lua 40 KiB source limit");
         check(collectorEvent("message", "Target",
                 "cerco persone in privato", "normal", 1794405110L).length == 1,
                 "The first ordinary message stays only in bounded memory");
@@ -1782,7 +1861,7 @@ public final class HostLuaRuntimeTest {
         // including when the command originates in the server tab.
         byte[] ejectScript = Files.readAllBytes(
                 Path.of("docs/lua-examples/espelli.lua"));
-        check(ejectScript.length <= 24576, "Eject example fits source limit");
+        check(ejectScript.length <= 40960, "Eject example fits source limit");
         check("OK".equals(decode(NativeLuaRuntime.load(ID, ejectScript))),
                 "Exact user-facing Eject script should load");
         String[] fromServer = event(ID, "command", "", "", "espelli #room Target");

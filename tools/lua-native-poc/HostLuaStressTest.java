@@ -30,7 +30,7 @@ public final class HostLuaStressTest {
         final byte[][] sender;
         Member(int i) {
             nick = b("User" + i);
-            sender = new byte[][]{b("ident" + i), b("host" + i + ".example"),
+            sender = new byte[][]{b("ident" + i), b("simosnap-" + i + ".vodafone.it"),
                     b(i % 5 == 0 ? "+" : ""), b("account" + i)};
         }
     }
