@@ -1,6 +1,6 @@
 local api=tiarca
 local TTL,SHARDS=86400,20
-local DEFAULT_RAPID,MAX_AD_GROUPS=30,6
+local DEFAULT_RAPID,MAX_AD_GROUPS,MAX_REPEAT_GROUPS=30,6,5
 local ranges={similarity={50,100},minutes={1,120},credit={0,3},minwords={3,12},rapid={0,120}}
 local parameters={somiglianza="similarity",soglia="similarity",finestra="minutes",
 minuti="minutes",credito="credit",minparole="minwords",raffica="rapid"}
@@ -14,24 +14,58 @@ end
 local function dict(s)
 local d={} for v in s:gmatch("%S+") do d[v]=true end return d
 end
-local people=dict("f m mxm ragazza ragazze ragazzo ragazzi donna donne uomo uomini qualcuna qualcuno nessuna nessuno coetanea coetanee coetaneo coetanei")
+local people=dict("f m mxm ragazza ragazze ragazzo ragazzi donna donne uomo uomini qualcuna qualcuno nessuna nessuno coetanea coetanee coetaneo coetanei tipa tipo tipe tipi femmina femmine maschio maschi")
 local single=dict("mxm ragazza ragazze donna donne")
 local chatTarget=dict("f m mxm donna donne uomo uomini")
 local search=dict("cerco cerca cercasi cerchiamo chi qualche qualke")
-local chatting=dict("chat chatta chattare chatto chiacchiera conoscenza conoscere compagnia amicizia amicizie parlare")
+local chatting=dict("chat chatta chattare chatto chiacchiera conoscenza conoscere compagnia amicizia amicizie parlare chattiamo chiacchiere messaggiare")
 local contact=dict("pvt priv privato privata prvt scrivimi scrivetemi contattami contattatemi")
 local encounter=dict("reale incontro incontri ospito ospitare uscire")
 local media=dict("cam call videochat whatsapp whatap whatsap telegram tg")
-local places=dict("parma caserta brescia bergamo foggia avellino milano roma napoli biella veneto puglia lecce sicilia friuli piemonte marche toscana bari salerno genova torino calabria calabira siciliana verona enna viareggio firenze bologna palermo catania abruzzo molise umbria lazio sardegna lombardia campania")
+local places=dict("parma caserta brescia bergamo foggia avellino milano roma napoli biella veneto puglia lecce sicilia friuli piemonte marche toscana bari salerno genova torino calabria calabira siciliana verona enna viareggio firenze bologna palermo catania abruzzo molise umbria lazio sardegna lombardia campania liguria trentino basilicata aosta bolzano trento potenza matera aquila pescara chieti teramo isernia campobasso ancona ascoli pesaro macerata fermo perugia terni rimini ravenna cesena forli modena reggio piacenza ferrara padova vicenza treviso venezia rovigo belluno udine trieste gorizia pordenone como lecco varese lodi cremona mantova sondrio monza pavia asti cuneo novara vercelli alessandria imperia savona spezia lucca pisa livorno arezzo siena grosseto prato pistoia massa carrara latina frosinone viterbo rieti benevento brindisi taranto barletta andria trani catanzaro cosenza crotone vibo messina siracusa ragusa trapani agrigento caltanissetta cagliari sassari nuoro oristano")
+local geo={}
+for line in ("puglia pugliese pugliesi|roma romano romana romani romane|napoli napoletano napoletana napoletani napoletane|"..
+"abruzzo abruzzese abruzzesi|sicilia siciliano siciliana siciliani siciliane|milano milanese milanesi|"..
+"calabria calabrese calabresi|sardegna sardo sarda sardi sarde|toscana toscano toscana toscani toscane|"..
+"veneto veneta veneti venete|piemonte piemontese piemontesi|lombardia lombardo lombarda lombardi lombarde|"..
+"campania campano campana campani campane|liguria ligure liguri|marche marchigiano marchigiana marchigiani marchigiane|"..
+"umbria umbro umbra umbri umbre|lazio laziale laziali|molise molisano molisana molisani molisane|"..
+"friuli friulano friulana friulani friulane|trentino trentina trentini trentine|basilicata lucano lucana lucani lucane|"..
+"aosta valdostano valdostana valdostani valdostane|bari barese baresi|palermo palermitano palermitana palermitani palermitane|"..
+"torino torinese torinesi|genova genovese genovesi|bologna bolognese bolognesi|firenze fiorentino fiorentina fiorentini fiorentine|"..
+"salerno salernitano salernitana salernitani salernitane|catania catanese catanesi|messina messinese messinesi|"..
+"verona veronese veronesi|venezia veneziano veneziana veneziani veneziane|pescara pescarese pescaresi|"..
+"caserta casertano casertana casertani casertane|lecce leccese leccesi|foggia foggiano foggiana foggiani foggiane"):gmatch("[^|]+") do
+ local city=line:match("^%S+")
+ for v in line:gmatch("%S+") do geo[v]=city;places[v]=true end
+end
 local greetings={}
 for s in ("ciao|salve|sera|buongiorno|buonasera|buonanotte|buona sera|buon pomeriggio|buona serata|"..
 "buona notte|ciao tutti|ciao a tutti|salve a tutti|sera a tutti|buonasera a tutti|buongiorno a tutti|buonanotte a tutti|un saluto a tutti|ciao chat"):gmatch("[^|]+") do greetings[s]=true end
 local function normalize(s)
 s=(s or ""):lower():gsub("à","a"):gsub("è","e"):gsub("é","e")
 s=s:gsub("ì","i"):gsub("ò","o"):gsub("ù","u")
+s=s:gsub("\194\160"," "):gsub("\225\154\128"," "):gsub("\226\128[\128-\138\168\169\175]"," ")
+s=s:gsub("\226\129\159"," "):gsub("\227\128\128"," ")
 s=s:gsub("[%p%c]"," "):gsub("%s+"," ")
 s=s:match("^%s*(.-)%s*$") or ""
 return s:gsub("(%f[%a][mf])%s+(%d+)","%1%2")
+end
+local lex={}
+for _,d in ipairs({people,single,chatTarget,search,chatting,contact,encounter,media,places}) do
+ for v in pairs(d) do lex[v]=true end
+end
+local equivalents={pvt="privato",prvt="privato",priv="privato",privata="privato",x="per"}
+local function normalizeB(raw)
+ local w=words(normalize(raw))
+ for i,v in ipairs(w) do
+  local t=v
+  -- Only repeated final letters, and never reduce to fewer than three letters.
+  while not lex[t] and #t>3 and t:sub(-1)==t:sub(-2,-2) do t=t:sub(1,-2) end
+  if lex[t] then v=t end
+  w[i]=equivalents[v] or v
+ end
+ return table.concat(w," ")
 end
 local function has(w,d)
 for _,v in ipairs(w) do if d[v] then return true end end
@@ -94,7 +128,7 @@ return false
 end
 local function category(raw)
 if raw:match("^%s*!") then return "ignore","BOT" end
-local s=normalize(raw)
+local s=normalizeB(raw)
 if s=="" then return "ignore","EMPTY" end
 if greetings[s] then return "ignore","GREETING" end
 local w=words(s)
@@ -105,6 +139,9 @@ end
 if #w==1 and (single[w[1]] or code(w) or
 ((w[1]=="f" or w[1]=="m") and raw:find("?",1,true))) then return "ad","SINGLE" end
 if #w<2 then return "short","SHORT" end
+if (w[1]=="ciao" or w[1]=="salve" or w[1]=="buongiorno" or w[1]=="buonasera") and
+ has(w,places) and not has(w,search) and not has(w,contact) and not has(w,chatting)
+ and not has(w,{per=true,ci=true,siete=true}) then return "ignore","GREETING" end
 if s=="mxm reale" or near(w,{mxm=true},encounter,3) then return "ad","MXM" end
 if near(w,people,contact,7) then return "ad","CONTACT" end
 if near(w,people,places,6) then return "ad","GEO" end
@@ -115,10 +152,15 @@ if has(w,{ospito=true,ospitare=true}) and has(w,places) then return "ad","HOST" 
 if has(w,people) and (s:find("qualsiasi eta",1,true) or
 s:find("qualunque eta",1,true)) then return "ad","AGE" end
 if near(w,people,chatting,5) then
+local explicit=w[1]=="cerco" or w[1]=="cercasi" or w[1]=="cerchiamo"
+-- Preserve weak conversational CHAT exclusions, but do not hide explicit M/F codes.
+if code(w) and (has(w,{io=true}) or explicit or
+ (not code({w[1]}) and has(w,{per=true}) and has(w,people))) then return "ad","MCODE" end
 if #w<=8 and (near(w,chatTarget,chatting,5) or
 has(w,{conoscenza=true,conoscere=true})) and
 not (#w==2 and chatting[w[1]] and not raw:find("?",1,true)) then
 return "ad","CHAT" end
+if explicit and near(w,search,people,5) then return "ad","SEARCH" end
 return "normal","NORMAL" end
 if near(w,search,people,5) then return "ad","SEARCH" end
 if code(w) and (w[1]=="io" or has(w,search) or
@@ -137,7 +179,7 @@ or has(w,{io=true,per=true})
 local prev=""
 local clean=raw:gsub("%S+",function(t)
 local n=t:gsub("[,:;.!?]+$","")
-local v=words(normalize(n))
+local v=words(normalizeB(n))
 local keep=false
 for _,x in ipairs(v) do if protected(x) or x:match("^%d+$") then keep=true end end
 if code(v) and (ad or prev=="sono" or prev=="chiamo" or not code({n:lower()})) then keep=true end
@@ -148,6 +190,31 @@ if clean==raw then return kind,rule end
 local k,r=category(clean)
 if kind=="ad" or k=="ignore" then return k,r end
 return kind,rule
+end
+local feminine=dict("f ragazza ragazze donna donne tipa tipe femmina femmine nessuna qualcuna coetanea coetanee")
+local masculine=dict("m ragazzo ragazzi uomo uomini tipo tipi maschio maschi nessuno qualcuno coetaneo coetanei")
+local function adKey(rule,s,raw)
+ local w=words(s)
+ local f,m=has(w,feminine),has(w,masculine)
+ local target=f and (m and "both" or "f") or (m and "m" or "")
+ local first=w[1] or ""
+ local explicit=search[first] or people[first] or
+  ((first=="una" or first=="un") and people[w[2]]) or
+  (raw:find("?",1,true) and (has(w,{per=true,["in"]=true,zona=true}) or #w<=4))
+ if not explicit then return s end
+ if rule=="CONTACT" and target~="" then return "CONTACT:"..target end
+ if rule=="GEO" or rule=="WHO_GEO" then
+  if first=="chi" and w[2] and not places[w[2]] and
+   not ({di=true,da=true,dal=true,dalla=true,a=true,["in"]=true,zona=true})[w[2]] then return s end
+  local loc
+  for _,v in ipairs(w) do if places[v] then
+   local city=geo[v] or v
+   if loc and loc~=city then return s end
+   loc=city
+  end end
+  if loc then return "GEO:"..target..":"..loc end
+ end
+ return s
 end
 local function similar(a,b)
 local wa,wb=words(a),words(b)
@@ -298,8 +365,7 @@ local function getWatch(id,channel,now,window)
 local key=id.."\0"..channel:lower()
 local h=watch[key]
 if not h or now<h.last or now-h.last>window then
-h={score=0,ref=nil,rep=0,refAt=0,
-credited=false,last=now}
+h={score=0,last=now}
 watch[key]=h
 end
 return h
@@ -342,7 +408,7 @@ else
  if hasVoice(e) then api.mode(ch,nick,"-v") end
 end
 end
-local function detected(e,id,engine,rule,pct,h,now,c,ad,threshold)
+local function detected(e,id,engine,rule,pct,h,now,c,g,threshold)
 local n=partition(id)
 local history=readPart(n)
 if not history then return end
@@ -361,9 +427,8 @@ local label=c.mode=="live" and (level<5 and action(e,nextLevel) or "escalation")
 api.log(string.format("AutoModV4 %s/%s %s %.1f%% infrazione %d (%s) motore %s",
 e.server:sub(1,8),e.channel,e.nick,pct,nextLevel,label,engine)..
 string.format(" rule %s score %d threshold %d count %d refs %s",rule,h.score,
-threshold or c.similarity,ad and ad.count or h.rep,
-ad and ((threshold==3 and ((ad.previous or "-")..",") or "")..(ad.source or "-")) or
-((h.r2 or "-")..","..(h.r1 or "-"))))
+threshold or c.similarity,g.count,
+((engine=="A" or threshold==3) and ((g.previous or "-")..",") or "")..(g.source or "-")))
 api.log(string.format("WatchdogV4 %s %s/%s %s %s score=%d",
 engine,e.server:sub(1,8),e.channel,e.nick,rule,h.score))
 if c.mode=="live" and level<5 then sanction(e,nextLevel,engine) end
@@ -394,54 +459,70 @@ return
 end
 local h=getWatch(id,e.channel,now,window)
 h.last=now
-if h.refAt>0 and now-h.refAt>window then h.rep=0;h.ref=nil;h.r1=nil;h.r2=nil end
 if kind=="ad" and c.b then
-local text=normalize(raw):gsub("%f[%a]prvt%f[%A]","pvt")
-local threshold=adThreshold(rule,words(text))
-local ads=h.adGroups or {}
-h.adGroups=ads
-local ad=ads[text]
-if ad and e.source_id and e.source_id==ad.source then return end
-if not ad then
-if (h.groups or 0)>=MAX_AD_GROUPS then
-local oldest
-for key,r in pairs(ads) do
-if not oldest or r.at<ads[oldest].at then oldest=key end end
-ads[oldest]=nil
-else h.groups=(h.groups or 0)+1 end
-end
-h.score=h.score+1
-if not ad or now-ad.first>window then
-ads[text]={first=now,at=now,count=1,source=e.source_id}
-return
-end
-ad.count=ad.count+1
-local rapid=c.rapid>0 and now-ad.at<=c.rapid
-if rapid or (ad.count>=threshold and h.score>=threshold) then
-detected(e,id,"B",rapid and "RAPID_"..rule or rule,100,h,now,c,ad,rapid and 2 or threshold)
-end
-ad.previous,ad.source=ad.source,e.source_id
-ad.at=now
+ local text=normalizeB(raw)
+ local threshold=adThreshold(rule,words(text))
+ local key=adKey(rule,text,raw)
+ local ads=h.adGroups or {}
+ h.adGroups=ads
+ local g
+ for i=#ads,1,-1 do
+  local a=ads[i]
+  if now<a.first or now-a.first>window then table.remove(ads,i)
+  elseif a.key==key then g=a;table.remove(ads,i) end
+ end
+ if g and e.source_id and e.source_id==g.source then table.insert(ads,1,g);return end
+ h.score=h.score+1
+ if not g then
+  g={key=key,first=now,at=now,count=1,source=e.source_id}
+  table.insert(ads,1,g)
+  if #ads>MAX_AD_GROUPS then table.remove(ads) end
+  return
+ end
+ g.count=g.count+1
+ local rapid=c.rapid>0 and now-g.at<=c.rapid
+ if rapid or (g.count>=threshold and h.score>=threshold) then
+  detected(e,id,"B",rapid and "RAPID_"..rule or rule,100,h,now,c,g,rapid and 2 or threshold)
+ end
+ g.previous,g.source=g.source,e.source_id
+ g.at=now
+ table.insert(ads,1,g)
 elseif kind=="normal" and c.a then
-local s=normalize(e.text or "")
-if #words(s)<c.minwords then
-h.score=math.max(-c.credit,h.score-1);return
-end
-local pct=h.ref and similar(h.ref,s) or 0
-if h.ref and pct>=c.similarity then
-if h.rep==1 then h.score=h.score+(h.credited and 1 or 0)+2
-else h.score=h.score+1 end
-h.rep=h.rep+1;h.ref=s;h.refAt=now;h.credited=false
-if h.rep>=3 and h.score>=3 then
-detected(e,id,"A","SIMILAR",pct,h,now,c) end
-h.r2=h.r1;h.r1=e.source_id
-else
-h.ref=s;h.refAt=now;h.rep=1;h.r1=e.source_id;h.r2=nil
-h.credited=h.score>-c.credit
-h.score=math.max(-c.credit,h.score-1)
-end
+ local s=normalize(raw)
+ if #words(s)<c.minwords then h.score=math.max(-c.credit,h.score-1);return end
+ local reps=h.repGroups or {}
+ h.repGroups=reps
+ for i=#reps,1,-1 do
+  if now<reps[i].at or now-reps[i].at>window then table.remove(reps,i) end
+ end
+ local index,pct
+ if reps[1] then
+  pct=reps[1].key==s and 100 or similar(reps[1].key,s)
+  if pct>=c.similarity then index=1 end
+ end
+ if not index then
+  for i=2,#reps do if reps[i].key==s then index=i;pct=100;break end end
+ end
+ if index then
+  local g=table.remove(reps,index)
+  if e.source_id and e.source_id==g.source then table.insert(reps,1,g);return end
+  if g.count==1 then h.score=h.score+(g.credited and 1 or 0)+2
+  else h.score=h.score+1 end
+  local rapid=c.rapid>0 and now-g.at<=c.rapid and pct>=90
+  if rapid then h.score=h.score+1 end
+  g.count=g.count+1;g.key=s;g.at=now;g.credited=false
+  if g.count>=3 and h.score>=3 then
+   detected(e,id,"A",rapid and "RAPID_SIMILAR" or "SIMILAR",pct,h,now,c,g)
+  end
+  g.previous,g.source=g.source,e.source_id
+  table.insert(reps,1,g)
+ else
+  table.insert(reps,1,{key=s,count=1,first=now,at=now,source=e.source_id,credited=h.score>-c.credit})
+  if #reps>MAX_REPEAT_GROUPS then table.remove(reps) end
+  h.score=math.max(-c.credit,h.score-1)
+ end
 elseif kind=="normal" then
-h.score=math.max(-c.credit,h.score-1)
+ h.score=math.max(-c.credit,h.score-1)
 end
 end)
 api.on("nick",function(e)
