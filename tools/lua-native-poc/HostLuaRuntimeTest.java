@@ -174,7 +174,8 @@ public final class HostLuaRuntimeTest {
 
     private static String[] v4Event(String event, String nick, String text, long time,
                                     String prefix, String account, String... mentions) {
-        String host = "host-" + (account.isEmpty() ? nick : account) + ".example";
+        String host = "*".equals(account) ? "host.example" :
+                "host-" + (account.isEmpty() ? nick : account) + ".example";
         return v4EventIdentity(event, nick, text, time, prefix, account, "ident", host, mentions);
     }
 
