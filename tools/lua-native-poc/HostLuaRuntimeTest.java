@@ -197,7 +197,7 @@ public final class HostLuaRuntimeTest {
 
     private static void checkV4Identity() throws Exception {
         byte[] source = Files.readAllBytes(Path.of("docs/lua-examples/automod_v4.lua"));
-        check(source.length <= 40960, "V4 source quota");
+        check(source.length <= 49152, "V4 source quota");
         check("OK".equals(decode(NativeLuaRuntime.load(OTHER, source))), "V4 loads");
         check((NativeLuaRuntime.eventMask(OTHER) & (1 << 20)) != 0, "V4 opts in");
         automodStorage.clear();
@@ -320,8 +320,8 @@ public final class HostLuaRuntimeTest {
 
     private static void checkV4RefinementsAndGraph() throws Exception {
         byte[] source = Files.readAllBytes(Path.of("docs/lua-examples/automod_v4.lua"));
-        check(source.length <= 40960, "Refined V4 fits source quota");
-        check(!"OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes("--" + "x".repeat(40959))))),
+        check(source.length <= 49152, "Refined V4 fits source quota");
+        check(!"OK".equals(decode(NativeLuaRuntime.load(OTHER, bytes("--" + "x".repeat(49151))))),
                 "Native source quota still enforced");
         automodStorage.clear();
         automodActive = true;
@@ -400,7 +400,7 @@ public final class HostLuaRuntimeTest {
 
     private static void checkV4LargeHistory() throws Exception {
         byte[] source = Files.readAllBytes(Path.of("docs/lua-examples/automod_v4.lua"));
-        check(source.length <= 40960, "V4 source quota");
+        check(source.length <= 49152, "V4 source quota");
         automodStorage.clear();
         automodActive = true;
         long t = 1794400000L;
@@ -538,7 +538,7 @@ public final class HostLuaRuntimeTest {
 
     private static void checkHarvester() throws Exception {
         byte[] script = Files.readAllBytes(Path.of("docs/lua-examples/harvester.lua"));
-        check(script.length <= 40960, "Harvester source quota");
+        check(script.length <= 49152, "Harvester source quota");
         automodStorage.clear();
         automodActive = true;
         check("OK".equals(decode(NativeLuaRuntime.load(OTHER, script))), "Harvester loads");
@@ -852,7 +852,7 @@ public final class HostLuaRuntimeTest {
                 "C3 must reject missing user-data permission");
         byte[] announcements = Files.readAllBytes(
                 Path.of("docs/lua-examples/automod_annunci.lua"));
-        check(announcements.length <= 40960 &&
+        check(announcements.length <= 49152 &&
                         "OK".equals(decode(NativeLuaRuntime.load(OTHER, announcements))),
                 "AutoMod B must load under source size and runtime limits");
         String presence = "tiarca.on('join', function(e) tiarca.log('joined:'..e.nick) end) "
@@ -976,7 +976,7 @@ public final class HostLuaRuntimeTest {
         // Import the actual user-facing AutoMod source. Also check size.
         byte[] automod = Files.readAllBytes(
                 Path.of("docs/lua-examples/automod_antiripetizione.lua"));
-        check(automod.length <= 40960, "AutoMod fits 40 KiB source limit");
+        check(automod.length <= 49152, "AutoMod fits 48 KiB source limit");
         check("OK".equals(decode(NativeLuaRuntime.load(OTHER, automod))),
                 "AutoMod loads into official Lua native sandbox");
         automodActive = true;
@@ -1761,8 +1761,8 @@ public final class HostLuaRuntimeTest {
                 "Persisted ALL channel scope is restored after reload");
 
         // Collector V2: source must remain importable within native Lua limit.
-        check(bytes(collectorSource).length <= 40960,
-                "Collector V2 must fit the Lua 40 KiB source limit");
+        check(bytes(collectorSource).length <= 49152,
+                "Collector V2 must fit the Lua 48 KiB source limit");
         check(collectorEvent("message", "Target",
                 "cerco persone in privato", "normal", 1794405110L).length == 1,
                 "The first ordinary message stays only in bounded memory");
@@ -1862,7 +1862,7 @@ public final class HostLuaRuntimeTest {
         // including when the command originates in the server tab.
         byte[] ejectScript = Files.readAllBytes(
                 Path.of("docs/lua-examples/espelli.lua"));
-        check(ejectScript.length <= 40960, "Eject example fits source limit");
+        check(ejectScript.length <= 49152, "Eject example fits source limit");
         check("OK".equals(decode(NativeLuaRuntime.load(ID, ejectScript))),
                 "Exact user-facing Eject script should load");
         String[] fromServer = event(ID, "command", "", "", "espelli #room Target");

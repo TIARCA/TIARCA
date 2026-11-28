@@ -585,20 +585,52 @@ h={0,now,false,false};g[GW][key]=h
 end
 return h
 end
-local function linkShard(k) return partition(k)%LINK_SHARDS end
 local function linkStorage(n) return "v4.g"..n end
-local function readLinks(n,now)
-local ok,raw=pcall(api.storage.get,linkStorage(n))
-if not ok then return nil end
-local rows={}
-for line in (raw or ""):gmatch("[^\n]+") do
-local k,r,at,epoch,names=line:match("^([^\t]+)\t([^\t]+)\t(%d+)\t(%d+)\t(.*)$")
-local server=k and k:match("^(.-)/")
-if not server or not r:match("^[ah]:") or linkShard(k)~=n or rows[k] then return nil end
-at,epoch=tonumber(at),tonumber(epoch)
-if now<at or now-at<TTL then rows[k]={server.."/"..r,at,epoch,names} end
+-- Version 3: one record per root/time, shared by all its exact signatures.
+-- Old key-sharded rows remain readable. No change to legacy escalation shards.
+local function linkRows(raw,fn)
+local compact=raw=="!3" or raw:sub(1,3)=="!3\n"
+for line in (compact and raw:sub(4) or raw):gmatch("[^\n]+") do
+local root,at,epoch,names,keys
+if compact then
+root,at,epoch,names,keys=line:match("^([^\t]+)\t(%d+)\t(%d+)\t([^\t]*)\t(.+\t)$")
+else
+local k,r,t,e,ns=line:match("^([^\t]+)\t([^\t]+)\t(%d+)\t(%d+)\t(.*)$")
+local server,key
+if k then server,key=k:match("^([^/]+)/(.*)$") end
+if server then root,at,epoch,names,keys=server.."/"..r,t,e,ns,key.."\t" end
 end
-return rows
+if not root or not root:match("^[^/]+/[ah]:") then return false end
+if fn(root,tonumber(at),tonumber(epoch),names,keys)==false then return false end
+end
+return true
+end
+local function linkRaw(parts,n)
+if parts[n]==nil then
+local ok,v=pcall(api.storage.get,linkStorage(n))
+if not ok then return nil end
+parts[n]=v or ""
+end
+return parts[n]
+end
+local function lookupLink(parts,k,now)
+local server,key=k:match("^([^/]+)/(.*)$")
+local row
+for n=0,LINK_SHARDS-1 do
+local raw=linkRaw(parts,n)
+if not raw then return nil,false end
+local compact=raw=="!3" or raw:sub(1,3)=="!3\n"
+if raw:find(compact and "\t"..key.."\t" or k.."\t",1,true) then
+local ok=linkRows(raw,function(r,t,e,names,ks)
+if r:sub(1,#server+1)==server.."/" and ("\t"..ks):find("\t"..key.."\t",1,true) and (now<t or now-t<TTL) then
+if row then return false end
+row={r,t,e,k==r and names or ""}
+end
+end)
+if not ok then return nil,false end
+end
+end
+return row,true
 end
 local function fresh(row,now,c)
 return row and row.epoch==c.epoch and now>=row.at and now-row.at<TTL
@@ -607,19 +639,17 @@ local function lfresh(row,now,c)
 return row and row[3]==c.epoch and now>=row[2] and now-row[2]<TTL
 end
 roots=function(keys,now,c,net)
-local parts
+local parts={}
 local prefix=net.server.."/"
 for j=1,#keys do
 local key=keys[j]
 if not net.index[key] then
-parts=parts or {}
 local k,seen=prefix..key,{}
 for i=1,MAX_KEYS do
 if seen[k] then break end
 seen[k]=true
-local n=linkShard(k)
-if parts[n]==nil then parts[n]=readLinks(n,now) or false end
-local row=parts[n] and parts[n][k]
+local row,ok=lookupLink(parts,k,now)
+if not ok then break end
 if not lfresh(row,now,c) then
 if k~=prefix..key then keys[#keys+1]=k:sub(#prefix+1) end
 break
@@ -651,12 +681,7 @@ for k in pairs(g[GK]) do keys[prefix..k]=true end
 local id=prefix..g[GI]
 keys[id]=true
 local function getLink(k)
-local n=linkShard(k)
-if not links[n] then
-links[n]=readLinks(n,now)
-if not links[n] then return nil,false end
-end
-return links[n][k],true
+return lookupLink(links,k,now)
 end
 local function follow(k)
 local seen={}
@@ -700,25 +725,55 @@ end
 return chosen,level,history,links,keys
 end
 local function saveLinks(chosen,links,keys,g,now,c)
-local dirty={}
-for k in pairs(keys) do
-local n=linkShard(k)
-if not links[n] then links[n]=readLinks(n,now) end
-if not links[n] then error("V4: archivio identita non leggibile") end
-local names=k==chosen and namesText(g,now) or ""
-links[n][k]={chosen,now,c.epoch,names}
-dirty[n]=true
+local groups={}
+local function add(root,at,epoch,names,key)
+local h=root.."\t"..at.."\t"..epoch
+local v=groups[h]
+if not v then v={""};groups[h]=v end
+if root==root:match("^[^/]+/")..key then v[1]=names end
+v[#v+1]=key
 end
-for n in pairs(dirty) do
-local out={}
-for k,row in pairs(links[n]) do
-out[#out+1]=table.concat({k,row[1]:match("^[^/]+/(.*)$"),row[2],row[3],row[4]},"\t")
+local seen={}
+for n=0,LINK_SHARDS-1 do
+local raw=linkRaw(links,n)
+if not raw then return nil,"archivio identita non leggibile" end
+local ok=linkRows(raw,function(r,t,e,names,ks)
+local prefix=r:match("^[^/]+/")
+if now<t or now-t<TTL then
+if prefix~=g[GN].server.."/" or e==c.epoch then
+for k in ks:gmatch("[^\t]+") do
+local full=prefix..k
+if seen[full] then return false end
+seen[full]=true
+if not keys[full] then add(r,t,e,names,k) end
 end
-table.sort(out)
-local raw=table.concat(out,"\n")
-if #raw>8192 then error("V4: archivio identita pieno") end
-api.storage.set(linkStorage(n),raw)
 end
+end
+end)
+if not ok then return nil,"archivio identita non leggibile" end
+end
+local names=namesText(g,now)
+for k in pairs(keys) do add(chosen,now,c.epoch,names,k:match("^[^/]+/(.*)$")) end
+local records={}
+for h,v in pairs(groups) do
+local names=table.remove(v,1);table.sort(v)
+records[#records+1]=h.."\t"..names.."\t"..table.concat(v,"\t").."\t"
+end
+table.sort(records,function(a,b) if #a==#b then return a<b end return #a>#b end)
+local pages,sizes={},{}
+for n=0,LINK_SHARDS-1 do pages[n]={"!3"};sizes[n]=2 end
+for _,r in ipairs(records) do
+local n=0
+for i=1,LINK_SHARDS-1 do if sizes[i]<sizes[n] then n=i end end
+if sizes[n]+#r+1>8192 then return nil,"archivio identita pieno" end
+pages[n][#pages[n]+1]=r;sizes[n]=sizes[n]+#r+1
+end
+local writes={}
+for n=0,LINK_SHARDS-1 do
+local raw=table.concat(pages[n],"\n")
+if raw~=links[n] then writes[n]=raw end
+end
+return writes
 end
 local function aliases(g,e,now,room)
 local out={}
@@ -780,11 +835,13 @@ local chosen,level,history,links,keys=historyFor(id,now,c)
 if not chosen then api.log("V4: archivio identita/storico non leggibile; moderazione sospesa");return end
 local nextLevel=math.min(5,level+1)
 if c.mode=="live" then
+local writes,why=saveLinks(chosen,links,keys,id,now,c)
+if not writes then api.log("V4: "..why);return end
 history[chosen]={level=nextLevel,at=now,epoch=c.epoch}
 local ok,err=savePart(partition(chosen),history)
 if not ok then
 api.log("V4: archivio non scrivibile; moderazione sospesa: "..tostring(err));return end
-saveLinks(chosen,links,keys,id,now,c)
+for n,raw in pairs(writes) do api.storage.set(linkStorage(n),raw) end
 end
 local label=c.mode=="live" and (level<5 and action(e,nextLevel) or "escalation") or "monitor"
 local line=string.format("AutoModV4 %s/%s %s %.1f%% infrazione %d (%s) motore %s",
