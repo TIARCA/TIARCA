@@ -20,6 +20,20 @@ public final class HostLuaStressTest {
     private static final int[] COUNTS = new int[0];
     private static final long T = 1794400000L;
     private static long observations;
+    private static final Map<String,String> persistent = new LinkedHashMap<>();
+    private static byte[][] snapshot;
+    private static long committedRevision;
+    private static boolean statsStore(String kind, String key) {
+        return "store".equals(kind) && key.matches("v4\\.stat[0-2]");
+    }
+    private static void refreshSnapshot() {
+        snapshot=new byte[persistent.size()*2][];
+        int n=0;
+        for (Map.Entry<String,String> e:persistent.entrySet()) {
+            snapshot[n++]=b(e.getKey()); snapshot[n++]=b(e.getValue());
+        }
+        committedRevision++;
+    }
     private static native long fullGc();
     private static native long allocationPeak(boolean reset);
     private static final long VM_LIMIT = 2L * 1024 * 1024;
@@ -48,13 +62,38 @@ public final class HostLuaStressTest {
                                byte[][] sender, byte[][] storage, long revision) {
         byte[][] result = NativeLuaRuntime.dispatchWithMetadata(ID, kind, b(SERVER),
                 b("#room"), nick, b(text), b("normal"), time, EMPTY, COUNTS,
-                false, EMPTY, false, true, storage, true, sender, revision,
+                false, EMPTY, false, true, snapshot==null?storage:snapshot, true, sender,
+                snapshot==null?revision:committedRevision,
                 b("message".equals(kind) ? SERVER + ":" + (++observations) : ""), EMPTY, null);
         check(result != null && result.length >= 1 && "OK".equals(s(result[0])),
                 "Runtime failed: " + kind + " " + s(nick) + " " + (result == null ? "null" : s(result[0])));
+        if(snapshot!=null) {
+            int writes=0;
+            for(int i=1;i<result.length;i+=3) {
+                String kindName=s(result[i]),key=s(result[i+1]);
+                if(statsStore(kindName,key)) {
+                    check(++writes==1 && result[i+2].length<=4096, "Bounded stats write");
+                    persistent.put(key,s(result[i+2]));
+                } else check(!"store".equals(kindName) && !"erase".equals(kindName) && !"query".equals(kindName),
+                        "Unexpected moderation archive write/query in monitor workload");
+            }
+            if(writes>0) refreshSnapshot();
+        }
         return result;
     }
+    private static void checkStats(long at, int expected) {
+        byte[][] result=run("command",b("me"),"mod stats all",at,EMPTY,snapshot,committedRevision);
+        boolean found=false;
+        for(int i=1;i<result.length;i+=3)
+            if("show".equals(s(result[i]))) {
+                String output=s(result[i+2]);
+                found=output.contains("Monitor: "+expected) && output.contains("Totale sanzioni richieste: 0") && !output.contains("In attesa:");
+                check(found,"Wrong persisted monitor statistics: "+output);
+            }
+        check(found,"Missing stats result");
+    }
     private static byte[][] configure() {
+        snapshot=null; persistent.clear(); committedRevision=1;
         byte[][] reply = run("command", b("me"), "mod canali add #room", T, EMPTY, EMPTY, 1);
         Map<String, String> state = new LinkedHashMap<>();
         for (int i=1;i<reply.length;i+=3)
@@ -65,6 +104,7 @@ public final class HostLuaStressTest {
         for (Map.Entry<String,String> e:state.entrySet()) {
             pairs[n++]=b(e.getKey()); pairs[n++]=b(e.getValue());
         }
+        persistent.putAll(state); refreshSnapshot();
         return pairs;
     }
     private static double percentile(long[] values, int n, double p) {
@@ -113,8 +153,9 @@ public final class HostLuaStressTest {
             boolean found=false;
             for(int i=1;i<result.length;i+=3) {
                 String kind=s(result[i]);
-                check(!"query".equals(kind) && !"store".equals(kind) && !"erase".equals(kind),
-                        "Unexpected query/write during monitor message");
+                check(!"query".equals(kind) && !"erase".equals(kind) &&
+                        (!"store".equals(kind) || statsStore(kind,s(result[i+1]))),
+                        "Unexpected query/moderation write during monitor message");
                 if("log".equals(kind) && s(result[i+2]).startsWith("AutoModV4 ")) found=true;
             }
             if(found) detected++;
@@ -124,6 +165,7 @@ public final class HostLuaStressTest {
         double seconds=(System.nanoTime()-start)/1e9;
         check(processed+dropped.get()==ACTIVE,"Arrival accounting mismatch");
         check(detected==processed,"V4 missed a seeded announcement");
+        checkStats(T+200,detected);
         System.out.printf(Locale.ROOT,
             "host rate=%d/s members=%d active=%d offered=%d processed=%d dropped=%d detections=%d duration=%.2fs throughput=%.2f/s queue_sample_max=%d latency_p95=%.3fms latency_p99=%.3fms JNI_p95=%.3fms lua_peak_sample=%dB%n",
             rate,MEMBERS,ACTIVE,ACTIVE,processed,dropped.get(),detected,seconds,processed/seconds,
@@ -140,8 +182,9 @@ public final class HostLuaStressTest {
         int count=0;
         for (int i=1; i<response.length; i+=3) {
             String kind=s(response[i]), value=s(response[i+2]);
-            check(!"query".equals(kind) && !"store".equals(kind) && !"erase".equals(kind),
-                    "Unexpected query/write in mixed monitor workload");
+            check(!"query".equals(kind) && !"erase".equals(kind) &&
+                    (!"store".equals(kind) || statsStore(kind,s(response[i+1]))),
+                    "Unexpected query/moderation write in mixed monitor workload");
             if ("log".equals(kind) && value.startsWith("AutoModV4 ") &&
                     value.contains("motore "+engine)) count++;
         }
@@ -211,6 +254,7 @@ public final class HostLuaStressTest {
                 ads+=detections(run("message",m.nick,round==0?"F per privato?":"una tipa per pvt?",
                         T+90+round,m.sender,stored,2),"B");
         check(ads==ACTIVE,"Semantic B announcements retained: "+ads);
+        checkStats(T+100,a+ads);
         measure("A-and-B-together");
         run("timer",b(""),"",T+1000,EMPTY,stored,2);
         measure("after-window");
