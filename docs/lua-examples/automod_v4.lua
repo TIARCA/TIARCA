@@ -366,7 +366,7 @@ end
 local function forget(g)
 if not graph[g] then return end
 local n=g[GN]
-for k in pairs(g[GK]) do if n.index[k]==g then n.index[k]=nil end end
+for i=1,#g[GK],2 do local k=g[GK][i];if n.index[k]==g then n.index[k]=nil end end
 for i=1,#g[GA],3 do
 local k=g[GA][i]:lower()
 if n.active[k]==g then n.active[k]=nil end
@@ -395,20 +395,19 @@ a[i],a[i+1],a[i+2]=n,at,false
 return i
 end
 local function attach(g,k,at)
-local index=g[GN].index
-if not g[GK][k] then
-local count,oldest=0
-for key,t in pairs(g[GK]) do
-count=count+1
-if key~=g[GI] and (not oldest or t<g[GK][oldest]) then oldest=key end
+local index,a=g[GN].index,g[GK]
+local oldest
+for i=1,#a,2 do
+if a[i]==k then a[i+1]=math.max(a[i+1],at);index[k]=g;return end
+if a[i]~=g[GI] and (not oldest or a[i+1]<a[oldest+1]) then oldest=i end
 end
-if count>=MAX_KEYS and oldest then
-if g[GK][oldest]>at then return end
-if index[oldest]==g then index[oldest]=nil end
-g[GK][oldest]=nil
+local i=#a+1
+if #a>=MAX_KEYS*2 and oldest then
+if a[oldest+1]>at then return end
+if index[a[oldest]]==g then index[a[oldest]]=nil end
+i=oldest
 end
-end
-g[GK][k]=math.max(g[GK][k] or 0,at);index[k]=g
+a[i],a[i+1]=k,at;index[k]=g
 end
 local K,T,N,S,P,F=1,2,3,4,5,6
 local sessions,sessionId={},{}
@@ -436,9 +435,20 @@ local function unpackRef(v,ad)
 local t,n,f,k,r,p=string.unpack(fmt,v)
 return {k,t,n,r~="" and r or false,p~="" and p or false,ad and f or f==1}
 end
+local function unlist(s)
+local a,i={},1
+while s and i<=#s do
+local v;v,i=string.unpack("<s2",s,i);a[#a+1]=v
+end
+return a
+end
+local function plist(a)
+for i,v in ipairs(a) do a[i]=string.pack("<s2",v) end
+return table.concat(a)
+end
 local function mergeRefs(a,b,now,window,cap,ads)
 local all,by={},{}
-for _,list in ipairs({a or {},b or {}}) do
+for _,list in ipairs({unlist(a),unlist(b)}) do
 for _,v in ipairs(list) do
 local g=unpackRef(v,ads)
 if now>=g[T] and now-(ads and g[F] or g[T])<=window then
@@ -459,7 +469,7 @@ end
 table.sort(all,function(x,y) return x[T]>y[T] end)
 while #all>cap do table.remove(all) end
 for i,g in ipairs(all) do all[i]=pack(g,ads) end
-return all
+return plist(all)
 end
 local function merge(a,b,now,window)
 if a==b then return a end
@@ -480,7 +490,8 @@ end
 end
 end
 local index,active=a[GN].index,a[GN].active
-for k,t in pairs(b[GK]) do
+for i=1,#b[GK],2 do
+local k,t=b[GK][i],b[GK][i+1]
 if index[k]==b then index[k]=nil end
 attach(a,k,t)
 end
@@ -681,7 +692,7 @@ end
 local function historyFor(g,now,c)
 local links,keys,candidates,done={},{},{},{}
 local prefix=g[GN].server.."/"
-for k in pairs(g[GK]) do keys[prefix..k]=true end
+for i=1,#g[GK],2 do keys[prefix..g[GK][i]]=true end
 local id=prefix..g[GI]
 keys[id]=true
 local function getLink(k)
@@ -864,6 +875,14 @@ end
 local function statWrite(q)
 local key=statKey(q[1],q[2])
 local rows=statRows(api.storage.get(key))
+local function trim(v)
+local t=tonumber(v[6]:sub(1,10),16)
+v[4]=math.max(v[4],t);v[6]=v[6]:sub(12)
+end
+local count=0
+for _,q in ipairs(statQueue) do
+if statKey(q[1],q[2])~=key then break end
+count=count+1
 local r
 for _,v in ipairs(rows) do
 if v[1]==q[1] and v[2]==q[2] then r=v;break end
@@ -875,11 +894,8 @@ end
 r[3]=math.min(r[3],q[3])
 r[5][q[4]]=r[5][q[4]]+1
 r[6]=r[6]..string.format("%010x%d",q[3],q[4])
-local function trim(v)
-local t=tonumber(v[6]:sub(1,10),16)
-v[4]=math.max(v[4],t);v[6]=v[6]:sub(12)
-end
 while #r[6]>0 and tonumber(r[6]:sub(1,10),16)<q[3]-30*86400 do trim(r) end
+end
 local raw=statEncode(rows)
 while #raw>4096 do
 local oldest
@@ -890,9 +906,12 @@ if not oldest then error("statistiche piene") end
 trim(oldest);raw=statEncode(rows)
 end
 api.storage.set(key,raw)
+return count
 end
 local function statFlush()
-if #statQueue>0 and pcall(statWrite,statQueue[1]) then table.remove(statQueue,1) end
+if #statQueue==0 then return end
+local ok,n=pcall(statWrite,statQueue[1])
+if ok then for i=1,n do table.remove(statQueue,1) end end
 end
 local function statRecord(e,now,label,level)
 local k=label=="monitor" and 7 or label=="avviso" and 1 or
@@ -1022,21 +1041,20 @@ local source=ref(e.source_id)
 if kind=="ad" and c.b then
 local threshold=adThreshold(rule,tokens)
 local key=adKey(rule,text,raw,tokens)
-local ads=h[HA] or {}
-h[HA]=ads
+local ads=unlist(h[HA])
 local g
 for i=#ads,1,-1 do
 local a=unpackRef(ads[i],true)
 if now<a[F] or now-a[F]>window then table.remove(ads,i)
 elseif a[K]==key then g=a;table.remove(ads,i) end
 end
-if g and source and source==g[S] then table.insert(ads,1,pack(g,true));return end
+if g and source and source==g[S] then table.insert(ads,1,pack(g,true));h[HA]=plist(ads);return end
 h[HS]=h[HS]+1
 if not g then
 g={key,now,1,source,false,now}
 table.insert(ads,1,pack(g,true))
 if #ads>MAX_B then table.remove(ads) end
-return
+h[HA]=plist(ads);return
 end
 g[N]=g[N]+1
 local rapid=c.rapid>0 and now-g[T]<=c.rapid
@@ -1045,12 +1063,11 @@ detected(e,id,"B",rapid and "RAPID_"..rule or rule,100,h,now,c,g,rapid and 2 or 
 end
 g[P],g[S]=g[S],source
 g[T]=now
-table.insert(ads,1,pack(g,true))
+table.insert(ads,1,pack(g,true));h[HA]=plist(ads)
 elseif kind=="normal" and c.a then
 local s=norm(raw)
 if #words(s)<c.minwords then h[HS]=math.max(-c.credit,h[HS]-1);return end
-local reps=h[HR] or {}
-h[HR]=reps
+local reps=unlist(h[HR])
 for i=#reps,1,-1 do
 local at=string.unpack("<I8",reps[i])
 if now<at or now-at>window then table.remove(reps,i) end
@@ -1069,7 +1086,7 @@ end
 end
 if index then
 table.remove(reps,index)
-if source and source==g[S] then table.insert(reps,1,pack(g,false));return end
+if source and source==g[S] then table.insert(reps,1,pack(g,false));h[HR]=plist(reps);return end
 if g[N]==1 then h[HS]=h[HS]+(g[F] and 1 or 0)+2
 else h[HS]=h[HS]+1 end
 local rapid=c.rapid>0 and now-g[T]<=c.rapid and pct>=90
@@ -1085,6 +1102,7 @@ table.insert(reps,1,pack({s,now,1,source,false,h[HS]>-c.credit},false))
 if #reps>MAX_A then table.remove(reps) end
 h[HS]=math.max(-c.credit,h[HS]-1)
 end
+h[HR]=plist(reps)
 elseif kind=="normal" then
 h[HS]=math.max(-c.credit,h[HS]-1)
 end
