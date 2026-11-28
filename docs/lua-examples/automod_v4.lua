@@ -336,7 +336,7 @@ end
 -- Observed identity graph, scoped to the IRC network. Links are technical
 -- correlations, never inferred from a provider or a nickname alone.
 local genericIdent=dict("guest webirc android user ident unknown anonymous irccloud mibbit")
-local genericHost=dict("localhost services.simosnap.com bot.simosnap.com")
+local genericHost=dict("localhost services.simosnap.com bot.simosnap.com * 0 unknown 0.0.0.0 127.0.0.1 ::1")
 local MAX_GRAPH,MAX_KEYS,MAX_NAMES,LINK_SHARDS=768,24,8,6
 local graph,index,active={}, {}, {}
 local graphCount=0
@@ -448,6 +448,7 @@ local function merge(a,b,now,window)
  a.last=math.max(a.last,b.last)
  return a
 end
+local storedRoots
 local function observe(e,now,window,event)
  local u=e.sender
  local oldNick=valid(e.nick)
@@ -483,6 +484,9 @@ local function observe(e,now,window,event)
   domain=session.domain
   if usableNick(newNick) then key("n:"..newNick.."@"..domain) end
  end
+ if primary then
+  for _,k in ipairs(storedRoots(keys,now,config(e.server))) do keys[#keys+1]=k end
+ end
  for _,k in ipairs(keys) do
   local p=root(index[k])
   if p and graph[p] and now>=p.last and now-p.last<=TTL then
@@ -507,7 +511,7 @@ local function observe(e,now,window,event)
  if event=="nick" and newNick~="" then
   addName(g,e.text,now);active[liveKey]=nil
  end
- if newNick~="" then active[prefix..newNick]={g=g,at=now,domain=domain or (session and session.domain)} end
+ if newNick~="" then active[prefix..newNick]={g=g,at=now,domain=domain or (event=="nick" and session and session.domain)} end
  return g
 end
 local function identify(e,g)
@@ -549,6 +553,29 @@ local function readLinks(n,now)
 end
 local function fresh(row,now,c)
  return row and row.epoch==c.epoch and now>=row.at and now-row.at<TTL
+end
+-- Resolve persisted aliases for newly observed signatures, not every chat message.
+storedRoots=function(keys,now,c)
+ local parts,out={},{}
+ for _,key in ipairs(keys) do
+  if not index[key] then
+   local k,seen=key,{}
+   for i=1,MAX_KEYS do
+    if seen[k] then break end
+    seen[k]=true
+    local n=linkShard(k)
+    if parts[n]==nil then parts[n]=readLinks(n,now) or false end
+    local row=parts[n] and parts[n][k]
+    if not fresh(row,now,c) then
+     if k~=key then out[#out+1]=k end
+     break
+    end
+    if row.root==k then out[#out+1]=k;break end
+    k=row.root
+   end
+  end
+ end
+ return out
 end
 local function namesText(g,now)
  local out={}
