@@ -17,3 +17,7 @@ Update the existing script (same script ID and approvals). The 40 KiB source quo
 ## Memory verification / verifica memoria
 
 The native host test measures the real allocator peak and live heap after a full garbage collection at each stage (configuration, JOIN churn, five A groups, nickname/account/host changes, A and B detections, expiry). Full GC is test-only JNI, not a script API or an Android build feature. The 2 MiB VM limit is unchanged; 75% is a design target, not a measured result until the CI reports it. Historical on-disk storage and report formats remain unchanged.
+
+### Compact retained state / stato compatto
+
+Each A/B reference is a packed in-memory record (full normalized text, count, time, previous/trigger source and B start time or A credit). Source-session UUID prefixes are shared through a bounded 32-entry dictionary with an exact raw fallback; the original source ID is restored for every report. Graph groups and channel watches are positional arrays; nicknames are a flat list of nickname/time/domain triples shared with the active-session index. The legacy v4.sNN and v4.gN disk formats are unchanged. The native VM starts with incremental GC pause 110% and step multiplier 300%, instead of Lua's 250% pause; the hard 2 MiB, 200,000 instruction and global memory limits remain in force. These settings apply to all VMs; native regressions and paced latency tests must pass before merge.

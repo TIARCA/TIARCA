@@ -932,6 +932,12 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_load(JNIEnv *env, jclass unused,
         return jmessage(env, "ERROR: Lua allocation failed");
     }
     *(ScriptVm **)lua_getextraspace(s->L) = s;
+    /* Lua 5.5 defaults to a 250% incremental GC pause. Under a hard 2 MiB
+     * cap this can push otherwise healthy VMs into emergency collection.
+     * Configure earlier incremental collection before loading any script.
+     * No limits or sandbox capabilities change. */
+    lua_gc(s->L, LUA_GCPARAM, LUA_GCPPAUSE, 110);
+    lua_gc(s->L, LUA_GCPARAM, LUA_GCPSTEPMUL, 300);
     install_libraries(s->L);
     lua_sethook(s->L, budget_hook, LUA_MASKCOUNT, 100);
 

@@ -316,7 +316,8 @@ end
 loaded=true;return true
 end
 local function readPart(i,filter)
-local history,seen={},{}
+local history={}
+local seen=filter and {} or history
 local yes,part=pcall(api.storage.get,shardKey(i))
 if yes then
 for line in (part or ""):gmatch("[^\n]+") do
@@ -543,8 +544,8 @@ if not g and primary then
 if graphCount>=MAX_GRAPH then
 local oldest,quiet
 for p in pairs(graph) do
-if not oldest or p[GL]<oldest.last then oldest=p end
-if not p[GW] and (not quiet or p[GL]<quiet.last) then quiet=p end
+if not oldest or p[GL]<oldest[GL] then oldest=p end
+if not p[GW] and (not quiet or p[GL]<quiet[GL]) then quiet=p end
 end
 if oldest then forget(quiet or oldest) end
 end
