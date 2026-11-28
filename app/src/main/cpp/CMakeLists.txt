@@ -25,6 +25,10 @@ add_library(tiarca_lua_probe SHARED
     "${CMAKE_CURRENT_LIST_DIR}/lua_script_runtime.c")
 target_include_directories(tiarca_lua_probe PRIVATE "${LUA_SOURCE_DIR}" "${LUA_PROBE_DIR}")
 target_link_libraries(tiarca_lua_probe PRIVATE m)
+option(TIARCA_LUA_HOST_METRICS "Host-test allocator measurements" OFF)
+if(TIARCA_LUA_HOST_METRICS AND NOT ANDROID)
+    target_compile_definitions(tiarca_lua_probe PRIVATE TIARCA_LUA_HOST_METRICS=1)
+endif()
 target_compile_options(tiarca_lua_probe PRIVATE
     "-ffile-prefix-map=${LUA_SOURCE_DIR}=lua"
     "-ffile-prefix-map=${LUA_PROBE_DIR}=lua-probe")

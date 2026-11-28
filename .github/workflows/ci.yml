@@ -36,6 +36,7 @@ jobs:
           mkdir -p build/lua-native-host/classes
           cmake -S app/src/main/cpp -B build/lua-native-host/cmake \
             -DCMAKE_BUILD_TYPE=Release \
+            -DTIARCA_LUA_HOST_METRICS=ON \
             "-DCMAKE_C_FLAGS=-I${JAVA_HOME}/include -I${JAVA_HOME}/include/linux"
           cmake --build build/lua-native-host/cmake --parallel 2
           javac -d build/lua-native-host/classes \
