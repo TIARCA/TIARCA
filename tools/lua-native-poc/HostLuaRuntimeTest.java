@@ -384,6 +384,28 @@ public final class HostLuaRuntimeTest {
         check(independent.contains("infrazione 1 (avviso)"),
                 "Same nickname with different domain does not inherit sanctions: " + independent);
         NativeLuaRuntime.unload(OTHER);
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, source))), "Nick/ident graph VM reload");
+        v4EventIdentity("message", "Fifth", "F per privato?", t+230, "", "",
+                "other-ident", "simosnap-4h6.a2s.150.93.ip");
+        String crossHost = java.util.Arrays.toString(v4EventIdentity("message", "Fifth",
+                "F per pvt?", t+231, "", "", "other-ident", "simosnap-4h6.a2s.150.93.ip"));
+        check(crossHost.contains("infrazione 2 (tmute)"),
+                "Same meaningful nick/ident retains escalation across hosts and restart: " + crossHost);
+        v4EventIdentity("message", "Guest5677", "F per privato?", t+240, "", "",
+                "guest-session-ident", "simosnap-aaa.bbb.151.94.ip");
+        String guest = java.util.Arrays.toString(v4EventIdentity("message", "Guest5677",
+                "F per pvt?", t+241, "", "", "guest-session-ident", "simosnap-aaa.bbb.151.94.ip"));
+        check(guest.contains("infrazione 1 (avviso)"), "Generic nickname is moderated: " + guest);
+        String guestNext = java.util.Arrays.toString(v4EventIdentity("message", "Guest5677",
+                "F per privato?", t+242, "", "", "guest-session-ident", "simosnap-aaa.bbb.151.94.ip"));
+        check(guestNext.contains("infrazione 2 (tmute)"), "Generic nickname escalates: " + guestNext);
+        v4EventIdentity("message", "Guest5677", "F per privato?", t+250, "", "",
+                "guest-session-ident", "simosnap-ccc.ddd.152.95.ip");
+        String guestNewHost = java.util.Arrays.toString(v4EventIdentity("message", "Guest5677",
+                "F per pvt?", t+251, "", "", "guest-session-ident", "simosnap-ccc.ddd.152.95.ip"));
+        check(guestNewHost.contains("infrazione 1 (avviso)"),
+                "Generic nickname/ident does not link different masked IPs: " + guestNewHost);
+        NativeLuaRuntime.unload(OTHER);
         automodStorage.clear();
         automodActive = false;
     }
