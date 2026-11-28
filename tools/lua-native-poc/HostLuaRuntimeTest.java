@@ -398,6 +398,83 @@ public final class HostLuaRuntimeTest {
         return String.format(java.util.Locale.ROOT, "v4.s%02d", n);
     }
 
+    private static void checkV4BalancedLinks() throws Exception {
+        byte[] source = Files.readAllBytes(Path.of("docs/lua-examples/automod_v4.lua"));
+        automodStorage.clear();
+        automodActive = true;
+        long t = 1794401000L;
+        // Fill the former fixed-hash bucket almost to capacity with distinct
+        // full signatures. Preserve each one, including signatures on other networks.
+        java.util.Set<String> keys = new java.util.HashSet<>();
+        java.util.Set<String> expired = new java.util.HashSet<>();
+        for (int i=0; i<6; i++) {
+            String server = i==5 ? "other-server" : "test-server";
+            StringBuilder old = new StringBuilder();
+            for (int j=0; j<20000; j++) {
+                String key = server+"/h:simosnap-archive-"+i+"-"+j+".vodafone.it";
+                if (v4Shard(key)%6!=i) continue;
+                String root = "a:archive-"+i+"-"+(j%7);
+                boolean stale = i==0 && j%3==0;
+                String row = key+"\t"+root+"\t"+(stale?t-86401:t-100)+"\t1\t";
+                if (bytes(old.toString()).length+bytes(row).length+1>8000) break;
+                if (old.length()>0) old.append('\n');
+                old.append(row);
+                (stale?expired:keys).add(key.substring(key.indexOf('/')+1));
+            }
+            automodStorage.put("v4.g"+i,old.toString());
+        }
+        check(keys.size()>400,"Large legacy alias fixture");
+        // Target is deliberately placed in legacy storage and its existing
+        // level in the unchanged v4.sNN format, before the first live decision.
+        String target="test-server/a:target-balanced";
+        int shard=v4Shard(target)%6;
+        String old=automodStorage.get("v4.g"+shard);
+        String rootRow=target+"\ta:target-balanced\t"+(t-10)+"\t1\tOldAlias:"+(t-10);
+        check(bytes(old+"\n"+rootRow).length<=8192,"Legacy target fits");
+        automodStorage.put("v4.g"+shard,old+"\n"+rootRow);
+        automodStorage.put(v4ShardKey(v4Shard(target)),target+"\t2\t"+(t-10)+"\t1");
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER,source))),"Balanced archive VM loads");
+        v4Event("command","me","mod canali add #room",t,null,"");
+        v4Event("command","me","mod modo live",t,null,"");
+        String[] first=v4EventIdentity("message","Balanced","cerco ragazza",t+1,"",
+                "target-balanced","ident-balanced","simosnap-balanced.vodafone.it");
+        check("OK".equals(first[0]),"First message with near-full legacy links");
+        String[] decision=v4EventIdentity("message","Balanced","cerco ragazza",t+2,"",
+                "target-balanced","ident-balanced","simosnap-balanced.vodafone.it");
+        String report=java.util.Arrays.toString(decision);
+        check("OK".equals(decision[0])&&report.contains("infrazione 3")&&report.contains("OldAlias"),
+                "Near-full legacy links migrate, preserving level and alias: "+report);
+        java.util.Set<String> actual=new java.util.HashSet<>();
+        int min=8192,max=0;
+        for(int i=0;i<6;i++) {
+            String raw=automodStorage.get("v4.g"+i);
+            check(raw.startsWith("!3"),"All alias blocks use balanced format");
+            int size=bytes(raw).length;
+            min=Math.min(min,size);max=Math.max(max,size);
+            check(size<=8192,"Balanced page fits quota");
+            for(String row:raw.split("\n")) {
+                if(row.equals("!3"))continue;
+                String[] fields=row.split("\t",-1);
+                for(int k=4;k<fields.length-1;k++)
+                    check(actual.add(fields[k]),"No duplicate alias key in fixture");
+            }
+        }
+        check(actual.containsAll(keys),"Every fresh legacy signature retained");
+        for(String key:expired)check(!actual.contains(key),"Expired alias removed");
+        check(max-min<1500,"Balanced pages have similar sizes");
+        NativeLuaRuntime.unload(OTHER);
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER,source))),"Balanced archive reload");
+        v4EventIdentity("message","NewAlias","cerco ragazza",t+3,"",
+                "new-balanced","ident-balanced","simosnap-new-balanced.vodafone.it");
+        String[] next=v4EventIdentity("message","NewAlias","cerco ragazza",t+4,"",
+                "new-balanced","ident-balanced","simosnap-new-balanced.vodafone.it");
+        check("OK".equals(next[0])&&java.util.Arrays.toString(next).contains("infrazione 4"),
+                "Escalation survives restart and ident/domain bridge: "+java.util.Arrays.toString(next));
+        NativeLuaRuntime.unload(OTHER);
+        automodStorage.clear();
+        automodActive=false;
+    }
+
     private static void checkV4LargeHistory() throws Exception {
         byte[] source = Files.readAllBytes(Path.of("docs/lua-examples/automod_v4.lua"));
         check(source.length <= 49152, "V4 source quota");
@@ -621,6 +698,7 @@ public final class HostLuaRuntimeTest {
         checkStorageRevisions();
         checkV4Identity();
         checkV4RefinementsAndGraph();
+        checkV4BalancedLinks();
         checkV4LargeHistory();
         // Read subscriptions from the actual loaded VM, not Lua source text.
         check(NativeLuaRuntime.eventMask(OTHER) == -1, "Absent VM has no known mask");
