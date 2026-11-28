@@ -60,8 +60,7 @@ local function normalizeB(raw)
  local w=words(normalize(raw))
  for i,v in ipairs(w) do
   local t=v
-  -- Only repeated final letters, and never reduce to fewer than three letters.
-  while not lex[t] and #t>3 and t:sub(-1)==t:sub(-2,-2) do t=t:sub(1,-2) end
+  while not lex[t] and #t>3 and t:byte(-1)==t:byte(-2) do t=t:sub(1,-2) end
   if lex[t] then v=t end
   w[i]=equivalents[v] or v
  end
@@ -126,12 +125,12 @@ if greetings[first] and greetingNick(middle) and greetingCore(first.." "..rest) 
 return true end
 return false
 end
-local function category(raw)
+local function category(raw,s,w)
 if raw:match("^%s*!") then return "ignore","BOT" end
-local s=normalizeB(raw)
+s=s or normalizeB(raw)
 if s=="" then return "ignore","EMPTY" end
 if greetings[s] then return "ignore","GREETING" end
-local w=words(s)
+w=w or words(s)
 if not s:find("[^%d ]") then
 if raw:match("^%s*0%d%d?%s*[/%-]%s*0%d%d?%s*%??%s*$") then return "ad","NUMERIC" end
 return "short","NUMERIC"
@@ -153,7 +152,6 @@ if has(w,people) and (s:find("qualsiasi eta",1,true) or
 s:find("qualunque eta",1,true)) then return "ad","AGE" end
 if near(w,people,chatting,5) then
 local explicit=w[1]=="cerco" or w[1]=="cercasi" or w[1]=="cerchiamo"
--- Preserve weak conversational CHAT exclusions, but do not hide explicit M/F codes.
 if code(w) and (has(w,{io=true}) or explicit or
  (not code({w[1]}) and has(w,{per=true}) and has(w,people))) then return "ad","MCODE" end
 if #w<=8 and (near(w,chatTarget,chatting,5) or
@@ -193,8 +191,8 @@ return kind,rule
 end
 local feminine=dict("f ragazza ragazze donna donne tipa tipe femmina femmine nessuna qualcuna coetanea coetanee")
 local masculine=dict("m ragazzo ragazzi uomo uomini tipo tipi maschio maschi nessuno qualcuno coetaneo coetanei")
-local function adKey(rule,s,raw)
- local w=words(s)
+local function adKey(rule,s,raw,w)
+ w=w or words(s)
  local f,m=has(w,feminine),has(w,masculine)
  local target=f and (m and "both" or "f") or (m and "m" or "")
  local first=w[1] or ""
@@ -230,7 +228,6 @@ if rule=="WHO_GEO" or (rule=="SINGLE" and not code(tokens)) or
    (rule=="CHAT" and not has(tokens,chatTarget)) then return 3 end
 return 2
 end
-
 local function config(server)
 local c=configs[server]
 if not c then c={on=true,a=true,b=true,mode="monitor",channels={},
@@ -318,33 +315,31 @@ allow[key]=nick
 end
 loaded=true;return true
 end
-local function readPart(i)
-local history={}
+local function readPart(i,filter)
+local history,seen={},{}
 local yes,part=pcall(api.storage.get,shardKey(i))
 if yes then
-for _,line in ipairs(eachline(part)) do
+for line in (part or ""):gmatch("[^\n]+") do
 local key,lev,at,epoch=line:match("^([^\t]+)\t(%d+)\t(%d+)\t(%d+)$")
 lev=tonumber(lev)
-if not key or history[key] or partition(key)~=i or lev<1 or lev>5 then
+if not key or seen[key] or partition(key)~=i or lev<1 or lev>5 then
 yes=false;break end
-history[key]={level=lev,at=tonumber(at),epoch=tonumber(epoch)}
+seen[key]=true
+if not filter or filter[key] then history[key]={level=lev,at=tonumber(at),epoch=tonumber(epoch)} end
 end
 end
 if yes then return history end
 api.log("V4: archivio non leggibile; moderazione sospesa per blocco "..i)
 end
--- Observed identity graph, scoped to the IRC network. Links are technical
--- correlations, never inferred from a provider or a nickname alone.
 local genericIdent=dict("guest webirc android user ident unknown anonymous irccloud mibbit")
 local genericHost=dict("localhost services.simosnap.com bot.simosnap.com * 0 unknown 0.0.0.0 127.0.0.1 ::1")
 local MAX_GRAPH,MAX_KEYS,MAX_NAMES,LINK_SHARDS=768,24,8,6
-local graph,index,active={}, {}, {}
+local graph,nets={},{}
 local graphCount=0
 local function meaningful(i)
  return #i>=5 and not genericIdent[i]
 end
 local function provider(h)
- -- Only the DNS suffix of the known SimosNap cloak; never guess IP subnets.
  if not h:match("^simosnap%-") or h:match("%.ip$") then return nil end
  local suffix=h:match("^[^.]+%.(.+)$")
  if not suffix or not suffix:find("%.") then return nil end
@@ -356,34 +351,43 @@ local function usableNick(n)
   not n:match("^utente[%d_%-]*$") and not n:match("^user[%d_%-]*$") and
   not n:match("^ospite[%d_%-]*$")
 end
-local function root(g)
- while g and g.parent do g=g.parent end
- return g
+local function network(server)
+ local n=nets[server]
+ if not n then n={server=server,index={},active={}};nets[server]=n end
+ return n
 end
 local function forget(g)
  if not graph[g] then return end
- for k in pairs(g.keys) do if index[k]==g then index[k]=nil end end
+ local n=g.net
+ for k in pairs(g.keys) do if n.index[k]==g then n.index[k]=nil end end
+ for k,row in pairs(g.names) do if n.active[k]==row then n.active[k]=nil end end
  graph[g]=nil;graphCount=graphCount-1
+ g.keys=nil;g.names=nil;g.watch=nil
 end
 local function addName(g,n,at)
  local k=valid(n)
  if k=="" or #n>64 or n:find("[/:]") then return end
- local old=g.names[k]
- if old and old.at>=at then return end
- if not old then
-  local count,oldest=0
-  for key,row in pairs(g.names) do
-   count=count+1
-   if not oldest or row.at<g.names[oldest].at then oldest=key end
-  end
-  if count>=MAX_NAMES then
-   if g.names[oldest].at>at then return end
-   g.names[oldest]=nil
-  end
+ local row=g.names[k]
+ if row then
+  if at>row[2] then row[1],row[2]=n,at end
+  return row
  end
- g.names[k]={nick=n,at=at}
+ local count,oldest=0
+ for key,v in pairs(g.names) do
+  count=count+1
+  if not oldest or v[2]<g.names[oldest][2] then oldest=key end
+ end
+ if count>=MAX_NAMES then
+  local old=g.names[oldest]
+  if old[2]>at then return end
+  if g.net.active[oldest]==old then g.net.active[oldest]=nil end
+  g.names[oldest]=nil
+ end
+ row={n,at,g,false};g.names[k]=row
+ return row
 end
 local function attach(g,k,at)
+ local index=g.net.index
  if not g.keys[k] then
   local count,oldest=0
   for key,t in pairs(g.keys) do
@@ -398,53 +402,60 @@ local function attach(g,k,at)
  end
  g.keys[k]=math.max(g.keys[k] or 0,at);index[k]=g
 end
+local K,T,N,S,P,F=1,2,3,4,5,6
 local function mergeLists(a,b,now,window,cap,ads)
  local all,by={},{}
  for _,list in ipairs({a or {},b or {}}) do
   for _,g in ipairs(list) do
-   if now>=g.at and now-(ads and g.first or g.at)<=window then
-    local p=by[g.key]
-    if not p then by[g.key]=g;all[#all+1]=g
+   if now>=g[T] and now-(ads and g[F] or g[T])<=window then
+    local p=by[g[K]]
+    if not p then by[g[K]]=g;all[#all+1]=g
     else
      local latest,older=g,p
-     if p.at>g.at then latest,older=p,g end
-     local same=latest.source and latest.source==older.source
-     p.count=same and math.max(p.count,g.count) or p.count+g.count
-     p.previous=latest.previous or (not same and older.source or nil)
-     p.source,p.at=latest.source,latest.at
-     p.first=math.min(p.first,g.first)
-     p.credited=latest.credited
+     if p[T]>g[T] then latest,older=p,g end
+     local same=latest[S] and latest[S]==older[S]
+     local count=same and math.max(p[N],g[N]) or p[N]+g[N]
+     local prev=latest[P] or (not same and older[S]) or false
+     local first=ads and math.min(p[F],g[F]) or latest[F]
+     p[N],p[P],p[S],p[T],p[F]=count,prev,latest[S],latest[T],first
     end
    end
   end
  end
- table.sort(all,function(x,y) return x.at>y.at end)
+ table.sort(all,function(x,y) return x[T]>y[T] end)
  while #all>cap do table.remove(all) end
  return all
 end
 local function merge(a,b,now,window)
- a,b=root(a),root(b)
  if a==b then return a end
  if a.last<b.last then a,b=b,a end
- for ch,h in pairs(b.watch) do
-  local x=a.watch[ch]
-  if now>=h.last and now-h.last<=window then
-   if not x or now<x.last or now-x.last>window then a.watch[ch]=h
-   else
-    x.score=math.max(x.score,h.score)
-    x.last=math.max(x.last,h.last)
-    x.repGroups=mergeLists(x.repGroups,h.repGroups,now,window,MAX_REPEAT_GROUPS,false)
-    x.adGroups=mergeLists(x.adGroups,h.adGroups,now,window,MAX_AD_GROUPS,true)
+ if b.watch then
+  for ch,h in pairs(b.watch) do
+   if now>=h.last and now-h.last<=window then
+    if not a.watch then a.watch={} end
+    local x=a.watch[ch]
+    if not x or now<x.last or now-x.last>window then a.watch[ch]=h
+    else
+     x.score=math.max(x.score,h.score)
+     x.last=math.max(x.last,h.last)
+     x.repGroups=mergeLists(x.repGroups,h.repGroups,now,window,MAX_REPEAT_GROUPS,false)
+     x.adGroups=mergeLists(x.adGroups,h.adGroups,now,window,MAX_AD_GROUPS,true)
+    end
    end
   end
  end
+ local index,active=a.net.index,a.net.active
  for k,t in pairs(b.keys) do
   if index[k]==b then index[k]=nil end
   attach(a,k,t)
  end
- for _,v in pairs(b.names) do addName(a,v.nick,v.at) end
- graph[b]=nil;graphCount=graphCount-1
- b.parent=a;b.keys=nil;b.names=nil;b.watch=nil
+ for k,row in pairs(b.names) do
+  local live=active[k]==row
+  if live then active[k]=nil end
+  local dst=addName(a,row[1],row[2])
+  if live and dst then dst[4]=row[4];active[k]=dst end
+ end
+ forget(b)
  a.last=math.max(a.last,b.last)
  return a
 end
@@ -453,18 +464,16 @@ local function observe(e,now,window,event)
  local u=e.sender
  local oldNick=valid(e.nick)
  local newNick=event=="nick" and valid(e.text) or oldNick
- local prefix=e.server.."/"
- local liveKey=prefix..oldNick
- local session=active[liveKey]
+ local net=network(e.server)
+ local index,active=net.index,net.active
+ local session=active[oldNick]
  local g
- -- Only a directly observed NICK/ACCOUNT/CHGHOST may use a live nickname
- -- association, not an ordinary message or a new JOIN.
  if event=="nick" or event=="account" or event=="chghost" then
-  g=session and root(session.g)
+  g=session and session[3]
   if g and (not graph[g] or now<g.last or now-g.last>TTL) then g=nil end
  end
  local keys,primary,domain={}
- local function key(k) keys[#keys+1]=prefix..k;return prefix..k end
+ local function key(k) keys[#keys+1]=k;return k end
  if u and (u.nick==e.nick or (event=="nick" and valid(u.nick)==newNick)) then
   local account,host,ident=valid(u.account),valid(u.host),valid(u.ident)
   if account=="*" or account=="0" then account="" end
@@ -480,38 +489,42 @@ local function observe(e,now,window,event)
     if meaningful(ident) then key("i:"..ident.."@"..domain) end
    end
   end
- elseif g and event=="nick" and session.domain then
-  domain=session.domain
+ elseif g and event=="nick" and session[4] then
+  domain=session[4]
   if usableNick(newNick) then key("n:"..newNick.."@"..domain) end
  end
  if primary then
-  for _,k in ipairs(storedRoots(keys,now,config(e.server))) do keys[#keys+1]=k end
+  storedRoots(keys,now,config(e.server),net)
  end
  for _,k in ipairs(keys) do
-  local p=root(index[k])
+  local p=index[k]
   if p and graph[p] and now>=p.last and now-p.last<=TTL then
    g=g and merge(g,p,now,window) or p
   end
  end
  if not g and primary then
   if graphCount>=MAX_GRAPH then
-   local oldest
+   local oldest,quiet
    for p in pairs(graph) do
     if not oldest or p.last<oldest.last then oldest=p end
+    if not p.watch and (not quiet or p.last<quiet.last) then quiet=p end
    end
-   if oldest then forget(oldest) end
+   if oldest then forget(quiet or oldest) end
   end
-  g={id=primary,server=e.server,last=now,keys={},names={},watch={}}
+  g={id=primary,net=net,last=now,keys={},names={}}
   graph[g]=true;graphCount=graphCount+1
  end
  if not g then return nil end
  for _,k in ipairs(keys) do attach(g,k,now) end
  g.last=math.max(g.last,now)
- addName(g,e.nick,now)
+ local row=addName(g,e.nick,now)
  if event=="nick" and newNick~="" then
-  addName(g,e.text,now);active[liveKey]=nil
+  row=addName(g,e.text,now);active[oldNick]=nil
  end
- if newNick~="" then active[prefix..newNick]={g=g,at=now,domain=domain or (event=="nick" and session and session.domain)} end
+ if row and newNick~="" then
+  row[4]=domain or (event=="nick" and session and session[4]) or false
+  active[newNick]=row
+ end
  return g
 end
 local function identify(e,g)
@@ -526,6 +539,7 @@ local function identify(e,g)
  return g
 end
 local function getWatch(g,channel,now,window)
+ if not g.watch then g.watch={} end
  local key=channel:lower()
  local h=g.watch[key]
  if not h or now<h.last or now-h.last>window then
@@ -533,68 +547,71 @@ local function getWatch(g,channel,now,window)
  end
  return h
 end
-
--- Persistent links are separate from the unchanged legacy v4.sNN archive.
--- Only live decisions write them. All writes are committed before sanctions.
 local function linkShard(k) return partition(k)%LINK_SHARDS end
 local function linkStorage(n) return "v4.g"..n end
 local function readLinks(n,now)
  local ok,raw=pcall(api.storage.get,linkStorage(n))
  if not ok then return nil end
  local rows={}
- for _,line in ipairs(eachline(raw)) do
+ for line in (raw or ""):gmatch("[^\n]+") do
   local k,r,at,epoch,names=line:match("^([^\t]+)\t([^\t]+)\t(%d+)\t(%d+)\t(.*)$")
   local server=k and k:match("^(.-)/")
   if not server or not r:match("^[ah]:") or linkShard(k)~=n or rows[k] then return nil end
   at,epoch=tonumber(at),tonumber(epoch)
-  if now<at or now-at<TTL then rows[k]={root=server.."/"..r,at=at,epoch=epoch,names=names} end
+  if now<at or now-at<TTL then rows[k]={server.."/"..r,at,epoch,names} end
  end
  return rows
 end
 local function fresh(row,now,c)
  return row and row.epoch==c.epoch and now>=row.at and now-row.at<TTL
 end
--- Resolve persisted aliases for newly observed signatures, not every chat message.
-storedRoots=function(keys,now,c)
- local parts,out={},{}
- for _,key in ipairs(keys) do
-  if not index[key] then
-   local k,seen=key,{}
+local function freshLink(row,now,c)
+ return row and row[3]==c.epoch and now>=row[2] and now-row[2]<TTL
+end
+storedRoots=function(keys,now,c,net)
+ local parts
+ local prefix=net.server.."/"
+ for j=1,#keys do
+  local key=keys[j]
+  if not net.index[key] then
+   parts=parts or {}
+   local k,seen=prefix..key,{}
    for i=1,MAX_KEYS do
     if seen[k] then break end
     seen[k]=true
     local n=linkShard(k)
     if parts[n]==nil then parts[n]=readLinks(n,now) or false end
     local row=parts[n] and parts[n][k]
-    if not fresh(row,now,c) then
-     if k~=key then out[#out+1]=k end
+    if not freshLink(row,now,c) then
+     if k~=prefix..key then keys[#keys+1]=k:sub(#prefix+1) end
      break
     end
-    if row.root==k then out[#out+1]=k;break end
-    k=row.root
+    if row[1]==k then keys[#keys+1]=k:sub(#prefix+1);break end
+    k=row[1]
    end
   end
  end
- return out
 end
 local function namesText(g,now)
  local out={}
  for _,v in pairs(g.names) do
-  if now>=v.at and now-v.at<TTL then out[#out+1]=v.nick..":"..v.at end
+  if now>=v[2] and now-v[2]<TTL then out[#out+1]=v[1]..":"..v[2] end
  end
  table.sort(out)
  return table.concat(out,",")
 end
 local function restoreNames(g,row,now)
- for n,t in (row.names or ""):gmatch("([^,:]+):(%d+)") do
+ for n,t in (row[4] or ""):gmatch("([^,:]+):(%d+)") do
   t=tonumber(t)
   if now>=t and now-t<TTL then addName(g,n,t) end
  end
 end
 local function findHistory(g,now,c)
- local links,parts,keys,candidates={},{},{},{}
- for k in pairs(g.keys) do keys[k]=true end
- keys[g.id]=true
+ local links,keys,candidates,done={},{},{},{}
+ local prefix=g.net.server.."/"
+ for k in pairs(g.keys) do keys[prefix..k]=true end
+ local id=prefix..g.id
+ keys[id]=true
  local function getLink(k)
   local n=linkShard(k)
   if not links[n] then
@@ -610,13 +627,13 @@ local function findHistory(g,now,c)
    seen[k]=true
    local row,ok=getLink(k)
    if not ok then return nil end
-   if not fresh(row,now,c) then return k end
-   restoreNames(g,row,now)
-   if row.root==k then return k end
-   k=row.root
+   if not freshLink(row,now,c) then return k end
+   if row[4]~="" and not done[k] then restoreNames(g,row,now);done[k]=true end
+   if row[1]==k then return k end
+   k=row[1]
   end
  end
- local primary=follow(g.id)
+ local primary=follow(id)
  if not primary then return nil end
  for k in pairs(keys) do
   local r=follow(k)
@@ -625,20 +642,24 @@ local function findHistory(g,now,c)
  end
  candidates[primary]=true
  local chosen,level,bestAt=primary,0,0
- for r in pairs(candidates) do
-  local n=partition(r)
-  if not parts[n] then
-   parts[n]=readPart(n)
-   if not parts[n] then return nil end
+ local shards={}
+ for r in pairs(candidates) do shards[partition(r)]=true;keys[r]=true end
+ for n in pairs(shards) do
+  local rows=readPart(n,candidates)
+  if not rows then return nil end
+  for r,row in pairs(rows) do
+   if fresh(row,now,c) and (row.level>level or
+     (row.level==level and (row.at>bestAt or (row.at==bestAt and r<chosen)))) then
+    chosen,level,bestAt=r,row.level,row.at
+   end
   end
-  local row=parts[n][r]
-  if fresh(row,now,c) and (row.level>level or
-    (row.level==level and (row.at>bestAt or (row.at==bestAt and r<chosen)))) then
-   chosen,level,bestAt=r,row.level,row.at
-  end
-  keys[r]=true
  end
- return chosen,level,parts[partition(chosen)],links,keys
+ local history
+ if c.mode=="live" then
+  history=readPart(partition(chosen))
+  if not history then return nil end
+ end
+ return chosen,level,history,links,keys
 end
 local function persistLinks(chosen,links,keys,g,now,c)
  local dirty={}
@@ -647,15 +668,13 @@ local function persistLinks(chosen,links,keys,g,now,c)
   if not links[n] then links[n]=readLinks(n,now) end
   if not links[n] then error("V4: archivio identita non leggibile") end
   local names=k==chosen and namesText(g,now) or ""
-  links[n][k]={root=chosen,at=now,epoch=c.epoch,names=names}
+  links[n][k]={chosen,now,c.epoch,names}
   dirty[n]=true
  end
- -- At most six alias writes, one legacy history write, two reports and
- -- three moderation actions: the existing twelve-action budget is respected.
  for n in pairs(dirty) do
   local out={}
   for k,row in pairs(links[n]) do
-   out[#out+1]=table.concat({k,row.root:match("^[^/]+/(.*)$"),row.at,row.epoch,row.names},"\t")
+   out[#out+1]=table.concat({k,row[1]:match("^[^/]+/(.*)$"),row[2],row[3],row[4]},"\t")
   end
   table.sort(out)
   local raw=table.concat(out,"\n")
@@ -666,15 +685,15 @@ end
 local function reportAliases(g,e,now,room)
  local out={}
  for k,v in pairs(g.names) do
-  if k~=e.nick:lower() and now>=v.at and now-v.at<TTL then out[#out+1]=v end
+  if k~=e.nick:lower() and now>=v[2] and now-v[2]<TTL then out[#out+1]=v end
  end
  table.sort(out,function(a,b)
-  if a.at==b.at then return a.nick<b.nick end
-  return a.at>b.at
+  if a[2]==b[2] then return a[1]<b[1] end
+  return a[2]>b[2]
  end)
  local s=""
  for _,v in ipairs(out) do
-  local part=(s=="" and " aliases " or "/")..v.nick
+  local part=(s=="" and " aliases " or "/")..v[1]
   if #s+#part<=room then s=s..part end
  end
  return s
@@ -732,8 +751,8 @@ local label=c.mode=="live" and (level<5 and action(e,nextLevel) or "escalation")
 local line=string.format("AutoModV4 %s/%s %s %.1f%% infrazione %d (%s) motore %s",
 e.server:sub(1,8),e.channel,e.nick,pct,nextLevel,label,engine)..
 string.format(" rule %s score %d threshold %d count %d refs %s",rule,h.score,
-threshold or c.similarity,g.count,
-((engine=="A" or threshold==3) and ((g.previous or "-")..",") or "")..(g.source or "-"))
+threshold or c.similarity,g[N],
+((engine=="A" or threshold==3) and ((g[P] or "-")..",") or "")..(g[S] or "-"))
 api.log(line..reportAliases(id,e,now,512-#line))
 api.log(string.format("WatchdogV4 %s %s/%s %s %s score=%d",
 engine,e.server:sub(1,8),e.channel,e.nick,rule,h.score))
@@ -749,7 +768,9 @@ if now<=0 then return end
 local window=c.minutes*60
 local observed=observe(e,now,window,"message")
 local raw=e.text or ""
-local kind,rule=category(raw)
+local text=normalizeB(raw)
+local tokens=words(text)
+local kind,rule=category(raw,text,tokens)
 kind,rule=contextual(e,raw,kind,rule)
 if kind=="ignore" or kind=="short" then return end
 local id,why=identify(e,observed)
@@ -767,32 +788,31 @@ end
 local h=getWatch(id,e.channel,now,window)
 h.last=now
 if kind=="ad" and c.b then
- local text=normalizeB(raw)
- local threshold=adThreshold(rule,words(text))
- local key=adKey(rule,text,raw)
+ local threshold=adThreshold(rule,tokens)
+ local key=adKey(rule,text,raw,tokens)
  local ads=h.adGroups or {}
  h.adGroups=ads
  local g
  for i=#ads,1,-1 do
   local a=ads[i]
-  if now<a.first or now-a.first>window then table.remove(ads,i)
-  elseif a.key==key then g=a;table.remove(ads,i) end
+  if now<a[F] or now-a[F]>window then table.remove(ads,i)
+  elseif a[K]==key then g=a;table.remove(ads,i) end
  end
- if g and e.source_id and e.source_id==g.source then table.insert(ads,1,g);return end
+ if g and e.source_id and e.source_id==g[S] then table.insert(ads,1,g);return end
  h.score=h.score+1
  if not g then
-  g={key=key,first=now,at=now,count=1,source=e.source_id}
+  g={key,now,1,e.source_id or false,false,now}
   table.insert(ads,1,g)
   if #ads>MAX_AD_GROUPS then table.remove(ads) end
   return
  end
- g.count=g.count+1
- local rapid=c.rapid>0 and now-g.at<=c.rapid
- if rapid or (g.count>=threshold and h.score>=threshold) then
+ g[N]=g[N]+1
+ local rapid=c.rapid>0 and now-g[T]<=c.rapid
+ if rapid or (g[N]>=threshold and h.score>=threshold) then
   detected(e,id,"B",rapid and "RAPID_"..rule or rule,100,h,now,c,g,rapid and 2 or threshold)
  end
- g.previous,g.source=g.source,e.source_id
- g.at=now
+ g[P],g[S]=g[S],e.source_id or false
+ g[T]=now
  table.insert(ads,1,g)
 elseif kind=="normal" and c.a then
  local s=normalize(raw)
@@ -800,31 +820,31 @@ elseif kind=="normal" and c.a then
  local reps=h.repGroups or {}
  h.repGroups=reps
  for i=#reps,1,-1 do
-  if now<reps[i].at or now-reps[i].at>window then table.remove(reps,i) end
+  if now<reps[i][T] or now-reps[i][T]>window then table.remove(reps,i) end
  end
  local index,pct
  if reps[1] then
-  pct=reps[1].key==s and 100 or similar(reps[1].key,s)
+  pct=reps[1][K]==s and 100 or similar(reps[1][K],s)
   if pct>=c.similarity then index=1 end
  end
  if not index then
-  for i=2,#reps do if reps[i].key==s then index=i;pct=100;break end end
+  for i=2,#reps do if reps[i][K]==s then index=i;pct=100;break end end
  end
  if index then
   local g=table.remove(reps,index)
-  if e.source_id and e.source_id==g.source then table.insert(reps,1,g);return end
-  if g.count==1 then h.score=h.score+(g.credited and 1 or 0)+2
+  if e.source_id and e.source_id==g[S] then table.insert(reps,1,g);return end
+  if g[N]==1 then h.score=h.score+(g[F] and 1 or 0)+2
   else h.score=h.score+1 end
-  local rapid=c.rapid>0 and now-g.at<=c.rapid and pct>=90
+  local rapid=c.rapid>0 and now-g[T]<=c.rapid and pct>=90
   if rapid then h.score=h.score+1 end
-  g.count=g.count+1;g.key=s;g.at=now;g.credited=false
-  if g.count>=3 and h.score>=3 then
+  g[N]=g[N]+1;g[K]=s;g[T]=now;g[F]=false
+  if g[N]>=3 and h.score>=3 then
    detected(e,id,"A",rapid and "RAPID_SIMILAR" or "SIMILAR",pct,h,now,c,g)
   end
-  g.previous,g.source=g.source,e.source_id
+  g[P],g[S]=g[S],e.source_id or false
   table.insert(reps,1,g)
  else
-  table.insert(reps,1,{key=s,count=1,first=now,at=now,source=e.source_id,credited=h.score>-c.credit})
+  table.insert(reps,1,{s,now,1,e.source_id or false,false,h.score>-c.credit})
   if #reps>MAX_REPEAT_GROUPS then table.remove(reps) end
   h.score=math.max(-c.credit,h.score-1)
  end
@@ -845,11 +865,13 @@ for _,name in ipairs({"join","nick","account","chghost"}) do
 end
 for _,name in ipairs({"quit","part"}) do
  api.on(name,function(e)
-  if e.nick then active[e.server.."/"..e.nick:lower()]=nil end
+  local n=nets[e.server]
+  if n and e.nick then n.active[e.nick:lower()]=nil end
  end)
 end
 api.on("disconnected",function(e)
- for k in pairs(active) do if k:sub(1,#e.server+1)==e.server.."/" then active[k]=nil end end
+ local n=nets[e.server]
+ if n then n.active={} end
 end)
 local function lifetime(server)
 local c=configs[server]
@@ -861,15 +883,17 @@ if not load() then api.log("V4: config non leggibile");return end
 local now=tonumber(e.timestamp) or 0
 for g in pairs(graph) do
  if now>=g.last and now-g.last>=TTL then forget(g)
- else
+ elseif g.watch then
   for ch,h in pairs(g.watch) do
-   if now-h.last>lifetime(g.server) then g.watch[ch]=nil end
+   if now-h.last>lifetime(g.net.server) then g.watch[ch]=nil end
   end
+  if not next(g.watch) then g.watch=nil end
  end
 end
-for k,v in pairs(active) do
- local g=root(v.g)
- if not graph[g] or now-v.at>=TTL then active[k]=nil else v.g=g end
+for _,n in pairs(nets) do
+ for k,row in pairs(n.active) do
+  if now-row[2]>=TTL then n.active[k]=nil end
+ end
 end
 for key,at in pairs(unresolved) do
 local server=key:match("^(.-)/")
@@ -1010,13 +1034,12 @@ elseif op=="reset" and rest=="" then
 pending[e.server]=nil
 c.epoch=c.epoch+1
 if saveConfig() then
-for g in pairs(graph) do if g.server==e.server then forget(g) end end
-for k in pairs(active) do if k:sub(1,#e.server+1)==e.server.."/" then active[k]=nil end end
+for g in pairs(graph) do if g.net.server==e.server then forget(g) end end
+nets[e.server]=nil
 show("Cronologia ed escalation azzerate")
 else c.epoch=old.epoch;show("Reset non riuscito") end
 else show("Comando ignoto: /lua mod help") end
 end)
-
 api.on("identity",function(e)
 local p=pending[e.server]
 if not p or e.token~=p.token or e.query~="user" then return end
