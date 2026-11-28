@@ -336,6 +336,8 @@ local genericHost=dict("localhost services.simosnap.com bot.simosnap.com * 0 unk
 local MAX_GRAPH,MAX_KEYS,MAX_NAMES,LINK_SHARDS=768,24,8,6
 local graph,nets={},{}
 local graphCount=0
+local GI,GN,GL,GK,GA,GW=1,2,3,4,5,6
+local HS,HL,HR,HA=1,2,3,4
 local function distinct(i)
 return #i>=5 and not genericIdent[i]
 end
@@ -356,51 +358,56 @@ local n=nets[server]
 if not n then n={server=server,index={},active={}};nets[server]=n end
 return n
 end
+local function ni(g,k)
+local a=g[GA]
+for i=1,#a,3 do if a[i]:lower()==k then return i end end
+end
 local function forget(g)
 if not graph[g] then return end
-local n=g.net
-for k in pairs(g.keys) do if n.index[k]==g then n.index[k]=nil end end
-for k,row in pairs(g.names) do if n.active[k]==row then n.active[k]=nil end end
+local n=g[GN]
+for k in pairs(g[GK]) do if n.index[k]==g then n.index[k]=nil end end
+for i=1,#g[GA],3 do
+local k=g[GA][i]:lower()
+if n.active[k]==g then n.active[k]=nil end
+end
 graph[g]=nil;graphCount=graphCount-1
-g.keys=nil;g.names=nil;g.watch=nil
+g[GK]=nil;g[GA]=nil;g[GW]=nil
 end
 local function addName(g,n,at)
 local k=valid(n)
 if k=="" or #n>64 or n:find("[/:]") then return end
-local row=g.names[k]
-if row then
-if at>row[2] then row[1],row[2]=n,at end
-return row
+local a=g[GA]
+local i=ni(g,k)
+if i then
+if at>a[i+1] then a[i],a[i+1]=n,at end
+return i
 end
-local count,oldest=0
-for key,v in pairs(g.names) do
-count=count+1
-if not oldest or v[2]<g.names[oldest][2] then oldest=key end
+i=#a+1
+if #a>=MAX_NAMES*3 then
+i=1
+for j=4,#a,3 do if a[j+1]<a[i+1] then i=j end end
+if a[i+1]>at then return end
+local old=a[i]:lower()
+if g[GN].active[old]==g then g[GN].active[old]=nil end
 end
-if count>=MAX_NAMES then
-local old=g.names[oldest]
-if old[2]>at then return end
-if g.net.active[oldest]==old then g.net.active[oldest]=nil end
-g.names[oldest]=nil
-end
-row={n,at,g,false};g.names[k]=row
-return row
+a[i],a[i+1],a[i+2]=n,at,false
+return i
 end
 local function attach(g,k,at)
-local index=g.net.index
-if not g.keys[k] then
+local index=g[GN].index
+if not g[GK][k] then
 local count,oldest=0
-for key,t in pairs(g.keys) do
+for key,t in pairs(g[GK]) do
 count=count+1
-if key~=g.id and (not oldest or t<g.keys[oldest]) then oldest=key end
+if key~=g[GI] and (not oldest or t<g[GK][oldest]) then oldest=key end
 end
 if count>=MAX_KEYS and oldest then
-if g.keys[oldest]>at then return end
+if g[GK][oldest]>at then return end
 if index[oldest]==g then index[oldest]=nil end
-g.keys[oldest]=nil
+g[GK][oldest]=nil
 end
 end
-g.keys[k]=math.max(g.keys[k] or 0,at);index[k]=g
+g[GK][k]=math.max(g[GK][k] or 0,at);index[k]=g
 end
 local K,T,N,S,P,F=1,2,3,4,5,6
 local sessions,sessionId={},{}
@@ -455,35 +462,36 @@ return all
 end
 local function merge(a,b,now,window)
 if a==b then return a end
-if a.last<b.last then a,b=b,a end
-if b.watch then
-for ch,h in pairs(b.watch) do
-if now>=h.last and now-h.last<=window then
-if not a.watch then a.watch={} end
-local x=a.watch[ch]
-if not x or now<x.last or now-x.last>window then a.watch[ch]=h
+if a[GL]<b[GL] then a,b=b,a end
+if b[GW] then
+for ch,h in pairs(b[GW]) do
+if now>=h[HL] and now-h[HL]<=window then
+if not a[GW] then a[GW]={} end
+local x=a[GW][ch]
+if not x or now<x[HL] or now-x[HL]>window then a[GW][ch]=h
 else
-x.score=math.max(x.score,h.score)
-x.last=math.max(x.last,h.last)
-x.repGroups=mergeRefs(x.repGroups,h.repGroups,now,window,MAX_A,false)
-x.adGroups=mergeRefs(x.adGroups,h.adGroups,now,window,MAX_B,true)
+x[HS]=math.max(x[HS],h[HS])
+x[HL]=math.max(x[HL],h[HL])
+x[HR]=mergeRefs(x[HR],h[HR],now,window,MAX_A,false)
+x[HA]=mergeRefs(x[HA],h[HA],now,window,MAX_B,true)
 end
 end
 end
 end
-local index,active=a.net.index,a.net.active
-for k,t in pairs(b.keys) do
+local index,active=a[GN].index,a[GN].active
+for k,t in pairs(b[GK]) do
 if index[k]==b then index[k]=nil end
 attach(a,k,t)
 end
-for k,row in pairs(b.names) do
-local live=active[k]==row
+for i=1,#b[GA],3 do
+local k=b[GA][i]:lower()
+local live=active[k]==b
 if live then active[k]=nil end
-local dst=addName(a,row[1],row[2])
-if live and dst then dst[4]=row[4];active[k]=dst end
+local dst=addName(a,b[GA][i],b[GA][i+1])
+if live and dst then a[GA][dst+2]=b[GA][i+2];active[k]=a end
 end
 forget(b)
-a.last=math.max(a.last,b.last)
+a[GL]=math.max(a[GL],b[GL])
 return a
 end
 local roots
@@ -494,10 +502,12 @@ local newNick=event=="nick" and valid(e.text) or oldNick
 local net=network(e.server)
 local index,active=net.index,net.active
 local session=active[oldNick]
+local pos=session and ni(session,oldNick)
+local oldDomain=pos and session[GA][pos+2]
 local g
 if event=="nick" or event=="account" or event=="chghost" then
-g=session and session[3]
-if g and (not graph[g] or now<g.last or now-g.last>TTL) then g=nil end
+g=session
+if g and (not graph[g] or now<g[GL] or now-g[GL]>TTL) then g=nil end
 end
 local keys,primary,domain={}
 local function key(k) keys[#keys+1]=k;return k end
@@ -516,8 +526,8 @@ if newNick~=oldNick and usableNick(newNick) then key("n:"..newNick.."@"..domain)
 if distinct(ident) then key("i:"..ident.."@"..domain) end
 end
 end
-elseif g and event=="nick" and session[4] then
-domain=session[4]
+elseif g and event=="nick" and oldDomain then
+domain=oldDomain
 if usableNick(newNick) then key("n:"..newNick.."@"..domain) end
 end
 if primary then
@@ -525,7 +535,7 @@ roots(keys,now,config(e.server),net)
 end
 for _,k in ipairs(keys) do
 local p=index[k]
-if p and graph[p] and now>=p.last and now-p.last<=TTL then
+if p and graph[p] and now>=p[GL] and now-p[GL]<=TTL then
 g=g and merge(g,p,now,window) or p
 end
 end
@@ -533,24 +543,24 @@ if not g and primary then
 if graphCount>=MAX_GRAPH then
 local oldest,quiet
 for p in pairs(graph) do
-if not oldest or p.last<oldest.last then oldest=p end
-if not p.watch and (not quiet or p.last<quiet.last) then quiet=p end
+if not oldest or p[GL]<oldest.last then oldest=p end
+if not p[GW] and (not quiet or p[GL]<quiet.last) then quiet=p end
 end
 if oldest then forget(quiet or oldest) end
 end
-g={id=primary,net=net,last=now,keys={},names={}}
+g={primary,net,now,{},{},false}
 graph[g]=true;graphCount=graphCount+1
 end
 if not g then return nil end
 for _,k in ipairs(keys) do attach(g,k,now) end
-g.last=math.max(g.last,now)
+g[GL]=math.max(g[GL],now)
 local row=addName(g,e.nick,now)
 if event=="nick" and newNick~="" then
 row=addName(g,e.text,now);active[oldNick]=nil
 end
 if row and newNick~="" then
-row[4]=domain or (event=="nick" and session and session[4]) or false
-active[newNick]=row
+g[GA][row+2]=domain or (event=="nick" and oldDomain) or false
+active[newNick]=g
 end
 return g
 end
@@ -566,11 +576,11 @@ if not g then return nil,"NO_HOST" end
 return g
 end
 local function getWatch(g,channel,now,window)
-if not g.watch then g.watch={} end
+if not g[GW] then g[GW]={} end
 local key=channel:lower()
-local h=g.watch[key]
-if not h or now<h.last or now-h.last>window then
-h={score=0,last=now};g.watch[key]=h
+local h=g[GW][key]
+if not h or now<h[HL] or now-h[HL]>window then
+h={0,now,false,false};g[GW][key]=h
 end
 return h
 end
@@ -620,9 +630,9 @@ end
 end
 end
 local function namesText(g,now)
-local out={}
-for _,v in pairs(g.names) do
-if now>=v[2] and now-v[2]<TTL then out[#out+1]=v[1]..":"..v[2] end
+local out,a={},g[GA]
+for i=1,#a,3 do
+if now>=a[i+1] and now-a[i+1]<TTL then out[#out+1]=a[i]..":"..a[i+1] end
 end
 table.sort(out)
 return table.concat(out,",")
@@ -635,9 +645,9 @@ end
 end
 local function historyFor(g,now,c)
 local links,keys,candidates,done={},{},{},{}
-local prefix=g.net.server.."/"
-for k in pairs(g.keys) do keys[prefix..k]=true end
-local id=prefix..g.id
+local prefix=g[GN].server.."/"
+for k in pairs(g[GK]) do keys[prefix..k]=true end
+local id=prefix..g[GI]
 keys[id]=true
 local function getLink(k)
 local n=linkShard(k)
@@ -711,8 +721,9 @@ end
 end
 local function aliases(g,e,now,room)
 local out={}
-for k,v in pairs(g.names) do
-if k~=e.nick:lower() and now>=v[2] and now-v[2]<TTL then out[#out+1]=v end
+local a=g[GA]
+for i=1,#a,3 do
+if a[i]:lower()~=e.nick:lower() and now>=a[i+1] and now-a[i+1]<TTL then out[#out+1]={a[i],a[i+1]} end
 end
 table.sort(out,function(a,b)
 if a[2]==b[2] then return a[1]<b[1] end
@@ -777,12 +788,12 @@ end
 local label=c.mode=="live" and (level<5 and action(e,nextLevel) or "escalation") or "monitor"
 local line=string.format("AutoModV4 %s/%s %s %.1f%% infrazione %d (%s) motore %s",
 e.server:sub(1,8),e.channel,e.nick,pct,nextLevel,label,engine)..
-string.format(" rule %s score %d threshold %d count %d refs %s",rule,h.score,
+string.format(" rule %s score %d threshold %d count %d refs %s",rule,h[HS],
 threshold or c.similarity,g[N],
 ((engine=="A" or threshold==3) and (unref(g[P])..",") or "")..unref(g[S]))
 api.log(line..aliases(id,e,now,512-#line))
 api.log(string.format("WatchdogV4 %s %s/%s %s %s score=%d",
-engine,e.server:sub(1,8),e.channel,e.nick,rule,h.score))
+engine,e.server:sub(1,8),e.channel,e.nick,rule,h[HS]))
 if c.mode=="live" and level<5 then sanction(e,nextLevel,engine) end
 end
 api.on("message",function(e)
@@ -813,13 +824,13 @@ end
 return
 end
 local h=getWatch(id,e.channel,now,window)
-h.last=now
+h[HL]=now
 local source=ref(e.source_id)
 if kind=="ad" and c.b then
 local threshold=adThreshold(rule,tokens)
 local key=adKey(rule,text,raw,tokens)
-local ads=h.adGroups or {}
-h.adGroups=ads
+local ads=h[HA] or {}
+h[HA]=ads
 local g
 for i=#ads,1,-1 do
 local a=unpackRef(ads[i],true)
@@ -827,7 +838,7 @@ if now<a[F] or now-a[F]>window then table.remove(ads,i)
 elseif a[K]==key then g=a;table.remove(ads,i) end
 end
 if g and source and source==g[S] then table.insert(ads,1,pack(g,true));return end
-h.score=h.score+1
+h[HS]=h[HS]+1
 if not g then
 g={key,now,1,source,false,now}
 table.insert(ads,1,pack(g,true))
@@ -836,7 +847,7 @@ return
 end
 g[N]=g[N]+1
 local rapid=c.rapid>0 and now-g[T]<=c.rapid
-if rapid or (g[N]>=threshold and h.score>=threshold) then
+if rapid or (g[N]>=threshold and h[HS]>=threshold) then
 detected(e,id,"B",rapid and "RAPID_"..rule or rule,100,h,now,c,g,rapid and 2 or threshold)
 end
 g[P],g[S]=g[S],source
@@ -844,9 +855,9 @@ g[T]=now
 table.insert(ads,1,pack(g,true))
 elseif kind=="normal" and c.a then
 local s=norm(raw)
-if #words(s)<c.minwords then h.score=math.max(-c.credit,h.score-1);return end
-local reps=h.repGroups or {}
-h.repGroups=reps
+if #words(s)<c.minwords then h[HS]=math.max(-c.credit,h[HS]-1);return end
+local reps=h[HR] or {}
+h[HR]=reps
 for i=#reps,1,-1 do
 local at=string.unpack("<I8",reps[i])
 if now<at or now-at>window then table.remove(reps,i) end
@@ -866,23 +877,23 @@ end
 if index then
 table.remove(reps,index)
 if source and source==g[S] then table.insert(reps,1,pack(g,false));return end
-if g[N]==1 then h.score=h.score+(g[F] and 1 or 0)+2
-else h.score=h.score+1 end
+if g[N]==1 then h[HS]=h[HS]+(g[F] and 1 or 0)+2
+else h[HS]=h[HS]+1 end
 local rapid=c.rapid>0 and now-g[T]<=c.rapid and pct>=90
-if rapid then h.score=h.score+1 end
+if rapid then h[HS]=h[HS]+1 end
 g[N]=g[N]+1;g[K]=s;g[T]=now;g[F]=false
-if g[N]>=3 and h.score>=3 then
+if g[N]>=3 and h[HS]>=3 then
 detected(e,id,"A",rapid and "RAPID_SIMILAR" or "SIMILAR",pct,h,now,c,g)
 end
 g[P],g[S]=g[S],source
 table.insert(reps,1,pack(g,false))
 else
-table.insert(reps,1,pack({s,now,1,source,false,h.score>-c.credit},false))
+table.insert(reps,1,pack({s,now,1,source,false,h[HS]>-c.credit},false))
 if #reps>MAX_A then table.remove(reps) end
-h.score=math.max(-c.credit,h.score-1)
+h[HS]=math.max(-c.credit,h[HS]-1)
 end
 elseif kind=="normal" then
-h.score=math.max(-c.credit,h.score-1)
+h[HS]=math.max(-c.credit,h[HS]-1)
 end
 end)
 for _,name in ipairs({"join","nick","account","chghost"}) do
@@ -915,17 +926,18 @@ failed=false
 if not load() then api.log("V4: config non leggibile");return end
 local now=tonumber(e.timestamp) or 0
 for g in pairs(graph) do
-if now>=g.last and now-g.last>=TTL then forget(g)
-elseif g.watch then
-for ch,h in pairs(g.watch) do
-if now-h.last>lifetime(g.net.server) then g.watch[ch]=nil end
+if now>=g[GL] and now-g[GL]>=TTL then forget(g)
+elseif g[GW] then
+for ch,h in pairs(g[GW]) do
+if now-h[HL]>lifetime(g[GN].server) then g[GW][ch]=nil end
 end
-if not next(g.watch) then g.watch=nil end
+if not next(g[GW]) then g[GW]=nil end
 end
 end
 for _,n in pairs(nets) do
-for k,row in pairs(n.active) do
-if now-row[2]>=TTL then n.active[k]=nil end
+for k,g in pairs(n.active) do
+local i=ni(g,k)
+if not i or now-g[GA][i+1]>=TTL then n.active[k]=nil end
 end
 end
 for key,at in pairs(unresolved) do
@@ -1067,7 +1079,7 @@ elseif op=="reset" and rest=="" then
 pending[e.server]=nil
 c.epoch=c.epoch+1
 if saveConfig() then
-for g in pairs(graph) do if g.net.server==e.server then forget(g) end end
+for g in pairs(graph) do if g[GN].server==e.server then forget(g) end end
 nets[e.server]=nil
 show("Cronologia ed escalation azzerate")
 else c.epoch=old.epoch;show("Reset non riuscito") end
