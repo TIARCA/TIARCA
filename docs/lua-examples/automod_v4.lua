@@ -830,6 +830,136 @@ api.tmute(ch,nick,duration)
 if hasVoice(e) then api.mode(ch,nick,"-v") end
 end
 end
+-- Optional, bounded statistics. Keep separate from the escalation archive.
+-- Recent entries: Unix seconds (10 hex digits) + category (1 digit).
+-- A cutoff marks any eviction, so a partial period never looks complete.
+local statQueue,statLost={},0
+local statPeriods={oggi=true,ieri=true,["1d"]=true,["7d"]=true,["30d"]=true,all=true}
+local function statKey(server,ch)
+return "v4.stat"..(partition(server.."/"..ch)%3)
+end
+local function statRows(raw)
+local rows={}
+for line in (raw or ""):gmatch("[^\n]+") do
+local server,ch,start,cut,tot,events=line:match("^([^\t]+)\t([^\t]+)\t(%d+)\t(%d+)\t([%d,]+)\t([%da-f]*)$")
+if not server or #events%11~=0 then error("statistiche non leggibili") end
+local counts={}
+for v in tot:gmatch("%d+") do counts[#counts+1]=tonumber(v) end
+if #counts~=7 then error("statistiche non leggibili") end
+rows[#rows+1]={server,ch,tonumber(start),tonumber(cut),counts,events}
+end
+return rows
+end
+local function statEncode(rows)
+local out={}
+for i,r in ipairs(rows) do
+out[i]=table.concat({r[1],r[2],r[3],r[4],table.concat(r[5],","),r[6]},"\t")
+end
+return table.concat(out,"\n")
+end
+local function statWrite(q)
+local key=statKey(q[1],q[2])
+local rows=statRows(api.storage.get(key))
+local r
+for _,v in ipairs(rows) do
+if v[1]==q[1] and v[2]==q[2] then r=v;break end
+end
+if not r then
+r={q[1],q[2],q[3],0,{0,0,0,0,0,0,0},""}
+rows[#rows+1]=r
+end
+r[3]=math.min(r[3],q[3])
+r[5][q[4]]=r[5][q[4]]+1
+r[6]=r[6]..string.format("%010x%d",q[3],q[4])
+local function trim(v)
+local t=tonumber(v[6]:sub(1,10),16)
+v[4]=math.max(v[4],t);v[6]=v[6]:sub(12)
+end
+while #r[6]>0 and tonumber(r[6]:sub(1,10),16)<q[3]-30*86400 do trim(r) end
+local raw=statEncode(rows)
+while #raw>4096 do
+local oldest
+for _,v in ipairs(rows) do
+if #v[6]>0 and (not oldest or v[6]:sub(1,10)<oldest[6]:sub(1,10)) then oldest=v end
+end
+if not oldest then error("statistiche piene") end
+trim(oldest);raw=statEncode(rows)
+end
+api.storage.set(key,raw)
+end
+local function statFlush()
+if #statQueue>0 and pcall(statWrite,statQueue[1]) then table.remove(statQueue,1) end
+end
+local function statRecord(e,now,label,level)
+local k=label=="monitor" and 7 or label=="avviso" and 1 or
+label=="tmute" and level or label=="tbankick" and (level==4 and 5 or 6)
+if not k then return end
+if #statQueue>=32 then statLost=statLost+1;return end
+statQueue[#statQueue+1]={e.server,e.channel:lower(),now,k}
+-- After all moderation actions: a quota/action-limit error must not cancel them.
+statFlush()
+end
+-- Rome civil midnight, including EU daylight saving; UTC optionally selectable.
+local function statOffset(t)
+local day=t//86400
+local year,jan=1970,0
+local function leap(y) return y%4==0 and (y%100~=0 or y%400==0) end
+while day>=jan+(leap(year) and 366 or 365) do
+jan=jan+(leap(year) and 366 or 365);year=year+1
+end
+local march=jan+(leap(year) and 90 or 89)
+local oct=jan+(leap(year) and 304 or 303)
+local function sunday(d) return d-(d+4)%7 end
+return t>=sunday(march)*86400+3600 and t<sunday(oct)*86400+3600 and 7200 or 3600
+end
+local function statShow(e,rest)
+local period,ch,utc
+for v in rest:lower():gmatch("%S+") do
+if statPeriods[v] and not period then period=v
+elseif v=="utc" and not utc then utc=true
+elseif v:match("^[#&+!][^,%s:%c]+$") and #v<=64 and not ch then ch=v
+else api.show("AutoMod V4","Uso: /lua mod stats [oggi|ieri|1d|7d|30d|all] [#canale] [utc]");return end
+end
+period=period or "oggi"
+local now=tonumber(e.timestamp) or 0
+if now<=0 then api.show("AutoMod V4","Orario non disponibile");return end
+local from,to=0,now+1
+if period=="oggi" or period=="ieri" then
+local day=(now+(utc and 0 or statOffset(now)))//86400*86400
+local function midnight(d) return d-(utc and 0 or statOffset(d)) end
+if period=="ieri" then from,to=midnight(day-86400),midnight(day)
+else from=midnight(day) end
+elseif period~="all" then from=now-tonumber(period:sub(1,-2))*86400 end
+local sums={0,0,0,0,0,0,0}
+local partial,first=false,nil
+for i=0,2 do
+local ok,rows=pcall(function() return statRows(api.storage.get("v4.stat"..i)) end)
+if not ok then partial=true else
+for _,r in ipairs(rows) do
+if r[1]==e.server and (not ch or r[2]==ch) then
+first=math.min(first or r[3],r[3])
+if period=="all" then
+for j=1,7 do sums[j]=sums[j]+r[5][j] end
+else
+if r[4]>=from then partial=true end
+for stamp,kind in r[6]:gmatch("(%x%x%x%x%x%x%x%x%x%x)([1-7])") do
+local t=tonumber(stamp,16)
+if t>=from and t<to then local k=tonumber(kind);sums[k]=sums[k]+1 end
+end
+end
+end
+end
+end
+end
+local pending=0
+for _,q in ipairs(statQueue) do if q[1]==e.server and (not ch or q[2]==ch) then pending=pending+1 end end
+local note=partial and "\nATTENZIONE: periodo parziale (archivio limitato/non leggibile)." or ""
+if pending>0 or statLost>0 then note=note..string.format("\nIn attesa: %d; non registrati nella sessione: %d.",pending,statLost) end
+if not first or (period~="all" and first>from) then note=note.."\nRaccolta dal primo evento utile; nessun dato retroattivo." end
+api.show("AutoMod V4",string.format("%s | %s%s\nAvvisi: %d\nMute 2m: %d\nMute 15m: %d\nMute 3h: %d\nBan+kick 3h: %d\nBan+kick 24h: %d\nTotale sanzioni richieste: %d\nMonitor: %d",
+period,ch or "tutti i canali",(period=="oggi" or period=="ieri") and (utc and " (UTC)" or " (Europe/Rome)") or "",
+sums[1],sums[2],sums[3],sums[4],sums[5],sums[6],sums[2]+sums[3]+sums[4]+sums[5]+sums[6],sums[7])..note)
+end
 local function detected(e,id,engine,rule,pct,h,now,c,g,threshold)
 local chosen,level,history,links,keys=historyFor(id,now,c)
 if not chosen then api.log("V4: archivio identita/storico non leggibile; moderazione sospesa");return end
@@ -853,6 +983,7 @@ api.log(line..aliases(id,e,now,512-#line))
 api.log(string.format("WatchdogV4 %s %s/%s %s %s score=%d",
 engine,e.server:sub(1,8),e.channel,e.nick,rule,h[HS]))
 if c.mode=="live" and level<5 then sanction(e,nextLevel,engine) end
+statRecord(e,now,label,nextLevel)
 end
 api.on("message",function(e)
 if e.message_type~="normal" or not e.channel or
@@ -980,6 +1111,7 @@ local c=configs[server]
 return 60*(c and c.minutes or 15)
 end
 api.on("timer",function(e)
+statFlush()
 failed=false
 if not load() then api.log("V4: config non leggibile");return end
 local now=tonumber(e.timestamp) or 0
@@ -1023,7 +1155,8 @@ local function show(s) api.show("AutoMod V4",s) end
 local function help(topic)
 if topic=="" or topic=="generale" then
 show("/lua mod stato | on | off | modo monitor|live | canali add|drop #canale | canali list | close | reset")
-show("Guide: watchdog, whitelist, azioni")
+show("Guide: watchdog, whitelist, azioni, stats")
+show("/lua mod stats [oggi|ieri|1d|7d|30d|all] [#canale] [utc]")
 elseif topic=="watchdog" or topic=="parametri" then
 show("motore ripetizioni|annunci on|off; parametro somiglianza|finestra|credito|minparole|raffica N")
 show("Annunci: 2 espliciti o 3 generici. Raffica 30s; 0 disattiva.")
@@ -1039,6 +1172,7 @@ local op,rest=raw:match("^%s*mod%s+(%S+)%s*(.-)%s*$")
 if not op then if raw:match("^%s*mod%s*$") then help("") end;return end
 if op=="help" then help(rest);return end
 if op=="close" and rest=="" then api.close_pms();return end
+if op=="stats" then statFlush();statShow(e,rest);return end
 failed=false
 if not load() then show("Archivio indisponibile; moderazione sospesa");return end
 local c=config(e.server)

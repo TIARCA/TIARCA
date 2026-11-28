@@ -693,6 +693,46 @@ public final class HostLuaRuntimeTest {
         automodActive = false;
     }
 
+
+    private static void checkV4Stats() throws Exception {
+        byte[] source = Files.readAllBytes(Path.of("docs/lua-examples/automod_v4.lua"));
+        automodStorage.clear();
+        automodActive = true;
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, source))), "Stats V4 loads");
+        long t = java.time.Instant.parse("2026-11-28T10:00:00Z").getEpochSecond();
+        v4Event("command", "me", "mod canali add #room", t, null, "");
+        v4Event("message", "Monitor", "cerco ragazza", t+1, "", "monitorstats");
+        v4Event("message", "Monitor", "cerco ragazza", t+2, "", "monitorstats");
+        String monitor = java.util.Arrays.toString(v4Event("command", "me", "mod stats all", t+3, null, ""));
+        check(monitor.contains("Monitor: 1") && monitor.contains("Totale sanzioni richieste: 0"), monitor);
+        v4Event("command", "me", "mod modo live", t+4, null, "");
+        v4Event("message", "Live", "cerco ragazza", t+5, "", "livestats");
+        v4Event("message", "Live", "cerco ragazza", t+6, "", "livestats");
+        v4Event("message", "Live", "cerco ragazza", t+7, "", "livestats");
+        String live = java.util.Arrays.toString(v4Event("command", "me", "mod stats 1d #room", t+8, null, ""));
+        check(live.contains("Avvisi: 1") && live.contains("Mute 2m: 1") &&
+                live.contains("Totale sanzioni richieste: 1") && live.contains("Monitor: 1"), live);
+        NativeLuaRuntime.unload(OTHER);
+        check("OK".equals(decode(NativeLuaRuntime.load(OTHER, source))), "Stats survive reload");
+        String all = java.util.Arrays.toString(v4Event("command", "me", "mod stats all", t+9, null, ""));
+        check(all.contains("Avvisi: 1") && all.contains("Mute 2m: 1"), all);
+        long midnight = java.time.Instant.parse("2026-11-28T23:00:00Z").getEpochSecond();
+        String today = java.util.Arrays.toString(v4Event("command", "me", "mod stats oggi", midnight, null, ""));
+        check(today.contains("Avvisi: 0") && today.contains("Europe/Rome"), today);
+        String yesterday = java.util.Arrays.toString(v4Event("command", "me", "mod stats ieri", midnight, null, ""));
+        check(yesterday.contains("Avvisi: 1"), yesterday);
+        String rolling = java.util.Arrays.toString(v4Event("command", "me", "mod stats 1d", midnight, null, ""));
+        check(rolling.contains("Avvisi: 1"), rolling);
+        String other = java.util.Arrays.toString(v4Event("command", "me", "mod stats all #else", midnight, null, ""));
+        check(other.contains("Avvisi: 0") && other.contains("Monitor: 0"), other);
+        v4Event("command", "me", "mod reset", midnight, null, "");
+        String reset = java.util.Arrays.toString(v4Event("command", "me", "mod stats all", midnight, null, ""));
+        check(reset.contains("Avvisi: 1") && reset.contains("Monitor: 1"), reset);
+        NativeLuaRuntime.unload(OTHER);
+        automodStorage.clear();
+        automodActive = false;
+    }
+
     public static void main(String[] args) throws Exception {
         checkHarvester();
         checkStorageRevisions();
@@ -700,6 +740,7 @@ public final class HostLuaRuntimeTest {
         checkV4RefinementsAndGraph();
         checkV4BalancedLinks();
         checkV4LargeHistory();
+        checkV4Stats();
         // Read subscriptions from the actual loaded VM, not Lua source text.
         check(NativeLuaRuntime.eventMask(OTHER) == -1, "Absent VM has no known mask");
         check("OK".equals(decode(NativeLuaRuntime.load(OTHER,
