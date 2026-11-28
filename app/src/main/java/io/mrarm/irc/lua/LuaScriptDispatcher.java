@@ -1432,13 +1432,14 @@ public final class LuaScriptDispatcher {
                 // Show a bounded, sender/channel-verified notice on the Server tab
                 // even when a warning is private or a requested action is denied.
                 String report = LuaAutoModReport.fromEventLog(
-                        request.event, request.server, request.channel, request.nick, value);
+                        request.event, request.server, request.channel, request.nick, value,
+                        request.eventTimestamp, request.eventText);
                 if (report != null) {
                     // Publish a generic observed moderation report to enabled Lua
                     // scripts; only an external script decides whether to archive it.
                     if (!"moderation_log".equals(request.event))
                         enqueueWithData("moderation_log", request.server, request.channel,
-                                request.nick, value, script.name, request.eventTimestamp,
+                                request.nick, LuaAutoModReport.canonicalLine(value), script.name, request.eventTimestamp,
                                 null, null, null, null, null, request.sourceId);
                     try {
                         ServerConnectionInfo connection = ServerConnectionManager

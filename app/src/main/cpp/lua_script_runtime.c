@@ -23,7 +23,7 @@
 #define MAX_STORAGE_BYTES (128u * 1024u)
 #define EVENT_KINDS 20
 #define IDENTITY_V2_FLAG (1 << 20)
-#define MAX_SOURCE 24576
+#define MAX_SOURCE 49152
 #define SCRIPT_MEMORY (2u * 1024u * 1024u)
 #define INSTRUCTION_LIMIT 200000ul
 
@@ -81,6 +81,9 @@ typedef struct ScriptVm {
 
 static ScriptVm *g_scripts[MAX_SCRIPTS]; /* Single isolated worker thread. */
 static size_t g_allocated; /* Hard overall cap, including restart-created VMs. */
+#ifdef TIARCA_LUA_HOST_METRICS
+static size_t host_peak;
+#endif
 
 static ScriptVm *context(lua_State *L) {
     return *(ScriptVm **) lua_getextraspace(L);
@@ -106,6 +109,9 @@ static void *bounded_alloc(void *ud, void *ptr, size_t old, size_t new_size) {
     if (p != NULL) {
         s->allocated = s->allocated - old_size + new_size;
         g_allocated = g_allocated - old_size + new_size;
+#ifdef TIARCA_LUA_HOST_METRICS
+        if (g_allocated > host_peak) host_peak = g_allocated;
+#endif
     }
     return p;
 }
@@ -926,6 +932,12 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_load(JNIEnv *env, jclass unused,
         return jmessage(env, "ERROR: Lua allocation failed");
     }
     *(ScriptVm **)lua_getextraspace(s->L) = s;
+    /* Lua 5.5 defaults to a 250% incremental GC pause. Under a hard 2 MiB
+     * cap this can push otherwise healthy VMs into emergency collection.
+     * Configure earlier incremental collection before loading any script.
+     * No limits or sandbox capabilities change. */
+    lua_gc(s->L, LUA_GCPARAM, LUA_GCPPAUSE, 110);
+    lua_gc(s->L, LUA_GCPARAM, LUA_GCPSTEPMUL, 300);
     install_libraries(s->L);
     lua_sethook(s->L, budget_hook, LUA_MASKCOUNT, 100);
 
@@ -971,6 +983,25 @@ Java_io_mrarm_irc_lua_NativeLuaRuntime_allocatedBytes(JNIEnv *env, jclass unused
     (void)env; (void)unused;
     return (jlong)g_allocated;
 }
+
+/* These JNI entry points are compiled only for the host test executable.
+ * They are not Lua APIs and cannot be used in an Android distribution build. */
+#ifdef TIARCA_LUA_HOST_METRICS
+JNIEXPORT jlong JNICALL
+Java_io_mrarm_irc_lua_HostLuaStressTest_fullGc(JNIEnv *env, jclass cls) {
+    (void)env; (void)cls;
+    for (int i = 0; i < MAX_SCRIPTS; i++)
+        if (g_scripts[i]) lua_gc(g_scripts[i]->L, LUA_GCCOLLECT);
+    return (jlong)g_allocated;
+}
+JNIEXPORT jlong JNICALL
+Java_io_mrarm_irc_lua_HostLuaStressTest_allocationPeak(JNIEnv *env, jclass cls, jboolean reset) {
+    (void)env; (void)cls;
+    size_t old = host_peak;
+    if (reset) host_peak = g_allocated;
+    return (jlong)old;
+}
+#endif
 
 JNIEXPORT void JNICALL
 Java_io_mrarm_irc_lua_NativeLuaRuntime_unload(JNIEnv *env, jclass unused, jstring jid) {

@@ -13,7 +13,7 @@ Gli script importati sono **disabilitati**. L'utente sceglie esplicitamente le r
 | Dati persistenti | Testo salvato privatamente per script | `storage.get/set/delete` |
 | Archivio JSONL Lua | Scrittura incrementale per script/rete, export esplicito; lettura ultimo messaggio storico richiede anche Identità | `journal.append/export/rotate/export_archive`, `last_message` |
 
-Limiti fondamentali: massimo **8 script**, **24.576 byte UTF-8** per sorgente, fino a **16 reti** selezionate per script; VM da **2 MiB**, massimo **200.000 istruzioni** per caricamento/evento, **8 callback** e **12 azioni** per evento. I messaggi in uscita sono limitati e possono essere scartati; le azioni di moderazione sono richieste, **non conferme di esecuzione IRC**.
+Limiti fondamentali: massimo **8 script**, **49.152 byte UTF-8** per sorgente, fino a **16 reti** selezionate per script; VM da **2 MiB**, massimo **200.000 istruzioni** per caricamento/evento, **8 callback** e **12 azioni** per evento. I messaggi in uscita sono limitati e possono essere scartati; le azioni di moderazione sono richieste, **non conferme di esecuzione IRC**.
 
 Non sono disponibili `io`, `os`, `package`, `debug`, `require`, `load`, `loadfile`, `dofile`, `string.dump`, `print` o `collectgarbage`. Niente file arbitrari, socket, Java/Android o IRC RAW. Le API controllano rete, canale, consenso e dati osservati.
 

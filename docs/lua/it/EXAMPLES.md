@@ -8,7 +8,7 @@ Gli esempi sono file UTF-8 da importare manualmente: **non** sono plugin install
 |---|---|---|
 | [automod_antiripetizione.lua](../../lua-examples/automod_antiripetizione.lua) | Modera ripetizioni con filtri per canale | Identità, persistenza, moderazione; invio per avvisi |
 | [automod_annunci.lua](../../lua-examples/automod_annunci.lua) | [AutoMod B](AUTOMOD_B.md): riconoscimento annunci, concentrazione retroattiva, escalation | Membri e identità, persistenza, invio e moderazione in modalità live |
-| [automod_v4.lua](../../lua-examples/automod_v4.lua) | Watchdog + Mod v2; monitor predefinito, zero canali | Identità, persistenza; invio e moderazione per live |
+| [automod_v4.lua](../../lua-examples/automod_v4.lua) | [Guida V4](../../lua-examples/AUTOMOD_V4.md); monitor predefinito, zero canali | Identità, persistenza; invio e moderazione per live |
 | [espelli.lua](../../lua-examples/espelli.lua) | Espulsione manuale: TBAN host `N:` e `m:U:` per 6h, KICK e ban nick/account; senza +N globale | Membri e identità, moderazione; OP |
 | [mask_finder.lua](../../lua-examples/mask_finder.lua) | Cerca nickname, ident e host | Membri e identità |
 | [harvester.lua](../../lua-examples/harvester.lua) | [Harvester V1 in bozza](../../lua-examples/HARVESTER.md): raccolta passiva normalizzata | Identità e persistenza; nessun invio o moderazione |

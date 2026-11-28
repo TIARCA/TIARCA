@@ -62,6 +62,22 @@ public class LuaAutoModReportTest {
         assertNull(render(report + " rule INVALID! score 3 threshold 75 count 3 refs -"));
     }
 
+    @Test public void v4NoticeShowsVerifiedCurrentNickAliasesTimeAndOriginalText() {
+        String canonical = "AutoModV4 test-ser/#room Nick-2 100.0% infrazione 2 (monitor) motore B" +
+                " rule CONTACT score 3 threshold 2 count 2 refs -";
+        String line = canonical + " aliases FormerNick/OtherNick";
+        String notice = LuaAutoModReport.fromEventLog("message", SERVER, CHANNEL, NICK,
+                line, 1794400000L, "\u00a0F per privatoo?");
+        assertNotNull(notice);
+        assertTrue(notice.contains("Nick-2/FormerNick/OtherNick"));
+        assertTrue(notice.contains("Messaggio: \u00a0F per privatoo?"));
+        assertTrue(notice.matches(".*\\d{2}/\\d{2}/\\d{4} \\d{2}:\\d{2}:\\d{2}.*"));
+        assertEquals(canonical, LuaAutoModReport.canonicalLine(line));
+        assertEquals(canonical, LuaAutoModReport.canonicalLine(canonical));
+        assertNull(render(line.replace("Nick-2 100", "WrongNick 100")));
+        assertNull(render(line + "\nforged notice"));
+    }
+
     @Test public void unrelatedOrForgedLogsAreNotInjectedIntoServerTab() {
         assertNull(render("AutoMod: storico persistente pieno"));
         assertNull(render("Other script called moderation"));

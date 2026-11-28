@@ -1,10 +1,10 @@
 local api=tiarca
 local TTL,SHARDS=86400,20
-local DEFAULT_RAPID,MAX_AD_GROUPS=30,6
+local RAPID,MAX_B,MAX_A=30,6,5
 local ranges={similarity={50,100},minutes={1,120},credit={0,3},minwords={3,12},rapid={0,120}}
 local parameters={somiglianza="similarity",soglia="similarity",finestra="minutes",
 minuti="minutes",credito="credit",minparole="minwords",raffica="rapid"}
-local configs,allow,watch,hostSeen,unresolved,cursor={},{},{},{},{},{}
+local configs,allow,unresolved,cursor={},{},{},{}
 local loaded,failed=false,false
 local pending,seq={},0
 api.identity_v2()
@@ -14,24 +14,57 @@ end
 local function dict(s)
 local d={} for v in s:gmatch("%S+") do d[v]=true end return d
 end
-local people=dict("f m mxm ragazza ragazze ragazzo ragazzi donna donne uomo uomini qualcuna qualcuno nessuna nessuno coetanea coetanee coetaneo coetanei")
+local people=dict("f m mxm ragazza ragazze ragazzo ragazzi donna donne uomo uomini qualcuna qualcuno nessuna nessuno coetanea coetanee coetaneo coetanei tipa tipo tipe tipi femmina femmine maschio maschi")
 local single=dict("mxm ragazza ragazze donna donne")
 local chatTarget=dict("f m mxm donna donne uomo uomini")
 local search=dict("cerco cerca cercasi cerchiamo chi qualche qualke")
-local chatting=dict("chat chatta chattare chatto chiacchiera conoscenza conoscere compagnia amicizia amicizie parlare")
+local chatting=dict("chat chatta chattare chatto chiacchiera conoscenza conoscere compagnia amicizia amicizie parlare chattiamo chiacchiere messaggiare")
 local contact=dict("pvt priv privato privata prvt scrivimi scrivetemi contattami contattatemi")
 local encounter=dict("reale incontro incontri ospito ospitare uscire")
 local media=dict("cam call videochat whatsapp whatap whatsap telegram tg")
-local places=dict("parma caserta brescia bergamo foggia avellino milano roma napoli biella veneto puglia lecce sicilia friuli piemonte marche toscana bari salerno genova torino calabria calabira siciliana verona enna viareggio firenze bologna palermo catania abruzzo molise umbria lazio sardegna lombardia campania")
+local places=dict("parma caserta brescia bergamo foggia avellino milano roma napoli biella veneto puglia lecce sicilia friuli piemonte marche toscana bari salerno genova torino calabria calabira siciliana verona enna viareggio firenze bologna palermo catania abruzzo molise umbria lazio sardegna lombardia campania liguria trentino basilicata aosta bolzano trento potenza matera aquila pescara chieti teramo isernia campobasso ancona ascoli pesaro macerata fermo perugia terni rimini ravenna cesena forli modena reggio piacenza ferrara padova vicenza treviso venezia rovigo belluno udine trieste gorizia pordenone como lecco varese lodi cremona mantova sondrio monza pavia asti cuneo novara vercelli alessandria imperia savona spezia lucca pisa livorno arezzo siena grosseto prato pistoia massa carrara latina frosinone viterbo rieti benevento brindisi taranto barletta andria trani catanzaro cosenza crotone vibo messina siracusa ragusa trapani agrigento caltanissetta cagliari sassari nuoro oristano")
+local geo={}
+for line in ("puglia pugliese pugliesi|roma romano romana romani romane|napoli napoletano napoletana napoletani napoletane|"..
+"abruzzo abruzzese abruzzesi|sicilia siciliano siciliana siciliani siciliane|milano milanese milanesi|"..
+"calabria calabrese calabresi|sardegna sardo sarda sardi sarde|toscana toscano toscana toscani toscane|"..
+"veneto veneta veneti venete|piemonte piemontese piemontesi|lombardia lombardo lombarda lombardi lombarde|"..
+"campania campano campana campani campane|liguria ligure liguri|marche marchigiano marchigiana marchigiani marchigiane|"..
+"umbria umbro umbra umbri umbre|lazio laziale laziali|molise molisano molisana molisani molisane|"..
+"friuli friulano friulana friulani friulane|trentino trentina trentini trentine|basilicata lucano lucana lucani lucane|"..
+"aosta valdostano valdostana valdostani valdostane|bari barese baresi|palermo palermitano palermitana palermitani palermitane|"..
+"torino torinese torinesi|genova genovese genovesi|bologna bolognese bolognesi|firenze fiorentino fiorentina fiorentini fiorentine|"..
+"salerno salernitano salernitana salernitani salernitane|catania catanese catanesi|messina messinese messinesi|"..
+"verona veronese veronesi|venezia veneziano veneziana veneziani veneziane|pescara pescarese pescaresi|"..
+"caserta casertano casertana casertani casertane|lecce leccese leccesi|foggia foggiano foggiana foggiani foggiane"):gmatch("[^|]+") do
+local city=line:match("^%S+")
+for v in line:gmatch("%S+") do geo[v]=city;places[v]=true end
+end
 local greetings={}
 for s in ("ciao|salve|sera|buongiorno|buonasera|buonanotte|buona sera|buon pomeriggio|buona serata|"..
 "buona notte|ciao tutti|ciao a tutti|salve a tutti|sera a tutti|buonasera a tutti|buongiorno a tutti|buonanotte a tutti|un saluto a tutti|ciao chat"):gmatch("[^|]+") do greetings[s]=true end
-local function normalize(s)
+local function norm(s)
 s=(s or ""):lower():gsub("à","a"):gsub("è","e"):gsub("é","e")
 s=s:gsub("ì","i"):gsub("ò","o"):gsub("ù","u")
+s=s:gsub("\194\160"," "):gsub("\225\154\128"," "):gsub("\226\128[\128-\138\168\169\175]"," ")
+s=s:gsub("\226\129\159"," "):gsub("\227\128\128"," ")
 s=s:gsub("[%p%c]"," "):gsub("%s+"," ")
 s=s:match("^%s*(.-)%s*$") or ""
 return s:gsub("(%f[%a][mf])%s+(%d+)","%1%2")
+end
+local lex={}
+for _,d in ipairs({people,single,chatTarget,search,chatting,contact,encounter,media,places}) do
+for v in pairs(d) do lex[v]=true end
+end
+local equivalents={pvt="privato",prvt="privato",priv="privato",privata="privato",x="per"}
+local function normB(raw)
+local w=words(norm(raw))
+for i,v in ipairs(w) do
+local t=v
+while not lex[t] and #t>3 and t:byte(-1)==t:byte(-2) do t=t:sub(1,-2) end
+if lex[t] then v=t end
+w[i]=equivalents[v] or v
+end
+return table.concat(w," ")
 end
 local function has(w,d)
 for _,v in ipairs(w) do if d[v] then return true end end
@@ -54,7 +87,7 @@ local periods=dict("giorno giornata mattina mattinata pomeriggio sera serata not
 local greetPrefix={"ti auguro","vi auguro","auguro a tutti","auguro a tutte","auguro a te","auguro a voi","auguro"}
 local greetSuffix={"a te","a voi","a tutti","a tutte","tutti","tutte","un abbraccio","tutto bene"}
 local notNick=dict("a te voi tutti tutte io tu mi ti vi un una il la che di da per con si no anche e o bene sesso sexy sex info numero numeri sono chiamo qualsiasi qualunque eta")
-local function greetingCore(s)
+local function greetCore(s)
 if greetings[s] then return true end
 for _,p in ipairs(greetPrefix) do
 if s:sub(1,#p+1)==p.." " then
@@ -74,30 +107,30 @@ local function protected(n)
 return notNick[n] or people[n] or search[n] or chatting[n] or contact[n]
 or encounter[n] or media[n] or places[n] or greetings[n] or wish[n] or periods[n]
 end
-local function greetingNick(n)
+local function greetNick(n)
 return n and n:match("^[a-z][%w]*$") and not protected(n) and not code({n})
 end
-local function isGreeting(raw)
-local s=normalize(raw:gsub("\240\159[\128-\191][\128-\191]"," ")
+local function greet(raw)
+local s=norm(raw:gsub("\240\159[\128-\191][\128-\191]"," ")
 :gsub("\226[\152\153\157][\128-\191]"," ")
 :gsub("\239\184\143",""):gsub("\226\128\141","")
 :gsub("([%w])[_%-]+%f[%w]","%1"))
-if greetingCore(s) then return true end
+if greetCore(s) then return true end
 local n,tail=s:match("^(%S+) (.+)$")
-if greetingNick(n) and greetingCore(tail) then return true end
+if greetNick(n) and greetCore(tail) then return true end
 local head,last=s:match("^(.+) (%S+)$")
-if greetingNick(last) and greetingCore(head) then return true end
+if greetNick(last) and greetCore(head) then return true end
 local first,middle,rest=s:match("^(%S+) (%S+) (.+)$")
-if greetings[first] and greetingNick(middle) and greetingCore(first.." "..rest) then
+if greetings[first] and greetNick(middle) and greetCore(first.." "..rest) then
 return true end
 return false
 end
-local function category(raw)
+local function category(raw,s,w)
 if raw:match("^%s*!") then return "ignore","BOT" end
-local s=normalize(raw)
+s=s or normB(raw)
 if s=="" then return "ignore","EMPTY" end
 if greetings[s] then return "ignore","GREETING" end
-local w=words(s)
+w=w or words(s)
 if not s:find("[^%d ]") then
 if raw:match("^%s*0%d%d?%s*[/%-]%s*0%d%d?%s*%??%s*$") then return "ad","NUMERIC" end
 return "short","NUMERIC"
@@ -105,6 +138,9 @@ end
 if #w==1 and (single[w[1]] or code(w) or
 ((w[1]=="f" or w[1]=="m") and raw:find("?",1,true))) then return "ad","SINGLE" end
 if #w<2 then return "short","SHORT" end
+if (w[1]=="ciao" or w[1]=="salve" or w[1]=="buongiorno" or w[1]=="buonasera") and
+has(w,places) and not has(w,search) and not has(w,contact) and not has(w,chatting)
+and not has(w,{per=true,ci=true,siete=true}) then return "ignore","GREETING" end
 if s=="mxm reale" or near(w,{mxm=true},encounter,3) then return "ad","MXM" end
 if near(w,people,contact,7) then return "ad","CONTACT" end
 if near(w,people,places,6) then return "ad","GEO" end
@@ -115,15 +151,19 @@ if has(w,{ospito=true,ospitare=true}) and has(w,places) then return "ad","HOST" 
 if has(w,people) and (s:find("qualsiasi eta",1,true) or
 s:find("qualunque eta",1,true)) then return "ad","AGE" end
 if near(w,people,chatting,5) then
+local explicit=w[1]=="cerco" or w[1]=="cercasi" or w[1]=="cerchiamo"
+if code(w) and (has(w,{io=true}) or explicit or
+(not code({w[1]}) and has(w,{per=true}) and has(w,people))) then return "ad","MCODE" end
 if #w<=8 and (near(w,chatTarget,chatting,5) or
 has(w,{conoscenza=true,conoscere=true})) and
 not (#w==2 and chatting[w[1]] and not raw:find("?",1,true)) then
 return "ad","CHAT" end
+if explicit and near(w,search,people,5) then return "ad","SEARCH" end
 return "normal","NORMAL" end
 if near(w,search,people,5) then return "ad","SEARCH" end
 if code(w) and (w[1]=="io" or has(w,search) or
 has(w,contact) or has(w,people)) then return "ad","MCODE" end
-if isGreeting(raw) or s:match("^ciao da [%w_]+$") then return "ignore","GREETING" end
+if greet(raw) or s:match("^ciao da [%w_]+$") then return "ignore","GREETING" end
 if #w<=2 then return "short","SHORT" end
 if not s:find("[a-z]") then return "ignore","SYMBOLS" end
 if raw:match("^%s*https?://") and #w<=4 then return "ignore","URL" end
@@ -131,13 +171,13 @@ return "normal","NORMAL"
 end
 local function contextual(e,raw,kind,rule)
 if not e.mentions or not next(e.mentions) or kind=="ignore" then return kind,rule end
-local w=words(normalize(raw))
+local w=words(norm(raw))
 local ad=has(w,search) or has(w,contact) or has(w,media) or has(w,encounter)
 or has(w,{io=true,per=true})
 local prev=""
 local clean=raw:gsub("%S+",function(t)
 local n=t:gsub("[,:;.!?]+$","")
-local v=words(normalize(n))
+local v=words(normB(n))
 local keep=false
 for _,x in ipairs(v) do if protected(x) or x:match("^%d+$") then keep=true end end
 if code(v) and (ad or prev=="sono" or prev=="chiamo" or not code({n:lower()})) then keep=true end
@@ -148,6 +188,31 @@ if clean==raw then return kind,rule end
 local k,r=category(clean)
 if kind=="ad" or k=="ignore" then return k,r end
 return kind,rule
+end
+local feminine=dict("f ragazza ragazze donna donne tipa tipe femmina femmine nessuna qualcuna coetanea coetanee")
+local masculine=dict("m ragazzo ragazzi uomo uomini tipo tipi maschio maschi nessuno qualcuno coetaneo coetanei")
+local function adKey(rule,s,raw,w)
+w=w or words(s)
+local f,m=has(w,feminine),has(w,masculine)
+local target=f and (m and "both" or "f") or (m and "m" or "")
+local first=w[1] or ""
+local explicit=search[first] or people[first] or
+((first=="una" or first=="un") and people[w[2]]) or
+(raw:find("?",1,true) and (has(w,{per=true,["in"]=true,zona=true}) or #w<=4))
+if not explicit then return s end
+if rule=="CONTACT" and target~="" then return "CONTACT:"..target end
+if rule=="GEO" or rule=="WHO_GEO" then
+if first=="chi" and w[2] and not places[w[2]] and
+not ({di=true,da=true,dal=true,dalla=true,a=true,["in"]=true,zona=true})[w[2]] then return s end
+local loc
+for _,v in ipairs(w) do if places[v] then
+local city=geo[v] or v
+if loc and loc~=city then return s end
+loc=city
+end end
+if loc then return "GEO:"..target..":"..loc end
+end
+return s
 end
 local function similar(a,b)
 local wa,wb=words(a),words(b)
@@ -160,14 +225,13 @@ return 200*shared/(#wa+#wb)
 end
 local function adThreshold(rule,tokens)
 if rule=="WHO_GEO" or (rule=="SINGLE" and not code(tokens)) or
-   (rule=="CHAT" and not has(tokens,chatTarget)) then return 3 end
+(rule=="CHAT" and not has(tokens,chatTarget)) then return 3 end
 return 2
 end
-
 local function config(server)
 local c=configs[server]
 if not c then c={on=true,a=true,b=true,mode="monitor",channels={},
-similarity=75,minutes=15,credit=2,minwords=3,epoch=1,rapid=DEFAULT_RAPID}
+similarity=75,minutes=15,credit=2,minwords=3,epoch=1,rapid=RAPID}
 configs[server]=c end
 return c
 end
@@ -204,7 +268,7 @@ table.sort(channels)
 local row=table.concat({server,c.on and 1 or 0,c.mode,
 c.a and 1 or 0,c.b and 1 or 0,c.similarity,c.minutes,
 c.credit,c.minwords,c.epoch,table.concat(channels,",")},"\t")
-rows[#rows+1]=c.rapid==DEFAULT_RAPID and row or row.."\t"..c.rapid
+rows[#rows+1]=c.rapid==RAPID and row or row.."\t"..c.rapid
 end
 table.sort(rows)
 local raw=table.concat(rows,"\n")
@@ -251,58 +315,497 @@ allow[key]=nick
 end
 loaded=true;return true
 end
-local function readPart(i)
+local function readPart(i,filter)
 local history={}
+local seen=filter and {} or history
 local yes,part=pcall(api.storage.get,shardKey(i))
 if yes then
-for _,line in ipairs(eachline(part)) do
+for line in (part or ""):gmatch("[^\n]+") do
 local key,lev,at,epoch=line:match("^([^\t]+)\t(%d+)\t(%d+)\t(%d+)$")
 lev=tonumber(lev)
-if not key or history[key] or partition(key)~=i or lev<1 or lev>5 then
+if not key or seen[key] or partition(key)~=i or lev<1 or lev>5 then
 yes=false;break end
-history[key]={level=lev,at=tonumber(at),epoch=tonumber(epoch)}
+seen[key]=true
+if not filter or filter[key] then history[key]={level=lev,at=tonumber(at),epoch=tonumber(epoch)} end
 end
 end
 if yes then return history end
 api.log("V4: archivio non leggibile; moderazione sospesa per blocco "..i)
 end
 local genericIdent=dict("guest webirc android user ident unknown anonymous irccloud mibbit")
-local function identify(e,now,window)
+local genericHost=dict("localhost services.simosnap.com bot.simosnap.com * 0 unknown 0.0.0.0 127.0.0.1 ::1")
+local MAX_GRAPH,MAX_KEYS,MAX_NAMES,LINK_SHARDS=768,24,8,6
+local graph,nets={},{}
+local graphCount=0
+local GI,GN,GL,GK,GA,GW=1,2,3,4,5,6
+local HS,HL,HR,HA=1,2,3,4
+local function distinct(i)
+return #i>=5 and not genericIdent[i]
+end
+local function provider(h)
+if not h:match("^simosnap%-") or h:match("%.ip$") then return nil end
+local suffix=h:match("^[^.]+%.(.+)$")
+if not suffix or not suffix:find("%.") then return nil end
+return suffix:match("([^.]+%.co%.uk)$") or suffix:match("([^.]+%.com%.au)$") or
+suffix:match("([^.]+%.[^.]+)$")
+end
+local function usableNick(n)
+return n~="" and not n:match("^guest[%d_%-]*$") and
+not n:match("^utente[%d_%-]*$") and not n:match("^user[%d_%-]*$") and
+not n:match("^ospite[%d_%-]*$")
+end
+local function network(server)
+local n=nets[server]
+if not n then n={server=server,index={},active={}};nets[server]=n end
+return n
+end
+local function ni(g,k)
+local a=g[GA]
+for i=1,#a,3 do if a[i]:lower()==k then return i end end
+end
+local function forget(g)
+if not graph[g] then return end
+local n=g[GN]
+for i=1,#g[GK],2 do local k=g[GK][i];if n.index[k]==g then n.index[k]=nil end end
+for i=1,#g[GA],3 do
+local k=g[GA][i]:lower()
+if n.active[k]==g then n.active[k]=nil end
+end
+graph[g]=nil;graphCount=graphCount-1
+g[GK]=nil;g[GA]=nil;g[GW]=nil
+end
+local function addName(g,n,at)
+local k=valid(n)
+if k=="" or #n>64 or n:find("[/:]") then return end
+local a=g[GA]
+local i=ni(g,k)
+if i then
+if at>a[i+1] then a[i],a[i+1]=n,at end
+return i
+end
+i=#a+1
+if #a>=MAX_NAMES*3 then
+i=1
+for j=4,#a,3 do if a[j+1]<a[i+1] then i=j end end
+if a[i+1]>at then return end
+local old=a[i]:lower()
+if g[GN].active[old]==g then g[GN].active[old]=nil end
+end
+a[i],a[i+1],a[i+2]=n,at,false
+return i
+end
+local function attach(g,k,at)
+local index,a=g[GN].index,g[GK]
+local oldest
+for i=1,#a,2 do
+if a[i]==k then a[i+1]=math.max(a[i+1],at);index[k]=g;return end
+if a[i]~=g[GI] and (not oldest or a[i+1]<a[oldest+1]) then oldest=i end
+end
+local i=#a+1
+if #a>=MAX_KEYS*2 and oldest then
+if a[oldest+1]>at then return end
+if index[a[oldest]]==g then index[a[oldest]]=nil end
+i=oldest
+end
+a[i],a[i+1]=k,at;index[k]=g
+end
+local K,T,N,S,P,F=1,2,3,4,5,6
+local sessions,sessionId={},{}
+local function ref(s)
+if not s or s=="" then return false end
+local p,n=s:match("^([%w%-]+):(%d+)$")
+if p then
+local i=sessionId[p]
+if not i and #sessions<32 then i=#sessions+1;sessions[i]=p;sessionId[p]=i end
+if i then return string.char(i)..n end
+end
+return "\0"..s
+end
+local function unref(s)
+if not s then return "-" end
+local i=s:byte(1)
+if i==0 then return s:sub(2) end
+return sessions[i]..":"..s:sub(2)
+end
+local fmt="<I8I8I8s2s2s2"
+local function pack(g,ad)
+return string.pack(fmt,g[T],g[N],ad and g[F] or (g[F] and 1 or 0),g[K],g[S] or "",g[P] or "")
+end
+local function unpackRef(v,ad)
+local t,n,f,k,r,p=string.unpack(fmt,v)
+return {k,t,n,r~="" and r or false,p~="" and p or false,ad and f or f==1}
+end
+local function unlist(s)
+local a,i={},1
+while s and i<=#s do
+local v;v,i=string.unpack("<s2",s,i);a[#a+1]=v
+end
+return a
+end
+local function plist(a)
+for i,v in ipairs(a) do a[i]=string.pack("<s2",v) end
+return table.concat(a)
+end
+local function mergeRefs(a,b,now,window,cap,ads)
+local all,by={},{}
+for _,list in ipairs({unlist(a),unlist(b)}) do
+for _,v in ipairs(list) do
+local g=unpackRef(v,ads)
+if now>=g[T] and now-(ads and g[F] or g[T])<=window then
+local p=by[g[K]]
+if not p then by[g[K]]=g;all[#all+1]=g
+else
+local latest,older=g,p
+if p[T]>g[T] then latest,older=p,g end
+local same=latest[S] and latest[S]==older[S]
+local count=same and math.max(p[N],g[N]) or p[N]+g[N]
+local prev=latest[P] or (not same and older[S]) or false
+local first=ads and math.min(p[F],g[F]) or latest[F]
+p[N],p[P],p[S],p[T],p[F]=count,prev,latest[S],latest[T],first
+end
+end
+end
+end
+table.sort(all,function(x,y) return x[T]>y[T] end)
+while #all>cap do table.remove(all) end
+for i,g in ipairs(all) do all[i]=pack(g,ads) end
+return plist(all)
+end
+local function merge(a,b,now,window)
+if a==b then return a end
+if a[GL]<b[GL] then a,b=b,a end
+if b[GW] then
+for ch,h in pairs(b[GW]) do
+if now>=h[HL] and now-h[HL]<=window then
+if not a[GW] then a[GW]={} end
+local x=a[GW][ch]
+if not x or now<x[HL] or now-x[HL]>window then a[GW][ch]=h
+else
+x[HS]=math.max(x[HS],h[HS])
+x[HL]=math.max(x[HL],h[HL])
+x[HR]=mergeRefs(x[HR],h[HR],now,window,MAX_A,false)
+x[HA]=mergeRefs(x[HA],h[HA],now,window,MAX_B,true)
+end
+end
+end
+end
+local index,active=a[GN].index,a[GN].active
+for i=1,#b[GK],2 do
+local k,t=b[GK][i],b[GK][i+1]
+if index[k]==b then index[k]=nil end
+attach(a,k,t)
+end
+for i=1,#b[GA],3 do
+local k=b[GA][i]:lower()
+local live=active[k]==b
+if live then active[k]=nil end
+local dst=addName(a,b[GA][i],b[GA][i+1])
+if live and dst then a[GA][dst+2]=b[GA][i+2];active[k]=a end
+end
+forget(b)
+a[GL]=math.max(a[GL],b[GL])
+return a
+end
+local roots
+local function observe(e,now,window,event)
+local u=e.sender
+local oldNick=valid(e.nick)
+local newNick=event=="nick" and valid(e.text) or oldNick
+local net=network(e.server)
+local index,active=net.index,net.active
+local session=active[oldNick]
+local pos=session and ni(session,oldNick)
+local oldDomain=pos and session[GA][pos+2]
+local g
+if event=="nick" or event=="account" or event=="chghost" then
+g=session
+if g and (not graph[g] or now<g[GL] or now-g[GL]>TTL) then g=nil end
+end
+local keys,primary,domain={}
+local function key(k) keys[#keys+1]=k;return k end
+if u and (u.nick==e.nick or (event=="nick" and valid(u.nick)==newNick)) then
+local account,host,ident=valid(u.account),valid(u.host),valid(u.ident)
+if account=="*" or account=="0" then account="" end
+if account~="" then primary=key("a:"..account) end
+if distinct(ident) then
+if usableNick(oldNick) then key("ni:"..#oldNick..":"..oldNick..ident) end
+if newNick~=oldNick and usableNick(newNick) then key("ni:"..#newNick..":"..newNick..ident) end
+end
+if host~="" and not genericHost[host] then
+local exact=key("h:"..host)
+if distinct(ident) then exact=key("h:"..host.."/i:"..ident) end
+primary=primary or exact
+domain=provider(host)
+if domain then
+if usableNick(oldNick) then key("n:"..oldNick.."@"..domain) end
+if newNick~=oldNick and usableNick(newNick) then key("n:"..newNick.."@"..domain) end
+if distinct(ident) then key("i:"..ident.."@"..domain) end
+end
+end
+elseif g and event=="nick" and oldDomain then
+domain=oldDomain
+if usableNick(newNick) then key("n:"..newNick.."@"..domain) end
+end
+if primary then
+roots(keys,now,config(e.server),net)
+end
+for _,k in ipairs(keys) do
+local p=index[k]
+if p and graph[p] and now>=p[GL] and now-p[GL]<=TTL then
+g=g and merge(g,p,now,window) or p
+end
+end
+if not g and primary then
+if graphCount>=MAX_GRAPH then
+local oldest,quiet
+for p in pairs(graph) do
+if not oldest or p[GL]<oldest[GL] then oldest=p end
+if not p[GW] and (not quiet or p[GL]<quiet[GL]) then quiet=p end
+end
+if oldest then forget(quiet or oldest) end
+end
+g={primary,net,now,{},{},false}
+graph[g]=true;graphCount=graphCount+1
+end
+if not g then return nil end
+for _,k in ipairs(keys) do attach(g,k,now) end
+g[GL]=math.max(g[GL],now)
+local row=addName(g,e.nick,now)
+if event=="nick" and newNick~="" then
+row=addName(g,e.text,now);active[oldNick]=nil
+end
+if row and newNick~="" then
+g[GA][row+2]=domain or (event=="nick" and oldDomain) or false
+active[newNick]=g
+end
+return g
+end
+local function identify(e,g)
 local u=e.sender
 if not u or u.nick~=e.nick then return nil,"UNKNOWN" end
 local prefix=u.prefix or ""
 if prefix~="" and prefix~="+" then return nil,"PROTECTED" end
 local account=valid(u.account)
-if account=="*" or account=="0" then account="" end
-if account~="" then
-if account=="micaela" or allow[e.server.."|"..account] then
-return nil,"WHITELIST" end
-return e.server.."/a:"..account
+if account~="" and account~="*" and account~="0" and
+(account=="micaela" or allow[e.server.."|"..account]) then return nil,"WHITELIST" end
+if not g then return nil,"NO_HOST" end
+return g
 end
-local host=valid(u.host)
-if host=="" then return nil,"NO_HOST" end
-local ident=valid(u.ident)
-if #ident>=5 and not genericIdent[ident] then
-return e.server.."/h:"..host.."/i:"..ident
-end
-local key=e.server.."/h:"..host
-local seen=hostSeen[key]
-if seen and seen.nick~=e.nick:lower() and now-seen.at<=window then
-seen.ambiguous=true end
-if seen and seen.ambiguous and now-seen.at<=window then
-seen.at=now;return nil,"HOST_SHARED" end
-hostSeen[key]={nick=e.nick:lower(),at=now}
-return key
-end
-local function getWatch(id,channel,now,window)
-local key=id.."\0"..channel:lower()
-local h=watch[key]
-if not h or now<h.last or now-h.last>window then
-h={score=0,ref=nil,rep=0,refAt=0,
-credited=false,last=now}
-watch[key]=h
+local function getWatch(g,channel,now,window)
+if not g[GW] then g[GW]={} end
+local key=channel:lower()
+local h=g[GW][key]
+if not h or now<h[HL] or now-h[HL]>window then
+h={0,now,false,false};g[GW][key]=h
 end
 return h
+end
+local function linkStorage(n) return "v4.g"..n end
+-- Version 3: one record per root/time, shared by all its exact signatures.
+-- Old key-sharded rows remain readable. No change to legacy escalation shards.
+local function linkRows(raw,fn)
+local compact=raw=="!3" or raw:sub(1,3)=="!3\n"
+for line in (compact and raw:sub(4) or raw):gmatch("[^\n]+") do
+local root,at,epoch,names,keys
+if compact then
+root,at,epoch,names,keys=line:match("^([^\t]+)\t(%d+)\t(%d+)\t([^\t]*)\t(.+\t)$")
+else
+local k,r,t,e,ns=line:match("^([^\t]+)\t([^\t]+)\t(%d+)\t(%d+)\t(.*)$")
+local server,key
+if k then server,key=k:match("^([^/]+)/(.*)$") end
+if server then root,at,epoch,names,keys=server.."/"..r,t,e,ns,key.."\t" end
+end
+if not root or not root:match("^[^/]+/[ah]:") then return false end
+if fn(root,tonumber(at),tonumber(epoch),names,keys)==false then return false end
+end
+return true
+end
+local function linkRaw(parts,n)
+if parts[n]==nil then
+local ok,v=pcall(api.storage.get,linkStorage(n))
+if not ok then return nil end
+parts[n]=v or ""
+end
+return parts[n]
+end
+local function lookupLink(parts,k,now)
+local server,key=k:match("^([^/]+)/(.*)$")
+local row
+for n=0,LINK_SHARDS-1 do
+local raw=linkRaw(parts,n)
+if not raw then return nil,false end
+local compact=raw=="!3" or raw:sub(1,3)=="!3\n"
+if raw:find(compact and "\t"..key.."\t" or k.."\t",1,true) then
+local ok=linkRows(raw,function(r,t,e,names,ks)
+if r:sub(1,#server+1)==server.."/" and ("\t"..ks):find("\t"..key.."\t",1,true) and (now<t or now-t<TTL) then
+if row then return false end
+row={r,t,e,k==r and names or ""}
+end
+end)
+if not ok then return nil,false end
+end
+end
+return row,true
+end
+local function fresh(row,now,c)
+return row and row.epoch==c.epoch and now>=row.at and now-row.at<TTL
+end
+local function lfresh(row,now,c)
+return row and row[3]==c.epoch and now>=row[2] and now-row[2]<TTL
+end
+roots=function(keys,now,c,net)
+local parts={}
+local prefix=net.server.."/"
+for j=1,#keys do
+local key=keys[j]
+if not net.index[key] then
+local k,seen=prefix..key,{}
+for i=1,MAX_KEYS do
+if seen[k] then break end
+seen[k]=true
+local row,ok=lookupLink(parts,k,now)
+if not ok then break end
+if not lfresh(row,now,c) then
+if k~=prefix..key then keys[#keys+1]=k:sub(#prefix+1) end
+break
+end
+if row[1]==k then keys[#keys+1]=k:sub(#prefix+1);break end
+k=row[1]
+end
+end
+end
+end
+local function namesText(g,now)
+local out,a={},g[GA]
+for i=1,#a,3 do
+if now>=a[i+1] and now-a[i+1]<TTL then out[#out+1]=a[i]..":"..a[i+1] end
+end
+table.sort(out)
+return table.concat(out,",")
+end
+local function restoreNames(g,row,now)
+for n,t in (row[4] or ""):gmatch("([^,:]+):(%d+)") do
+t=tonumber(t)
+if now>=t and now-t<TTL then addName(g,n,t) end
+end
+end
+local function historyFor(g,now,c)
+local links,keys,candidates,done={},{},{},{}
+local prefix=g[GN].server.."/"
+for i=1,#g[GK],2 do keys[prefix..g[GK][i]]=true end
+local id=prefix..g[GI]
+keys[id]=true
+local function getLink(k)
+return lookupLink(links,k,now)
+end
+local function follow(k)
+local seen={}
+for i=1,MAX_KEYS do
+if seen[k] then return nil end
+seen[k]=true
+local row,ok=getLink(k)
+if not ok then return nil end
+if not lfresh(row,now,c) then return k end
+if row[4]~="" and not done[k] then restoreNames(g,row,now);done[k]=true end
+if row[1]==k then return k end
+k=row[1]
+end
+end
+local primary=follow(id)
+if not primary then return nil end
+for k in pairs(keys) do
+local r=follow(k)
+if not r then return nil end
+if r:match("^[^/]+/[ah]:") then candidates[r]=true end
+end
+candidates[primary]=true
+local chosen,level,bestAt=primary,0,0
+local shards={}
+for r in pairs(candidates) do shards[partition(r)]=true;keys[r]=true end
+for n in pairs(shards) do
+local rows=readPart(n,candidates)
+if not rows then return nil end
+for r,row in pairs(rows) do
+if fresh(row,now,c) and (row.level>level or
+(row.level==level and (row.at>bestAt or (row.at==bestAt and r<chosen)))) then
+chosen,level,bestAt=r,row.level,row.at
+end
+end
+end
+local history
+if c.mode=="live" then
+history=readPart(partition(chosen))
+if not history then return nil end
+end
+return chosen,level,history,links,keys
+end
+local function saveLinks(chosen,links,keys,g,now,c)
+local groups={}
+local function add(root,at,epoch,names,key)
+local h=root.."\t"..at.."\t"..epoch
+local v=groups[h]
+if not v then v={""};groups[h]=v end
+if root==root:match("^[^/]+/")..key then v[1]=names end
+v[#v+1]=key
+end
+local seen={}
+for n=0,LINK_SHARDS-1 do
+local raw=linkRaw(links,n)
+if not raw then return nil,"archivio identita non leggibile" end
+local ok=linkRows(raw,function(r,t,e,names,ks)
+local prefix=r:match("^[^/]+/")
+if now<t or now-t<TTL then
+if prefix~=g[GN].server.."/" or e==c.epoch then
+for k in ks:gmatch("[^\t]+") do
+local full=prefix..k
+if seen[full] then return false end
+seen[full]=true
+if not keys[full] then add(r,t,e,names,k) end
+end
+end
+end
+end)
+if not ok then return nil,"archivio identita non leggibile" end
+end
+local names=namesText(g,now)
+for k in pairs(keys) do add(chosen,now,c.epoch,names,k:match("^[^/]+/(.*)$")) end
+local records={}
+for h,v in pairs(groups) do
+local names=table.remove(v,1);table.sort(v)
+records[#records+1]=h.."\t"..names.."\t"..table.concat(v,"\t").."\t"
+end
+table.sort(records,function(a,b) if #a==#b then return a<b end return #a>#b end)
+local pages,sizes={},{}
+for n=0,LINK_SHARDS-1 do pages[n]={"!3"};sizes[n]=2 end
+for _,r in ipairs(records) do
+local n=0
+for i=1,LINK_SHARDS-1 do if sizes[i]<sizes[n] then n=i end end
+if sizes[n]+#r+1>8192 then return nil,"archivio identita pieno" end
+pages[n][#pages[n]+1]=r;sizes[n]=sizes[n]+#r+1
+end
+local writes={}
+for n=0,LINK_SHARDS-1 do
+local raw=table.concat(pages[n],"\n")
+if raw~=links[n] then writes[n]=raw end
+end
+return writes
+end
+local function aliases(g,e,now,room)
+local out={}
+local a=g[GA]
+for i=1,#a,3 do
+if a[i]:lower()~=e.nick:lower() and now>=a[i+1] and now-a[i+1]<TTL then out[#out+1]={a[i],a[i+1]} end
+end
+table.sort(out,function(a,b)
+if a[2]==b[2] then return a[1]<b[1] end
+return a[2]>b[2]
+end)
+local s=""
+for _,v in ipairs(out) do
+local part=(s=="" and " aliases " or "/")..v[1]
+if #s+#part<=room then s=s..part end
+end
+return s
 end
 local function hasVoice(e)
 return e.sender and e.sender.prefix=="+" or false
@@ -320,53 +823,190 @@ local function sanction(e,level,engine)
 local problem=engine=="A" and "messaggi ripetuti" or "annunci ripetuti"
 local ch,nick=e.channel,e.nick
 if level==1 then
- api.pm(nick,"Ciao "..nick..", su "..ch.." sono stati rilevati "..
-  problem..". Evita altre ripetizioni.")
- return
+api.pm(nick,"Ciao "..nick..", su "..ch.." sono stati rilevati "..
+problem..". Evita altre ripetizioni.")
+return
 end
 local ban=action(e,level)=="tbankick"
 local duration=({"","2m","15m","3h","24h"})[level]
 local time=({"","2 minuti","15 minuti","3 ore","24 ore"})[level]
 local msg="Su "..ch.." continuano "..problem..". E' stato richiesto un "..
- (ban and "ban" or "mute").." di "..time.."."
+(ban and "ban" or "mute").." di "..time.."."
 if ban then msg=msg.." E' stata richiesta anche l'espulsione."
 elseif hasVoice(e) then msg=msg.." Verra' rimosso anche il voice." end
 if level==4 then msg=msg.." Alla prossima infrazione: ban di 24 ore."
 elseif level==5 then msg=msg.." Per errori contatta un operatore." end
 api.pm(nick,msg)
 if ban then
- api.tban(ch,nick,duration)
- api.kick(ch,nick,"Messaggi ripetuti")
+api.tban(ch,nick,duration)
+api.kick(ch,nick,"Messaggi ripetuti")
 else
- api.tmute(ch,nick,duration)
- if hasVoice(e) then api.mode(ch,nick,"-v") end
+api.tmute(ch,nick,duration)
+if hasVoice(e) then api.mode(ch,nick,"-v") end
 end
 end
-local function detected(e,id,engine,rule,pct,h,now,c,ad,threshold)
-local n=partition(id)
-local history=readPart(n)
-if not history then return end
-local old=history[id]
-local level=0
-if old and old.epoch==c.epoch and now>=old.at and
-now-old.at<TTL then level=old.level end
+-- Optional, bounded statistics. Keep separate from the escalation archive.
+-- Recent entries: Unix seconds (10 hex digits) + category (1 digit).
+-- A cutoff marks any eviction, so a partial period never looks complete.
+local statQueue,statLost={},0
+local statPeriods={oggi=true,ieri=true,["1d"]=true,["7d"]=true,["30d"]=true,all=true}
+local function statKey(server,ch)
+return "v4.stat"..(partition(server.."/"..ch)%3)
+end
+local function statRows(raw)
+local rows={}
+for line in (raw or ""):gmatch("[^\n]+") do
+local server,ch,start,cut,tot,events=line:match("^([^\t]+)\t([^\t]+)\t(%d+)\t(%d+)\t([%d,]+)\t([%da-f]*)$")
+if not server or #events%11~=0 then error("statistiche non leggibili") end
+local counts={}
+for v in tot:gmatch("%d+") do counts[#counts+1]=tonumber(v) end
+if #counts~=7 then error("statistiche non leggibili") end
+rows[#rows+1]={server,ch,tonumber(start),tonumber(cut),counts,events}
+end
+return rows
+end
+local function statEncode(rows)
+local out={}
+for i,r in ipairs(rows) do
+out[i]=table.concat({r[1],r[2],r[3],r[4],table.concat(r[5],","),r[6]},"\t")
+end
+return table.concat(out,"\n")
+end
+local function statWrite(q)
+local key=statKey(q[1],q[2])
+local rows=statRows(api.storage.get(key))
+local function trim(v)
+local t=tonumber(v[6]:sub(1,10),16)
+v[4]=math.max(v[4],t);v[6]=v[6]:sub(12)
+end
+local count=0
+for _,q in ipairs(statQueue) do
+if statKey(q[1],q[2])~=key then break end
+count=count+1
+local r
+for _,v in ipairs(rows) do
+if v[1]==q[1] and v[2]==q[2] then r=v;break end
+end
+if not r then
+r={q[1],q[2],q[3],0,{0,0,0,0,0,0,0},""}
+rows[#rows+1]=r
+end
+r[3]=math.min(r[3],q[3])
+r[5][q[4]]=r[5][q[4]]+1
+r[6]=r[6]..string.format("%010x%d",q[3],q[4])
+while #r[6]>0 and tonumber(r[6]:sub(1,10),16)<q[3]-30*86400 do trim(r) end
+end
+local raw=statEncode(rows)
+while #raw>4096 do
+local oldest
+for _,v in ipairs(rows) do
+if #v[6]>0 and (not oldest or v[6]:sub(1,10)<oldest[6]:sub(1,10)) then oldest=v end
+end
+if not oldest then error("statistiche piene") end
+trim(oldest);raw=statEncode(rows)
+end
+api.storage.set(key,raw)
+return count
+end
+local function statFlush()
+if #statQueue==0 then return end
+local ok,n=pcall(statWrite,statQueue[1])
+if ok then for i=1,n do table.remove(statQueue,1) end end
+end
+local function statRecord(e,now,label,level)
+local k=label=="monitor" and 7 or label=="avviso" and 1 or
+label=="tmute" and level or label=="tbankick" and (level==4 and 5 or 6)
+if not k then return end
+if #statQueue>=32 then statLost=statLost+1;return end
+statQueue[#statQueue+1]={e.server,e.channel:lower(),now,k}
+-- After all moderation actions: a quota/action-limit error must not cancel them.
+statFlush()
+end
+-- Rome civil midnight, including EU daylight saving; UTC optionally selectable.
+local function statOffset(t)
+local day=t//86400
+local year,jan=1970,0
+local function leap(y) return y%4==0 and (y%100~=0 or y%400==0) end
+while day>=jan+(leap(year) and 366 or 365) do
+jan=jan+(leap(year) and 366 or 365);year=year+1
+end
+local march=jan+(leap(year) and 90 or 89)
+local oct=jan+(leap(year) and 304 or 303)
+local function sunday(d) return d-(d+4)%7 end
+return t>=sunday(march)*86400+3600 and t<sunday(oct)*86400+3600 and 7200 or 3600
+end
+local function statShow(e,rest)
+local period,ch,utc
+for v in rest:lower():gmatch("%S+") do
+if statPeriods[v] and not period then period=v
+elseif v=="utc" and not utc then utc=true
+elseif v:match("^[#&+!][^,%s:%c]+$") and #v<=64 and not ch then ch=v
+else api.show("AutoMod V4","Uso: /lua mod stats [oggi|ieri|1d|7d|30d|all] [#canale] [utc]");return end
+end
+period=period or "oggi"
+local now=tonumber(e.timestamp) or 0
+if now<=0 then api.show("AutoMod V4","Orario non disponibile");return end
+local from,to=0,now+1
+if period=="oggi" or period=="ieri" then
+local day=(now+(utc and 0 or statOffset(now)))//86400*86400
+local function midnight(d) return d-(utc and 0 or statOffset(d)) end
+if period=="ieri" then from,to=midnight(day-86400),midnight(day)
+else from=midnight(day) end
+elseif period~="all" then from=now-tonumber(period:sub(1,-2))*86400 end
+local sums={0,0,0,0,0,0,0}
+local partial,first=false,nil
+for i=0,2 do
+local ok,rows=pcall(function() return statRows(api.storage.get("v4.stat"..i)) end)
+if not ok then partial=true else
+for _,r in ipairs(rows) do
+if r[1]==e.server and (not ch or r[2]==ch) then
+first=math.min(first or r[3],r[3])
+if period=="all" then
+for j=1,7 do sums[j]=sums[j]+r[5][j] end
+else
+if r[4]>=from then partial=true end
+for stamp,kind in r[6]:gmatch("(%x%x%x%x%x%x%x%x%x%x)([1-7])") do
+local t=tonumber(stamp,16)
+if t>=from and t<to then local k=tonumber(kind);sums[k]=sums[k]+1 end
+end
+end
+end
+end
+end
+end
+local pending=0
+for _,q in ipairs(statQueue) do if q[1]==e.server and (not ch or q[2]==ch) then pending=pending+1 end end
+local note=partial and "\nATTENZIONE: periodo parziale (archivio limitato/non leggibile)." or ""
+if pending>0 or statLost>0 then note=note..string.format("\nIn attesa: %d; non registrati nella sessione: %d.",pending,statLost) end
+if not first or (period~="all" and first>from) then note=note.."\nRaccolta dal primo evento utile; nessun dato retroattivo." end
+api.show("AutoMod V4",string.format("%s | %s%s\nAvvisi: %d\nMute 2m: %d\nMute 15m: %d\nMute 3h: %d\nBan+kick 3h: %d\nBan+kick 24h: %d\nTotale sanzioni richieste: %d\nMonitor: %d",
+period,ch or "tutti i canali",(period=="oggi" or period=="ieri") and (utc and " (UTC)" or " (Europe/Rome)") or "",
+sums[1],sums[2],sums[3],sums[4],sums[5],sums[6],sums[2]+sums[3]+sums[4]+sums[5]+sums[6],sums[7])..note)
+end
+local function detected(e,id,engine,rule,pct,h,now,c,g,threshold)
+local chosen,level,history,links,keys=historyFor(id,now,c)
+if not chosen then api.log("V4: archivio identita/storico non leggibile; moderazione sospesa");return end
 local nextLevel=math.min(5,level+1)
 if c.mode=="live" then
-history[id]={level=nextLevel,at=now,epoch=c.epoch}
-local ok,err=savePart(n,history)
+local writes,why=saveLinks(chosen,links,keys,id,now,c)
+if not writes then api.log("V4: "..why);return end
+history[chosen]={level=nextLevel,at=now,epoch=c.epoch}
+local ok,err=savePart(partition(chosen),history)
 if not ok then
 api.log("V4: archivio non scrivibile; moderazione sospesa: "..tostring(err));return end
+for n,raw in pairs(writes) do api.storage.set(linkStorage(n),raw) end
 end
 local label=c.mode=="live" and (level<5 and action(e,nextLevel) or "escalation") or "monitor"
-api.log(string.format("AutoModV4 %s/%s %s %.1f%% infrazione %d (%s) motore %s",
+local line=string.format("AutoModV4 %s/%s %s %.1f%% infrazione %d (%s) motore %s",
 e.server:sub(1,8),e.channel,e.nick,pct,nextLevel,label,engine)..
-string.format(" rule %s score %d threshold %d count %d refs %s",rule,h.score,
-threshold or c.similarity,ad and ad.count or h.rep,
-ad and ((threshold==3 and ((ad.previous or "-")..",") or "")..(ad.source or "-")) or
-((h.r2 or "-")..","..(h.r1 or "-"))))
+string.format(" rule %s score %d threshold %d count %d refs %s",rule,h[HS],
+threshold or c.similarity,g[N],
+((engine=="A" or threshold==3) and (unref(g[P])..",") or "")..unref(g[S]))
+api.log(line..aliases(id,e,now,512-#line))
 api.log(string.format("WatchdogV4 %s %s/%s %s %s score=%d",
-engine,e.server:sub(1,8),e.channel,e.nick,rule,h.score))
+engine,e.server:sub(1,8),e.channel,e.nick,rule,h[HS]))
 if c.mode=="live" and level<5 then sanction(e,nextLevel,engine) end
+statRecord(e,now,label,nextLevel)
 end
 api.on("message",function(e)
 if e.message_type~="normal" or not e.channel or
@@ -376,11 +1016,14 @@ if not c.on or not c.channels[e.channel:lower()] or (not c.a and not c.b) then r
 local now=tonumber(e.timestamp) or 0
 if now<=0 then return end
 local window=c.minutes*60
+local observed=observe(e,now,window,"message")
 local raw=e.text or ""
-local kind,rule=category(raw)
+local text=normB(raw)
+local tokens=words(text)
+local kind,rule=category(raw,text,tokens)
 kind,rule=contextual(e,raw,kind,rule)
 if kind=="ignore" or kind=="short" then return end
-local id,why=identify(e,now,window)
+local id,why=identify(e,observed)
 if not id then
 if why~="WHITELIST" and why~="PROTECTED" then
 local k=e.server.."/"..e.channel:lower().."/"..e.nick:lower()
@@ -393,79 +1036,121 @@ end
 return
 end
 local h=getWatch(id,e.channel,now,window)
-h.last=now
-if h.refAt>0 and now-h.refAt>window then h.rep=0;h.ref=nil;h.r1=nil;h.r2=nil end
+h[HL]=now
+local source=ref(e.source_id)
 if kind=="ad" and c.b then
-local text=normalize(raw):gsub("%f[%a]prvt%f[%A]","pvt")
-local threshold=adThreshold(rule,words(text))
-local ads=h.adGroups or {}
-h.adGroups=ads
-local ad=ads[text]
-if ad and e.source_id and e.source_id==ad.source then return end
-if not ad then
-if (h.groups or 0)>=MAX_AD_GROUPS then
-local oldest
-for key,r in pairs(ads) do
-if not oldest or r.at<ads[oldest].at then oldest=key end end
-ads[oldest]=nil
-else h.groups=(h.groups or 0)+1 end
+local threshold=adThreshold(rule,tokens)
+local key=adKey(rule,text,raw,tokens)
+local ads=unlist(h[HA])
+local g
+for i=#ads,1,-1 do
+local a=unpackRef(ads[i],true)
+if now<a[F] or now-a[F]>window then table.remove(ads,i)
+elseif a[K]==key then g=a;table.remove(ads,i) end
 end
-h.score=h.score+1
-if not ad or now-ad.first>window then
-ads[text]={first=now,at=now,count=1,source=e.source_id}
-return
+if g and source and source==g[S] then table.insert(ads,1,pack(g,true));h[HA]=plist(ads);return end
+h[HS]=h[HS]+1
+if not g then
+g={key,now,1,source,false,now}
+table.insert(ads,1,pack(g,true))
+if #ads>MAX_B then table.remove(ads) end
+h[HA]=plist(ads);return
 end
-ad.count=ad.count+1
-local rapid=c.rapid>0 and now-ad.at<=c.rapid
-if rapid or (ad.count>=threshold and h.score>=threshold) then
-detected(e,id,"B",rapid and "RAPID_"..rule or rule,100,h,now,c,ad,rapid and 2 or threshold)
+g[N]=g[N]+1
+local rapid=c.rapid>0 and now-g[T]<=c.rapid
+if rapid or (g[N]>=threshold and h[HS]>=threshold) then
+detected(e,id,"B",rapid and "RAPID_"..rule or rule,100,h,now,c,g,rapid and 2 or threshold)
 end
-ad.previous,ad.source=ad.source,e.source_id
-ad.at=now
+g[P],g[S]=g[S],source
+g[T]=now
+table.insert(ads,1,pack(g,true));h[HA]=plist(ads)
 elseif kind=="normal" and c.a then
-local s=normalize(e.text or "")
-if #words(s)<c.minwords then
-h.score=math.max(-c.credit,h.score-1);return
+local s=norm(raw)
+if #words(s)<c.minwords then h[HS]=math.max(-c.credit,h[HS]-1);return end
+local reps=unlist(h[HR])
+for i=#reps,1,-1 do
+local at=string.unpack("<I8",reps[i])
+if now<at or now-at>window then table.remove(reps,i) end
 end
-local pct=h.ref and similar(h.ref,s) or 0
-if h.ref and pct>=c.similarity then
-if h.rep==1 then h.score=h.score+(h.credited and 1 or 0)+2
-else h.score=h.score+1 end
-h.rep=h.rep+1;h.ref=s;h.refAt=now;h.credited=false
-if h.rep>=3 and h.score>=3 then
-detected(e,id,"A","SIMILAR",pct,h,now,c) end
-h.r2=h.r1;h.r1=e.source_id
+local index,pct,g
+if reps[1] then
+local a=unpackRef(reps[1],false)
+pct=a[K]==s and 100 or similar(a[K],s)
+if pct>=c.similarity then index=1;g=a end
+end
+if not index then
+for i=2,#reps do
+local a=unpackRef(reps[i],false)
+if a[K]==s then index=i;pct=100;g=a;break end
+end
+end
+if index then
+table.remove(reps,index)
+if source and source==g[S] then table.insert(reps,1,pack(g,false));h[HR]=plist(reps);return end
+if g[N]==1 then h[HS]=h[HS]+(g[F] and 1 or 0)+2
+else h[HS]=h[HS]+1 end
+local rapid=c.rapid>0 and now-g[T]<=c.rapid and pct>=90
+if rapid then h[HS]=h[HS]+1 end
+g[N]=g[N]+1;g[K]=s;g[T]=now;g[F]=false
+if g[N]>=3 and h[HS]>=3 then
+detected(e,id,"A",rapid and "RAPID_SIMILAR" or "SIMILAR",pct,h,now,c,g)
+end
+g[P],g[S]=g[S],source
+table.insert(reps,1,pack(g,false))
 else
-h.ref=s;h.refAt=now;h.rep=1;h.r1=e.source_id;h.r2=nil
-h.credited=h.score>-c.credit
-h.score=math.max(-c.credit,h.score-1)
+table.insert(reps,1,pack({s,now,1,source,false,h[HS]>-c.credit},false))
+if #reps>MAX_A then table.remove(reps) end
+h[HS]=math.max(-c.credit,h[HS]-1)
 end
+h[HR]=plist(reps)
 elseif kind=="normal" then
-h.score=math.max(-c.credit,h.score-1)
+h[HS]=math.max(-c.credit,h[HS]-1)
 end
 end)
-api.on("nick",function(e)
-if not e.nick or not e.text then return end
-for key,s in pairs(hostSeen) do
-if key:sub(1,#e.server+1)==e.server.."/" and
-s.nick==e.nick:lower() then s.nick=e.text:lower() end
+for _,name in ipairs({"join","nick","account","chghost"}) do
+local event=name
+api.on(event,function(e)
+if not e.nick or not load() then return end
+local c=config(e.server)
+if not c.on or not next(c.channels) or (e.channel and e.channel~="" and
+not c.channels[e.channel:lower()]) then return end
+local now=tonumber(e.timestamp) or 0
+if now>0 then observe(e,now,c.minutes*60,event) end
+end)
 end
+for _,name in ipairs({"quit","part"}) do
+api.on(name,function(e)
+local n=nets[e.server]
+if n and e.nick then n.active[e.nick:lower()]=nil end
+end)
+end
+api.on("disconnected",function(e)
+local n=nets[e.server]
+if n then n.active={} end
 end)
 local function lifetime(server)
 local c=configs[server]
 return 60*(c and c.minutes or 15)
 end
 api.on("timer",function(e)
+statFlush()
 failed=false
 if not load() then api.log("V4: config non leggibile");return end
 local now=tonumber(e.timestamp) or 0
-for key,h in pairs(watch) do
-local server=key:match("^(.-)/")
-if now-h.last>lifetime(server) then watch[key]=nil end
+for g in pairs(graph) do
+if now>=g[GL] and now-g[GL]>=TTL then forget(g)
+elseif g[GW] then
+for ch,h in pairs(g[GW]) do
+if now-h[HL]>lifetime(g[GN].server) then g[GW][ch]=nil end
 end
-for key,s in pairs(hostSeen) do
-local server=key:match("^(.-)/")
-if now-s.at>lifetime(server) then hostSeen[key]=nil end
+if not next(g[GW]) then g[GW]=nil end
+end
+end
+for _,n in pairs(nets) do
+for k,g in pairs(n.active) do
+local i=ni(g,k)
+if not i or now-g[GA][i+1]>=TTL then n.active[k]=nil end
+end
 end
 for key,at in pairs(unresolved) do
 local server=key:match("^(.-)/")
@@ -492,7 +1177,8 @@ local function show(s) api.show("AutoMod V4",s) end
 local function help(topic)
 if topic=="" or topic=="generale" then
 show("/lua mod stato | on | off | modo monitor|live | canali add|drop #canale | canali list | close | reset")
-show("Guide: watchdog, whitelist, azioni")
+show("Guide: watchdog, whitelist, azioni, stats")
+show("/lua mod stats [oggi|ieri|1d|7d|30d|all] [#canale] [utc]")
 elseif topic=="watchdog" or topic=="parametri" then
 show("motore ripetizioni|annunci on|off; parametro somiglianza|finestra|credito|minparole|raffica N")
 show("Annunci: 2 espliciti o 3 generici. Raffica 30s; 0 disattiva.")
@@ -508,6 +1194,7 @@ local op,rest=raw:match("^%s*mod%s+(%S+)%s*(.-)%s*$")
 if not op then if raw:match("^%s*mod%s*$") then help("") end;return end
 if op=="help" then help(rest);return end
 if op=="close" and rest=="" then api.close_pms();return end
+if op=="stats" then statFlush();statShow(e,rest);return end
 failed=false
 if not load() then show("Archivio indisponibile; moderazione sospesa");return end
 local c=config(e.server)
@@ -606,14 +1293,12 @@ elseif op=="reset" and rest=="" then
 pending[e.server]=nil
 c.epoch=c.epoch+1
 if saveConfig() then
-for key in pairs(watch) do
-if key:sub(1,#e.server+1)==e.server.."/" then watch[key]=nil end
-end
+for g in pairs(graph) do if g[GN].server==e.server then forget(g) end end
+nets[e.server]=nil
 show("Cronologia ed escalation azzerate")
 else c.epoch=old.epoch;show("Reset non riuscito") end
 else show("Comando ignoto: /lua mod help") end
 end)
-
 api.on("identity",function(e)
 local p=pending[e.server]
 if not p or e.token~=p.token or e.query~="user" then return end
