@@ -516,6 +516,10 @@ if u and (u.nick==e.nick or (event=="nick" and valid(u.nick)==newNick)) then
 local account,host,ident=valid(u.account),valid(u.host),valid(u.ident)
 if account=="*" or account=="0" then account="" end
 if account~="" then primary=key("a:"..account) end
+if distinct(ident) then
+if usableNick(oldNick) then key("ni:"..#oldNick..":"..oldNick..ident) end
+if newNick~=oldNick and usableNick(newNick) then key("ni:"..#newNick..":"..newNick..ident) end
+end
 if host~="" and not genericHost[host] then
 local exact=key("h:"..host)
 if distinct(ident) then exact=key("h:"..host.."/i:"..ident) end
